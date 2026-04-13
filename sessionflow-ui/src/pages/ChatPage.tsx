@@ -37,23 +37,20 @@ const ChatPage: React.FC = () => {
   const user = useAuthStore((s) => s.user);
   const isStudent = user?.role === "Student";
 
-  // CRITICAL FIX: Students fetch ALL groups (no status filter) — they only have 1 group
-  // This prevents the bug where a Completed group disappears from chat sidebar
   const activeFilters = React.useMemo(
-    () => isStudent ? { pageSize: 100 } : { status: "Active", pageSize: 100 },
-    [isStudent]
+    () => ({ status: "Active", pageSize: 100 }),
+    []
   );
   const archivedFilters = React.useMemo(
-    () => isStudent ? { pageSize: 0 } : { status: "Completed", pageSize: 100 },
-    [isStudent]
+    () => ({ status: "Completed", pageSize: 100 }),
+    []
   );
 
   const { data: activeGroupsData, isLoading: loadingActive } = useGroups(activeFilters);
   const { data: archivedGroupsData, isLoading: loadingArchived } = useGroups(archivedFilters);
 
-  // For students: backend already returns their single group regardless of status filter, so no need to merge
   const activeGroups = activeGroupsData?.items || [];
-  const archivedGroups = isStudent ? [] : (archivedGroupsData?.items || []);
+  const archivedGroups = archivedGroupsData?.items || [];
 
   // ── Fetch Full Group Details (Includes Students) ─────
   const { data: fullSelectedGroup } = useGroup(activeGroupId || "");
