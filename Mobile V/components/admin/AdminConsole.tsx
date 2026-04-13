@@ -14,6 +14,8 @@ import { theme } from "../../shared/theme";
 import { GlassView } from "../ui/GlassView";
 import { OptimizedList } from "../ui/OptimizedList";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { TextInput } from "react-native";
 import { useSystemQueries, useAdminMutations } from "../../shared/queries/useAdminQueries";
 import { Badge } from "../ui/Badge";
 import { format, formatDistanceToNow } from "date-fns";
@@ -32,6 +34,8 @@ type TabType = "pending" | "codes" | "engineers" | "audit";
 
 export const AdminConsole: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>("pending");
+  const [searchQuery, setSearchQuery] = useState("");
+  const insets = useSafeAreaInsets();
   const { pendingEngineers, engineerCodes, allEngineers, auditLogs } = useSystemQueries();
   const { approveMutation, denyMutation, generateCodeMutation, revokeCodeMutation } = useAdminMutations();
   const { show: showToast } = useToast();
@@ -87,6 +91,20 @@ export const AdminConsole: React.FC = () => {
     { id: "audit", label: "AUDIT", icon: "terminal" },
   ];
 
+    const filteredEngineers = React.useMemo(() => {
+    return (allEngineers.data || []).filter(e => 
+      e.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      e.email.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [allEngineers.data, searchQuery]);
+
+  const stats = [
+    { label: "REQUESTS", value: pendingEngineers.data?.length || 0, color: theme.colors.warning, icon: "person-add" },
+    { label: "TOKENS", value: engineerCodes.data?.filter(c => !c.isUsed).length || 0, color: theme.colors.primary, icon: "key" },
+    { label: "NODES", value: allEngineers.data?.length || 0, color: theme.colors.success, icon: "shield" },
+    { label: "EVENTS", value: auditLogs.data?.length || 0, color: theme.colors.textDim, icon: "terminal" },
+  ];
+
   const renderContent = () => {
     switch (activeTab) {
       case "pending":
@@ -123,8 +141,8 @@ export const AdminConsole: React.FC = () => {
             )}
             loading={pendingEngineers.isLoading}
             onRefresh={pendingEngineers.refetch}
-            emptyTitle="No Pending Requests"
-            emptyDescription="All registration ciphers have been settled."
+            emptyTitle="Clear Queue"
+            emptyDescription="All registration requests have been settled."
           />
         );
       case "codes":
@@ -165,33 +183,52 @@ export const AdminConsole: React.FC = () => {
         );
       case "engineers":
         return (
-          <OptimizedList
-            data={allEngineers.data || []}
-            renderItem={({ item }: { item: any }) => (
-              <GlassView intensity={10} style={styles.card}>
-                <View style={styles.cardHeader}>
-                <Avatar userId={item.id} name={item.name} size={40} />
-                  <View style={styles.cardInfo}>
-                    <Text style={styles.cardTitle}>{item.name}</Text>
-                    <Text style={styles.cardSubtitle}>{item.email}</Text>
+          <View style={{ flex: 1 }}>
+            <View style={styles.searchContainer}>
+              <Ionicons name="search" size={18} color={theme.colors.textDim} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search nodes by name or email..."
+                placeholderTextColor={theme.colors.textDim}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery("")}>
+                  <Ionicons name="close-circle" size={18} color={theme.colors.textDim} />
+                </TouchableOpacity>
+              )}
+            </View>
+            <OptimizedList
+              data={filteredEngineers}
+              renderItem={({ item }: { item: any }) => (
+                <GlassView intensity={10} style={styles.card}>
+                  <View style={styles.cardHeader}>
+                  <Avatar userId={item.id} name={item.name} size={40} />
+                    <View style={styles.cardInfo}>
+                      <Text style={styles.cardTitle}>{item.name}</Text>
+                      <Text style={styles.cardSubtitle}>{item.email}</Text>
+                    </View>
+                    <Badge variant={item.role === 'Admin' ? 'success' : 'primary'}>
+                      {item.role?.toUpperCase() || 'UNIT'}
+                    </Badge>
                   </View>
-                  <Badge variant={item.role === 'Admin' ? 'success' : 'primary'}>
-                    {item.role?.toUpperCase() || 'UNIT'}
-                  </Badge>
-                </View>
-                <View style={[styles.cardFooter, { marginTop: 8 }]}>
-                  <Text style={styles.timestampText}>
-                    JOINED {format(new Date(item.createdAt || Date.now()), "MMM dd, yyyy").toUpperCase()}
-                  </Text>
-                  {item.engineerCode && (
-                    <Text style={styles.codeBadge}>{item.engineerCode}</Text>
-                  )}
-                </View>
-              </GlassView>
-            )}
-            loading={allEngineers.isLoading}
-            onRefresh={allEngineers.refetch}
-          />
+                  <View style={[styles.cardFooter, { marginTop: 8 }]}>
+                    <Text style={styles.timestampText}>
+                      JOINED {format(new Date(item.createdAt || Date.now()), "MMM dd, yyyy").toUpperCase()}
+                    </Text>
+                    {item.engineerCode && (
+                      <Text style={styles.codeBadge}>{item.engineerCode}</Text>
+                    )}
+                  </View>
+                </GlassView>
+              )}
+              loading={allEngineers.isLoading}
+              onRefresh={allEngineers.refetch}
+              emptyTitle="No Nodes Found"
+              emptyDescription="Try adjusting your search query."
+            />
+          </View>
         );
       case "audit":
         return (
@@ -226,13 +263,26 @@ export const AdminConsole: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 44 : 56 }]}>
+      <View style={styles.statsContainer}>
+        {stats.map((s, idx) => (
+          <GlassView key={idx} intensity={12} style={styles.statCard}>
+            <View style={styles.statHeader}>
+              <Ionicons name={s.icon as any} size={14} color={s.color} />
+              <Text style={styles.statLabel}>{s.label}</Text>
+            </View>
+            <Text style={[styles.statValue, { color: s.color }]}>{s.value}</Text>
+          </GlassView>
+        ))}
+      </View>
+
       <View style={styles.tabBar}>
         {tabs.map(tab => (
           <TouchableOpacity 
             key={tab.id} 
             style={[styles.tab, activeTab === tab.id && styles.activeTab]}
             onPress={() => {
+              setSearchQuery(""); // Clear search when switching tabs
               haptics.selection();
               setActiveTab(tab.id);
             }}
@@ -454,5 +504,55 @@ const styles = StyleSheet.create({
     marginTop: 6,
     paddingLeft: 32,
     opacity: 0.6,
+  },
+  statsContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    gap: 8,
+    marginBottom: 16,
+    flexWrap: "wrap",
+  },
+  statCard: {
+    flex: 1,
+    minWidth: "48%",
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+  },
+  statHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
+  },
+  statLabel: {
+    color: theme.colors.textDim,
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: "800",
+    fontFamily: theme.typography.h1.fontFamily,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+  },
+  searchInput: {
+    flex: 1,
+    color: theme.colors.text,
+    fontSize: 14,
+    padding: 0,
   }
 });

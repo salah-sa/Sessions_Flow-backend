@@ -52,9 +52,9 @@ export const ChatBubble = ({
   const docName = isDoc ? text.replace("[DOCUMENT] ", "") : null;
   const isRTL = language === "ar";
 
-  // Bubble width limits
-  const maxBubbleWidth = width * 0.8;
-  const maxImageWidth = Math.min(280, maxBubbleWidth - 24);
+  // Bubble width limits — compact like WhatsApp/Telegram
+  const maxBubbleWidth = width * 0.72;
+  const maxImageWidth = Math.min(240, maxBubbleWidth - 24);
 
   // Dynamic spacing
   const marginBot = isLastInGroup ? 12 : 2;
@@ -74,7 +74,7 @@ export const ChatBubble = ({
             name={message.senderName || "Unknown"} 
             avatarUrl={message.sender?.avatarUrl}
             profileImage={(message.sender as any)?.profileImage}
-            size={32}
+            size={28}
             showPresence={false}
           />
         </View>
@@ -83,7 +83,7 @@ export const ChatBubble = ({
       <View style={[
         styles.container, 
         isOwn ? styles.ownContainer : styles.otherContainer,
-        { maxWidth: "80%", flexShrink: 1 }
+        { maxWidth: "72%", flexShrink: 1 }
       ]}>
         {(!isOwn && isFirstInGroup) && (
           <Text style={[styles.senderName, isRTL && { textAlign: 'right', marginRight: 4 }]}>
@@ -196,7 +196,7 @@ export const ChatBubble = ({
             name={message.senderName || "Me"} 
             avatarUrl={message.sender?.avatarUrl}
             profileImage={(message.sender as any)?.profileImage}
-            size={32}
+            size={28}
             showPresence={false}
           />
         </View>
@@ -217,8 +217,8 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
   avatarContainer: {
-    marginHorizontal: 6,
-    marginTop: 2, // Slight offset for top alignment
+    marginHorizontal: 4,
+    marginTop: 2,
   },
   container: {
     flexShrink: 1,
@@ -230,13 +230,12 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   senderName: {
-    fontSize: 9,
-    fontWeight: "900",
-    color: theme.colors.textDim,
-    letterSpacing: 1,
-    marginBottom: 2,
+    fontSize: 10,
+    fontWeight: "800",
+    color: theme.colors.primary,
+    letterSpacing: 0.3,
+    marginBottom: 3,
     marginLeft: 4,
-    textTransform: "uppercase",
   },
   bubble: {
     paddingVertical: 8,
@@ -245,8 +244,8 @@ const styles = StyleSheet.create({
   },
   text: {
     color: theme.colors.text,
-    fontSize: 14,
-    lineHeight: 19,
+    fontSize: 15,
+    lineHeight: 21,
   },
   footer: {
     flexDirection: "row",
