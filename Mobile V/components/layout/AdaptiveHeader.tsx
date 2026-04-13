@@ -131,14 +131,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
   },
   left: {
-    width: 40,
+    width: 80,
   },
   center: {
     flex: 1,
     alignItems: "center",
   },
   right: {
-    width: 40,
+    width: 80,
     alignItems: "flex-end",
   },
   title: {

@@ -12,31 +12,33 @@ import { RoleGuard } from "../../components/auth/RoleGuard";
 import { useAnimatedPress } from "../../shared/hooks/useAnimatedPress";
 import Animated from "react-native-reanimated";
 
+const ArchiveItem = React.memo(({ item }: { item: any }) => {
+  const { pressHandlers, animatedStyle } = useAnimatedPress();
+  return (
+    <Animated.View style={animatedStyle} {...pressHandlers}>
+      <GlassView intensity={15} style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={styles.avatar}>
+            <Ionicons name="archive-outline" size={24} color={theme.colors.textDim} />
+          </View>
+          <View style={styles.info}>
+            <Text style={styles.nameText} numberOfLines={1}>{item.name}</Text>
+            <Text style={styles.techStack}>{item.techStack || 'Legacy Session'}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={theme.colors.textDim} />
+        </View>
+      </GlassView>
+    </Animated.View>
+  );
+});
+
 export default function ArchiveScreen() {
   // Fetch only completed groups. Assuming API supports status filtering.
   const { data, isLoading, refetch, isRefetching, fetchNextPage, hasNextPage } = useInfiniteGroups({ status: "Completed" });
   const groups = data?.pages.flatMap(page => page.items) || [];
   const scrollY = useSharedValue(0);
 
-  const renderItem = ({ item }: { item: any }) => {
-    const { pressHandlers, animatedStyle } = useAnimatedPress();
-    return (
-      <Animated.View style={animatedStyle} {...pressHandlers}>
-        <GlassView intensity={15} style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.avatar}>
-              <Ionicons name="archive-outline" size={24} color={theme.colors.textDim} />
-            </View>
-            <View style={styles.info}>
-              <Text style={styles.nameText} numberOfLines={1}>{item.name}</Text>
-              <Text style={styles.techStack}>{item.techStack || 'Legacy Session'}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.textDim} />
-          </View>
-        </GlassView>
-      </Animated.View>
-    );
-  };
+  const renderItem = React.useCallback(({ item }: { item: any }) => <ArchiveItem item={item} />, []);
 
   return (
     <RoleGuard allowedRoles={["Admin", "Engineer"]}>

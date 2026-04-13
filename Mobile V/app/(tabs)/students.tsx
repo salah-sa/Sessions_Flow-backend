@@ -12,32 +12,34 @@ import { RoleGuard } from "../../components/auth/RoleGuard";
 import { useAnimatedPress } from "../../shared/hooks/useAnimatedPress";
 import Animated from "react-native-reanimated";
 
+const StudentItem = React.memo(({ item }: { item: any }) => {
+  const { pressHandlers, animatedStyle } = useAnimatedPress();
+  return (
+    <Animated.View style={animatedStyle} {...pressHandlers}>
+      <GlassView intensity={20} style={styles.card}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{item.name?.[0] || "?"}</Text>
+        </View>
+        <View style={styles.info}>
+          <Text style={styles.nameText} numberOfLines={1}>{item.name}</Text>
+          <Text style={styles.codeText}>{item.studentCode || "No Code"}</Text>
+        </View>
+        {item.group && (
+          <View style={styles.groupBadge}>
+            <Text style={styles.groupText} numberOfLines={1}>{item.group.name}</Text>
+          </View>
+        )}
+      </GlassView>
+    </Animated.View>
+  );
+});
+
 export default function StudentsScreen() {
   const { data, isLoading, refetch, isRefetching, fetchNextPage, hasNextPage } = useInfiniteStudents();
   const students = data?.pages.flatMap(page => page.items) || [];
   const scrollY = useSharedValue(0);
 
-  const renderItem = ({ item }: { item: any }) => {
-    const { pressHandlers, animatedStyle } = useAnimatedPress();
-    return (
-      <Animated.View style={animatedStyle} {...pressHandlers}>
-        <GlassView intensity={20} style={styles.card}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{item.name?.[0] || "?"}</Text>
-          </View>
-          <View style={styles.info}>
-            <Text style={styles.nameText} numberOfLines={1}>{item.name}</Text>
-            <Text style={styles.codeText}>{item.studentCode || "No Code"}</Text>
-          </View>
-          {item.group && (
-            <View style={styles.groupBadge}>
-              <Text style={styles.groupText} numberOfLines={1}>{item.group.name}</Text>
-            </View>
-          )}
-        </GlassView>
-      </Animated.View>
-    );
-  };
+  const renderItem = React.useCallback(({ item }: { item: any }) => <StudentItem item={item} />, []);
 
   return (
     <RoleGuard allowedRoles={["Admin", "Engineer"]}>

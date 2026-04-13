@@ -12,58 +12,59 @@ import { RoleGuard } from "../../components/auth/RoleGuard";
 import { format } from "date-fns";
 import { useAnimatedPress } from "../../shared/hooks/useAnimatedPress";
 import Animated from "react-native-reanimated";
+const getStatusColor = (status: string) => {
+  switch(status) {
+    case "Active": return "#ef4444";
+    case "Ended": return "#10b981";
+    default: return "#f59e0b";
+  }
+};
+
+const HistoryItem = React.memo(({ item }: { item: any }) => {
+  const { pressHandlers, animatedStyle } = useAnimatedPress();
+  return (
+    <Animated.View style={animatedStyle} {...pressHandlers}>
+      <GlassView intensity={15} style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={styles.groupInfo}>
+            <Text style={styles.groupName} numberOfLines={1}>{item.groupName}</Text>
+            <Text style={styles.techStack}>{item.date ? format(new Date(item.date), "MMM d, yyyy") : "Unknown Date"}</Text>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(item.status)}20` }]}>
+            <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
+            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status.toUpperCase()}</Text>
+          </View>
+        </View>
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Ionicons name="time-outline" size={14} color={theme.colors.textDim} />
+            <Text style={styles.statText}>
+               {item.startedAt && item.endedAt ? format(new Date(item.endedAt).getTime() - new Date(item.startedAt).getTime() - 3600000 * 2, "H'h' m'm'") : "N/A"}
+            </Text>
+          </View>
+          {item.attendanceCount !== undefined && (
+            <View style={styles.statItem}>
+              <Ionicons name="people-outline" size={14} color={theme.colors.textDim} />
+              <Text style={styles.statText}>{item.attendanceCount} records</Text>
+            </View>
+          )}
+        </View>
+        {item.notes && (
+          <View style={styles.notesContainer}>
+            <Text style={styles.notesText} numberOfLines={2}>{item.notes}</Text>
+          </View>
+        )}
+      </GlassView>
+    </Animated.View>
+  );
+});
 
 export default function HistoryScreen() {
   const { data, isLoading, refetch, isRefetching, fetchNextPage, hasNextPage } = useInfiniteSessions({ status: "Ended" });
   const sessions = data?.pages.flatMap(page => page.items) || [];
   const scrollY = useSharedValue(0);
 
-  const getStatusColor = (status: string) => {
-    switch(status) {
-      case "Active": return "#ef4444";
-      case "Ended": return "#10b981";
-      default: return "#f59e0b";
-    }
-  };
-
-  const renderItem = ({ item }: { item: any }) => {
-    const { pressHandlers, animatedStyle } = useAnimatedPress();
-    return (
-      <Animated.View style={animatedStyle} {...pressHandlers}>
-        <GlassView intensity={15} style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.groupInfo}>
-              <Text style={styles.groupName} numberOfLines={1}>{item.groupName}</Text>
-              <Text style={styles.techStack}>{item.date ? format(new Date(item.date), "MMM d, yyyy") : "Unknown Date"}</Text>
-            </View>
-            <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(item.status)}20` }]}>
-              <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
-              <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status.toUpperCase()}</Text>
-            </View>
-          </View>
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Ionicons name="time-outline" size={14} color={theme.colors.textDim} />
-              <Text style={styles.statText}>
-                 {item.startedAt && item.endedAt ? format(new Date(item.endedAt).getTime() - new Date(item.startedAt).getTime() - 3600000 * 2, "H'h' m'm'") : "N/A"}
-              </Text>
-            </View>
-            {item.attendanceCount !== undefined && (
-              <View style={styles.statItem}>
-                <Ionicons name="people-outline" size={14} color={theme.colors.textDim} />
-                <Text style={styles.statText}>{item.attendanceCount} records</Text>
-              </View>
-            )}
-          </View>
-          {item.notes && (
-            <View style={styles.notesContainer}>
-              <Text style={styles.notesText} numberOfLines={2}>{item.notes}</Text>
-            </View>
-          )}
-        </GlassView>
-      </Animated.View>
-    );
-  };
+  const renderItem = React.useCallback(({ item }: { item: any }) => <HistoryItem item={item} />, []);
 
   return (
     <RoleGuard allowedRoles={["Admin", "Engineer"]}>
