@@ -20,7 +20,7 @@ import { theme } from "../../shared/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { NotificationCenter } from "./NotificationCenter";
-import { useAuthStore } from "../../shared/store/stores";
+import { useAuthStore, useUIStore } from "../../shared/store/stores";
 
 interface AdaptiveHeaderProps {
   title: string;
@@ -41,6 +41,7 @@ export const AdaptiveHeader = ({
 }: AdaptiveHeaderProps) => {
   const finalRightAction = rightElement !== undefined ? rightElement : rightAction;
   const { user } = useAuthStore();
+  const { toggleDrawer } = useUIStore();
   const insets = useSafeAreaInsets();
   
   const backScale = useSharedValue(1);
@@ -90,7 +91,7 @@ export const AdaptiveHeader = ({
 
       <View style={styles.content}>
         <View style={styles.left}>
-          {showBack && (
+          {showBack ? (
             <Pressable 
               onPress={() => onBack ? onBack() : router.back()} 
               onPressIn={() => { backScale.value = withSpring(0.85); }}
@@ -99,6 +100,17 @@ export const AdaptiveHeader = ({
             >
               <Animated.View style={backAnimStyle}>
                 <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
+              </Animated.View>
+            </Pressable>
+          ) : (
+            <Pressable 
+              onPress={toggleDrawer}
+              onPressIn={() => { backScale.value = withSpring(0.85); }}
+              onPressOut={() => { backScale.value = withSpring(1); }}
+              style={styles.backButton}
+            >
+              <Animated.View style={backAnimStyle}>
+                <Ionicons name="menu-outline" size={26} color={theme.colors.text} />
               </Animated.View>
             </Pressable>
           )}

@@ -8,7 +8,7 @@
 import React from "react";
 import { Tabs } from "expo-router";
 import { theme } from "../../shared/theme";
-import { GlassTabBar } from "../../components/layout/GlassTabBar";
+import { SideDrawer } from "../../components/layout/SideDrawer";
 import { useHeartbeat } from "../../hooks/useHeartbeat";
 import { useRealtimeNotifications } from "../../hooks/useRealtimeNotifications";
 
@@ -19,14 +19,13 @@ export default function TabsLayout() {
   useRealtimeNotifications();
 
   return (
-    <Tabs
-      tabBar={(props) => <GlassTabBar {...props} />}
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.textDim,
-      }}
-    >
+    <>
+      <Tabs
+        tabBar={() => null}
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
       <Tabs.Screen
         name="index"
         options={{ title: "Dashboard" }}
@@ -63,6 +62,8 @@ export default function TabsLayout() {
         name="archive"
         options={{ href: null, title: "Archive" }}
       />
-    </Tabs>
+      </Tabs>
+      <SideDrawer />
+    </>
   );
 }

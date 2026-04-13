@@ -15,7 +15,8 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
-  ActivityIndicator
+  ActivityIndicator,
+  ScrollView
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { theme } from "../../../shared/theme";
@@ -28,6 +29,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../../../shared/queries/keys";
 import { AdaptiveHeader } from "../../../components/layout/AdaptiveHeader";
 import { useSharedValue } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GlassView } from "../../../components/ui/GlassView";
 import { ChatBubble } from "../../../components/ui/ChatBubble";
 import { Ionicons } from "@expo/vector-icons";
@@ -59,8 +61,9 @@ const TypingIndicator = ({ groupId }: { groupId: string }) => {
 export default function ChatDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const queryClient = useQueryClient();
-  const user = useAuthStore((s) => s.user);
+  const { user } = useAuthStore();
   const { invoke } = useSignalR();
+  const insets = useSafeAreaInsets();
   const [inputText, setInputText] = useState("");
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -211,8 +214,8 @@ export default function ChatDetailScreen() {
       />
       
       <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={[styles.flex, { paddingTop: insets.top + 56 }]}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
         {isLoading ? (
@@ -239,26 +242,28 @@ export default function ChatDetailScreen() {
         )}
 
         {/* Input Bar */}
-        <GlassView 
-          intensity={40} 
-          style={styles.inputBar}
-          contentContainerStyle={styles.inputBarContent}
-        >
-          <TouchableOpacity 
-            onPress={handlePickDocument} 
-            style={styles.attachBtn}
-            accessibilityLabel="Attach Document"
+        <View style={[styles.inputBarContainer, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+          <GlassView 
+            intensity={90} 
+            tint="dark"
+            style={styles.inputBarWrapper}
+            contentContainerStyle={styles.inputBarContent}
           >
-            <Ionicons name="document-attach" size={22} color={theme.colors.textDim} />
-          </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => haptics.selection()} 
+              style={styles.attachBtn}
+              accessibilityLabel="Emoji"
+            >
+              <Ionicons name="happy-outline" size={24} color={theme.colors.textDim} />
+            </TouchableOpacity>
 
-          <TouchableOpacity 
-            onPress={handlePickImage} 
-            style={styles.attachBtn}
-            accessibilityLabel="Attach Image"
-          >
-            <Ionicons name="image" size={22} color={theme.colors.textDim} />
-          </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={handlePickDocument} 
+              style={styles.attachBtn}
+              accessibilityLabel="Attach Document"
+            >
+              <Ionicons name="add-circle" size={24} color={theme.colors.textDim} />
+            </TouchableOpacity>
           
           <TextInput
             style={styles.input}
@@ -268,6 +273,7 @@ export default function ChatDetailScreen() {
             onChangeText={handleInputChange}
             multiline
             maxLength={1000}
+            textAlignVertical="center"
           />
           
           <TouchableOpacity 
@@ -278,7 +284,8 @@ export default function ChatDetailScreen() {
             <Ionicons name="send" size={20} color={inputText.trim() ? "#fff" : theme.colors.textDim} />
           </TouchableOpacity>
         </GlassView>
-      </KeyboardAvoidingView>
+      </View>
+    </KeyboardAvoidingView>
 
       <CinematicModal 
         visible={!!lightboxImage} 
@@ -301,7 +308,7 @@ export default function ChatDetailScreen() {
         onClose={() => setShowMembers(false)}
         title={`MEMBERS (${(group?.students?.length || 0) + (group?.engineer ? 1 : 0)})`}
       >
-        <View style={styles.membersList}>
+        <ScrollView style={styles.membersList} contentContainerStyle={{ paddingBottom: 40 }}>
           {group?.engineer && (
             <View style={styles.memberRow}>
               <View style={[styles.memberAvatar, { backgroundColor: theme.colors.primary + "40" }]}>
@@ -331,7 +338,7 @@ export default function ChatDetailScreen() {
               </View>
             </View>
           ))}
-        </View>
+        </ScrollView>
       </CinematicModal>
     </View>
   );
@@ -355,38 +362,47 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     paddingBottom: 20,
   },
-  inputBar: {
-    marginBottom: Platform.OS === 'ios' ? 10 : 10,
-    marginHorizontal: 10,
-    borderRadius: 24,
+  inputBarContainer: {
+    backgroundColor: theme.colors.bg,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.05)",
+  },
+  inputBarWrapper: {
+    paddingTop: 8,
   },
   inputBarContent: {
     flexDirection: "row",
     alignItems: "flex-end",
-    padding: 10,
+    paddingHorizontal: 12,
     width: "100%",
   },
   attachBtn: {
     padding: 8,
     marginRight: 4,
+    marginBottom: 4,
   },
   input: {
     flex: 1,
     color: theme.colors.text,
-    fontSize: 15,
+    fontSize: 16,
     maxHeight: 120,
-    paddingTop: 8,
-    paddingBottom: 8,
-    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 10,
+    paddingHorizontal: 16,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 20,
+    marginHorizontal: 8,
+    marginBottom: 8,
   },
   sendBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: theme.colors.primary,
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 8,
+    marginLeft: 4,
+    marginBottom: 6,
   },
   disabledBtn: {
     backgroundColor: "rgba(255,255,255,0.05)",
