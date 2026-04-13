@@ -40,8 +40,8 @@ public static class GroupEndpoints
                     var studentInfos = await auth.ResolveAllStudentsForUser(user);
                     if (studentInfos != null && studentInfos.Any())
                     {
-                        var groupIds = studentInfos.Select(s => s.GroupId).ToList();
-                        filter &= builder.In(g => g.Id, groupIds);
+                        var studentGroupIds = studentInfos.Select(s => s.GroupId).ToList();
+                        filter &= builder.In(g => g.Id, studentGroupIds);
                     }
                     else
                     {
