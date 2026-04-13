@@ -5,6 +5,7 @@ import { User, Session, AttendanceRecord, Notification, ChatMessage } from "../t
 import { securePersistence } from "../lib/securePersistence";
 import { setCachedToken } from "../api/client";
 import { secureStorage } from "../../services/secureStorage";
+import { logger } from "../lib/logger";
 
 // Auth Store
 interface AuthState {
@@ -24,6 +25,8 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       rememberMe: false,
       setAuth: async (user, token) => {
+        logger.setUserId(user.id);
+        logger.track("AUTH_STATE_SET", { role: user.role });
         setCachedToken(token);
         // Persist to hardware-encrypted SecureStore for session survival
         await secureStorage.setUser(user);
@@ -33,12 +36,15 @@ export const useAuthStore = create<AuthState>()(
       setRememberMe: (val) => set({ rememberMe: val }),
       updateUser: (user) => set({ user }),
       logout: async () => {
+        logger.track("AUTH_STATE_LOGOUT");
         setCachedToken(null);
         // Clear all security-sensitive data from SecureStore
         await secureStorage.clearAll();
         
         // Reset in-memory state for all persistent stores to prevent stale data leak
         set({ user: null, token: null, rememberMe: false });
+        logger.setUserId(null);
+        logger.track("AUTH_STATE_CLEARED");
         useSessionStore.setState({ 
           activeSession: null, 
           attendanceRecords: {}, 
@@ -202,6 +208,7 @@ interface ChatState {
   togglePin: (groupId: string) => void;
   queueMessage: (msg: ChatMessage) => void;
   removeFromQueue: (msgId: string) => void;
+  updatePendingMessage: (msgId: string, updates: Partial<ChatMessage>) => void;
   flushQueue: () => ChatMessage[];
 }
 
@@ -259,6 +266,12 @@ export const useChatStore = create<ChatState>()(
       removeFromQueue: (msgId) =>
         set((state) => ({
           pendingMessages: state.pendingMessages.filter((m) => m.id !== msgId),
+        })),
+      updatePendingMessage: (msgId, updates) =>
+        set((state) => ({
+          pendingMessages: state.pendingMessages.map((m) => 
+            m.id === msgId ? { ...m, ...updates } : m
+          ),
         })),
       flushQueue: () => {
         const msgs = get().pendingMessages;

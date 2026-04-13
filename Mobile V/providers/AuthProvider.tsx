@@ -11,6 +11,7 @@ import { secureStorage } from "../services/secureStorage";
 import { setCachedToken } from "../shared/api/client";
 import { authApi } from "../shared/api/resources";
 import { router, useSegments } from "expo-router";
+import { logger } from "../shared/lib/logger";
 
 interface AuthContextType {
   isHydrated: boolean;
@@ -39,14 +40,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             
             // Server returned valid user payload; session is healthy
             await setAuth(latestUser, storedToken);
+            logger.setUserId(latestUser.id);
+            logger.track("SESSION_RECOVERED", { role: latestUser.role });
             console.info("[Auth] Session validated securely with server.");
           } catch (serverError) {
             console.warn("[Auth] Server rejected token during hydration. Purging session.");
+            logger.warn("SESSION_PURGED", { reason: "SERVER_REJECTED" });
             await secureStorage.clearAll();
             useAuthStore.getState().logout();
           }
         }
       } catch (e) {
+        logger.error("HYDRATION_FAILED", e);
         console.error("[Auth] Local hydration failed:", e);
       } finally {
         setIsHydrated(true);
