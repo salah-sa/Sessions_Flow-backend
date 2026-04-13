@@ -273,7 +273,10 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl(`${SIGNALR_URL}?access_token=${token}`)
+      .withUrl(`${SIGNALR_URL}?access_token=${token}`, {
+        skipNegotiation: true,
+        transport: signalR.HttpTransportType.WebSockets
+      })
       .withAutomaticReconnect({
         nextRetryDelayInMilliseconds: (retryContext) => {
           if (retryContext.elapsedMilliseconds < 30000) {
@@ -340,6 +343,9 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
         useAppStore.getState().setConnectionStatus("Connected");
         useAppStore.getState().setConnectionMode("full");
         clearDegradeTimer();
+
+        // Request initial presence snapshot from server
+        connection.invoke("RequestPresenceSnapshot").catch(() => {});
 
         for (const { event, cb } of pendingListeners.current) {
           connection.on(event, cb);

@@ -21,14 +21,17 @@ export const SIGNALR_URL = "https://sessionsflow-backend-production.up.railway.a
  * Handles both absolute URLs and relative paths from the server.
  */
 export const resolveMediaUrl = (path: string | null | undefined): string | null => {
-  if (!path) return null;
-  if (path.startsWith("http")) return path;
+  if (!path || path.trim() === "") return null;
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
   
   // Strip leading slash if present
   const cleanPath = path.startsWith("/") ? path.slice(1) : path;
   
-  // The backend storage usually maps to /uploads or root
-  return `${API_BASE_URL.replace("/api", "")}/${cleanPath}`;
+  // Extract base host from API_BASE_URL (removing /api or /anything path)
+  const baseUrlParts = API_BASE_URL.split('/');
+  const baseHost = baseUrlParts.slice(0, 3).join('/'); // "https://domain.com"
+  
+  return `${baseHost}/${cleanPath}`;
 };
 
 /**

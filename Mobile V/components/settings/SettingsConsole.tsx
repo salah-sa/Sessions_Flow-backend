@@ -20,6 +20,7 @@ import { useUIStore, useAuthStore } from "../../shared/store/stores";
 import { haptics } from "../../shared/lib/haptics";
 import { useToast } from "../../providers/ToastProvider";
 import { Badge } from "../ui/Badge";
+import { Avatar } from "../ui/Avatar";
 
 /**
  * ═══════════════════════════════════════════════════════════
@@ -113,6 +114,29 @@ export const SettingsConsole: React.FC = () => {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       
+      {/* PROFILE SECTION */}
+      {user && renderSection("YOUR PROFILE", (
+        <View style={styles.profileSection}>
+          <View style={styles.profileHeader}>
+            <Avatar 
+              userId={user.id} 
+              name={user.name} 
+              avatarUrl={user.avatarUrl} 
+              profileImage={(user as any).profileImage}
+              size={64} 
+            />
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>{user.name}</Text>
+              <Text style={styles.profileEmail}>{user.email}</Text>
+              <View style={styles.profileBadges}>
+                <Badge label={user.role} variant="primary" />
+                {user.studentId && <Badge label={`ID: ${user.studentId}`} variant="dim" />}
+              </View>
+            </View>
+          </View>
+        </View>
+      ))}
+
       {/* APPEARANCE (Common) */}
       {renderSection("VISUAL INTERFACE", (
         <>
@@ -323,6 +347,33 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.05)",
+  },
+  profileSection: {
+    padding: 16,
+  },
+  profileHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  profileInfo: {
+    marginLeft: 16,
+    flex: 1,
+  },
+  profileName: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  profileEmail: {
+    fontSize: 12,
+    color: theme.colors.textDim,
+    marginBottom: 8,
+  },
+  profileBadges: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   settingRow: {
     flexDirection: "row",

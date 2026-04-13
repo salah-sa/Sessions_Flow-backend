@@ -72,6 +72,8 @@ export default function ChatListScreen() {
                 <Avatar 
                   userId={item.engineerId || item.id} 
                   name={item.name} 
+                  avatarUrl={item.engineer?.avatarUrl}
+                  profileImage={(item.engineer as any)?.profileImage}
                   size={50}
                   showPresence={!!isEngineerOnline}
                 />
