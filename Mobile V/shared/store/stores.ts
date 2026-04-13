@@ -100,8 +100,10 @@ interface UIState {
     system: boolean;
     mentions: boolean;
   };
+  isDrawerOpen: boolean;
   setTheme: (theme: "light" | "dark") => void;
   setLanguage: (lang: "en" | "ar") => void;
+  toggleDrawer: () => void;
   setBiometrics: (enabled: boolean) => void;
   updateNotificationPrefs: (prefs: Partial<UIState["notificationPrefs"]>) => void;
 }
@@ -112,6 +114,7 @@ export const useUIStore = create<UIState>()(
       theme: "dark",
       language: "en",
       biometricsEnabled: false,
+      isDrawerOpen: false,
       notificationPrefs: {
         sessions: true,
         system: true,
@@ -119,6 +122,7 @@ export const useUIStore = create<UIState>()(
       },
       setTheme: (theme) => set({ theme }),
       setLanguage: (language) => set({ language }),
+      toggleDrawer: () => set((state) => ({ isDrawerOpen: !state.isDrawerOpen })),
       setBiometrics: (biometricsEnabled) => set({ biometricsEnabled }),
       updateNotificationPrefs: (prefs) => set((state) => ({ 
         notificationPrefs: { ...state.notificationPrefs, ...prefs } 

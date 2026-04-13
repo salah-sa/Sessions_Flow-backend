@@ -18,7 +18,11 @@ import { useState, useMemo } from "react";
 import { theme } from "../../../shared/theme";
 import { useInfiniteGroups } from "../../../shared/queries/useGroupQueries";
 import { AdaptiveHeader } from "../../../components/layout/AdaptiveHeader";
-import { useSharedValue } from "react-native-reanimated";
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
+import { useWindowDimensions } from "react-native";
+import { useUIStore } from "../../../shared/store/stores";
+
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 import { OptimizedList } from "../../../components/ui/OptimizedList";
 import { GlassView } from "../../../components/ui/GlassView";
 import { Badge } from "../../../components/ui/Badge";
@@ -33,6 +37,24 @@ export default function GroupsScreen() {
   const allGroups = data?.pages.flatMap(page => page.items) || [];
   const [searchQuery, setSearchQuery] = useState("");
   const scrollY = useSharedValue(0);
+  const { language } = useUIStore();
+  const { width } = useWindowDimensions();
+
+  const fabStyle = useAnimatedStyle(() => {
+    // Mobile UX padding/margin from edge
+    const marginEdge = 24;
+    const fabWidth = 64;
+
+    const xPosition = language === "ar" 
+      ? marginEdge // RTL: left side
+      : width - fabWidth - marginEdge; // LTR: right side
+
+    return {
+      transform: [
+        { translateX: withSpring(xPosition, { damping: 20, stiffness: 150 }) }
+      ]
+    };
+  }, [language, width]);
 
   const filteredGroups = useMemo(() => {
     return allGroups.filter(g => 
@@ -131,13 +153,13 @@ export default function GroupsScreen() {
       />
 
       <RoleGuard allowedRoles={["Admin"]}>
-        <TouchableOpacity 
-          style={styles.fab} 
+        <AnimatedTouchableOpacity 
+          style={[styles.fab, fabStyle]} 
           onPress={() => haptics.impact()}
           activeOpacity={0.8}
         >
           <Ionicons name="add" size={32} color="#000" />
-        </TouchableOpacity>
+        </AnimatedTouchableOpacity>
       </RoleGuard>
       </View>
     </RoleGuard>
@@ -260,7 +282,8 @@ const styles = StyleSheet.create({
   fab: {
     position: "absolute",
     bottom: 100,
-    right: 20,
+    // left: 0 // Will be transformed via animated style
+    top: undefined,
     width: 64,
     height: 64,
     borderRadius: 32,

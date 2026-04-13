@@ -14,6 +14,9 @@ import { GlassView } from "./GlassView";
 
 import { Image, TouchableOpacity, Linking } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useUIStore } from "../../shared/store/stores";
+
+import { useWindowDimensions } from "react-native";
 
 interface ChatBubbleProps {
   message: ChatMessageType;
@@ -22,16 +25,39 @@ interface ChatBubbleProps {
 }
 
 export const ChatBubble = ({ message, isOwn, onImagePress }: ChatBubbleProps) => {
+  const { language } = useUIStore();
+  const { width } = useWindowDimensions();
   const isImage = message.text.startsWith("[IMAGE] ");
   const isDoc = message.text.startsWith("[DOCUMENT] ");
   
   const imageUri = isImage ? message.text.replace("[IMAGE] ", "") : null;
   const docName = isDoc ? message.text.replace("[DOCUMENT] ", "") : null;
+  const isRTL = language === "ar";
+
+  // Bubble tails calculation: 
+  // Normally isOwn (Right aligned) has top-right edge sharp.
+  // In RTL, the text flows from right, but wait...
+  // The user says "Received message -> Left, Sent -> Right"
+  // If the received message is on the Left, the tail should point to the left speaker (top-left sharp).
+  // If the sent message is on the Right, the tail should point to the right speaker (top-right sharp).
+  // This physically doesn't change based on language! The tail points to where the avatar/side is.
+  // So tail logic REMAINS EXACTLY THE SAME.
+  // Only the text direction inside the bubble changes, and footer flex-direction if needed.
+
+  // Bubble width limits
+  const maxBubbleWidth = width * 0.8;
+  const maxImageWidth = Math.min(280, maxBubbleWidth - 24);
 
   return (
-    <View style={[styles.container, isOwn ? styles.ownContainer : styles.otherContainer]}>
+    <View style={[
+      styles.container, 
+      isOwn ? styles.ownContainer : styles.otherContainer,
+      { maxWidth: maxBubbleWidth }
+    ]}>
       {!isOwn && (
-        <Text style={styles.senderName}>{message.senderName}</Text>
+        <Text style={[styles.senderName, isRTL && { textAlign: 'right', marginRight: 4 }]}>
+          {message.senderName}
+        </Text>
       )}
       
       <GlassView 
@@ -44,7 +70,11 @@ export const ChatBubble = ({ message, isOwn, onImagePress }: ChatBubbleProps) =>
       >
         {isImage ? (
           <TouchableOpacity onPress={() => onImagePress?.(imageUri!)}>
-            <Image source={{ uri: imageUri! }} style={styles.contentImage} />
+            <Image 
+              source={{ uri: imageUri! }} 
+              style={[styles.contentImage, { width: maxImageWidth, height: 250 }]} 
+              resizeMode="cover"
+            />
           </TouchableOpacity>
         ) : isDoc ? (
           <TouchableOpacity 
@@ -58,10 +88,10 @@ export const ChatBubble = ({ message, isOwn, onImagePress }: ChatBubbleProps) =>
             </View>
           </TouchableOpacity>
         ) : (
-          <Text style={styles.text}>{message.text}</Text>
+          <Text style={[styles.text, isRTL && { textAlign: 'right' }]}>{message.text}</Text>
         )}
         
-        <View style={styles.footer}>
+        <View style={[styles.footer, isRTL && { flexDirection: 'row-reverse', justifyContent: 'flex-start' }]}>
           <Text style={styles.time}>{format(new Date(message.sentAt), "h:mm a")}</Text>
           {isOwn && message.status === "pending" && (
             <View style={styles.statusDot} />
@@ -134,10 +164,9 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   contentImage: {
-    width: 200,
-    height: 150,
     borderRadius: 12,
     marginBottom: 4,
+    backgroundColor: "rgba(255,255,255,0.05)",
   },
   docContainer: {
     flexDirection: "row",
