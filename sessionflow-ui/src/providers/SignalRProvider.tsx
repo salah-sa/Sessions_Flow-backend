@@ -1,0 +1,306 @@
+import React, { createContext, useContext, useEffect, useRef, useCallback, useState } from "react";
+import * as signalR from "@microsoft/signalr";
+import { useAuthStore, useAppStore } from "../store/stores";
+import { usePresenceStore } from "../store/presenceStore";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "../queries/keys";
+
+interface SignalRContextValue {
+  on: (eventName: string, callback: (...args: any[]) => void) => () => void;
+  off: (eventName: string, callback: (...args: any[]) => void) => void;
+  invoke: (methodName: string, ...args: any[]) => Promise<any>;
+  state: signalR.HubConnectionState;
+}
+
+const SignalRContext = createContext<SignalRContextValue | null>(null);
+
+/**
+ * Singleton SignalR provider. Manages ONE connection to /hub for the entire app.
+ * Event listeners registered before the connection is ready are queued and replayed.
+ */
+export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const connectionRef = useRef<signalR.HubConnection | null>(null);
+  const token = useAuthStore((s) => s.token);
+  const queryClient = useQueryClient();
+  const [state, setState] = useState<signalR.HubConnectionState>(
+    signalR.HubConnectionState.Disconnected
+  );
+
+  // Queue of listeners registered before connection was ready
+  const pendingListeners = useRef<Array<{ event: string; cb: (...args: any[]) => void }>>([]);
+  // Queue of method invocations requested before connection was ready
+  const pendingInvokes = useRef<Array<{ methodName: string; args: any[]; resolve: (v: any) => void; reject: (e: any) => void }>>([]);
+
+  // Centralized Real-time Invalidations
+  const setupGlobalListeners = (connection: signalR.HubConnection) => {
+    // 1. Chat Invalidations
+    connection.on("NewChatMessage", (groupId: string) => {
+      // We invalidate instead of manual setQueryData to ensure consistency across persistent storage
+      queryClient.invalidateQueries({ queryKey: queryKeys.chat.messages(groupId) });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "summary"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.data });
+    });
+
+    connection.on("MessagesRead", (groupId: string) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.chat.messages(groupId) });
+    });
+
+    // 2. Session Invalidations
+    connection.on("SessionStatusChanged", (sessionId: string) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byId(sessionId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
+    });
+
+    // 3. Attendance Invalidations
+    connection.on("AttendanceUpdated", (sessionId: string) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byId(sessionId) });
+      queryClient.invalidateQueries({ queryKey: ["sessions", "attendance", sessionId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
+    });
+
+    connection.on("NewSessionGenerated", () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
+    });
+
+    // 4. Group Invalidations
+    connection.on("GroupStatusChanged", (groupId: string) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups.byId(groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups.all });
+    });
+
+    // ═══════════════════════════════════════════════
+    // 5. Real-Time Presence Events (3-Layer System)
+    // ═══════════════════════════════════════════════
+    connection.on("UserOnline", (userId: string) => {
+      usePresenceStore.getState().setServerOnline(userId);
+    });
+
+    connection.on("UserOffline", (userId: string) => {
+      usePresenceStore.getState().setServerOffline(userId);
+    });
+
+    connection.on("BulkPresence", (userIds: string[]) => {
+      usePresenceStore.getState().setBulkServerOnline(userIds);
+    });
+
+    // ═══════════════════════════════════════════════
+    // 6. Group Lifecycle Events (Full Cascade)
+    // ═══════════════════════════════════════════════
+    connection.on("GroupCreated", () => {
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["chat"] });
+    });
+
+    connection.on("GroupDeleted", (groupId: string) => {
+      // Purge the dead group data immediately (not just invalidate)
+      queryClient.removeQueries({ queryKey: queryKeys.groups.byId(groupId) });
+      queryClient.removeQueries({ queryKey: queryKeys.chat.messages(groupId) });
+      // Then cascade invalidation
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["chat"] });
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
+    });
+
+    connection.on("GroupCompleted", (groupId: string) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups.byId(groupId) });
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["chat"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
+    });
+
+    connection.on("GroupDescriptionUpdated", (groupId: string) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups.byId(groupId) });
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+    });
+
+    // ═══════════════════════════════════════════════
+    // 7. Avatar Updated (Real-time avatar sync)
+    // ═══════════════════════════════════════════════
+    connection.on("AvatarUpdated", (_userId: string, _avatarUrl: string) => {
+      // Invalidate all chat caches so messages re-fetch with new sender avatars
+      queryClient.invalidateQueries({ queryKey: ["chat"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
+    });
+  };
+
+  // ── Degradation Engine ─────────────────────────────
+  const degradeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearDegradeTimer = () => {
+    if (degradeTimerRef.current) {
+      clearTimeout(degradeTimerRef.current);
+      degradeTimerRef.current = null;
+    }
+  };
+
+  const startDegradeTimer = () => {
+    clearDegradeTimer();
+    // After 10s in HYBRID mode without recovery → transition to DEGRADED
+    degradeTimerRef.current = setTimeout(() => {
+      useAppStore.getState().setConnectionMode("degraded");
+    }, 10_000);
+  };
+
+  // Build and start connection when token changes
+  useEffect(() => {
+    if (!token) {
+      if (connectionRef.current) {
+        connectionRef.current.stop();
+        connectionRef.current = null;
+        setState(signalR.HubConnectionState.Disconnected);
+        useAppStore.getState().setConnectionStatus("Disconnected");
+        useAppStore.getState().setConnectionMode("degraded");
+      }
+      return;
+    }
+
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(`/hub?access_token=${token}`, {
+        skipNegotiation: true,
+        transport: signalR.HttpTransportType.WebSockets,
+      })
+      .withAutomaticReconnect([0, 1000, 3000, 5000, 10000])
+      .configureLogging(signalR.LogLevel.Warning)
+      .build();
+
+    setupGlobalListeners(connection);
+
+    connection.onreconnecting(() => {
+      setState(signalR.HubConnectionState.Reconnecting);
+      useAppStore.getState().setConnectionStatus("Reconnecting");
+      useAppStore.getState().setConnectionMode("hybrid");
+      // APRL Layer 3: Track instability
+      usePresenceStore.getState().updateWsStability(false);
+      usePresenceStore.getState().setServerHealth(false);
+      // Start 10s degradation timer
+      startDegradeTimer();
+    });
+    connection.onreconnected(() => {
+      setState(signalR.HubConnectionState.Connected);
+      useAppStore.getState().setConnectionStatus("Connected");
+      useAppStore.getState().setConnectionMode("full");
+      clearDegradeTimer();
+      // APRL Layer 3: Record reconnect + restore stability
+      usePresenceStore.getState().recordReconnect();
+      usePresenceStore.getState().updateWsStability(true);
+      usePresenceStore.getState().setServerHealth(true);
+      for (const req of pendingInvokes.current) {
+        connection.invoke(req.methodName, ...req.args).then(req.resolve).catch(req.reject);
+      }
+      pendingInvokes.current = [];
+    });
+    connection.onclose(() => {
+      setState(signalR.HubConnectionState.Disconnected);
+      useAppStore.getState().setConnectionStatus("Disconnected");
+      // Start degradation timer (hybrid → degraded after 10s)
+      useAppStore.getState().setConnectionMode("hybrid");
+      startDegradeTimer();
+      // APRL: Server is fully down
+      usePresenceStore.getState().setServerHealth(false);
+      usePresenceStore.getState().updateWsStability(false);
+      for (const req of pendingInvokes.current) {
+        req.reject(new Error("SignalR connection closed before invocation."));
+      }
+      pendingInvokes.current = [];
+    });
+
+    connectionRef.current = connection;
+
+    connection
+      .start()
+      .then(() => {
+        setState(signalR.HubConnectionState.Connected);
+        useAppStore.getState().setConnectionStatus("Connected");
+        useAppStore.getState().setConnectionMode("full");
+        clearDegradeTimer();
+
+        for (const { event, cb } of pendingListeners.current) {
+          connection.on(event, cb);
+        }
+        pendingListeners.current = [];
+
+        for (const req of pendingInvokes.current) {
+          connection.invoke(req.methodName, ...req.args).then(req.resolve).catch(req.reject);
+        }
+        pendingInvokes.current = [];
+      })
+      .catch((err) => {
+        console.error("[SignalR] Connection failed:", err);
+        setState(signalR.HubConnectionState.Disconnected);
+        useAppStore.getState().setConnectionStatus("Disconnected");
+        useAppStore.getState().setConnectionMode("degraded");
+      });
+
+    return () => {
+      clearDegradeTimer();
+      connection.stop();
+      connectionRef.current = null;
+      setState(signalR.HubConnectionState.Disconnected);
+      useAppStore.getState().setConnectionStatus("Disconnected");
+    };
+  }, [token, queryClient]);
+
+  const on = useCallback(
+    (eventName: string, callback: (...args: any[]) => void): (() => void) => {
+      const conn = connectionRef.current;
+      if (conn && conn.state === signalR.HubConnectionState.Connected) {
+        conn.on(eventName, callback);
+      } else {
+        pendingListeners.current.push({ event: eventName, cb: callback });
+      }
+      return () => {
+        connectionRef.current?.off(eventName, callback);
+        pendingListeners.current = pendingListeners.current.filter(
+          (p) => !(p.event === eventName && p.cb === callback)
+        );
+      };
+    },
+    []
+  );
+
+  const off = useCallback(
+    (eventName: string, callback: (...args: any[]) => void) => {
+      connectionRef.current?.off(eventName, callback);
+      pendingListeners.current = pendingListeners.current.filter(
+        (p) => !(p.event === eventName && p.cb === callback)
+      );
+    },
+    []
+  );
+
+  const invoke = useCallback(
+    (methodName: string, ...args: any[]): Promise<any> => {
+      return new Promise((resolve, reject) => {
+        const conn = connectionRef.current;
+        if (conn?.state === signalR.HubConnectionState.Connected) {
+          conn.invoke(methodName, ...args).then(resolve).catch(reject);
+        } else {
+          pendingInvokes.current.push({ methodName, args, resolve, reject });
+        }
+      });
+    },
+    []
+  );
+
+  return (
+    <SignalRContext.Provider value={{ on, off, invoke, state }}>
+      {children}
+    </SignalRContext.Provider>
+  );
+};
+
+export const useSignalR = () => {
+  const ctx = useContext(SignalRContext);
+  if (!ctx) {
+    throw new Error("useSignalR must be used within <SignalRProvider>");
+  }
+  return ctx;
+};

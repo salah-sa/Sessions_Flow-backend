@@ -1,0 +1,15 @@
+﻿  Determining projects to restore...
+  All projects are up-to-date for restore.
+D:\Work\assets outer\test\SessionFlow\SessionFlow.Desktop\Services\GoogleAuthService.cs(62,17): error CS1061: 'AuthorizationCodeRequestUrl' does not contain a definition for 'AccessType' and no accessible extension method 'AccessType' accepting a first argument of type 'AuthorizationCodeRequestUrl' could be found (are you missing a using directive or an assembly reference?) [D:\Work\assets outer\test\SessionFlow\SessionFlow.Desktop\SessionFlow.Desktop.csproj]
+D:\Work\assets outer\test\SessionFlow\SessionFlow.Desktop\Services\GoogleAuthService.cs(63,17): error CS1061: 'AuthorizationCodeRequestUrl' does not contain a definition for 'ApprovalPrompt' and no accessible extension method 'ApprovalPrompt' accepting a first argument of type 'AuthorizationCodeRequestUrl' could be found (are you missing a using directive or an assembly reference?) [D:\Work\assets outer\test\SessionFlow\SessionFlow.Desktop\SessionFlow.Desktop.csproj]
+D:\Work\assets outer\test\SessionFlow\SessionFlow.Desktop\Services\GoogleAuthService.cs(87,102): error CS1061: 'TokenResponse' does not contain a definition for 'ExpiresIn' and no accessible extension method 'ExpiresIn' accepting a first argument of type 'TokenResponse' could be found (are you missing a using directive or an assembly reference?) [D:\Work\assets outer\test\SessionFlow\SessionFlow.Desktop\SessionFlow.Desktop.csproj]
+
+Build FAILED.
+
+D:\Work\assets outer\test\SessionFlow\SessionFlow.Desktop\Services\GoogleAuthService.cs(62,17): error CS1061: 'AuthorizationCodeRequestUrl' does not contain a definition for 'AccessType' and no accessible extension method 'AccessType' accepting a first argument of type 'AuthorizationCodeRequestUrl' could be found (are you missing a using directive or an assembly reference?) [D:\Work\assets outer\test\SessionFlow\SessionFlow.Desktop\SessionFlow.Desktop.csproj]
+D:\Work\assets outer\test\SessionFlow\SessionFlow.Desktop\Services\GoogleAuthService.cs(63,17): error CS1061: 'AuthorizationCodeRequestUrl' does not contain a definition for 'ApprovalPrompt' and no accessible extension method 'ApprovalPrompt' accepting a first argument of type 'AuthorizationCodeRequestUrl' could be found (are you missing a using directive or an assembly reference?) [D:\Work\assets outer\test\SessionFlow\SessionFlow.Desktop\SessionFlow.Desktop.csproj]
+D:\Work\assets outer\test\SessionFlow\SessionFlow.Desktop\Services\GoogleAuthService.cs(87,102): error CS1061: 'TokenResponse' does not contain a definition for 'ExpiresIn' and no accessible extension method 'ExpiresIn' accepting a first argument of type 'TokenResponse' could be found (are you missing a using directive or an assembly reference?) [D:\Work\assets outer\test\SessionFlow\SessionFlow.Desktop\SessionFlow.Desktop.csproj]
+    0 Warning(s)
+    3 Error(s)
+
+Time Elapsed 00:00:01.16

@@ -1,0 +1,12 @@
+🚀 Starting SessionFlow Local Testing Protocol...
+
+[TEST 1] Initiating Database Authentication Handshake...
+❌ FAILED: Could not authenticate. 400
+
+=================================
+       TEST SUITE RESULTS        
+=================================
+
+❌ [FAIL] Authentication & Role Assignment - Status 400
+
+Final Diagnosis: 0/1 tests passed successfully.

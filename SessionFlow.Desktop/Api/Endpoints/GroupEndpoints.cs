@@ -1,0 +1,507 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using MongoDB.Bson;
+using MongoDB.Driver;
+using SessionFlow.Desktop.Api.Helpers;
+using SessionFlow.Desktop.Data;
+using SessionFlow.Desktop.Models;
+using SessionFlow.Desktop.Services;
+
+namespace SessionFlow.Desktop.Api.Endpoints;
+
+public static class GroupEndpoints
+{
+    public static void Map(WebApplication app)
+    {
+        var group = app.MapGroup("/api/groups").RequireAuthorization();
+
+        // GET /api/groups — list all groups with student count and schedule
+        group.MapGet("/", async (MongoService db, HttpContext ctx, AuthService auth,
+            int? page, int? pageSize, string? search, string? status) =>
+        {
+            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
+
+            var builder = Builders<Group>.Filter;
+            var filter = builder.Eq(g => g.IsDeleted, false);
+
+            if (role == "Engineer")
+            {
+                filter &= builder.Eq(g => g.EngineerId, userId);
+            }
+            else if (role == "Student")
+            {
+                // Use global resolver for consistent StudentId/UniqueStudentCode matching
+                var user = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
+                if (user != null)
+                {
+                    var studentInfo = await auth.ResolveStudentForUser(user);
+                    if (studentInfo != null)
+                    {
+                        filter &= builder.Eq(g => g.Id, studentInfo.GroupId);
+                    }
+                    else
+                    {
+                        return Results.Ok(PaginationHelper.Envelope(new List<object>(), 0, page ?? 1, pageSize ?? 20)); // No group found
+                    }
+                }
+                else
+                {
+                    return Results.Ok(PaginationHelper.Envelope(new List<object>(), 0, page ?? 1, pageSize ?? 20));
+                }
+            }
+            // Admin sees all
+            
+            // Add search filter
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                filter &= builder.Regex(g => g.Name, new BsonRegularExpression(search.Trim(), "i"));
+            }
+
+            // Add status filter
+            if (!string.IsNullOrEmpty(status) && Enum.TryParse<GroupStatus>(status, true, out var st))
+            {
+                filter &= builder.Eq(g => g.Status, st);
+            }
+            
+            var (skip, take) = PaginationHelper.Normalize(page, pageSize);
+            var totalCount = await db.Groups.CountDocumentsAsync(filter);
+
+            var groups = await db.Groups.Find(filter)
+                .SortBy(g => g.Name)
+                .Skip(skip)
+                .Limit(take)
+                .ToListAsync();
+
+            var engineerIds = groups.Select(g => g.EngineerId).Distinct().ToList();
+            var engineers = await db.Users.Find(u => engineerIds.Contains(u.Id)).ToListAsync();
+            var engDict = engineers.ToDictionary(e => e.Id);
+
+            var groupIds = groups.Select(g => g.Id).ToList();
+            var allSchedules = await db.GroupSchedules.Find(s => groupIds.Contains(s.GroupId)).ToListAsync();
+            var schedulesDict = allSchedules.GroupBy(s => s.GroupId).ToDictionary(g => g.Key, g => g.ToList());
+
+            var allStudents = await db.Students.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync();
+            var studentCountDict = allStudents.GroupBy(s => s.GroupId).ToDictionary(g => g.Key, g => g.Count());
+
+            var allSessions = await db.Sessions.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync();
+            var sessionsDict = allSessions.GroupBy(s => s.GroupId).ToDictionary(g => g.Key, g => g.ToList());
+
+            var result = new List<object>();
+
+            foreach (var g in groups)
+            {
+                engDict.TryGetValue(g.EngineerId, out var engineer);
+                var groupSchedules = schedulesDict.GetValueOrDefault(g.Id, new List<GroupSchedule>());
+                var studentCount = studentCountDict.GetValueOrDefault(g.Id, 0);
+                var groupSessions = sessionsDict.GetValueOrDefault(g.Id, new List<Session>());
+                
+                var nextSession = groupSessions
+                    .Where(s => s.Status == SessionStatus.Scheduled && s.ScheduledAt > DateTimeOffset.UtcNow)
+                    .OrderBy(s => s.ScheduledAt)
+                    .Select(s => (DateTimeOffset?)s.ScheduledAt)
+                    .FirstOrDefault();
+
+                result.Add(new
+                {
+                    id = g.Id,
+                    name = g.Name,
+                    description = g.Description,
+                    level = g.Level,
+                    colorTag = g.ColorTag,
+                    engineerId = g.EngineerId,
+                    engineerName = engineer?.Name,
+                    studentCount = studentCount,
+                    schedules = groupSchedules.Select(s => new
+                    {
+                        id = s.Id,
+                        dayOfWeek = s.DayOfWeek,
+                        startTime = s.StartTime.ToString(@"hh\:mm"),
+                        durationMinutes = s.DurationMinutes
+                    }),
+                    nextSession = nextSession,
+                    status = g.Status.ToString(),
+                    completedAt = g.CompletedAt,
+                    currentSessionNumber = g.CurrentSessionNumber,
+                    totalSessions = g.TotalSessions,
+                    startingSessionNumber = g.StartingSessionNumber,
+                    numberOfStudents = g.NumberOfStudents,
+                    completedSessions = groupSessions.Count(s => s.Status == SessionStatus.Ended),
+                    createdAt = g.CreatedAt
+                });
+            }
+
+            return Results.Ok(PaginationHelper.Envelope(result, totalCount, page ?? 1, take));
+        });
+
+        // GET /api/groups/{id} — get detailed group info
+        group.MapGet("/{id:guid}", async (Guid id, MongoService db, HttpContext ctx, AuthService auth) =>
+        {
+            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
+
+            var g = await db.Groups.Find(x => x.Id == id && !x.IsDeleted).FirstOrDefaultAsync();
+            if (g == null) return Results.NotFound(new { error = "Group not found." });
+
+            // Security Check
+            if (role == "Engineer" && g.EngineerId != userId) return Results.Forbid();
+            if (role == "Student")
+            {
+                var user = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
+                if (user == null) return Results.Forbid();
+                var studentInfo = await auth.ResolveStudentForUser(user);
+                if (studentInfo == null || studentInfo.GroupId != id) return Results.Forbid();
+            }
+
+            var engineer = await db.Users.Find(u => u.Id == g.EngineerId).FirstOrDefaultAsync();
+            var schedules = await db.GroupSchedules.Find(s => s.GroupId == g.Id).ToListAsync();
+            var studentCount = (int)await db.Students.CountDocumentsAsync(s => s.GroupId == g.Id && !s.IsDeleted);
+            
+            var groupSessions = await db.Sessions.Find(s => s.GroupId == g.Id && !s.IsDeleted).ToListAsync();
+            var completedSessionsCount = groupSessions.Count(s => s.Status == SessionStatus.Ended);
+
+            return Results.Ok(new
+            {
+                id = g.Id,
+                name = g.Name,
+                description = g.Description,
+                level = g.Level,
+                colorTag = g.ColorTag,
+                engineerId = g.EngineerId,
+                engineerName = engineer?.Name,
+                studentCount = studentCount,
+                schedules = schedules.Select(s => new
+                {
+                    id = s.Id,
+                    dayOfWeek = s.DayOfWeek,
+                    startTime = s.StartTime.ToString(@"hh\:mm"),
+                    durationMinutes = s.DurationMinutes
+                }),
+                status = g.Status.ToString(),
+                currentSessionNumber = g.CurrentSessionNumber,
+                totalSessions = g.TotalSessions,
+                completedSessions = completedSessionsCount,
+                createdAt = g.CreatedAt
+            });
+        });
+
+        // POST /api/groups — create group + auto-generate sessions
+        group.MapPost("/", async (CreateGroupRequest req, MongoService db, SessionService sessionService, HttpContext ctx) =>
+        {
+            var userId = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var engineerId))
+                return Results.Unauthorized();
+
+            if (string.IsNullOrWhiteSpace(req.Name))
+                return Results.BadRequest(new { error = "Group name is required." });
+
+            var exists = await db.Groups.Find(g => g.Name == req.Name.Trim() && !g.IsDeleted).AnyAsync();
+            if (exists)
+                return Results.Conflict(new { error = "A group with this name already exists." });
+
+            if (req.Level < 1 || req.Level > 4)
+                return Results.BadRequest(new { error = "Level must be between 1 and 4." });
+
+            // HARDENED VALIDATION
+            int maxStudents = CurriculumConstants.GetMaxStudents(req.Level);
+            int totalSessions = CurriculumConstants.GetTotalSessions(req.Level);
+
+            if (req.NumberOfStudents > maxStudents)
+               return Results.BadRequest(new { error = $"Security Restriction: Max students for Level {req.Level} is {maxStudents}." });
+
+            if (req.StartingSessionNumber > totalSessions)
+               return Results.BadRequest(new { error = $"Security Restriction: Starting session number cannot exceed {totalSessions} for Level {req.Level}." });
+
+            if (req.Frequency < 1 || req.Frequency > 3)
+                return Results.BadRequest(new { error = "Frequency must be between 1 and 3 times per week." });
+
+            if (req.Schedules == null || req.Schedules.Count != req.Frequency)
+                return Results.BadRequest(new { error = $"Strict Rule: Must define exactly {req.Frequency} schedule slot(s) for Frequency={req.Frequency}." });
+
+            int startingNum = req.StartingSessionNumber > 0 ? req.StartingSessionNumber : 1;
+
+            var newGroup = new Group
+            {
+                Name = req.Name.Trim(),
+                Description = req.Description?.Trim() ?? "",
+                Level = req.Level,
+                ColorTag = req.ColorTag ?? "blue",
+                EngineerId = engineerId,
+                NumberOfStudents = req.NumberOfStudents,
+                StartingSessionNumber = startingNum,
+                CurrentSessionNumber = startingNum,
+                TotalSessions = totalSessions,
+                Frequency = req.Frequency,
+                Status = GroupStatus.Active
+            };
+
+            await db.Groups.InsertOneAsync(newGroup);
+
+            if (req.Schedules == null || req.Schedules.Count == 0 || req.Schedules.Count > 3)
+                return Results.BadRequest(new { error = "Strict Rule: Must define exactly 1, 2, or 3 sessions per week." });
+
+            var schedules = req.Schedules.Select(sched => new GroupSchedule
+            {
+                GroupId = newGroup.Id,
+                DayOfWeek = sched.DayOfWeek,
+                StartTime = TimeSpan.Parse(sched.StartTime),
+                DurationMinutes = sched.DurationMinutes > 0 ? sched.DurationMinutes : 60
+            }).ToList();
+            await db.GroupSchedules.InsertManyAsync(schedules);
+
+            await sessionService.AutoGenerateSessionsAsync(newGroup);
+
+            if (req.Cadets != null && req.Cadets.Count > 0)
+            {
+                var studentsToInsert = new List<Student>();
+                foreach (var cadet in req.Cadets)
+                {
+                    if (string.IsNullOrWhiteSpace(cadet.Name)) continue;
+                    var studentName = cadet.Name.Trim();
+                    studentsToInsert.Add(new Student
+                    {
+                        Name = studentName,
+                        StudentId = null, // System generated only
+                        GroupId = newGroup.Id,
+                        UniqueStudentCode = Student.GenerateCode(studentName, newGroup.Id)
+                    });
+                }
+                
+                if (studentsToInsert.Count > 0)
+                {
+                    await db.Students.InsertManyAsync(studentsToInsert);
+                }
+            }
+
+            return Results.Created($"/api/groups/{newGroup.Id}", new { id = newGroup.Id, name = newGroup.Name });
+        });
+
+        // PUT /api/groups/{id} — update group info
+        group.MapPut("/{id:guid}", async (Guid id, UpdateGroupRequest req, MongoService db, SessionService sessionService, HttpContext ctx) =>
+        {
+            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
+
+            var g = await db.Groups.Find(x => x.Id == id).FirstOrDefaultAsync();
+            if (g == null) return Results.NotFound(new { error = "Group not found." });
+
+            if (role != "Admin" && g.EngineerId != userId)
+                return Results.Forbid();
+
+            var update = Builders<Group>.Update.Set(x => x.UpdatedAt, DateTimeOffset.UtcNow);
+
+            if (!string.IsNullOrWhiteSpace(req.Name))
+            {
+                var nameExists = await db.Groups.Find(x => x.Name == req.Name.Trim() && x.Id != id && !x.IsDeleted).AnyAsync();
+                if (nameExists)
+                    return Results.Conflict(new { error = "A group with this name already exists." });
+                update = update.Set(x => x.Name, req.Name.Trim());
+            }
+
+            if (req.Description != null) update = update.Set(x => x.Description, req.Description.Trim());
+            if (req.ColorTag != null) update = update.Set(x => x.ColorTag, req.ColorTag);
+            if (req.Level.HasValue && req.Level >= 1 && req.Level <= 4) update = update.Set(x => x.Level, req.Level.Value);
+            if (req.NumberOfStudents.HasValue) 
+             {
+                var level = req.Level ?? g.Level;
+                var max = CurriculumConstants.GetMaxStudents(level);
+                if (req.NumberOfStudents > max) return Results.BadRequest(new { error = $"Security Restriction: Max students for Level {level} is {max}." });
+                update = update.Set(x => x.NumberOfStudents, req.NumberOfStudents.Value);
+             }
+
+            if (req.StartingSessionNumber.HasValue)
+            {
+                var level = req.Level ?? g.Level;
+                var total = CurriculumConstants.GetTotalSessions(level);
+                if (req.StartingSessionNumber > total) return Results.BadRequest(new { error = $"Security Restriction: Starting session number cannot exceed {total} for Level {level}." });
+                update = update.Set(x => x.StartingSessionNumber, req.StartingSessionNumber.Value);
+            }
+            
+            if (req.Frequency.HasValue && req.Frequency >= 1 && req.Frequency <= 3)
+                update = update.Set(x => x.Frequency, req.Frequency.Value);
+
+            var strictTotal = CurriculumConstants.GetTotalSessions(req.Level ?? g.Level);
+            update = update.Set(x => x.TotalSessions, strictTotal);
+
+            await db.Groups.UpdateOneAsync(x => x.Id == id, update);
+
+            // AUTO-REGENERATE if schedule-impacting fields changed
+            if (req.Frequency.HasValue || req.Level.HasValue || req.Schedules != null)
+            {
+                var finalGroup = await db.Groups.Find(x => x.Id == id).FirstOrDefaultAsync();
+                if (finalGroup != null)
+                {
+                    // If schedules were provided in the same PUT, update them first
+                    if (req.Schedules != null)
+                    {
+                        await db.GroupSchedules.DeleteManyAsync(s => s.GroupId == id);
+                        var newSchedules = req.Schedules.Select(sched => new GroupSchedule
+                        {
+                            GroupId = id,
+                            DayOfWeek = sched.DayOfWeek,
+                            StartTime = TimeSpan.Parse(sched.StartTime),
+                            DurationMinutes = sched.DurationMinutes > 0 ? sched.DurationMinutes : 60
+                        }).ToList();
+                        await db.GroupSchedules.InsertManyAsync(newSchedules);
+                    }
+
+                    await sessionService.RegenerateFutureSessionsAsync(finalGroup);
+                }
+            }
+
+            return Results.Ok(new { id = id, name = req.Name ?? g.Name });
+        });
+
+        // POST /api/groups/{id}/regenerate-sessions — manual trigger
+        group.MapPost("/{id:guid}/regenerate-sessions", async (Guid id, MongoService db, SessionService sessionService, HttpContext ctx) =>
+        {
+            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
+
+            var g = await db.Groups.Find(x => x.Id == id && !x.IsDeleted).FirstOrDefaultAsync();
+            if (g == null) return Results.NotFound(new { error = "Group not found." });
+
+            if (role != "Admin" && g.EngineerId != userId)
+                return Results.Forbid();
+
+            await sessionService.RegenerateFutureSessionsAsync(g);
+            return Results.Ok(new { message = "Future sessions regenerated successfully based on latest schedule." });
+        });
+
+        // DELETE /api/groups/all — hard delete all groups and related data (factory reset)
+        group.MapDelete("/all", async (MongoService db) =>
+        {
+            var filter = Builders<Group>.Filter.Empty;
+            var groups = await db.Groups.Find(filter).ToListAsync();
+            var groupIds = groups.Select(g => g.Id).ToList();
+
+            if (groupIds.Count > 0)
+            {
+                await db.Sessions.DeleteManyAsync(s => groupIds.Contains(s.GroupId));
+                await db.GroupSchedules.DeleteManyAsync(s => groupIds.Contains(s.GroupId));
+                await db.Students.DeleteManyAsync(s => groupIds.Contains(s.GroupId));
+                await db.ChatMessages.DeleteManyAsync(s => groupIds.Contains(s.GroupId));
+                await db.Groups.DeleteManyAsync(filter);
+            }
+
+            return Results.Ok(new { message = $"Successfully deleted {groupIds.Count} groups and all associated data." });
+        });
+
+        // DELETE /api/groups/{id} — soft delete
+        group.MapDelete("/{id:guid}", async (Guid id, MongoService db, HttpContext ctx) =>
+        {
+            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
+
+            var g = await db.Groups.Find(x => x.Id == id).FirstOrDefaultAsync();
+            if (g == null) return Results.NotFound(new { error = "Group not found." });
+
+            if (role != "Admin" && g.EngineerId != userId)
+                return Results.Forbid();
+
+            var update = Builders<Group>.Update
+                .Set(g => g.IsDeleted, true)
+                .Set(g => g.DeletedAt, DateTimeOffset.UtcNow)
+                .Set(g => g.UpdatedAt, DateTimeOffset.UtcNow);
+            
+            var result = await db.Groups.UpdateOneAsync(g => g.Id == id, update);
+            if (result.MatchedCount == 0) return Results.NotFound(new { error = "Group not found." });
+
+            // Cascade soft-delete to students
+            await db.Students.UpdateManyAsync(
+                s => s.GroupId == id && !s.IsDeleted,
+                Builders<Student>.Update.Set(s => s.IsDeleted, true).Set(s => s.UpdatedAt, DateTimeOffset.UtcNow)
+            );
+
+            // Cascade soft-delete to upcoming sessions
+            await db.Sessions.UpdateManyAsync(
+                s => s.GroupId == id && s.Status == SessionStatus.Scheduled && !s.IsDeleted,
+                Builders<Session>.Update.Set(s => s.IsDeleted, true).Set(s => s.UpdatedAt, DateTimeOffset.UtcNow)
+            );
+
+            return Results.Ok(new { message = "Group and its active resources deleted." });
+        });
+
+        // GET /api/groups/{id}/students — list students in group
+        group.MapGet("/{id:guid}/students", async (Guid id, MongoService db, HttpContext ctx, AuthService auth) =>
+        {
+            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
+
+            var g = await db.Groups.Find(x => x.Id == id).FirstOrDefaultAsync();
+            if (g == null) return Results.NotFound(new { error = "Group not found." });
+
+            if (role == "Engineer" && g.EngineerId != userId)
+                return Results.Forbid();
+
+            if (role == "Student")
+            {
+                var user = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
+                if (user == null) return Results.Forbid();
+                var studentInfo = await auth.ResolveStudentForUser(user);
+                if (studentInfo == null || studentInfo.GroupId != id) return Results.Forbid();
+            }
+
+            var students = await db.Students
+                .Find(s => s.GroupId == id && !s.IsDeleted)
+                .SortBy(s => s.Name)
+                .ToListAsync();
+
+            return Results.Ok(students.Select(s => new
+            {
+                id = s.Id,
+                name = s.Name,
+                groupId = s.GroupId,
+                studentId = s.StudentId,
+                uniqueStudentCode = s.UniqueStudentCode,
+                createdAt = s.CreatedAt
+            }));
+        });
+
+        // POST /api/groups/{id}/students — add student to group
+        group.MapPost("/{id:guid}/students", async (Guid id, AddStudentRequest req, MongoService db) =>
+        {
+            var g = await db.Groups.Find(x => x.Id == id).FirstOrDefaultAsync();
+            if (g == null) return Results.NotFound(new { error = "Group not found." });
+
+            if (string.IsNullOrWhiteSpace(req.Name))
+                return Results.BadRequest(new { error = "Student name is required." });
+
+            var activeStudents = (int)await db.Students.CountDocumentsAsync(s => s.GroupId == id && !s.IsDeleted);
+            var maxStudents = g.Level == 4 ? 2 : 4;
+
+            if (activeStudents >= maxStudents)
+                return Results.BadRequest(new { error = $"Security Restriction: Group is full. Maximum {maxStudents} students for Level {g.Level}." });
+
+            var student = new Student
+            {
+                Name = req.Name.Trim(),
+                GroupId = id,
+                UniqueStudentCode = Student.GenerateCode(req.Name.Trim(), id)
+            };
+
+            await db.Students.InsertOneAsync(student);
+
+            return Results.Created($"/api/students/{student.Id}", new
+            {
+                id = student.Id,
+                name = student.Name,
+                groupId = student.GroupId,
+                uniqueStudentCode = student.UniqueStudentCode
+            });
+        });
+    }
+
+    public record CreateGroupRequest(string Name, string? Description, int Level, string? ColorTag, int NumberOfStudents, int StartingSessionNumber, int TotalSessions, int Frequency, List<ScheduleItem>? Schedules, List<CadetRecord>? Cadets);
+    public record ScheduleItem(int DayOfWeek, string StartTime, int DurationMinutes);
+    public record CadetRecord(string Name, string? StudentId);
+    public record UpdateGroupRequest(string? Name, string? Description, string? ColorTag, int? Level, int? NumberOfStudents, int? StartingSessionNumber, int? TotalSessions, int? Frequency, List<ScheduleItem>? Schedules);
+    public record AddStudentRequest(string Name);
+}

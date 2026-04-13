@@ -1,0 +1,32 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using SessionFlow.Desktop.Services;
+
+namespace SessionFlow.Desktop.Api.Endpoints;
+
+public static class ReportingEndpoints
+{
+    public static void Map(WebApplication app)
+    {
+        var reports = app.MapGroup("/api/reports").RequireAuthorization();
+
+        // GET /api/reports/session/{id} — download PDF report
+        reports.MapGet("/session/{id:guid}", async (Guid id, ReportingService reporting) =>
+        {
+            try
+            {
+                var pdf = await reporting.GenerateSessionReportAsync(id);
+                return Results.File(pdf, "application/pdf", $"session-report-{id}.pdf");
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        // GET /api/reports/group/{id} — group summary report (Future)
+        reports.MapGet("/group/{id:guid}", async (Guid id, ReportingService reporting) => {
+            return Results.Problem("Not implemented yet. Coming in Phase 25.");
+        });
+    }
+}

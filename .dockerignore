@@ -1,0 +1,9 @@
+﻿.git/
+.github/
+.vscode/
+bin/
+obj/
+node_modules/
+dist/
+sessionflow-ui/node_modules/
+sessionflow-ui/dist/

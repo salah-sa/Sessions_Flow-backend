@@ -1,0 +1,50 @@
+export const queryKeys = {
+  dashboard: {
+    all: ["dashboard"] as const,
+    summary: ["dashboard", "summary"] as const,
+  },
+  studentDashboard: {
+    all: ["student-dashboard"] as const,
+    data: ["student-dashboard", "data"] as const,
+  },
+  groups: {
+    all: ["groups"] as const,
+    list: (filters: any) => ["groups", "list", filters] as const,
+    byId: (id: string) => ["groups", "detail", id] as const,
+  },
+  sessions: {
+    all: ["sessions"] as const,
+    list: (filters: any) => ["sessions", "list", filters] as const,
+    byId: (id: string) => ["sessions", "detail", id] as const,
+    byGroup: (groupId: string) => ["sessions", "list", { groupId }] as const,
+  },
+  chat: {
+    all: ["chat"] as const,
+    messages: (groupId: string) => ["chat", "messages", groupId] as const,
+  },
+  students: {
+    all: ["students"] as const,
+    list: (filters: any) => ["students", "list", filters] as const,
+    byId: (id: string) => ["students", "detail", id] as const,
+  },
+  timetable: {
+    all: ["timetable"] as const,
+    entries: ["timetable", "entries"] as const,
+  },
+  settings: {
+    all: ["settings"] as const,
+  },
+  engineers: {
+    all: ["engineers"] as const,
+    codes: ["engineers", "codes"] as const,
+    pending: ["engineers", "pending"] as const,
+  },
+  audit: {
+    all: ["audit"] as const,
+    logs: ["audit", "logs"] as const,
+  },
+  notifications: {
+    all: ["notifications"] as const,
+    recent: ["notifications", "recent"] as const,
+  },
+};

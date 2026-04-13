@@ -1,0 +1,12 @@
+🚀 Starting SessionFlow Local Testing Protocol...
+
+[TEST 1] Initiating Database Authentication Handshake...
+❌ FAILED: Backend server is unreachable. Is `dotnet run` executing? connect ECONNREFUSED 127.0.0.1:5180
+
+=================================
+       TEST SUITE RESULTS        
+=================================
+
+❌ [FAIL] Backend Connection - ECONNREFUSED
+
+Final Diagnosis: 0/1 tests passed successfully.
