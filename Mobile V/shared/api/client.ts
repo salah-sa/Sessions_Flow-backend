@@ -152,7 +152,7 @@ async function handle401<T>(url: string, options: RequestInit, isBlob = false): 
         
         try {
           const { useAuthStore } = require("../store/stores");
-          useAuthStore.getState().logout();
+          await useAuthStore.getState().logout();
           router.replace("/(auth)/login");
         } catch(e) {
           console.error("Logout navigation failure", e);

@@ -16,7 +16,8 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
-  ScrollView
+  ScrollView,
+  Keyboard
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { theme } from "../../../shared/theme";
@@ -139,7 +140,14 @@ export default function ChatDetailScreen() {
         });
       } catch (err) {
         console.error("Upload failed", err);
-        queueMessage(pendingMsg);
+        const errorMsg = { ...pendingMsg, status: "error" as const };
+        queueMessage(errorMsg);
+        // Update cache to show error immediately
+        queryClient.setQueryData(
+          queryKeys.chat.messages(id as string),
+          (old: ChatMessage[] | undefined) => 
+            (old || []).map(m => m.id === messageId ? errorMsg : m)
+        );
       }
     }
   };
@@ -180,7 +188,13 @@ export default function ChatDetailScreen() {
           id: messageId
         });
       } catch (err) {
-        queueMessage(pendingMsg);
+        const errorMsg = { ...pendingMsg, status: "error" as const };
+        queueMessage(errorMsg);
+        queryClient.setQueryData(
+          queryKeys.chat.messages(id as string),
+          (old: ChatMessage[] | undefined) => 
+            (old || []).map(m => m.id === messageId ? errorMsg : m)
+        );
       }
     }
   };
@@ -216,14 +230,30 @@ export default function ChatDetailScreen() {
         message: text,
         id: messageId
       });
-      // Ensure local state clears
       setInputText("");
     } catch (err) {
       console.error("[Chat] Send Error", err);
-      queueMessage(pendingMsg);
+      const errorMsg = { ...pendingMsg, status: "error" as const };
+      queueMessage(errorMsg);
+      queryClient.setQueryData(
+        queryKeys.chat.messages(id),
+        (old: ChatMessage[] | undefined) => 
+          (old || []).map(m => m.id === messageId ? errorMsg : m)
+      );
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleRetry = (msg: ChatMessage) => {
+    removeFromQueue(msg.id);
+    // Remove from cache before retrying to prevent logic mess
+    queryClient.setQueryData(
+      queryKeys.chat.messages(id as string),
+      (old: ChatMessage[] | undefined) => (old || []).filter(m => m.id !== msg.id)
+    );
+    
+    handleSend(msg.text);
   };
 
   const handleInputChange = (text: string) => {
@@ -242,7 +272,20 @@ export default function ChatDetailScreen() {
   };
 
   // Memoize inverted data to prevent array clone every render
-  const invertedMessages = React.useMemo(() => [...messages].reverse(), [messages]);
+  const invertedMessages = React.useMemo(() => {
+    const groupPending = pendingMessages.filter(m => m.groupId === id);
+    const combined = [...messages];
+    
+    groupPending.forEach(pm => {
+      if (!combined.some(m => m.id === pm.id)) {
+        combined.push(pm);
+      }
+    });
+
+    return combined
+      .map(m => ({ ...m, _ts: new Date(m.sentAt).getTime() }))
+      .sort((a, b) => b._ts - a._ts);
+  }, [messages, pendingMessages, id]);
 
   const renderItem = ({ item, index }: { item: ChatMessage; index: number }) => {
     const prevMessage = invertedMessages[index - 1]; // Message beneath it (newer)
@@ -258,6 +301,7 @@ export default function ChatDetailScreen() {
         isFirstInGroup={isFirstInGroup}
         isLastInGroup={isLastInGroup}
         onImagePress={(uri) => setLightboxImage(uri)}
+        onRetry={handleRetry}
       />
     );
   };
@@ -339,6 +383,7 @@ export default function ChatDetailScreen() {
                 <TouchableOpacity 
                   onPress={() => {
                     haptics.selection();
+                    if (!showEmojiPicker) Keyboard.dismiss();
                     setShowEmojiPicker(!showEmojiPicker);
                   }} 
                   style={styles.actionBtn}
