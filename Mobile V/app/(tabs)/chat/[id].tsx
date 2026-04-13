@@ -43,6 +43,7 @@ import * as Sentry from "@sentry/react-native";
 
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
+import { useToast } from "../../../providers/ToastProvider";
 import { CinematicModal } from "../../../components/ui/CinematicModal";
 import { Image } from "react-native";
 import { useSignalR } from "../../../providers/SignalRProvider";
@@ -75,6 +76,7 @@ export default function ChatDetailScreen() {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
+  const { show: showToast } = useToast();
   
   const { 
     unreadCounts, 
@@ -362,6 +364,10 @@ export default function ChatDetailScreen() {
           onPress={() => {
             toggleMute(id as string);
             haptics.selection();
+            showToast(
+              isMuted ? "Alerts Enabled" : "Notifications Suspended",
+              "info"
+            );
           }}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >

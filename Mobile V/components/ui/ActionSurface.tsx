@@ -57,6 +57,7 @@ export const ActionSurface = forwardRef<ActionSurfaceRef, ActionSurfaceProps>(({
   return (
     <BottomSheet
       ref={bottomSheetRef}
+      index={-1}
       snapPoints={snapPoints}
       onChange={(index) => {
         if (index === -1 && onClose) onClose();

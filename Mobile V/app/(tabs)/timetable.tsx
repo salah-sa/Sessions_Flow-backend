@@ -11,7 +11,7 @@ import { router } from "expo-router";
 import { RoleGuard } from "../../components/auth/RoleGuard";
 
 export default function TimetableScreen() {
-  const { data: entries, isLoading } = useTimetableEntries();
+  const { data: entries, isLoading, isError } = useTimetableEntries();
   const scrollY = useSharedValue(0);
 
   const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -32,6 +32,12 @@ export default function TimetableScreen() {
         {isLoading ? (
           <View style={styles.center}>
              <ActivityIndicator color={theme.colors.primary} size="large" />
+          </View>
+        ) : isError ? (
+          <View style={styles.center}>
+             <Ionicons name="cloud-offline-outline" size={48} color={theme.colors.error} style={{marginBottom: 16}} />
+             <Text style={styles.emptyTitle}>SERVER SYNCHRONIZATION FAILED</Text>
+             <Text style={styles.emptySubtitle}>The backend encountered a 500 error while fetching schedule data.</Text>
           </View>
         ) : (
           <ScrollView

@@ -14,6 +14,7 @@ import { queryKeys } from "../shared/queries/keys";
 import { useMuteStore } from "../shared/store/muteStore";
 import { usePresenceStore } from "../shared/store/presenceStore";
 import { haptics } from "../shared/lib/haptics";
+import { useToast } from "../providers/ToastProvider";
 
 // ═══════════════════════════════════════════════════════════
 // Real-Time Hooks
@@ -30,6 +31,7 @@ import { haptics } from "../shared/lib/haptics";
 export const useRealtimeNotifications = () => {
   const { on } = useSignalR();
   const queryClient = useQueryClient();
+  const { show: showToast } = useToast();
 
   useEffect(() => {
     const unsub1 = on("SessionReminder", async (title: string, message: string) => {
@@ -44,15 +46,15 @@ export const useRealtimeNotifications = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
     });
 
-    const unsub3 = on("NewMessage", (groupId: string, _senderName: string, _text: string) => {
+    const unsub3 = on("NewMessage", (groupId: string, senderName: string, text: string) => {
       // Mute filter — check if this group is muted before notifying
       const isMuted = useMuteStore.getState().isMuted(groupId);
       if (isMuted) return; // Silent — badge update handled elsewhere
 
       // Mobile: haptic feedback for new message
       haptics.selection();
-      // Chat messages are already handled by NewChatMessage in SignalRProvider
-      // This handler is for toast/notification display only
+      // Toast notification display
+      showToast(`New message from ${senderName || "Unknown"}`, "info");
     });
 
     // ── Layer 1 Presence Signals ──────────────────────────

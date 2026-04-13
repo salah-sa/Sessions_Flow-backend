@@ -72,10 +72,11 @@ export const GlassView = ({
         tint={tint} 
         style={[styles.blur, { borderRadius }]}
       >
-        <View style={[styles.inner, innerExtractedStyle, contentContainerStyle]}>
-          {children}
-        </View>
+        <View style={StyleSheet.absoluteFillObject} />
       </BlurView>
+      <View style={[styles.inner, innerExtractedStyle, contentContainerStyle]}>
+        {children}
+      </View>
     </View>
   );
 
@@ -116,9 +117,10 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   blur: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject
   },
   inner: {
     // Padding is dynamically injected from `style` prop or contentContainerStyle
+    zIndex: 1, // Ensure content stays above the absolute blur plane
   }
 });
