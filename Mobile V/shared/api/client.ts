@@ -11,6 +11,7 @@ import { secureStorage } from "../../services/secureStorage";
 import { apiMonitor } from "../lib/apiMonitor";
 import * as Sentry from "@sentry/react-native";
 import { smartRetry, DEFAULT_RETRY_CONFIG } from "../lib/resilience";
+import { useAdaptiveStore } from "../store/adaptiveStore";
 import { apiMonitor as legacyMonitor } from "../lib/apiMonitor"; // Just ensuring we keep existing logic if needed
 import { router } from "expo-router";
 
@@ -43,6 +44,13 @@ export async function fetchWithAuth<T>(
   isBlob = false,
   timeout = 15000
 ): Promise<T> {
+  const { requestDelay, maxRetries, recordMetric } = useAdaptiveStore.getState();
+
+  // Apply predictive delay if in Slow Mode (Adaptive Intelligence)
+  if (requestDelay > 0) {
+    await new Promise(res => setTimeout(res, requestDelay));
+  }
+
   // Ensure we have a token
   if (!cachedToken) {
     cachedToken = await secureStorage.getToken();
@@ -85,11 +93,17 @@ export async function fetchWithAuth<T>(
     },
   };
 
+  const startTime = Date.now();
   try {
     const response = await smartRetry(() => fetch(url, mergedOptions), {
       ...DEFAULT_RETRY_CONFIG,
-      retries: 2,
+      retries: maxRetries,
     }, `API:${endpoint}`);
+    
+    const duration = Date.now() - startTime;
+    recordMetric("apiLatency", duration);
+    recordMetric("errorRate", 0);
+
     clearTimeout(timeoutId);
 
     apiMonitor.end(requestId, response.status);
@@ -113,6 +127,7 @@ export async function fetchWithAuth<T>(
 
     return await response.json();
   } catch (error: any) {
+    recordMetric("errorRate", 1);
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
       apiMonitor.error(requestId, new Error("TIMEOUT"));
