@@ -36,7 +36,27 @@ export const useAuthStore = create<AuthState>()(
         setCachedToken(null);
         // Clear all security-sensitive data from SecureStore
         await secureStorage.clearAll();
+        
+        // Reset in-memory state for all persistent stores to prevent stale data leak
         set({ user: null, token: null, rememberMe: false });
+        useSessionStore.setState({ 
+          activeSession: null, 
+          attendanceRecords: {}, 
+          pendingAttendance: [] 
+        });
+        useNotificationStore.setState({ 
+          notifications: [], 
+          unreadCount: 0 
+        });
+        useChatStore.setState({
+          unreadCounts: {},
+          lastMessages: {},
+          pendingMessages: [],
+          activeGroupId: null,
+          typingStates: {},
+          mutedGroups: [],
+          pinnedGroups: []
+        });
       },
     }),
     { 

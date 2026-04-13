@@ -245,11 +245,7 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   headerControls: {
-    position: "absolute",
-    top: 90,
-    left: 0,
-    right: 0,
-    zIndex: 10,
+    marginTop: 100, // Offset for AdaptiveHeader
     backgroundColor: theme.colors.bg,
     paddingBottom: 12,
   },
@@ -275,15 +271,13 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   listContent: {
-    paddingTop: 150,
+    paddingTop: 12, // Reduced padding since headerControls is no longer absolute
     paddingHorizontal: theme.spacing.lg,
     paddingBottom: 120,
   },
   fab: {
     position: "absolute",
-    bottom: 100,
-    // left: 0 // Will be transformed via animated style
-    top: undefined,
+    bottom: 40, // Better floating position above tab bar or bottom
     width: 64,
     height: 64,
     borderRadius: 32,

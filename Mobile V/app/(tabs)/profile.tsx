@@ -91,9 +91,9 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     haptics.impact();
-    logout();
+    await logout();
     router.replace("/(auth)/login");
   };
 

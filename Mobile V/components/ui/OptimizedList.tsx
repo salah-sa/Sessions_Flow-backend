@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { theme } from "../../shared/theme";
 import { EmptyState } from "./EmptyState";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 /**
  * ═══════════════════════════════════════════════════════════
@@ -41,13 +42,10 @@ export function OptimizedList<T>({
 }: OptimizedListProps<T>) {
   
   const renderStaggeredItem = React.useCallback(
-    (info: import("react-native").ListRenderItemInfo<T>) => {
+    (info: any) => {
       if (!props.renderItem) return null;
       const element = props.renderItem(info);
       if (!staggerAnimations) return element;
-      
-      const Animated = require("react-native-reanimated").default;
-      const { FadeInDown } = require("react-native-reanimated");
       
       return (
         <Animated.View entering={FadeInDown.delay(Math.min(info.index * 50, 500)).duration(400)}>

@@ -100,7 +100,7 @@ export const StudentDashboard = () => {
   }
 
   if (!data) return null;
-  const { identity, progress, todaySession, nextSession, primaryAction, timeline } = data as any;
+  const { identity = {}, progress = { percentage: 0, completed: 0, total: 0, remaining: 0 }, todaySession, nextSession, primaryAction, timeline = [] } = data as any;
 
   return (
     <View style={styles.container}>
@@ -125,23 +125,23 @@ export const StudentDashboard = () => {
         <Animated.View entering={FadeInDown.delay(100).duration(600)} style={styles.header}>
           <View style={styles.avatarWrap}>
             <Avatar 
-              userId={identity.studentId} 
-              name={identity.name} 
-              avatarUrl={identity.avatarUrl} 
+              userId={identity?.studentId || "unknown"} 
+              name={identity?.name || "Student"} 
+              avatarUrl={identity?.avatarUrl} 
               size={80} 
             />
             <View style={styles.avatarGlow} />
           </View>
           <View style={styles.headerInfo}>
             <Text style={styles.roleTag}>STUDENT OPERATOR</Text>
-            <Text style={styles.nameText}>{identity.name}</Text>
+            <Text style={styles.nameText}>{identity?.name || "STUDENT"}</Text>
             <View style={styles.metaRow}>
               <Activity size={12} color={theme.colors.success} style={{ marginRight: 4 }} />
-              <Text style={styles.metaText}>Node: {identity.groupName}</Text>
+              <Text style={styles.metaText}>Node: {identity?.groupName || "Isolated"}</Text>
               <View style={styles.dot} />
-              <Text style={styles.metaText}>Level {identity.level}</Text>
+              <Text style={styles.metaText}>Level {identity?.level || 0}</Text>
               <View style={styles.dot} />
-              <Text style={styles.metaText}>ID: {identity.studentId}</Text>
+              <Text style={styles.metaText}>ID: {identity?.studentId || "N/A"}</Text>
             </View>
           </View>
         </Animated.View>
@@ -198,18 +198,18 @@ export const StudentDashboard = () => {
                 colors={[theme.colors.success, '#22d3ee']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={[styles.progressBarFill, { width: `${Math.max(2, progress.percentage)}%` }]}
+                style={[styles.progressBarFill, { width: `${Math.max(2, progress?.percentage || 0)}%` }]}
               />
             </View>
 
             <View style={styles.progressBottomRow}>
               <View>
                 <Text style={styles.progressSubLabel}>REMAINING</Text>
-                <Text style={styles.progressSubVal}>{progress.remaining}</Text>
+                <Text style={styles.progressSubVal}>{progress?.remaining || 0}</Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
                 <Text style={styles.progressSubLabel}>TARGET EDGE</Text>
-                <Text style={styles.progressSubVal}>S{progress.total}</Text>
+                <Text style={styles.progressSubVal}>S{progress?.total || 0}</Text>
               </View>
             </View>
           </GlassView>
