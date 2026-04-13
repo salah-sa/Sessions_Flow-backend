@@ -10,7 +10,7 @@ export default function ChatLayout() {
       headerShadowVisible: false,
     }}>
       <Stack.Screen name="index" options={{ title: 'Messages' }} />
-      <Stack.Screen name="[groupId]" options={{ title: 'Chat' }} />
+      <Stack.Screen name="[id]" options={{ title: 'Chat' }} />
     </Stack>
   );
 }

@@ -9,7 +9,6 @@
 import { API_BASE_URL, MOBILE_VERSION, PLATFORM } from "./config";
 import { secureStorage } from "../../services/secureStorage";
 import { apiMonitor } from "../lib/apiMonitor";
-import { useAuthStore } from "../store/stores";
 import { router } from "expo-router";
 
 let cachedToken: string | null = null;
@@ -142,6 +141,7 @@ async function handle401<T>(url: string, options: RequestInit, isBlob = false): 
         await secureStorage.clearAll();
         
         try {
+          const { useAuthStore } = require("../store/stores");
           useAuthStore.getState().logout();
           router.replace("/(auth)/login");
         } catch(e) {

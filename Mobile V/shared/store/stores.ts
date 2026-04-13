@@ -41,7 +41,8 @@ export const useAuthStore = create<AuthState>()(
     }),
     { 
       name: "sf-auth-storage",
-      storage: createJSONStorage(() => securePersistence)
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({ user: state.user, rememberMe: state.rememberMe })
     }
   )
 );
@@ -125,7 +126,7 @@ export const useUIStore = create<UIState>()(
     }),
     { 
       name: "sf-ui-storage",
-      storage: createJSONStorage(() => securePersistence)
+      storage: createJSONStorage(() => AsyncStorage)
     }
   )
 );

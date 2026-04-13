@@ -6,9 +6,7 @@
  */
 
 import { Stack, ErrorBoundary as ExpoErrorBoundary } from "expo-router";
-import { QueryClient } from "@tanstack/react-query";
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthProvider } from "../providers/AuthProvider";
 import { ToastProvider } from "../providers/ToastProvider";
@@ -22,6 +20,7 @@ import { theme } from "../shared/theme";
 import { View, ActivityIndicator, Text, TouchableOpacity, AppState, AppStateStatus } from "react-native";
 import { useAuth } from "../providers/AuthProvider";
 import { fetchWithAuth } from "../shared/api/client";
+import { API_BASE_URL } from "../shared/api/config";
 import * as SplashScreen from 'expo-splash-screen';
 import { 
   useFonts,
@@ -50,12 +49,6 @@ const queryClient = new QueryClient({
       retry: 1,
     },
   },
-});
-
-// ── Query Persistence — AsyncStorage equivalent of desktop localStorage ──
-const asyncStoragePersister = createAsyncStoragePersister({
-  storage: AsyncStorage,
-  key: "sf_query_cache",
 });
 
 /**
@@ -89,9 +82,9 @@ function RootLayoutNav() {
     const startHeartbeat = () => {
       if (heartbeatInterval) clearInterval(heartbeatInterval);
       // Ping immediately, then every 60s
-      fetchWithAuth("/api/health/ping").catch(() => {});
+      fetch(`${API_BASE_URL}/api/health/ping`).catch(() => {});
       heartbeatInterval = setInterval(() => {
-        fetchWithAuth("/api/health/ping").catch(() => {});
+        fetch(`${API_BASE_URL}/api/health/ping`).catch(() => {});
       }, 60_000);
     };
 
@@ -134,10 +127,7 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <PersistQueryClientProvider
-        client={queryClient}
-        persistOptions={{ persister: asyncStoragePersister, maxAge: 24 * 60 * 60 * 1000 }}
-      >
+      <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <ToastProvider>
             <AuthProvider>
@@ -150,7 +140,7 @@ export default function RootLayout() {
             </AuthProvider>
           </ToastProvider>
         </ThemeProvider>
-      </PersistQueryClientProvider>
+      </QueryClientProvider>
     </GestureHandlerRootView>
   );
 }
