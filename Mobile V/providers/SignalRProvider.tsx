@@ -52,9 +52,19 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // IDENTICAL to desktop setupGlobalListeners
   // ═══════════════════════════════════════════════
   const setupGlobalListeners = (connection: signalR.HubConnection) => {
-    // 1. Chat Invalidations
-    connection.on("NewChatMessage", (groupId: string) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.chat.messages(groupId) });
+    // 1. Chat Invalidations -> Patching
+    connection.on("NewChatMessage", (groupId: string, msgData: any) => {
+      // Patch message into chat array if available
+      if (msgData) {
+        queryClient.setQueryData(queryKeys.chat.messages(groupId), (old: any) => {
+          if (!old) return [msgData];
+          // Check if message already exists
+          if (old.some((m: any) => m.id === msgData.id)) return old;
+          return [...old, msgData];
+        });
+      } else {
+        queryClient.invalidateQueries({ queryKey: queryKeys.chat.messages(groupId) });
+      }
       queryClient.invalidateQueries({ queryKey: ["dashboard", "summary"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.data });
     });
@@ -63,18 +73,35 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       queryClient.invalidateQueries({ queryKey: queryKeys.chat.messages(groupId) });
     });
 
-    // 2. Session Invalidations
-    connection.on("SessionStatusChanged", (sessionId: string) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byId(sessionId) });
+    // 2. Session Invalidations -> Patching
+    connection.on("SessionStatusChanged", (sessionId: string, newStatus: string) => {
+      if (newStatus) {
+        queryClient.setQueryData(queryKeys.sessions.byId(sessionId), (old: any) => {
+          if (!old) return old;
+          return { ...old, status: newStatus };
+        });
+      } else {
+        queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byId(sessionId) });
+      }
       queryClient.invalidateQueries({ queryKey: queryKeys.sessions.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
     });
 
-    // 3. Attendance Invalidations
-    connection.on("AttendanceUpdated", (sessionId: string) => {
+    // 3. Attendance Invalidations -> Patching
+    connection.on("AttendanceUpdated", (sessionId: string, recordData: any[]) => {
+      if (recordData && Array.isArray(recordData)) {
+        queryClient.setQueryData(["sessions", "attendance", sessionId], (old: any) => {
+          if (!old) return recordData;
+          return old.map((record: any) => {
+            const updated = recordData.find(r => r.studentId === record.studentId);
+            return updated ? { ...record, status: updated.status } : record;
+          });
+        });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["sessions", "attendance", sessionId] });
+      }
       queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byId(sessionId) });
-      queryClient.invalidateQueries({ queryKey: ["sessions", "attendance", sessionId] });
       queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
     });
 
@@ -85,8 +112,15 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
 
     // 4. Group Invalidations
-    connection.on("GroupStatusChanged", (groupId: string) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.groups.byId(groupId) });
+    connection.on("GroupStatusChanged", (groupId: string, status: string) => {
+      if (status) {
+        queryClient.setQueryData(queryKeys.groups.byId(groupId), (old: any) => {
+          if (!old) return old;
+          return { ...old, status };
+        });
+      } else {
+        queryClient.invalidateQueries({ queryKey: queryKeys.groups.byId(groupId) });
+      }
       queryClient.invalidateQueries({ queryKey: queryKeys.groups.all });
     });
 
@@ -127,15 +161,25 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
 
     connection.on("GroupCompleted", (groupId: string) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.groups.byId(groupId) });
+      queryClient.setQueryData(queryKeys.groups.byId(groupId), (old: any) => {
+        if (!old) return old;
+        return { ...old, status: "Completed" };
+      });
       queryClient.invalidateQueries({ queryKey: ["groups"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["chat"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
     });
 
-    connection.on("GroupDescriptionUpdated", (groupId: string) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.groups.byId(groupId) });
+    connection.on("GroupDescriptionUpdated", (groupId: string, newDesc: string) => {
+      if (typeof newDesc === "string") {
+        queryClient.setQueryData(queryKeys.groups.byId(groupId), (old: any) => {
+          if (!old) return old;
+          return { ...old, description: newDesc };
+        });
+      } else {
+        queryClient.invalidateQueries({ queryKey: queryKeys.groups.byId(groupId) });
+      }
       queryClient.invalidateQueries({ queryKey: ["groups"] });
     });
 
@@ -157,6 +201,14 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
     connection.on("AvatarUpdated", (_userId: string, _avatarUrl: string) => {
       queryClient.invalidateQueries({ queryKey: ["chat"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
+    });
+
+    connection.on("UserTyping", (groupId: string, userName: string) => {
+      useChatStore.getState().setTyping(groupId, userName, true);
+    });
+
+    connection.on("UserStoppedTyping", (groupId: string, userName: string) => {
+      useChatStore.getState().setTyping(groupId, userName, false);
     });
 
     connection.on("UserTyping", (groupId: string, userName: string) => {

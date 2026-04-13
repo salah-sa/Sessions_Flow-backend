@@ -66,6 +66,13 @@ export default function SessionExecutionScreen() {
   }, [session]);
 
   const handleEnd = async () => {
+    const hasUnmarked = attendance.some((r: any) => r.status === "Unmarked");
+    if (hasUnmarked) {
+      haptics.notification("error" as any);
+      showToast("Cannot conclude: Unmarked personnel detected", "error" as any);
+      return;
+    }
+
     haptics.impact();
     try {
       await endMutation.mutateAsync({ id: id as string, notes });
@@ -190,7 +197,7 @@ export default function SessionExecutionScreen() {
           entering={FadeInDown.duration(600).springify()}
           style={styles.hub}
         >
-          <RadarHUD presentCount={presentCount} totalCount={attendance.length} />
+          <RadarHUD presentCount={presentCount} totalCount={attendance.length} attendanceRecords={attendance} />
           
           {session?.status === "Active" && (
             <GlassView intensity={40} style={styles.timerCard}>

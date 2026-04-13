@@ -9,6 +9,8 @@ import { GlassView } from "../../components/ui/GlassView";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { RoleGuard } from "../../components/auth/RoleGuard";
+import { useAnimatedPress } from "../../shared/hooks/useAnimatedPress";
+import Animated from "react-native-reanimated";
 
 export default function ArchiveScreen() {
   // Fetch only completed groups. Assuming API supports status filtering.
@@ -16,20 +18,25 @@ export default function ArchiveScreen() {
   const groups = data?.pages.flatMap(page => page.items) || [];
   const scrollY = useSharedValue(0);
 
-  const renderItem = ({ item }: { item: any }) => (
-    <GlassView intensity={15} style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View style={styles.avatar}>
-          <Ionicons name="archive-outline" size={24} color={theme.colors.textDim} />
-        </View>
-        <View style={styles.info}>
-          <Text style={styles.nameText} numberOfLines={1}>{item.name}</Text>
-          <Text style={styles.techStack}>{item.techStack || 'Legacy Session'}</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={16} color={theme.colors.textDim} />
-      </View>
-    </GlassView>
-  );
+  const renderItem = ({ item }: { item: any }) => {
+    const { pressHandlers, animatedStyle } = useAnimatedPress();
+    return (
+      <Animated.View style={animatedStyle} {...pressHandlers}>
+        <GlassView intensity={15} style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.avatar}>
+              <Ionicons name="archive-outline" size={24} color={theme.colors.textDim} />
+            </View>
+            <View style={styles.info}>
+              <Text style={styles.nameText} numberOfLines={1}>{item.name}</Text>
+              <Text style={styles.techStack}>{item.techStack || 'Legacy Session'}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={theme.colors.textDim} />
+          </View>
+        </GlassView>
+      </Animated.View>
+    );
+  };
 
   return (
     <RoleGuard allowedRoles={["Admin", "Engineer"]}>
@@ -51,6 +58,7 @@ export default function ArchiveScreen() {
           contentContainerStyle={styles.listContent}
           emptyTitle="Archive Empty"
           emptyDescription="Completed or deprecated nodes will be vaulted here."
+          staggerAnimations={true}
         />
       </View>
     </RoleGuard>

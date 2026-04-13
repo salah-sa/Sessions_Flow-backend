@@ -10,6 +10,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { RoleGuard } from "../../components/auth/RoleGuard";
 import { format } from "date-fns";
+import { useAnimatedPress } from "../../shared/hooks/useAnimatedPress";
+import Animated from "react-native-reanimated";
 
 export default function HistoryScreen() {
   const { data, isLoading, refetch, isRefetching, fetchNextPage, hasNextPage } = useInfiniteSessions({ status: "Ended" });
@@ -24,39 +26,44 @@ export default function HistoryScreen() {
     }
   };
 
-  const renderItem = ({ item }: { item: any }) => (
-    <GlassView intensity={15} style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View style={styles.groupInfo}>
-          <Text style={styles.groupName} numberOfLines={1}>{item.groupName}</Text>
-          <Text style={styles.techStack}>{item.date ? format(new Date(item.date), "MMM d, yyyy") : "Unknown Date"}</Text>
-        </View>
-        <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(item.status)}20` }]}>
-          <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
-          <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status.toUpperCase()}</Text>
-        </View>
-      </View>
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Ionicons name="time-outline" size={14} color={theme.colors.textDim} />
-          <Text style={styles.statText}>
-             {item.startedAt && item.endedAt ? format(new Date(item.endedAt).getTime() - new Date(item.startedAt).getTime() - 3600000 * 2, "H'h' m'm'") : "N/A"}
-          </Text>
-        </View>
-        {item.attendanceCount !== undefined && (
-          <View style={styles.statItem}>
-            <Ionicons name="people-outline" size={14} color={theme.colors.textDim} />
-            <Text style={styles.statText}>{item.attendanceCount} records</Text>
+  const renderItem = ({ item }: { item: any }) => {
+    const { pressHandlers, animatedStyle } = useAnimatedPress();
+    return (
+      <Animated.View style={animatedStyle} {...pressHandlers}>
+        <GlassView intensity={15} style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.groupInfo}>
+              <Text style={styles.groupName} numberOfLines={1}>{item.groupName}</Text>
+              <Text style={styles.techStack}>{item.date ? format(new Date(item.date), "MMM d, yyyy") : "Unknown Date"}</Text>
+            </View>
+            <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(item.status)}20` }]}>
+              <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
+              <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status.toUpperCase()}</Text>
+            </View>
           </View>
-        )}
-      </View>
-      {item.notes && (
-        <View style={styles.notesContainer}>
-          <Text style={styles.notesText} numberOfLines={2}>{item.notes}</Text>
-        </View>
-      )}
-    </GlassView>
-  );
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Ionicons name="time-outline" size={14} color={theme.colors.textDim} />
+              <Text style={styles.statText}>
+                 {item.startedAt && item.endedAt ? format(new Date(item.endedAt).getTime() - new Date(item.startedAt).getTime() - 3600000 * 2, "H'h' m'm'") : "N/A"}
+              </Text>
+            </View>
+            {item.attendanceCount !== undefined && (
+              <View style={styles.statItem}>
+                <Ionicons name="people-outline" size={14} color={theme.colors.textDim} />
+                <Text style={styles.statText}>{item.attendanceCount} records</Text>
+              </View>
+            )}
+          </View>
+          {item.notes && (
+            <View style={styles.notesContainer}>
+              <Text style={styles.notesText} numberOfLines={2}>{item.notes}</Text>
+            </View>
+          )}
+        </GlassView>
+      </Animated.View>
+    );
+  };
 
   return (
     <RoleGuard allowedRoles={["Admin", "Engineer"]}>
@@ -78,6 +85,7 @@ export default function HistoryScreen() {
           contentContainerStyle={styles.listContent}
           emptyTitle="No History Yet"
           emptyDescription="Completed missions and recorded metrics will appear here."
+          staggerAnimations={true}
         />
       </View>
     </RoleGuard>

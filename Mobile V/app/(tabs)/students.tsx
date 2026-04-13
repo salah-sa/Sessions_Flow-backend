@@ -9,28 +9,35 @@ import { GlassView } from "../../components/ui/GlassView";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { RoleGuard } from "../../components/auth/RoleGuard";
+import { useAnimatedPress } from "../../shared/hooks/useAnimatedPress";
+import Animated from "react-native-reanimated";
 
 export default function StudentsScreen() {
   const { data, isLoading, refetch, isRefetching, fetchNextPage, hasNextPage } = useInfiniteStudents();
   const students = data?.pages.flatMap(page => page.items) || [];
   const scrollY = useSharedValue(0);
 
-  const renderItem = ({ item }: { item: any }) => (
-    <GlassView intensity={20} style={styles.card}>
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{item.name?.[0] || "?"}</Text>
-      </View>
-      <View style={styles.info}>
-        <Text style={styles.nameText} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.codeText}>{item.studentCode || "No Code"}</Text>
-      </View>
-      {item.group && (
-        <View style={styles.groupBadge}>
-          <Text style={styles.groupText} numberOfLines={1}>{item.group.name}</Text>
-        </View>
-      )}
-    </GlassView>
-  );
+  const renderItem = ({ item }: { item: any }) => {
+    const { pressHandlers, animatedStyle } = useAnimatedPress();
+    return (
+      <Animated.View style={animatedStyle} {...pressHandlers}>
+        <GlassView intensity={20} style={styles.card}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{item.name?.[0] || "?"}</Text>
+          </View>
+          <View style={styles.info}>
+            <Text style={styles.nameText} numberOfLines={1}>{item.name}</Text>
+            <Text style={styles.codeText}>{item.studentCode || "No Code"}</Text>
+          </View>
+          {item.group && (
+            <View style={styles.groupBadge}>
+              <Text style={styles.groupText} numberOfLines={1}>{item.group.name}</Text>
+            </View>
+          )}
+        </GlassView>
+      </Animated.View>
+    );
+  };
 
   return (
     <RoleGuard allowedRoles={["Admin", "Engineer"]}>
@@ -52,6 +59,7 @@ export default function StudentsScreen() {
           contentContainerStyle={styles.listContent}
           emptyTitle="No Personnel Found"
           emptyDescription="There are currently no students enrolled across any nodes."
+          staggerAnimations={true}
         />
       </View>
     </RoleGuard>
