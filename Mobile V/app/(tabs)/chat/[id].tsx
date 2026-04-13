@@ -65,6 +65,7 @@ export default function ChatDetailScreen() {
   const { invoke } = useSignalR();
   const insets = useSafeAreaInsets();
   const [inputText, setInputText] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
@@ -170,13 +171,26 @@ export default function ChatDetailScreen() {
     }, 3000);
   };
 
-  const renderItem = ({ item }: { item: ChatMessage }) => (
-    <ChatBubble 
-      message={item} 
-      isOwn={item.senderId === user?.id} 
-      onImagePress={(uri) => setLightboxImage(uri)}
-    />
-  );
+  // Memoize inverted data to prevent array clone every render
+  const invertedMessages = React.useMemo(() => [...messages].reverse(), [messages]);
+
+  const renderItem = ({ item, index }: { item: ChatMessage; index: number }) => {
+    const prevMessage = invertedMessages[index - 1]; // Message beneath it (newer)
+    const nextMessage = invertedMessages[index + 1]; // Message above it (older)
+
+    const isFirstInGroup = nextMessage?.senderId !== item.senderId;
+    const isLastInGroup = prevMessage?.senderId !== item.senderId;
+
+    return (
+      <ChatBubble 
+        message={item} 
+        isOwn={item.senderId === user?.id} 
+        isFirstInGroup={isFirstInGroup}
+        isLastInGroup={isLastInGroup}
+        onImagePress={(uri) => setLightboxImage(uri)}
+      />
+    );
+  };
 
   const getPresence = usePresenceStore(s => s.getPresence);
 
@@ -226,11 +240,13 @@ export default function ChatDetailScreen() {
           <View style={styles.flex}>
             <FlatList
               ref={flatListRef}
-              data={[...messages].reverse()}
+              data={invertedMessages}
               renderItem={renderItem}
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.listContent}
               inverted
+              maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+              removeClippedSubviews={true}
               onScroll={(e) => { scrollY.value = e.nativeEvent.contentOffset.y; }}
               scrollEventThrottle={16}
               initialNumToRender={15}
@@ -247,15 +263,18 @@ export default function ChatDetailScreen() {
             intensity={90} 
             tint="dark"
             style={styles.inputBarWrapper}
-            contentContainerStyle={styles.inputBarContent}
           >
-            <TouchableOpacity 
-              onPress={() => haptics.selection()} 
-              style={styles.attachBtn}
-              accessibilityLabel="Emoji"
-            >
-              <Ionicons name="happy-outline" size={24} color={theme.colors.textDim} />
-            </TouchableOpacity>
+            <View style={styles.inputBarContent}>
+              <TouchableOpacity 
+                onPress={() => {
+                  haptics.selection();
+                  setShowEmojiPicker(!showEmojiPicker);
+                }} 
+                style={styles.attachBtn}
+                accessibilityLabel="Emoji"
+              >
+                <Ionicons name={showEmojiPicker ? "keypad-outline" : "happy-outline"} size={24} color={theme.colors.textDim} />
+              </TouchableOpacity>
 
             <TouchableOpacity 
               onPress={handlePickDocument} 
@@ -283,7 +302,31 @@ export default function ChatDetailScreen() {
           >
             <Ionicons name="send" size={20} color={inputText.trim() ? "#fff" : theme.colors.textDim} />
           </TouchableOpacity>
-        </GlassView>
+            </View>
+
+            {/* Inline Emoji Row */}
+            {showEmojiPicker && (
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 12 }}
+                keyboardShouldPersistTaps="always"
+              >
+                {['😀','😂','🥰','😎','🥺','✨','🔥','❤️','👍','🎉','😭','🙌'].map(emoji => (
+                  <TouchableOpacity 
+                    key={emoji} 
+                    onPress={() => {
+                      haptics.selection();
+                      setInputText(prev => prev + emoji);
+                    }}
+                  >
+                    <Text style={{ fontSize: 28, marginHorizontal: 6 }}>{emoji}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+            
+          </GlassView>
       </View>
     </KeyboardAvoidingView>
 

@@ -21,10 +21,18 @@ import { useWindowDimensions } from "react-native";
 interface ChatBubbleProps {
   message: ChatMessageType;
   isOwn: boolean;
+  isFirstInGroup?: boolean;
+  isLastInGroup?: boolean;
   onImagePress?: (uri: string) => void;
 }
 
-export const ChatBubble = ({ message, isOwn, onImagePress }: ChatBubbleProps) => {
+export const ChatBubble = ({ 
+  message, 
+  isOwn, 
+  isFirstInGroup = true, 
+  isLastInGroup = true, 
+  onImagePress 
+}: ChatBubbleProps) => {
   const { language } = useUIStore();
   const { width } = useWindowDimensions();
   const isImage = message.text.startsWith("[IMAGE] ");
@@ -48,13 +56,17 @@ export const ChatBubble = ({ message, isOwn, onImagePress }: ChatBubbleProps) =>
   const maxBubbleWidth = width * 0.8;
   const maxImageWidth = Math.min(280, maxBubbleWidth - 24);
 
+  // Dynamic spacing
+  const marginBot = isLastInGroup ? 16 : 2;
+  const showTail = isFirstInGroup; // Standard tail at Top (TopLeft or TopRight)
+
   return (
     <View style={[
       styles.container, 
       isOwn ? styles.ownContainer : styles.otherContainer,
-      { maxWidth: maxBubbleWidth }
+      { maxWidth: maxBubbleWidth, marginBottom: marginBot }
     ]}>
-      {!isOwn && (
+      {(!isOwn && isFirstInGroup) && (
         <Text style={[styles.senderName, isRTL && { textAlign: 'right', marginRight: 4 }]}>
           {message.senderName}
         </Text>
@@ -64,7 +76,19 @@ export const ChatBubble = ({ message, isOwn, onImagePress }: ChatBubbleProps) =>
         intensity={isOwn ? 40 : 15} 
         style={[
           styles.bubble, 
-          isOwn ? styles.ownBubble : styles.otherBubble,
+          isOwn ? {
+            borderTopLeftRadius: 18,
+            borderBottomLeftRadius: 18,
+            borderTopRightRadius: showTail ? 4 : 18,
+            borderBottomRightRadius: 18,
+            backgroundColor: "rgba(14, 165, 233, 0.1)",
+          } : {
+            borderTopRightRadius: 18,
+            borderBottomRightRadius: 18,
+            borderTopLeftRadius: showTail ? 4 : 18,
+            borderBottomLeftRadius: 18,
+            backgroundColor: "rgba(255,255,255,0.02)",
+          },
           { borderColor: isOwn ? "rgba(14, 165, 233, 0.3)" : "rgba(255,255,255,0.05)" }
         ]}
       >
@@ -93,8 +117,13 @@ export const ChatBubble = ({ message, isOwn, onImagePress }: ChatBubbleProps) =>
         
         <View style={[styles.footer, isRTL && { flexDirection: 'row-reverse', justifyContent: 'flex-start' }]}>
           <Text style={styles.time}>{format(new Date(message.sentAt), "h:mm a")}</Text>
-          {isOwn && message.status === "pending" && (
-            <View style={styles.statusDot} />
+          {isOwn && (
+            <Ionicons 
+              name={message.status === "read" ? "checkmark-done" : message.status === "sent" ? "checkmark" : "time-outline"} 
+              size={14} 
+              color={message.status === "read" ? theme.colors.primary : theme.colors.textDim} 
+              style={[isRTL ? { marginRight: 4 } : { marginLeft: 4 }]}
+            />
           )}
         </View>
       </GlassView>
@@ -122,22 +151,8 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   bubble: {
-    padding: 12,
+    padding: 10,
     borderWidth: 1,
-  },
-  ownBubble: {
-    borderTopLeftRadius: 18,
-    borderBottomLeftRadius: 18,
-    borderTopRightRadius: 4,
-    borderBottomRightRadius: 18,
-    backgroundColor: "rgba(14, 165, 233, 0.1)",
-  },
-  otherBubble: {
-    borderTopRightRadius: 18,
-    borderBottomRightRadius: 18,
-    borderTopLeftRadius: 4,
-    borderBottomLeftRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.02)",
   },
   text: {
     color: theme.colors.text,
