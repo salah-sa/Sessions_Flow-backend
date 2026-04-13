@@ -38,6 +38,7 @@ export default function ChatListScreen() {
   const getPresence = usePresenceStore(s => s.getPresence);
   const scrollY = useSharedValue(0);
   const [selectedGroup, setSelectedGroup] = React.useState<Group | null>(null);
+  const isNavigating = React.useRef(false);
 
   const renderItem = ({ item }: { item: Group }) => {
     const unread = unreadCounts[item.id] || 0;
@@ -50,7 +51,12 @@ export default function ChatListScreen() {
           haptics.impact();
           setSelectedGroup(item);
         }}
-        onPress={() => router.push({ pathname: "/(tabs)/chat/[id]", params: { id: item.id } })}
+        onPress={() => {
+          if (isNavigating.current) return;
+          isNavigating.current = true;
+          router.push({ pathname: "/(tabs)/chat/[id]", params: { id: item.id } });
+          setTimeout(() => { isNavigating.current = false; }, 500);
+        }}
       >
         {({ pressed }) => (
           <GlassView 

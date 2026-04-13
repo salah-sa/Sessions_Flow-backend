@@ -26,6 +26,7 @@ interface ChatBubbleProps {
   isFirstInGroup?: boolean;
   isLastInGroup?: boolean;
   onImagePress?: (uri: string) => void;
+  onRetry?: (msg: ChatMessageType) => void;
 }
 
 export const ChatBubble = ({ 
@@ -33,16 +34,19 @@ export const ChatBubble = ({
   isOwn, 
   isFirstInGroup = true, 
   isLastInGroup = true, 
-  onImagePress 
+  onImagePress,
+  onRetry
 }: ChatBubbleProps) => {
   const { language } = useUIStore();
   const { width } = useWindowDimensions();
   const [imageError, setImageError] = useState(false);
-  const isImage = message.text.startsWith("[IMAGE] ");
-  const isDoc = message.text.startsWith("[DOCUMENT] ");
   
-  const imageUri = isImage ? message.text.replace("[IMAGE] ", "") : null;
-  const docName = isDoc ? message.text.replace("[DOCUMENT] ", "") : null;
+  const text = message.text || "";
+  const isImage = text.startsWith("[IMAGE] ");
+  const isDoc = text.startsWith("[DOCUMENT] ");
+  
+  const imageUri = isImage ? text.replace("[IMAGE] ", "") : null;
+  const docName = isDoc ? text.replace("[DOCUMENT] ", "") : null;
   const isRTL = language === "ar";
 
   // Bubble width limits
@@ -146,12 +150,25 @@ export const ChatBubble = ({
         <View style={[styles.footer, isRTL && { flexDirection: 'row-reverse', justifyContent: 'flex-start' }]}>
           <Text style={styles.time}>{format(new Date(message.sentAt), "h:mm a")}</Text>
           {isOwn && (
-            <Ionicons 
-              name={message.status === "read" ? "checkmark-done" : message.status === "sent" ? "checkmark" : "time-outline"} 
-              size={12} 
-              color={message.status === "read" ? theme.colors.primary : theme.colors.textDim} 
-              style={[isRTL ? { marginRight: 4 } : { marginLeft: 4 }]}
-            />
+            <>
+              {message.status === "error" ? (
+                <TouchableOpacity onPress={() => onRetry?.(message)}>
+                  <Ionicons 
+                    name="alert-circle" 
+                    size={16} 
+                    color={theme.colors.error} 
+                    style={[isRTL ? { marginRight: 4 } : { marginLeft: 4 }]}
+                  />
+                </TouchableOpacity>
+              ) : (
+                <Ionicons 
+                  name={message.status === "read" ? "checkmark-done" : message.status === "sent" ? "checkmark" : "time-outline"} 
+                  size={12} 
+                  color={message.status === "read" ? theme.colors.primary : theme.colors.textDim} 
+                  style={[isRTL ? { marginRight: 4 } : { marginLeft: 4 }]}
+                />
+              )}
+            </>
           )}
         </View>
       </GlassView>

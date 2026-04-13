@@ -136,7 +136,7 @@ export interface ChatMessage {
   fileType?: string;
   sentAt: string;
   sender?: User;
-  status?: "pending" | "sent" | "delivered" | "read";
+  status?: "pending" | "sent" | "delivered" | "read" | "error";
   isRead?: boolean;
 }
 
