@@ -143,14 +143,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
   },
   left: {
-    width: 80,
+    width: 100,
   },
   center: {
     flex: 1,
     alignItems: "center",
   },
   right: {
-    width: 80,
+    width: 100,
     alignItems: "flex-end",
   },
   title: {

@@ -41,3 +41,29 @@ export const useSendMessage = () => {
     },
   });
 };
+
+export const useSendFileMessage = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ 
+      groupId, 
+      text, 
+      fileUri, 
+      fileName, 
+      fileType,
+      id 
+    }: { 
+      groupId: string; 
+      text: string; 
+      fileUri: string;
+      fileName: string;
+      fileType: string;
+      id?: string;
+    }) => chatApi.sendMessageWithFile(groupId, text, fileUri, fileName, fileType, undefined, undefined, id),
+    
+    onSuccess: (_, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.chat.messages(groupId) });
+    },
+  });
+};
