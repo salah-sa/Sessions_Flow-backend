@@ -107,7 +107,7 @@ export default function ChatDetailScreen() {
     let count = 0;
     if (group?.engineer && isMemberOnline(group.engineer.id)) count++;
     group?.students?.forEach(s => {
-      if (isMemberOnline(s.id || s.userId)) count++;
+      if (isMemberOnline(s.id || s.userId || '')) count++;
     });
     return count;
   }, [group, isMemberOnline]);
