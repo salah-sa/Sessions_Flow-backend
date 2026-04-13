@@ -47,14 +47,17 @@ public static class DashboardEndpoints
             var sessionFilter = Builders<Session>.Filter.Eq(s => s.IsDeleted, false) & Builders<Session>.Filter.Gte(s => s.ScheduledAt, todayStart) & Builders<Session>.Filter.Lt(s => s.ScheduledAt, todayEnd);
             var activeFilter = Builders<Session>.Filter.Eq(s => s.IsDeleted, false) & Builders<Session>.Filter.Eq(s => s.Status, SessionStatus.Active);
 
-            Guid? studentGroupId = null;
+            List<Guid> studentGroupIds = new List<Guid>();
             if (roleStr == "Student")
             {
                 var user = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
                 if (user != null)
                 {
-                    var studentInfo = await auth.ResolveStudentForUser(user);
-                    studentGroupId = studentInfo?.GroupId;
+                    var studentInfos = await auth.ResolveAllStudentsForUser(user);
+                    if (studentInfos != null && studentInfos.Any())
+                    {
+                        studentGroupIds = studentInfos.Select(s => s.GroupId).ToList();
+                    }
                 }
             }
 
@@ -67,12 +70,12 @@ public static class DashboardEndpoints
             }
             else if (roleStr == "Student")
             {
-                if (studentGroupId.HasValue)
+                if (studentGroupIds.Count > 0)
                 {
-                    groupFilter &= Builders<Group>.Filter.Eq(g => g.Id, studentGroupId.Value);
-                    activeGroupFilter &= Builders<Group>.Filter.Eq(g => g.Id, studentGroupId.Value);
-                    sessionFilter &= Builders<Session>.Filter.Eq(s => s.GroupId, studentGroupId.Value);
-                    activeFilter &= Builders<Session>.Filter.Eq(s => s.GroupId, studentGroupId.Value);
+                    groupFilter &= Builders<Group>.Filter.In(g => g.Id, studentGroupIds);
+                    activeGroupFilter &= Builders<Group>.Filter.In(g => g.Id, studentGroupIds);
+                    sessionFilter &= Builders<Session>.Filter.In(s => s.GroupId, studentGroupIds);
+                    activeFilter &= Builders<Session>.Filter.In(s => s.GroupId, studentGroupIds);
                 }
                 else
                 {
@@ -96,7 +99,7 @@ public static class DashboardEndpoints
             var completedSessionFilter = Builders<Session>.Filter.Eq(s => s.IsDeleted, false)
                 & Builders<Session>.Filter.Eq(s => s.Status, SessionStatus.Ended);
             if (roleStr == "Engineer") completedSessionFilter &= Builders<Session>.Filter.Eq(s => s.EngineerId, userId);
-            else if (roleStr == "Student" && studentGroupId.HasValue) completedSessionFilter &= Builders<Session>.Filter.Eq(s => s.GroupId, studentGroupId.Value);
+            else if (roleStr == "Student" && studentGroupIds.Count > 0) completedSessionFilter &= Builders<Session>.Filter.In(s => s.GroupId, studentGroupIds);
             var completedSessionsTask = db.Sessions.CountDocumentsAsync(completedSessionFilter);
 
             // Upcoming scheduled sessions in the future (role-filtered)
@@ -104,7 +107,7 @@ public static class DashboardEndpoints
                 & Builders<Session>.Filter.Eq(s => s.Status, SessionStatus.Scheduled)
                 & Builders<Session>.Filter.Gt(s => s.ScheduledAt, now);
             if (roleStr == "Engineer") upcomingFilter &= Builders<Session>.Filter.Eq(s => s.EngineerId, userId);
-            else if (roleStr == "Student" && studentGroupId.HasValue) upcomingFilter &= Builders<Session>.Filter.Eq(s => s.GroupId, studentGroupId.Value);
+            else if (roleStr == "Student" && studentGroupIds.Count > 0) upcomingFilter &= Builders<Session>.Filter.In(s => s.GroupId, studentGroupIds);
             var upcomingSessionsTask = db.Sessions.CountDocumentsAsync(upcomingFilter);
 
             // Completed groups (role-filtered)
@@ -115,7 +118,7 @@ public static class DashboardEndpoints
 
             var timelineFilter = Builders<Session>.Filter.Eq(s => s.IsDeleted, false) & Builders<Session>.Filter.Gte(s => s.ScheduledAt, todayStart) & Builders<Session>.Filter.Lt(s => s.ScheduledAt, todayEnd);
             if (roleStr == "Engineer") timelineFilter &= Builders<Session>.Filter.Eq(s => s.EngineerId, userId);
-            else if (roleStr == "Student" && studentGroupId.HasValue) timelineFilter &= Builders<Session>.Filter.Eq(s => s.GroupId, studentGroupId.Value);
+            else if (roleStr == "Student" && studentGroupIds.Count > 0) timelineFilter &= Builders<Session>.Filter.In(s => s.GroupId, studentGroupIds);
 
             var todayTimelineTask = db.Sessions
                 .Find(timelineFilter)
@@ -124,7 +127,7 @@ public static class DashboardEndpoints
 
             var recentFilter = Builders<Session>.Filter.Eq(s => s.IsDeleted, false) & Builders<Session>.Filter.Eq(s => s.Status, SessionStatus.Ended);
             if (roleStr == "Engineer") recentFilter &= Builders<Session>.Filter.Eq(s => s.EngineerId, userId);
-            else if (roleStr == "Student" && studentGroupId.HasValue) recentFilter &= Builders<Session>.Filter.Eq(s => s.GroupId, studentGroupId.Value);
+            else if (roleStr == "Student" && studentGroupIds.Count > 0) recentFilter &= Builders<Session>.Filter.In(s => s.GroupId, studentGroupIds);
 
             var recentActivityTask = db.Sessions
                 .Find(recentFilter)
@@ -174,7 +177,7 @@ public static class DashboardEndpoints
                 & Builders<Session>.Filter.Gte(s => s.ScheduledAt, monthStart) 
                 & Builders<Session>.Filter.Lt(s => s.ScheduledAt, monthEnd);
             if (roleStr == "Engineer") monthSessionFilter &= Builders<Session>.Filter.Eq(s => s.EngineerId, userId);
-            else if (roleStr == "Student" && studentGroupId.HasValue) monthSessionFilter &= Builders<Session>.Filter.Eq(s => s.GroupId, studentGroupId.Value);
+            else if (roleStr == "Student" && studentGroupIds.Count > 0) monthSessionFilter &= Builders<Session>.Filter.In(s => s.GroupId, studentGroupIds);
 
             var monthAttendanceAgg = await db.Sessions.Aggregate(new AggregateOptions())
                 .Match(monthSessionFilter)
@@ -314,7 +317,7 @@ public static class DashboardEndpoints
                                  Builders<Session>.Filter.Lt(s => s.ScheduledAt, bucketEnd4);
                 
                 if (roleStr == "Engineer") bucketFilter &= Builders<Session>.Filter.Eq(s => s.EngineerId, userId);
-                else if (roleStr == "Student" && studentGroupId.HasValue) bucketFilter &= Builders<Session>.Filter.Eq(s => s.GroupId, studentGroupId.Value);
+                else if (roleStr == "Student" && studentGroupIds.Count > 0) bucketFilter &= Builders<Session>.Filter.In(s => s.GroupId, studentGroupIds);
                 
                 var count = await db.Sessions.CountDocumentsAsync(bucketFilter);
                 weeklyTrend.Add((int)count);
@@ -382,7 +385,7 @@ public static class DashboardEndpoints
                                        Builders<Session>.Filter.Gt(s => s.ScheduledAt, todayEnd);
 
                 if (roleStr == "Engineer") nextGlobalFilter &= Builders<Session>.Filter.Eq(s => s.EngineerId, userId);
-                else if (roleStr == "Student" && studentGroupId.HasValue) nextGlobalFilter &= Builders<Session>.Filter.Eq(s => s.GroupId, studentGroupId.Value);
+                else if (roleStr == "Student" && studentGroupIds.Count > 0) nextGlobalFilter &= Builders<Session>.Filter.In(s => s.GroupId, studentGroupIds);
 
                 var nextGlobal = await db.Sessions
                     .Find(nextGlobalFilter)

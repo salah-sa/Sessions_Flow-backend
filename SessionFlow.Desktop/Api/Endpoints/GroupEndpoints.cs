@@ -37,10 +37,11 @@ public static class GroupEndpoints
                 var user = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
                 if (user != null)
                 {
-                    var studentInfo = await auth.ResolveStudentForUser(user);
-                    if (studentInfo != null)
+                    var studentInfos = await auth.ResolveAllStudentsForUser(user);
+                    if (studentInfos != null && studentInfos.Any())
                     {
-                        filter &= builder.Eq(g => g.Id, studentInfo.GroupId);
+                        var groupIds = studentInfos.Select(s => s.GroupId).ToList();
+                        filter &= builder.In(g => g.Id, groupIds);
                     }
                     else
                     {
@@ -152,8 +153,8 @@ public static class GroupEndpoints
             {
                 var user = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
                 if (user == null) return Results.Forbid();
-                var studentInfo = await auth.ResolveStudentForUser(user);
-                if (studentInfo == null || studentInfo.GroupId != id) return Results.Forbid();
+                var studentInfos = await auth.ResolveAllStudentsForUser(user);
+                if (studentInfos == null || !studentInfos.Any(s => s.GroupId == id)) return Results.Forbid();
             }
 
             var engineer = await db.Users.Find(u => u.Id == g.EngineerId).FirstOrDefaultAsync();
@@ -445,8 +446,8 @@ public static class GroupEndpoints
             {
                 var user = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
                 if (user == null) return Results.Forbid();
-                var studentInfo = await auth.ResolveStudentForUser(user);
-                if (studentInfo == null || studentInfo.GroupId != id) return Results.Forbid();
+                var studentInfos = await auth.ResolveAllStudentsForUser(user);
+                if (studentInfos == null || !studentInfos.Any(s => s.GroupId == id)) return Results.Forbid();
             }
 
             var students = await db.Students

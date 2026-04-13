@@ -37,8 +37,8 @@ public static class ChatEndpoints
             {
                 var user = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
                 if (user == null) return Results.Forbid();
-                var studentInfo = await auth.ResolveStudentForUser(user);
-                if (studentInfo == null || studentInfo.GroupId != groupId) return Results.Forbid();
+                var studentInfos = await auth.ResolveAllStudentsForUser(user);
+                if (studentInfos == null || !studentInfos.Any(s => s.GroupId == groupId)) return Results.Forbid();
             }
 
             var messages = await db.ChatMessages
@@ -100,8 +100,8 @@ public static class ChatEndpoints
             {
                 var user = await db.Users.Find(u => u.Id == userGuid).FirstOrDefaultAsync();
                 if (user == null) return Results.Forbid();
-                var studentInfo = await auth.ResolveStudentForUser(user);
-                if (studentInfo == null || studentInfo.GroupId != groupId) return Results.Forbid();
+                var studentInfos = await auth.ResolveAllStudentsForUser(user);
+                if (studentInfos == null || !studentInfos.Any(s => s.GroupId == groupId)) return Results.Forbid();
             }
 
             string textParams = string.Empty;

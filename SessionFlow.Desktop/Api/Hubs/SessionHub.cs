@@ -43,8 +43,8 @@ public class SessionHub : Hub
             var user = await _db.Users.Find(u => u.Id == userGuid).FirstOrDefaultAsync();
             if (user == null) return new List<Guid>();
             
-            var student = await _auth.ResolveStudentForUser(user);
-            if (student != null) return new List<Guid> { student.GroupId };
+            var students = await _auth.ResolveAllStudentsForUser(user);
+            if (students != null && students.Any()) return students.Select(s => s.GroupId).ToList();
         }
         
         return new List<Guid>();
@@ -127,10 +127,8 @@ public class SessionHub : Hub
         {
             var user = await _db.Users.Find(u => u.Id == userGuid).FirstOrDefaultAsync();
             if (user == null || string.IsNullOrEmpty(user.StudentId)) return;
-            var student = await _db.Students.Find(s =>
-                (s.StudentId == user.StudentId || s.UniqueStudentCode == user.StudentId)
-                && !s.IsDeleted).FirstOrDefaultAsync();
-            if (student == null || student.GroupId != groupGuid) return;
+            var students = await _auth.ResolveAllStudentsForUser(user);
+            if (students == null || !students.Any(s => s.GroupId == groupGuid)) return;
         }
         // Admin: allowed for all groups
 

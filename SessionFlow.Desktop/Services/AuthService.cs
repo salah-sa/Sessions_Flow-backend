@@ -269,7 +269,7 @@ public class AuthService
 
     /// <summary>
     /// Resolves the Student record linked to a User, checking both StudentId and UniqueStudentCode.
-    /// This is the SINGLE SOURCE OF TRUTH for student resolution — use this EVERYWHERE.
+    /// Returns ONLY the first one. Use ResolveAllStudentsForUser to get all enrolled groups.
     /// </summary>
     public async Task<Student?> ResolveStudentForUser(User user)
     {
@@ -281,8 +281,49 @@ public class AuthService
     }
 
     /// <summary>
+    /// Resolves all Student records linked to a User.
+    /// Use this to authorize multi-group access for a student.
+    /// </summary>
+    public async Task<List<Student>> ResolveAllStudentsForUser(User user)
+    {
+        if (string.IsNullOrEmpty(user.StudentId)) return new List<Student>();
+        
+        var filter = Builders<Student>.Filter.And(
+            Builders<Student>.Filter.Or(
+                Builders<Student>.Filter.Eq(s => s.StudentId, user.StudentId),
+                Builders<Student>.Filter.Eq(s => s.UniqueStudentCode, user.StudentId)
+            ),
+            Builders<Student>.Filter.Eq(s => s.IsDeleted, false)
+        );
+
+        // Optional: Filter strictly by the Engineer Code the user signed up with
+        // First we get ALL student records matching the ID.
+        var students = await _db.Students.Find(filter).ToListAsync();
+        
+        if (students.Count == 0 || string.IsNullOrEmpty(user.EngineerCode)) 
+            return students;
+
+        // Need to ensure the groups actually belong to the engineer the user registered with
+        var codeEntity = await _db.EngineerCodes.Find(c => c.Code == user.EngineerCode && c.IsUsed).FirstOrDefaultAsync();
+        if (codeEntity != null && codeEntity.UsedByEngineerId.HasValue)
+        {
+            var engineerId = codeEntity.UsedByEngineerId.Value;
+            var groupIds = students.Select(s => s.GroupId).Distinct().ToList();
+            
+            // Get valid groups mapped to this engineer
+            var validGroupIds = await _db.Groups
+                .Find(g => g.EngineerId == engineerId && groupIds.Contains(g.Id) && !g.IsDeleted)
+                .Project(g => g.Id)
+                .ToListAsync();
+                
+            return students.Where(s => validGroupIds.Contains(s.GroupId)).ToList();
+        }
+        
+        return students;
+    }
+
+    /// <summary>
     /// Resolves the Student record from a userId directly.
-    /// Convenience overload for endpoints where only the userId is available.
     /// </summary>
     public async Task<Student?> ResolveStudentForUserId(Guid userId)
     {
