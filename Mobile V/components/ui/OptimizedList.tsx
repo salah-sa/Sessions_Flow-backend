@@ -24,6 +24,8 @@ interface OptimizedListProps<T> extends FlatListProps<T> {
   onRefresh?: () => void;
   refreshing?: boolean;
   isFetchingNextPage?: boolean;
+  fixedItemHeight?: number;
+  staggerAnimations?: boolean;
 }
 
 export function OptimizedList<T>({ 
@@ -33,8 +35,37 @@ export function OptimizedList<T>({
   onRefresh,
   refreshing = false,
   isFetchingNextPage = false,
+  fixedItemHeight,
+  staggerAnimations = false,
   ...props 
 }: OptimizedListProps<T>) {
+  
+  const renderStaggeredItem = React.useCallback(
+    (info: import("react-native").ListRenderItemInfo<T>) => {
+      if (!props.renderItem) return null;
+      const element = props.renderItem(info);
+      if (!staggerAnimations) return element;
+      
+      const Animated = require("react-native-reanimated").default;
+      const { FadeInDown } = require("react-native-reanimated");
+      
+      return (
+        <Animated.View entering={FadeInDown.delay(Math.min(info.index * 50, 500)).duration(400)}>
+          {element}
+        </Animated.View>
+      );
+    },
+    [props.renderItem, staggerAnimations]
+  );
+
+  const getItemLayout = React.useCallback(
+    (data: any, index: number) => ({
+      length: fixedItemHeight || 0,
+      offset: (fixedItemHeight || 0) * index,
+      index
+    }),
+    [fixedItemHeight]
+  );
   
   if (loading && (!props.data || props.data.length === 0)) {
     return (
@@ -47,6 +78,8 @@ export function OptimizedList<T>({
   return (
     <FlatList
       {...props}
+      renderItem={renderStaggeredItem}
+      getItemLayout={fixedItemHeight ? getItemLayout : props.getItemLayout}
       contentContainerStyle={[
         styles.content, 
         props.contentContainerStyle,

@@ -143,9 +143,11 @@ const styles = StyleSheet.create({
   },
   title: {
     color: theme.colors.text,
-    fontSize: theme.typography.h3.fontSize,
-    fontFamily: theme.typography.h3.fontFamily,
-    fontWeight: "bold",
+    fontSize: theme.typography.h4.fontSize, // Desktop parity: slightly smaller header
+    fontFamily: theme.typography.fontFamily.sora,
+    fontWeight: "900",
+    textTransform: "uppercase",
+    letterSpacing: 2,
   },
   backButton: {
     padding: 4,
@@ -156,6 +158,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "rgba(16, 185, 129, 0.1)", // Desktop parity: emerald/10
   }
 });

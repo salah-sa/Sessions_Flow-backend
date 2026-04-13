@@ -29,7 +29,7 @@ interface RadarHUDProps {
   totalCount: number;
 }
 
-export const RadarHUD = ({ presentCount, totalCount }: RadarHUDProps) => {
+export const RadarHUD = ({ presentCount, totalCount, attendanceRecords = [] }: RadarHUDProps & { attendanceRecords?: any[] }) => {
   const rotation = useSharedValue(0);
   const pulse = useSharedValue(1);
   const progress = useSharedValue(0);
@@ -89,10 +89,33 @@ export const RadarHUD = ({ presentCount, totalCount }: RadarHUDProps) => {
             <View style={styles.sweeperGradient} />
           </Animated.View>
 
-          {/* Outer Pulse */}
+          {/* Simulated Targets (Students) */}
+          <View style={StyleSheet.absoluteFill}>
+            {attendanceRecords.slice(0, 12).map((record, i) => {
+               const angle = (i * 137.5) % 360;
+               const rad = 20 + ((i * 17) % 30);
+               const isAbsent = record.status === "Absent";
+               
+               // Calculate x, y from center (0,0 is center of absoluteFill)
+               const radInRadians = (angle * Math.PI) / 180;
+               const x = Math.cos(radInRadians) * rad;
+               const y = Math.sin(radInRadians) * rad;
+
+               return (
+                 <View 
+                   key={record.studentId || i}
+                   style={[
+                     styles.targetDot,
+                     isAbsent ? styles.targetAbsent : styles.targetPresent,
+                     { transform: [{ translateX: x }, { translateY: y }] }
+                   ]}
+                 />
+               );
+            })}
+          </View>
+
           <Animated.View style={[styles.outerPulse, animatedPulseStyle]} />
 
-          {/* Central Metric */}
           <View style={styles.content}>
             <Text style={styles.percentageText}>{Math.round(percentage * 100)}%</Text>
             <Text style={styles.subText}>GRID SATURATION</Text>
@@ -263,5 +286,26 @@ const styles = StyleSheet.create({
     height: "60%",
     backgroundColor: "rgba(255,255,255,0.06)",
     alignSelf: "center",
+  },
+  targetDot: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginLeft: -3,
+    marginTop: -3,
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 4,
+    shadowOpacity: 1,
+  },
+  targetPresent: {
+    backgroundColor: theme.colors.success,
+    shadowColor: theme.colors.success,
+  },
+  targetAbsent: {
+    backgroundColor: "red",
+    shadowColor: "red",
   }
 });

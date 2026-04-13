@@ -21,9 +21,10 @@ import Animated, {
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
+  icon?: React.ReactNode;
 }
 
-export const Input = ({ label, error, style, value, onFocus, onBlur, ...props }: InputProps) => {
+export const Input = ({ label, error, icon, style, value, onFocus, onBlur, ...props }: InputProps) => {
   const [isFocused, setIsFocused] = useState(false);
   
   // 0 = unfocused/empty, 1 = focused/hasValue
@@ -54,7 +55,7 @@ export const Input = ({ label, error, style, value, onFocus, onBlur, ...props }:
   const labelStyle = useAnimatedStyle(() => {
     return {
       top: floatAnim.value === 1 ? -10 : 16,
-      left: floatAnim.value === 1 ? 16 : 16,
+      left: floatAnim.value === 1 ? 16 : (icon ? 44 : 16),
       fontSize: floatAnim.value === 1 ? 10 : 13,
       opacity: floatAnim.value === 1 ? 1 : 0.6,
       color: floatAnim.value === 1 ? theme.colors.primary : theme.colors.textMuted,
@@ -70,8 +71,8 @@ export const Input = ({ label, error, style, value, onFocus, onBlur, ...props }:
         ? theme.colors.error 
         : floatAnim.value === 1 
           ? theme.colors.primary 
-          : theme.colors.border,
-      borderWidth: floatAnim.value === 1 ? 1.5 : 1,
+          : theme.colors.borderLight,
+      borderWidth: floatAnim.value === 1 ? 1 : 1,
       shadowColor: theme.colors.primary,
       shadowOffset: { width: 0, height: 0 },
       shadowOpacity: isFocused && !error ? 0.3 : 0,
@@ -88,14 +89,26 @@ export const Input = ({ label, error, style, value, onFocus, onBlur, ...props }:
             {label}
           </Animated.Text>
         )}
-        <TextInput
-          style={[styles.input, style]}
-          placeholderTextColor="transparent" // let the label act as placeholder
-          value={value}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          {...props}
-        />
+        
+        <View style={styles.inputContainer}>
+          {icon && (
+            <View style={styles.iconContainer}>
+              {icon}
+            </View>
+          )}
+          <TextInput
+            style={[
+              styles.input, 
+              icon ? { paddingLeft: 44 } : { paddingLeft: 16 },
+              style
+            ]}
+            placeholderTextColor="transparent" // let the label act as placeholder
+            value={value}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            {...props}
+          />
+        </View>
       </Animated.View>
       {error ? (
         <Animated.Text 
@@ -120,6 +133,19 @@ const styles = StyleSheet.create({
     height: 54,
     justifyContent: "center",
   },
+  inputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconContainer: {
+    position: 'absolute',
+    left: 16,
+    zIndex: 2,
+    justifyContent: 'center',
+    width: 20,
+    height: 20,
+  },
   floatingLabel: {
     position: "absolute",
     fontWeight: "700",
@@ -127,9 +153,10 @@ const styles = StyleSheet.create({
   },
   input: {
     color: theme.colors.text,
-    paddingHorizontal: theme.spacing.md,
+    paddingRight: theme.spacing.md,
     fontSize: 15,
     height: "100%",
+    width: "100%",
     marginTop: 4, // push down slightly so text doesn't overlap centered label position
   },
   errorText: {

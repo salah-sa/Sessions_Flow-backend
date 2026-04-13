@@ -215,8 +215,38 @@ export const theme = {
   spacing,
   radius,
   shadows,
+  accessibility,
 };
 
 /** Helper to get colors for a specific theme mode */
 export const getThemeColors = (mode: "dark" | "light") =>
   mode === "light" ? lightColors : darkColors;
+
+// ── Animation Presets (mirror desktop motion language) ───
+// Desktop uses: cubic-bezier(0.16, 1, 0.3, 1) for page transitions
+// Desktop uses: spring physics for interactive elements
+export const motion = {
+  // Spring configs matching desktop "expo.out" GSAP easing
+  spring: {
+    default: { damping: 15, stiffness: 150 },
+    gentle: { damping: 20, stiffness: 120 },
+    snappy: { damping: 12, stiffness: 200 },
+    bouncy: { damping: 8, stiffness: 180 },
+  },
+  // Duration presets matching desktop CSS transitions
+  duration: {
+    fast: 200,     // transition-all duration-200
+    normal: 300,   // transition-all duration-300
+    slow: 500,     // transition-all duration-500
+    page: 600,     // GSAP page transition 0.6s
+  },
+  // Stagger interval for list items (desktop: 80ms per field)
+  stagger: {
+    list: 60,      // list item animation offset
+    form: 80,      // form field animation offset (desktop stagger-1 through stagger-5)
+  },
+  // Press feedback scale (desktop: active:scale-95)
+  press: {
+    scale: 0.95,
+  },
+} as const;

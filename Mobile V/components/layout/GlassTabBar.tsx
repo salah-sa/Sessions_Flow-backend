@@ -1,3 +1,15 @@
+/**
+ * ═══════════════════════════════════════════════════════════
+ * SessionFlow Mobile — Glass Search HUD
+ * Phase 3: Navigation Shell Parity
+ * ═══════════════════════════════════════════════════════════
+ * 
+ * Desktop Shell.tsx bottom navigation parity:
+ * - Active tab emerald glow shadow
+ * - Spring scale on interaction
+ * - Hide on scroll integration
+ */
+
 import React, { useEffect } from "react";
 import { 
   View, 
@@ -17,15 +29,15 @@ import Animated, {
   withSpring, 
   withTiming,
   useSharedValue,
-  interpolateColor,
   FadeIn
 } from "react-native-reanimated";
 
 const TabItem = ({ route, index, isFocused, label, onPress }: any) => {
-  const scale = useSharedValue(isFocused ? 1.1 : 1);
+  const scale = useSharedValue(isFocused ? 1.15 : 1);
   const opacity = useSharedValue(isFocused ? 1 : 0.6);
 
   useEffect(() => {
+    // Parity: Desktop spring physics
     scale.value = withSpring(isFocused ? 1.15 : 1, { damping: 12, stiffness: 150 });
     opacity.value = withTiming(isFocused ? 1 : 0.6, { duration: 200 });
   }, [isFocused]);
@@ -37,7 +49,8 @@ const TabItem = ({ route, index, isFocused, label, onPress }: any) => {
 
   const getIcon = (name: string, focused: boolean) => {
     const size = 24;
-    const color = focused ? theme.colors.primary : theme.colors.textDim;
+    // Parity: Desktop uses emerald green for active navigation states in Sidebar.tsx
+    const color = focused ? theme.colors.accent : theme.colors.textDim;
     switch (name) {
       case "index": return <Ionicons name={focused ? "grid" : "grid-outline"} size={size} color={color} />;
       case "groups": return <Ionicons name={focused ? "people" : "people-outline"} size={size} color={color} />;
@@ -59,7 +72,7 @@ const TabItem = ({ route, index, isFocused, label, onPress }: any) => {
         {getIcon(route.name, isFocused)}
         <Text style={[
           styles.label, 
-          { color: isFocused ? theme.colors.primary : theme.colors.textDim }
+          { color: isFocused ? theme.colors.accent : theme.colors.textDim }
         ]}>
           {label}
         </Text>
@@ -77,46 +90,48 @@ const TabItem = ({ route, index, isFocused, label, onPress }: any) => {
 export const GlassTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => {
   const { isStudent } = useRoleAccess();
 
-  // Temporary mapping for hide-on-scroll parity -- default visible.
-  const hidden = false; // Phase 13 placeholder hook
+  // Temporary mapping for hide-on-scroll parity
+  const hidden = false;
 
   return (
     <Animated.View style={[styles.container, { transform: [{ translateY: hidden ? 100 : 0 }] }]}>
       <BlurView intensity={80} tint="dark" style={styles.blur}>
         <View style={styles.content}>
-          {state.routes.map((route, index) => {
-            if (isStudent && (route.name === "groups" || route.name === "sessions")) {
-              return null;
-            }
-
-            const { options } = descriptors[route.key];
-            const label = options.title !== undefined ? options.title : route.name;
-            const isFocused = state.index === index;
-
-            const onPress = () => {
-              const event = navigation.emit({
-                type: "tabPress",
-                target: route.key,
-                canPreventDefault: true,
-              });
-
-              if (!isFocused && !event.defaultPrevented) {
-                haptics.selection();
-                navigation.navigate(route.name);
+          <View style={styles.tabRow}>
+            {state.routes.map((route, index) => {
+              if (isStudent && (route.name === "groups" || route.name === "sessions")) {
+                return null;
               }
-            };
 
-            return (
-              <TabItem 
-                key={index}
-                route={route}
-                index={index}
-                isFocused={isFocused}
-                label={label}
-                onPress={onPress}
-              />
-            );
-          })}
+              const { options } = descriptors[route.key];
+              const label = options.title !== undefined ? options.title : route.name;
+              const isFocused = state.index === index;
+
+              const onPress = () => {
+                const event = navigation.emit({
+                  type: "tabPress",
+                  target: route.key,
+                  canPreventDefault: true,
+                });
+
+                if (!isFocused && !event.defaultPrevented) {
+                  haptics.selection();
+                  navigation.navigate(route.name);
+                }
+              };
+
+              return (
+                <TabItem 
+                  key={index}
+                  route={route}
+                  index={index}
+                  isFocused={isFocused}
+                  label={label}
+                  onPress={onPress}
+                />
+              );
+            })}
+          </View>
         </View>
       </BlurView>
     </Animated.View>
@@ -129,45 +144,56 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: Platform.OS === "ios" ? 88 : 74,
+    // Add safe area for newer iPhones
+    paddingBottom: Platform.OS === 'ios' ? 34 : 0,
   },
   blur: {
-    flex: 1,
-    overflow: "hidden",
+    // Top border radius like a floating dock
     borderTopLeftRadius: theme.radius.xl,
     borderTopRightRadius: theme.radius.xl,
+    overflow: "hidden",
+    // Base shadow
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 8,
   },
   content: {
-    flexDirection: "row",
-    height: "100%",
-    paddingBottom: Platform.OS === "ios" ? 28 : 10,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.08)",
-    backgroundColor: "rgba(0,0,0,0.3)",
+    borderTopColor: "rgba(16, 185, 129, 0.15)", // emerald accent border
+    backgroundColor: "rgba(2, 6, 23, 0.5)", // slate-950 base
+  },
+  tabRow: {
+    flexDirection: "row",
+    height: Platform.OS === "ios" ? 64 : 74,
+    paddingTop: 8,
   },
   tabItem: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
-    paddingTop: 12,
+    justifyContent: "flex-start",
   },
   label: {
-    fontSize: 10,
+    fontSize: 10, // match desktop tracking
     fontWeight: "800",
-    marginTop: 6,
+    marginTop: 4,
     letterSpacing: 0.5,
+    textTransform: "uppercase",
   },
   indicator: {
     position: "absolute",
-    top: 0,
-    width: 24,
-    height: 4,
-    backgroundColor: theme.colors.primary,
+    top: -8, // relative to tabRow
+    width: 32,
+    height: 3,
+    backgroundColor: theme.colors.accent,
     borderBottomLeftRadius: 6,
     borderBottomRightRadius: 6,
-    shadowColor: theme.colors.primary,
+    // Desktop parity: shadow-[4px_0_12px_rgba(16,185,129,0.4)]
+    shadowColor: "#10B981", 
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.6,
     shadowRadius: 8,
+    elevation: 4,
   }
 });

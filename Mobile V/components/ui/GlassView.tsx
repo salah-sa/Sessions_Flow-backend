@@ -1,31 +1,56 @@
+/**
+ * ═══════════════════════════════════════════════════════════
+ * SessionFlow Mobile — GlassView Component
+ * Phase 6: Interaction System Parity
+ * ═══════════════════════════════════════════════════════════
+ * 
+ * Desktop Parity:
+ * - base: `card-base` (rgba(15,23,42,0.6) + backdrop blur)
+ * - aero: `card-aero` (rgba(15,23,42,0.75) + emerald border + glow)
+ */
+
 import React from "react";
-import { View, StyleSheet, ViewProps, ViewStyle, StyleProp } from "react-native";
+import { View, StyleSheet, ViewProps, ViewStyle, StyleProp, Pressable } from "react-native";
 import { BlurView } from "expo-blur";
+import Animated from "react-native-reanimated";
 import { theme } from "../../shared/theme";
+import { useAnimatedPress } from "../../shared/hooks/useAnimatedPress";
 
 interface GlassViewProps extends ViewProps {
   intensity?: number;
   tint?: "light" | "dark" | "default";
   borderRadius?: number;
-  borderWidth?: number;
-  borderColor?: string;
+  variant?: "base" | "aero";
   style?: StyleProp<ViewStyle>;
+  onPress?: () => void;
+  interactive?: boolean;
 }
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export const GlassView = ({ 
   children, 
   intensity = 30, 
   tint = "dark", 
-  borderRadius = theme.radius.md,
-  borderWidth = 1,
-  borderColor = "rgba(255,255,255,0.08)",
+  borderRadius = theme.radius.xl, // Desktop defaults to xl/2xl
+  variant = "base",
   style,
+  onPress,
+  interactive = false,
   ...props 
 }: GlassViewProps) => {
-  return (
+  const isInteractive = onPress !== undefined || interactive;
+  
+  const { animatedStyle, pressHandlers } = useAnimatedPress({
+    haptic: true,
+    scale: 0.98, // Cards scale less than buttons
+  });
+
+  const content = (
     <View style={[
       styles.outer, 
-      { borderRadius, borderWidth, borderColor },
+      variant === "base" ? styles.baseVariant : styles.aeroVariant,
+      { borderRadius },
       style
     ]} {...props}>
       <BlurView 
@@ -39,17 +64,47 @@ export const GlassView = ({
       </BlurView>
     </View>
   );
+
+  if (isInteractive) {
+    return (
+      <AnimatedPressable 
+        onPress={onPress}
+        onPressIn={pressHandlers.onPressIn}
+        onPressOut={pressHandlers.onPressOut}
+        style={animatedStyle}
+      >
+        {content}
+      </AnimatedPressable>
+    );
+  }
+
+  return content;
 };
 
 const styles = StyleSheet.create({
   outer: {
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.02)",
+  },
+  baseVariant: {
+    backgroundColor: "rgba(15,23,42,0.6)", // Desktop card-base
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+  },
+  aeroVariant: {
+    backgroundColor: "rgba(15,23,42,0.75)", // Desktop card-aero
+    borderWidth: 1,
+    borderColor: "rgba(16, 185, 129, 0.15)", // Desktop emerald accent
+    // shadow-[0_0_12px_rgba(16,185,129,0.15)]
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   blur: {
     flex: 1,
   },
   inner: {
-    padding: theme.spacing.md,
+    padding: theme.spacing.xl, // Desktop defaults to p-6
   }
 });
