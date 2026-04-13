@@ -10,6 +10,7 @@ import {
 import { theme } from "../../shared/theme";
 import { EmptyState } from "./EmptyState";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import { useAdaptiveStore } from "../../shared/store/adaptiveStore";
 
 /**
  * ═══════════════════════════════════════════════════════════
@@ -40,12 +41,14 @@ export function OptimizedList<T>({
   staggerAnimations = false,
   ...props 
 }: OptimizedListProps<T>) {
+  const disableHeavyFeatures = useAdaptiveStore(s => s.disableHeavyFeatures);
+  const shouldAnimate = staggerAnimations && !disableHeavyFeatures;
   
   const renderStaggeredItem = React.useCallback(
     (info: any) => {
       if (!props.renderItem) return null;
       const element = props.renderItem(info);
-      if (!staggerAnimations) return element;
+      if (!shouldAnimate) return element;
       
       return (
         <Animated.View entering={FadeInDown.delay(Math.min(info.index * 50, 500)).duration(400)}>
@@ -53,7 +56,7 @@ export function OptimizedList<T>({
         </Animated.View>
       );
     },
-    [props.renderItem, staggerAnimations]
+    [props.renderItem, shouldAnimate]
   );
 
   const getItemLayout = React.useCallback(

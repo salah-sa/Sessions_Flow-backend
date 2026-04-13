@@ -15,6 +15,7 @@ import { GlassView } from "./GlassView";
 import { Image, TouchableOpacity, Linking } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useUIStore } from "../../shared/store/stores";
+import { useAdaptiveStore } from "../../shared/store/adaptiveStore";
 
 import { useWindowDimensions } from "react-native";
 
@@ -40,6 +41,8 @@ export const ChatBubble = ({
   const { language } = useUIStore();
   const { width } = useWindowDimensions();
   const [imageError, setImageError] = useState(false);
+  const [manualLoad, setManualLoad] = useState(false);
+  const disableHeavyFeatures = useAdaptiveStore(s => s.disableHeavyFeatures);
   
   const text = message.text || "";
   const isImage = text.startsWith("[IMAGE] ");
@@ -110,13 +113,24 @@ export const ChatBubble = ({
       >
         {isImage ? (
           <TouchableOpacity 
-            onPress={() => !imageError && onImagePress?.(imageUri!)}
+            onPress={() => {
+              if (disableHeavyFeatures && !manualLoad) {
+                setManualLoad(true);
+              } else if (!imageError) {
+                onImagePress?.(imageUri!);
+              }
+            }}
             activeOpacity={imageError ? 1 : 0.7}
           >
             {imageError ? (
               <View style={[styles.imageErrorContainer, { width: maxImageWidth }]}>
                 <Ionicons name="image-outline" size={32} color={theme.colors.textDim} />
                 <Text style={styles.imageErrorText}>PAYLOAD_CORRUPTED</Text>
+              </View>
+            ) : (disableHeavyFeatures && !manualLoad) ? (
+              <View style={[styles.imageErrorContainer, { width: maxImageWidth }]}>
+                <Ionicons name="eye-off-outline" size={32} color={theme.colors.primary} />
+                <Text style={styles.imageErrorText}>SAFE_MODE: TAP_TO_LOAD</Text>
               </View>
             ) : (
               <Image 
