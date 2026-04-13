@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { theme } from "../../shared/theme";
 import { useInfiniteSessions } from "../../shared/queries/useSessionQueries";
 import { AdaptiveHeader } from "../../components/layout/AdaptiveHeader";
@@ -11,7 +11,8 @@ import { router } from "expo-router";
 import { RoleGuard } from "../../components/auth/RoleGuard";
 import { format } from "date-fns";
 import { useAnimatedPress } from "../../shared/hooks/useAnimatedPress";
-import Animated from "react-native-reanimated";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { haptics } from "../../shared/lib/haptics";
 const getStatusColor = (status: string) => {
   switch(status) {
     case "Active": return "#ef4444";
@@ -39,7 +40,15 @@ const HistoryItem = React.memo(({ item }: { item: any }) => {
           <View style={styles.statItem}>
             <Ionicons name="time-outline" size={14} color={theme.colors.textDim} />
             <Text style={styles.statText}>
-               {item.startedAt && item.endedAt ? format(new Date(item.endedAt).getTime() - new Date(item.startedAt).getTime() - 3600000 * 2, "H'h' m'm'") : "N/A"}
+               {item.startedAt && item.endedAt ? (
+                 (() => {
+                   const diff = new Date(item.endedAt).getTime() - new Date(item.startedAt).getTime();
+                   const mins = Math.floor(diff / 60000);
+                   const h = Math.floor(mins / 60);
+                   const m = mins % 60;
+                   return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                 })()
+               ) : "N/A"}
             </Text>
           </View>
           {item.attendanceCount !== undefined && (
@@ -60,17 +69,45 @@ const HistoryItem = React.memo(({ item }: { item: any }) => {
 });
 
 export default function HistoryScreen() {
-  const { data, isLoading, refetch, isRefetching, fetchNextPage, hasNextPage } = useInfiniteSessions({ status: "Ended" });
+  const [activeTab, setActiveTab] = React.useState<string | undefined>("Ended");
+  const { data, isLoading, refetch, isRefetching, fetchNextPage, hasNextPage } = useInfiniteSessions({ 
+    status: activeTab === "ALL" ? undefined : activeTab 
+  });
+  
   const sessions = data?.pages.flatMap(page => page.items) || [];
   const scrollY = useSharedValue(0);
+
+  const tabs = [
+    { id: "ALL", label: "ALL" },
+    { id: "Scheduled", label: "PLAN" },
+    { id: "Active", label: "LIVE" },
+    { id: "Ended", label: "ENDED" },
+  ];
 
   const renderItem = React.useCallback(({ item }: { item: any }) => <HistoryItem item={item} />, []);
 
   return (
     <RoleGuard allowedRoles={["Admin", "Engineer"]}>
       <View style={styles.container}>
-        <AdaptiveHeader title="Mission History" scrollY={scrollY} showBack onBack={() => router.back()} />
+        <AdaptiveHeader title="MISSION HISTORY" scrollY={scrollY} showBack onBack={() => router.back()} />
         
+        <View style={styles.filterBar}>
+          {tabs.map(tab => (
+            <TouchableOpacity 
+              key={tab.id}
+              style={[styles.filterTab, activeTab === tab.id && styles.activeFilterTab]}
+              onPress={() => {
+                haptics.selection();
+                setActiveTab(tab.id);
+              }}
+            >
+              <Text style={[styles.filterLabel, activeTab === tab.id && styles.activeFilterLabel]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         <OptimizedList
           data={sessions}
           renderItem={renderItem}
@@ -84,8 +121,8 @@ export default function HistoryScreen() {
           onScroll={(e) => { scrollY.value = e.nativeEvent.contentOffset.y; }}
           scrollEventThrottle={16}
           contentContainerStyle={styles.listContent}
-          emptyTitle="No History Yet"
-          emptyDescription="Completed missions and recorded metrics will appear here."
+          emptyTitle="Clear Matrix"
+          emptyDescription="No missions found for the selected operational status."
           staggerAnimations={true}
         />
       </View>
@@ -99,9 +136,37 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.bg,
   },
   listContent: {
-    paddingTop: 110,
+    paddingTop: 0,
     paddingHorizontal: theme.spacing.lg,
     paddingBottom: 120,
+  },
+  filterBar: {
+    paddingTop: 110,
+    flexDirection: "row",
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: 16,
+    gap: 8,
+  },
+  filterTab: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.03)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+  },
+  activeFilterTab: {
+    backgroundColor: "rgba(14, 165, 233, 0.1)",
+    borderColor: "rgba(14, 165, 233, 0.3)",
+  },
+  filterLabel: {
+    color: theme.colors.textDim,
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
+  activeFilterLabel: {
+    color: theme.colors.primary,
   },
   card: {
     padding: theme.spacing.md,

@@ -1,6 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { auditApi, engineersApi, groupsApi as coreGroupsApi } from "../api/resources";
+import { auditApi, engineersApi, groupsApi } from "../api/resources";
 import { queryKeys } from "./keys";
+
+/**
+ * ═══════════════════════════════════════════════════════════
+ * SessionFlow Mobile — Administrative Queries
+ * Phase 2 - Admin Console Integration
+ * ═══════════════════════════════════════════════════════════
+ */
 
 export const useAuditLogs = () => {
   return useQuery({
@@ -36,6 +43,7 @@ export const useAdminMutations = () => {
   const approveMutation = useMutation({
     mutationFn: (id: string) => engineersApi.approve(id),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.engineers.pending });
       queryClient.invalidateQueries({ queryKey: queryKeys.engineers.all });
     },
   });
@@ -43,21 +51,21 @@ export const useAdminMutations = () => {
   const denyMutation = useMutation({
     mutationFn: (id: string) => engineersApi.deny(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.engineers.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.engineers.pending });
     },
   });
 
   const generateCodeMutation = useMutation({
     mutationFn: () => engineersApi.generateCode(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.engineers.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.engineers.codes });
     },
   });
 
   const revokeCodeMutation = useMutation({
     mutationFn: (id: string) => engineersApi.revokeCode(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.engineers.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.engineers.codes });
     },
   });
 
@@ -69,20 +77,24 @@ export const useAdminMutations = () => {
   };
 };
 
-export const useEngineerMutations = () => {
-  const muts = useAdminMutations();
+export const useSystemQueries = () => {
+  const pendingEngineers = usePendingEngineers();
+  const engineerCodes = useEngineerCodes();
+  const auditLogs = useAuditLogs();
+  const allEngineers = useAllEngineers();
+  
   return {
-    generateCode: muts.generateCodeMutation,
-    revokeCode: muts.revokeCodeMutation,
-    approveEngineer: muts.approveMutation,
-    denyEngineer: muts.denyMutation
+    pendingEngineers,
+    engineerCodes,
+    auditLogs,
+    allEngineers
   };
 };
 
 export const usePurgeMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => coreGroupsApi.deleteAll(),
+    mutationFn: () => groupsApi.deleteAll(),
     onSuccess: () => {
       queryClient.invalidateQueries(); 
     },

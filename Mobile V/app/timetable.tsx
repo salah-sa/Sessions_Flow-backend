@@ -6,20 +6,19 @@ import { theme } from '../shared/theme';
 import { OptimizedList } from '../components/ui/OptimizedList';
 import { RoleGuard } from '../components/auth/RoleGuard';
 
+import { TimetableConsole } from '../components/timetable/TimetableConsole';
+
 export default function TimetableScreen() {
   const scrollY = useSharedValue(0);
 
   return (
     <RoleGuard allowedRoles={["Admin", "Student", "Engineer"]}>
       <View style={styles.container}>
-        <AdaptiveHeader title="Timetable" scrollY={scrollY} showBack />
-        <OptimizedList
-          data={[]}
-          renderItem={() => null}
-          onScroll={(e) => { scrollY.value = e.nativeEvent.contentOffset.y; }}
-          emptyTitle="Coming Soon"
-          emptyDescription="Timetable module is currently under construction."
-        />
+        <AdaptiveHeader title="TIMETABLE" scrollY={scrollY} />
+        
+        <View style={styles.content}>
+           <TimetableConsole />
+        </View>
       </View>
     </RoleGuard>
   );
@@ -30,4 +29,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.bg,
   },
+  content: {
+    flex: 1,
+    paddingTop: 110,
+    paddingHorizontal: theme.spacing.lg,
+  }
 });

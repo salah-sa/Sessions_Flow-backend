@@ -1,30 +1,37 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { importApi } from "../api/resources";
 
+/**
+ * ═══════════════════════════════════════════════════════════
+ * SessionFlow Mobile — 3C School Import Queries
+ * Phase 3: Settings & Administrative Import
+ * ═══════════════════════════════════════════════════════════
+ */
+
 export const useImportMutations = () => {
   const queryClient = useQueryClient();
 
-  const testConnectionMutation = useMutation({
+  const testConnection = useMutation({
     mutationFn: ({ email, password }: any) => importApi.testConnection(email, password),
   });
 
-  const previewImportMutation = useMutation({
+  const previewImport = useMutation({
     mutationFn: ({ email, password }: any) => importApi.preview(email, password),
   });
 
-  const executeImportMutation = useMutation({
+  const executeImport = useMutation({
     mutationFn: ({ email, password }: any) => importApi.execute(email, password),
     onSuccess: () => {
-      // Invalidate everything groups/students related after a bulk import
+      // Refresh groups and other relevant data after import
       queryClient.invalidateQueries({ queryKey: ["groups"] });
-      queryClient.invalidateQueries({ queryKey: ["students"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
     },
   });
 
   return {
-    testConnectionMutation,
-    previewImportMutation,
-    executeImportMutation,
+    testConnection,
+    previewImport,
+    executeImport,
   };
 };

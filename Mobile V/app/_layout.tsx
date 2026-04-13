@@ -43,11 +43,17 @@ import { ErrorFallback } from "../components/ui/ErrorFallback";
 SplashScreen.preventAutoHideAsync();
 
 // ── Sentry Initialization ──────
-Sentry.init({
-  dsn: 'https://placeholder@sentry.io/450', // Replace with real production DSN
-  tracesSampleRate: 1.0,
-  debug: __DEV__,
-});
+const SENTRY_DSN = 'https://placeholder@sentry.io/450'; // Replace with real production DSN
+
+if (SENTRY_DSN && !SENTRY_DSN.includes('placeholder')) {
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    tracesSampleRate: 1.0,
+    debug: __DEV__,
+  });
+} else {
+  logger.warn("SENTRY_DISABLED", { reason: "DSN is placeholder or empty" });
+}
 
 // ── Query Client — matches desktop main.tsx defaults ──────
 const queryClient = new QueryClient({
