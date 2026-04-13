@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Image, StyleSheet, Text } from "react-native";
 import { theme } from "../../shared/theme";
 import { resolveMediaUrl } from "../../shared/api/config";
@@ -15,6 +15,7 @@ interface AvatarProps {
   userId: string;
   name: string;
   avatarUrl?: string;
+  profileImage?: string; // Fallback support requested by user
   size?: number;
   showPresence?: boolean;
 }
@@ -23,16 +24,20 @@ export const Avatar = ({
   userId, 
   name, 
   avatarUrl, 
+  profileImage,
   size = 40, 
   showPresence = true 
 }: AvatarProps) => {
   const isOnline = usePresenceStore((state) => state.isOnline(userId));
+  const [imageError, setImageError] = useState(false);
 
   const getInitials = (n: string) => {
+    if (!n) return "?";
     return n.split(" ").map(p => p[0]).join("").toUpperCase().slice(0, 2);
   };
 
-  const imageUri = avatarUrl ? resolveMediaUrl(avatarUrl) : undefined;
+  const rawUrl = profileImage || avatarUrl;
+  const imageUri = rawUrl && !imageError ? resolveMediaUrl(rawUrl) : undefined;
 
   return (
     <View 
@@ -45,6 +50,7 @@ export const Avatar = ({
         <Image 
           source={{ uri: imageUri }} 
           style={[styles.image, { borderRadius: size / 2.5 }]} 
+          onError={() => setImageError(true)}
         />
       ) : (
         <View style={[styles.placeholder, { borderRadius: size / 2.5, backgroundColor: theme.colors.surface }]}>

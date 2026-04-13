@@ -37,12 +37,16 @@ const onTokenRefreshed = (token: string) => {
 export async function fetchWithAuth<T>(
   endpoint: string,
   options: RequestInit = {},
-  isBlob = false
+  isBlob = false,
+  timeout = 15000
 ): Promise<T> {
   // Ensure we have a token
   if (!cachedToken) {
     cachedToken = await secureStorage.getToken();
   }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
 
   let url = endpoint.startsWith("http") ? endpoint : `${API_BASE_URL}${endpoint}`;
 
@@ -74,6 +78,7 @@ export async function fetchWithAuth<T>(
 
   const mergedOptions: RequestInit = {
     ...options,
+    signal: controller.signal,
     headers: {
       ...defaultHeaders,
       ...options.headers,
@@ -82,6 +87,7 @@ export async function fetchWithAuth<T>(
 
   try {
     const response = await fetch(url, mergedOptions);
+    clearTimeout(timeoutId);
 
     // Handle 401 Unauthorized -> Refresh Strategy
     if (response.status === 401 && !url.includes("/auth/refresh")) {
@@ -101,7 +107,11 @@ export async function fetchWithAuth<T>(
     }
 
     return await response.json();
-  } catch (error) {
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error("REQUEST_TIMEOUT: Server took too long to respond.");
+    }
     if (__DEV__) console.error(`[API Error] ${endpoint}:`, error);
     throw error;
   }

@@ -29,19 +29,20 @@ import { Group } from "../../../shared/types";
 import { RoleGuard } from "../../../components/auth/RoleGuard";
 import { format } from "date-fns";
 import { usePresenceStore } from "../../../shared/store/presenceStore";
+import { Avatar } from "../../../components/ui/Avatar";
 
 export default function ChatListScreen() {
   const { data, isLoading, refetch, isRefetching, fetchNextPage, hasNextPage } = useInfiniteGroups();
   const groups = data?.pages.flatMap(page => page.items) || [];
   const { unreadCounts, lastMessages, mutedGroups, pinnedGroups, toggleMute, togglePin } = useChatStore();
   const getPresence = usePresenceStore(s => s.getPresence);
-  const serverHealthy = usePresenceStore(s => s.serverHealthy);
   const scrollY = useSharedValue(0);
   const [selectedGroup, setSelectedGroup] = React.useState<Group | null>(null);
 
   const renderItem = ({ item }: { item: Group }) => {
     const unread = unreadCounts[item.id] || 0;
     const lastMsg = lastMessages[item.id];
+    const isEngineerOnline = item.engineerId && getPresence(item.engineerId).status === "online";
 
     return (
       <Pressable 
@@ -61,11 +62,13 @@ export default function ChatListScreen() {
             ]}
           >
             <View style={styles.cardHeader}>
-              <View style={[styles.avatar, { backgroundColor: item.colorTag }]}>
-                <Text style={styles.avatarText}>{item.name[0]}</Text>
-                {item.engineerId && getPresence(item.engineerId).status === "online" && (
-                  <View style={styles.presenceOrb} />
-                )}
+              <View style={styles.avatarWrap}>
+                <Avatar 
+                  userId={item.engineerId || item.id} 
+                  name={item.name} 
+                  size={50}
+                  showPresence={!!isEngineerOnline}
+                />
               </View>
               
               <View style={styles.info}>
@@ -199,32 +202,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  avatar: {
+  avatarWrap: {
     width: 50,
     height: 50,
-    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  avatarText: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "900",
-  },
-  presenceOrb: {
-    position: "absolute",
-    bottom: -2,
-    right: -2,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: "#10b981",
-    borderWidth: 3,
-    borderColor: theme.colors.bg,
   },
   info: {
     flex: 1,

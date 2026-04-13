@@ -17,6 +17,7 @@ import { haptics } from "../../shared/lib/haptics";
 
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/(tabs)", icon: "grid-outline", roles: ["Admin", "Engineer", "Student"] },
+  { name: "Admin Panel", href: "/admin", icon: "shield-checkmark-outline", roles: ["Admin"] },
   { name: "Groups", href: "/(tabs)/groups", icon: "folder-outline", roles: ["Admin", "Engineer"] },
   { name: "Sessions", href: "/(tabs)/sessions", icon: "radio-outline", roles: ["Admin", "Engineer", "Student"] },
   { name: "Chat", href: "/(tabs)/chat", icon: "chatbubbles-outline", roles: ["Admin", "Engineer", "Student"] },
@@ -24,8 +25,7 @@ const NAV_ITEMS = [
   { name: "Timetable", href: "/(tabs)/timetable", icon: "calendar-outline", roles: ["Admin", "Engineer", "Student"] },
   { name: "History", href: "/(tabs)/history", icon: "time-outline", roles: ["Admin", "Engineer", "Student"] },
   { name: "Archive", href: "/(tabs)/archive", icon: "archive-outline", roles: ["Admin", "Engineer"] },
-  { name: "Profile", href: "/(tabs)/profile", icon: "person-outline", roles: ["Admin", "Engineer", "Student"] },
-  { name: "Settings", href: "/settings", icon: "settings-outline", roles: ["Admin", "Engineer", "Student"] },
+  { name: "Profile & Settings", href: "/(tabs)/profile", icon: "person-outline", roles: ["Admin", "Engineer", "Student"] },
 ];
 
 export const SideDrawer = () => {
@@ -158,10 +158,10 @@ export const SideDrawer = () => {
         <View style={styles.footer}>
           <TouchableOpacity 
             style={[styles.navItem, isRTL && styles.rowReverse, { marginBottom: 16 }]}
-            onPress={() => {
+            onPress={async () => {
               haptics.selection();
               toggleDrawer();
-              useAuthStore.getState().logout();
+              await useAuthStore.getState().logout();
               router.replace("/(auth)/login");
             }}
           >

@@ -54,6 +54,7 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const setupGlobalListeners = (connection: signalR.HubConnection) => {
     // 1. Chat Invalidations -> Patching
     connection.on("NewChatMessage", (groupId: string, msgData: any) => {
+      if (!groupId) return;
       // Patch message into chat array if available
       if (msgData) {
         queryClient.setQueryData(queryKeys.chat.messages(groupId), (old: any) => {
@@ -204,19 +205,15 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
 
     connection.on("UserTyping", (groupId: string, userName: string) => {
-      useChatStore.getState().setTyping(groupId, userName, true);
+      if (groupId && userName) {
+        useChatStore.getState().setTyping(groupId, userName, true);
+      }
     });
 
     connection.on("UserStoppedTyping", (groupId: string, userName: string) => {
-      useChatStore.getState().setTyping(groupId, userName, false);
-    });
-
-    connection.on("UserTyping", (groupId: string, userName: string) => {
-      useChatStore.getState().setTyping(groupId, userName, true);
-    });
-
-    connection.on("UserStoppedTyping", (groupId: string, userName: string) => {
-      useChatStore.getState().setTyping(groupId, userName, false);
+      if (groupId && userName) {
+        useChatStore.getState().setTyping(groupId, userName, false);
+      }
     });
   };
 

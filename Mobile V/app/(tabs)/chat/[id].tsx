@@ -65,6 +65,7 @@ export default function ChatDetailScreen() {
   const { invoke } = useSignalR();
   const insets = useSafeAreaInsets();
   const [inputText, setInputText] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -186,8 +187,9 @@ export default function ChatDetailScreen() {
 
   const handleSend = async (textOverride?: string) => {
     const text = (textOverride || inputText).trim();
-    if (!text || !user || !id) return;
+    if (!text || !user || !id || isSending) return;
     
+    setIsSending(true);
     if (!textOverride) setInputText("");
     haptics.impact();
 
@@ -219,6 +221,8 @@ export default function ChatDetailScreen() {
     } catch (err) {
       console.error("[Chat] Send Error", err);
       queueMessage(pendingMsg);
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -331,66 +335,82 @@ export default function ChatDetailScreen() {
             style={styles.inputBarWrapper}
           >
             <View style={styles.inputBarContent}>
-              <TouchableOpacity 
-                onPress={() => {
-                  haptics.selection();
-                  setShowEmojiPicker(!showEmojiPicker);
-                }} 
-                style={styles.attachBtn}
-                accessibilityLabel="Emoji"
-              >
-                <Ionicons name={showEmojiPicker ? "keypad-outline" : "happy-outline"} size={24} color={theme.colors.textDim} />
-              </TouchableOpacity>
+              <View style={styles.leftActions}>
+                <TouchableOpacity 
+                  onPress={() => {
+                    haptics.selection();
+                    setShowEmojiPicker(!showEmojiPicker);
+                  }} 
+                  style={styles.actionBtn}
+                  accessibilityLabel="Emoji"
+                >
+                  <Ionicons name={showEmojiPicker ? "keypad-outline" : "happy-outline"} size={22} color={showEmojiPicker ? theme.colors.primary : "rgba(255,255,255,0.5)"} />
+                </TouchableOpacity>
 
-            <TouchableOpacity 
-              onPress={handlePickDocument} 
-              style={styles.attachBtn}
-              accessibilityLabel="Attach Document"
-            >
-              <Ionicons name="add-circle" size={24} color={theme.colors.textDim} />
-            </TouchableOpacity>
+                <TouchableOpacity 
+                  onPress={handlePickImage} 
+                  style={styles.actionBtn}
+                  accessibilityLabel="Attach Image"
+                >
+                  <Ionicons name="images-outline" size={22} color="rgba(255,255,255,0.5)" />
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  onPress={handlePickDocument} 
+                  style={styles.actionBtn}
+                  accessibilityLabel="Attach Document"
+                >
+                  <Ionicons name="add-circle-outline" size={22} color="rgba(255,255,255,0.5)" />
+                </TouchableOpacity>
+              </View>
           
-          <TextInput
-            style={styles.input}
-            placeholder="Type a message..."
-            placeholderTextColor={theme.colors.textDim}
-            value={inputText}
-            onChangeText={handleInputChange}
-            multiline
-            maxLength={1000}
-            textAlignVertical="center"
-          />
-          
-          <TouchableOpacity 
-            onPress={() => handleSend()} 
-            disabled={!inputText.trim()}
-            style={[styles.sendBtn, !inputText.trim() && styles.disabledBtn]}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="send" size={20} color={inputText.trim() ? "#fff" : theme.colors.textDim} />
-          </TouchableOpacity>
+              <TextInput
+                style={styles.input}
+                placeholder="Type a message..."
+                placeholderTextColor={theme.colors.textDim}
+                value={inputText}
+                onChangeText={handleInputChange}
+                multiline
+                maxLength={1000}
+                textAlignVertical="center"
+              />
+              
+              <TouchableOpacity 
+                onPress={() => handleSend()} 
+                style={[styles.sendBtn, !inputText.trim() && styles.disabledSendBtn]}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons 
+                  name="send" 
+                  size={18} 
+                  color={inputText.trim() ? "#fff" : "rgba(255,255,255,0.3)"} 
+                />
+              </TouchableOpacity>
             </View>
 
-            {/* Inline Emoji Row */}
+            {/* Inline Emoji Picker */}
             {showEmojiPicker && (
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 12 }}
-                keyboardShouldPersistTaps="always"
-              >
-                {['😀','😂','🥰','😎','🥺','✨','🔥','❤️','👍','🎉','😭','🙌'].map(emoji => (
-                  <TouchableOpacity 
-                    key={emoji} 
-                    onPress={() => {
-                      haptics.selection();
-                      setInputText(prev => prev + emoji);
-                    }}
-                  >
-                    <Text style={{ fontSize: 28, marginHorizontal: 6 }}>{emoji}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+              <View style={styles.emojiContainer}>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.emojiList}
+                  keyboardShouldPersistTaps="always"
+                >
+                  {['😀','😂','🥰','😎','🥺','✨','🔥','❤️','👍','🎉','😭','🙌','🫡','🤔','👀','🚀','💯','✅'].map(emoji => (
+                    <TouchableOpacity 
+                      key={emoji} 
+                      onPress={() => {
+                        haptics.selection();
+                        setInputText(prev => prev + emoji);
+                      }}
+                      style={styles.emojiItem}
+                    >
+                      <Text style={styles.emojiText}>{emoji}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
             )}
             
           </GlassView>
@@ -421,9 +441,12 @@ export default function ChatDetailScreen() {
         <ScrollView style={styles.membersList} contentContainerStyle={{ paddingBottom: 40 }}>
           {group?.engineer && (
             <View style={styles.memberRow}>
-              <View style={[styles.memberAvatar, { backgroundColor: theme.colors.primary + "40" }]}>
-                <Text style={styles.memberAvatarText}>{group.engineer.name[0]}</Text>
-              </View>
+              <Avatar 
+                userId={group.engineer.id} 
+                name={group.engineer.name} 
+                avatarUrl={group.engineer.avatarUrl}
+                size={40}
+              />
               <View style={styles.memberInfo}>
                 <Text style={styles.memberName}>
                   {group.engineer.name} 
@@ -436,9 +459,12 @@ export default function ChatDetailScreen() {
 
           {group?.students?.map(student => (
             <View key={student.id} style={styles.memberRow}>
-              <View style={styles.memberAvatar}>
-                <Text style={styles.memberAvatarText}>{student.name[0]}</Text>
-              </View>
+              <Avatar 
+                userId={student.userId || student.id} 
+                name={student.name} 
+                avatarUrl={student.avatarUrl}
+                size={40}
+              />
               <View style={styles.memberInfo}>
                 <Text style={styles.memberName}>
                   {student.name}
@@ -469,7 +495,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingTop: 10,
-    paddingHorizontal: theme.spacing.md,
+    paddingHorizontal: 12,
     paddingBottom: 20,
   },
   inputBarContainer: {
@@ -478,44 +504,69 @@ const styles = StyleSheet.create({
     borderTopColor: "rgba(255,255,255,0.05)",
   },
   inputBarWrapper: {
-    paddingTop: 8,
+    paddingTop: 10,
   },
   inputBarContent: {
     flexDirection: "row",
     alignItems: "flex-end",
     paddingHorizontal: 12,
-    width: "100%",
+    paddingBottom: 10,
   },
-  attachBtn: {
-    padding: 8,
-    marginRight: 4,
+  leftActions: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 4,
+    flexShrink: 0,
+  },
+  actionBtn: {
+    padding: 8,
+    marginRight: 2,
   },
   input: {
     flex: 1,
     color: theme.colors.text,
-    fontSize: 16,
+    fontSize: 15,
     maxHeight: 120,
-    paddingTop: 10,
-    paddingBottom: 10,
+    paddingTop: 8,
+    paddingBottom: 8,
     paddingHorizontal: 16,
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "rgba(255,255,255,0.06)",
     borderRadius: 20,
     marginHorizontal: 8,
-    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
   },
   sendBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: theme.colors.primary,
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 4,
-    marginBottom: 6,
+    marginBottom: 2,
+    flexShrink: 0,
   },
-  disabledBtn: {
+  disabledSendBtn: {
     backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  emojiContainer: {
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "rgba(0,0,0,0.2)",
+  },
+  emojiList: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  emojiItem: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emojiText: {
+    fontSize: 26,
   },
   lightboxContainer: {
     padding: 10,
@@ -527,25 +578,25 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   typingIndicator: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
     position: "absolute",
-    bottom: 20,
+    bottom: 80,
     left: 20,
     borderWidth: 1,
     borderColor: "rgba(14, 165, 233, 0.2)",
   },
   typingText: {
     color: theme.colors.textDim,
-    fontSize: 12,
+    fontSize: 11,
     fontStyle: "italic",
     fontWeight: "600",
   },
   membersList: {
-    padding: theme.spacing.lg,
+    padding: 20,
   },
   memberRow: {
     flexDirection: "row",
@@ -553,19 +604,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255,255,255,0.05)",
-  },
-  memberAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  memberAvatarText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "800",
   },
   memberInfo: {
     marginLeft: 16,
