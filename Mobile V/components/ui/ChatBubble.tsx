@@ -83,7 +83,6 @@ export const ChatBubble = ({
       <View style={[
         styles.container, 
         isOwn ? styles.ownContainer : styles.otherContainer,
-        { maxWidth: "72%", flexShrink: 1 }
       ]}>
         {(!isOwn && isFirstInGroup) && (
           <Text style={[styles.senderName, isRTL && { textAlign: 'right', marginRight: 4 }]}>
@@ -95,6 +94,7 @@ export const ChatBubble = ({
         intensity={isOwn ? 40 : 15} 
         style={[
           styles.bubble, 
+          { maxWidth: maxBubbleWidth },
           isOwn ? {
             borderTopLeftRadius: 16,
             borderBottomLeftRadius: 16,
@@ -222,6 +222,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flexShrink: 1,
+    maxWidth: "75%",
   },
   ownContainer: {
     alignItems: "flex-end",
