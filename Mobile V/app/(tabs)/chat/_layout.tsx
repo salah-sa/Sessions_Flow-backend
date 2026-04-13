@@ -4,6 +4,7 @@ import { theme } from "../../../shared/theme";
 export default function ChatLayout() {
   return (
     <Stack screenOptions={{
+      headerShown: false,
       headerStyle: { backgroundColor: theme.colors.bg },
       headerTintColor: theme.colors.text,
       headerTitleStyle: { fontWeight: 'bold' },

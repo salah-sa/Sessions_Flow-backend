@@ -23,6 +23,7 @@ import { useGroup } from "../../../shared/queries/useGroupQueries";
 import { useChatMessages, useSendMessage } from "../../../shared/queries/useChatQueries";
 import { useAuthStore } from "../../../shared/store/stores";
 import { useChatStore } from "../../../shared/store/stores";
+import { usePresenceStore } from "../../../shared/store/presenceStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../../../shared/queries/keys";
 import { AdaptiveHeader } from "../../../components/layout/AdaptiveHeader";
@@ -40,8 +41,8 @@ import { Image } from "react-native";
 import { useSignalR } from "../../../providers/SignalRProvider";
 
 const TypingIndicator = ({ groupId }: { groupId: string }) => {
-  const typingUsers = useChatStore(s => s.typingStates[groupId] || []);
-  if (typingUsers.length === 0) return null;
+  const typingUsers = useChatStore(s => s.typingStates[groupId]);
+  if (!typingUsers || typingUsers.length === 0) return null;
 
   const text = typingUsers.length > 2 
     ? `${typingUsers.length} people are typing...`
@@ -63,12 +64,15 @@ export default function ChatDetailScreen() {
   const [inputText, setInputText] = useState("");
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [showMembers, setShowMembers] = useState(false);
   
   const { 
     setActiveGroup, 
     clearUnread, 
     setLastMessage, 
-    queueMessage 
+    queueMessage,
+    mutedGroups,
+    toggleMute
   } = useChatStore();
 
   const { data: group } = useGroup(id as string);
@@ -171,6 +175,31 @@ export default function ChatDetailScreen() {
     />
   );
 
+  const getPresence = usePresenceStore(s => s.getPresence);
+
+  const HeaderRight = () => {
+    const isMuted = mutedGroups.includes(id as string);
+    return (
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+        <TouchableOpacity 
+          onPress={() => setShowMembers(true)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="people-outline" size={22} color={theme.colors.text} />
+        </TouchableOpacity>
+        <TouchableOpacity 
+          onPress={() => {
+            toggleMute(id as string);
+            haptics.selection();
+          }}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name={isMuted ? "notifications-off" : "notifications"} size={22} color={theme.colors.textDim} />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <AdaptiveHeader 
@@ -178,6 +207,7 @@ export default function ChatDetailScreen() {
         scrollY={scrollY} 
         showBack={true}
         onBack={() => router.back()}
+        rightElement={<HeaderRight />}
       />
       
       <KeyboardAvoidingView 
@@ -209,7 +239,11 @@ export default function ChatDetailScreen() {
         )}
 
         {/* Input Bar */}
-        <GlassView intensity={40} style={styles.inputBar}>
+        <GlassView 
+          intensity={40} 
+          style={styles.inputBar}
+          contentContainerStyle={styles.inputBarContent}
+        >
           <TouchableOpacity 
             onPress={handlePickDocument} 
             style={styles.attachBtn}
@@ -261,6 +295,44 @@ export default function ChatDetailScreen() {
           )}
         </View>
       </CinematicModal>
+
+      <CinematicModal
+        visible={showMembers}
+        onClose={() => setShowMembers(false)}
+        title={`MEMBERS (${(group?.students?.length || 0) + (group?.engineer ? 1 : 0)})`}
+      >
+        <View style={styles.membersList}>
+          {group?.engineer && (
+            <View style={styles.memberRow}>
+              <View style={[styles.memberAvatar, { backgroundColor: theme.colors.primary + "40" }]}>
+                <Text style={styles.memberAvatarText}>{group.engineer.name[0]}</Text>
+              </View>
+              <View style={styles.memberInfo}>
+                <Text style={styles.memberName}>
+                  {group.engineer.name} 
+                  {user?.id === group.engineer.id && <Text style={styles.meLabel}> (me)</Text>}
+                </Text>
+                <Text style={styles.memberRole}>Engineer / Instructor</Text>
+              </View>
+            </View>
+          )}
+
+          {group?.students?.map(student => (
+            <View key={student.id} style={styles.memberRow}>
+              <View style={styles.memberAvatar}>
+                <Text style={styles.memberAvatarText}>{student.name[0]}</Text>
+              </View>
+              <View style={styles.memberInfo}>
+                <Text style={styles.memberName}>
+                  {student.name}
+                  {user?.id === student.id && <Text style={styles.meLabel}> (me)</Text>}
+                </Text>
+                <Text style={styles.memberRole}>Student • {student.studentId || "No Code"}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </CinematicModal>
     </View>
   );
 }
@@ -284,14 +356,15 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   inputBar: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    padding: 10,
-    borderTopWidth: 1,
-    borderColor: "rgba(255,255,255,0.05)",
     marginBottom: Platform.OS === 'ios' ? 10 : 10,
     marginHorizontal: 10,
     borderRadius: 24,
+  },
+  inputBarContent: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    padding: 10,
+    width: "100%",
   },
   attachBtn: {
     padding: 8,
@@ -344,5 +417,48 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontStyle: "italic",
     fontWeight: "600",
+  },
+  membersList: {
+    padding: theme.spacing.lg,
+  },
+  memberRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.05)",
+  },
+  memberAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  memberAvatarText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  memberInfo: {
+    marginLeft: 16,
+    flex: 1,
+  },
+  memberName: {
+    color: theme.colors.text,
+    fontSize: 15,
+    fontWeight: "700",
+    fontFamily: theme.typography.h3.fontFamily,
+  },
+  meLabel: {
+    color: theme.colors.primary,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  memberRole: {
+    color: theme.colors.textDim,
+    fontSize: 12,
+    marginTop: 2,
   }
 });

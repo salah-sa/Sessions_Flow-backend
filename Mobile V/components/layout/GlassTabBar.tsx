@@ -57,6 +57,10 @@ const TabItem = ({ route, index, isFocused, label, onPress }: any) => {
       case "sessions": return <Ionicons name={focused ? "calendar" : "calendar-outline"} size={size} color={color} />;
       case "chat": return <Ionicons name={focused ? "chatbubbles" : "chatbubbles-outline"} size={size} color={color} />;
       case "profile": return <Ionicons name={focused ? "person" : "person-outline"} size={size} color={color} />;
+      case "timetable": return <Ionicons name={focused ? "time" : "time-outline"} size={size} color={color} />;
+      case "students": return <Ionicons name={focused ? "school" : "school-outline"} size={size} color={color} />;
+      case "history": return <Ionicons name={focused ? "journal" : "journal-outline"} size={size} color={color} />;
+      case "archive": return <Ionicons name={focused ? "archive" : "archive-outline"} size={size} color={color} />;
       default: return <Ionicons name="help-outline" size={size} color={color} />;
     }
   };
@@ -104,6 +108,8 @@ export const GlassTabBar = ({ state, descriptors, navigation }: BottomTabBarProp
               }
 
               const { options } = descriptors[route.key];
+              if (options.href === null) return null;
+
               const label = options.title !== undefined ? options.title : route.name;
               const isFocused = state.index === index;
 

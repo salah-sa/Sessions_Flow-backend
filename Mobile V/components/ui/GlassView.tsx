@@ -22,6 +22,7 @@ interface GlassViewProps extends ViewProps {
   borderRadius?: number;
   variant?: "base" | "aero";
   style?: StyleProp<ViewStyle>;
+  contentContainerStyle?: StyleProp<ViewStyle>;
   onPress?: () => void;
   interactive?: boolean;
 }
@@ -35,6 +36,7 @@ export const GlassView = ({
   borderRadius = theme.radius.xl, // Desktop defaults to xl/2xl
   variant = "base",
   style,
+  contentContainerStyle,
   onPress,
   interactive = false,
   ...props 
@@ -43,22 +45,34 @@ export const GlassView = ({
   
   const { animatedStyle, pressHandlers } = useAnimatedPress({
     haptic: true,
-    scale: 0.98, // Cards scale less than buttons
+    scale: 0.98,
   });
+
+  const flattenedStyle = StyleSheet.flatten(style) || {};
+  const { 
+    padding, paddingHorizontal, paddingVertical, 
+    paddingTop, paddingBottom, paddingLeft, paddingRight,
+    ...outerStyle 
+  } = flattenedStyle as any;
+
+  const innerExtractedStyle = {
+    padding, paddingHorizontal, paddingVertical, 
+    paddingTop, paddingBottom, paddingLeft, paddingRight
+  };
 
   const content = (
     <View style={[
       styles.outer, 
       variant === "base" ? styles.baseVariant : styles.aeroVariant,
       { borderRadius },
-      style
+      outerStyle
     ]} {...props}>
       <BlurView 
         intensity={intensity} 
         tint={tint} 
         style={[styles.blur, { borderRadius }]}
       >
-        <View style={styles.inner}>
+        <View style={[styles.inner, innerExtractedStyle, contentContainerStyle]}>
           {children}
         </View>
       </BlurView>
@@ -105,6 +119,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inner: {
-    padding: theme.spacing.xl, // Desktop defaults to p-6
+    // Padding is dynamically injected from `style` prop or contentContainerStyle
   }
 });
