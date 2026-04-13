@@ -17,7 +17,7 @@ import { OfflineOverlay } from "../components/layout/OfflineOverlay";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { theme } from "../shared/theme";
-import { View, ActivityIndicator, Text, TouchableOpacity, AppState, AppStateStatus } from "react-native";
+import { View, ActivityIndicator, Text, TouchableOpacity, AppState, AppStateStatus, Platform } from "react-native";
 import { useAuth } from "../providers/AuthProvider";
 import { fetchWithAuth } from "../shared/api/client";
 import { API_BASE_URL } from "../shared/api/config";
