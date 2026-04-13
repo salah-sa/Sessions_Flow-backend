@@ -40,32 +40,34 @@ import { router } from "expo-router";
 import { format } from "date-fns";
 import { useAnimatedPress } from "../../shared/hooks/useAnimatedPress";
 
-const Sparkline = ({ data = [30, 50, 40, 70, 55, 80, 65, 90], color = "#10b981", id = "default" }) => {
+export const Sparkline = React.memo(({ data = [30, 50, 40, 70, 55, 80, 65, 90], color = "#10b981", id = "default" }: any) => {
   const max = Math.max(...data, 1);
-  const normalized = data.map(v => Math.max(0, Math.min(30, (v / max) * 30 + 10)));
-  const points = normalized.map((v, i) => `${(i / (normalized.length - 1)) * 100},${40 - v}`).join(" ");
-  const areaPath = `M0,40 L${normalized.map((v, i) => `${(i / (normalized.length - 1)) * 100},${40 - v}`).join(" L")} L100,40 Z`;
+  const normalized = data.map((v: number) => Math.max(0, Math.min(30, (v / max) * 30 + 10)));
+  const points = normalized.map((v: number, i: number) => `${(i / (normalized.length - 1)) * 100},${40 - v}`).join(" ");
+  const areaPath = `M0,40 L${normalized.map((v: number, i: number) => `${(i / (normalized.length - 1)) * 100},${40 - v}`).join(" L")} L100,40 Z`;
 
   return (
-    <Svg width="100%" height="40" viewBox="0 0 100 40" preserveAspectRatio="none">
-      <Defs>
-        <LinearGradient id={`grad-${id}`} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0%" stopColor={color} stopOpacity="0.3" />
-          <Stop offset="100%" stopColor={color} stopOpacity="0" />
-        </LinearGradient>
-      </Defs>
-      <Path d={areaPath} fill={`url(#grad-${id})`} />
-      <Polyline
-        points={points}
-        fill="none"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
+    <View accessible={true} accessibilityLabel={`Sparkline for ${id}`} style={{ height: 40, width: "100%" }}>
+      <Svg width="100%" height="40" viewBox="0 0 100 40" preserveAspectRatio="none">
+        <Defs>
+          <LinearGradient id={`grad-${id}`} x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0%" stopColor={color} stopOpacity="0.3" />
+            <Stop offset="100%" stopColor={color} stopOpacity="0" />
+          </LinearGradient>
+        </Defs>
+        <Path d={areaPath} fill={`url(#grad-${id})`} />
+        <Polyline
+          points={points}
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
+    </View>
   );
-};
+});
 
 const CairoClock = () => {
   const [time, setTime] = useState(new Date());
@@ -73,7 +75,15 @@ const CairoClock = () => {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-  return <Text style={styles.timeTextValue}>{format(time, "HH:mm:ss")}</Text>;
+  return (
+    <Text 
+      accessible={true}
+      accessibilityLabel={`Current Cairo time: ${format(time, "HH mm ss")}`}
+      style={styles.timeTextValue}
+    >
+      {format(time, "HH:mm:ss")}
+    </Text>
+  );
 };
 
 const DonutChart = ({ segments }: { segments: {label: string, value: number, color: string}[] }) => {
@@ -121,13 +131,20 @@ const DonutChart = ({ segments }: { segments: {label: string, value: number, col
   );
 };
 
-const StatCard = ({ stat, index }: { stat: any, index: number }) => {
+const StatCard = React.memo(({ stat, index }: { stat: any, index: number }) => {
   const { animatedStyle, pressHandlers } = useAnimatedPress({ scale: 0.96 });
   return (
-    <Animated.View entering={FadeInDown.delay(200 + (index * 100)).duration(600)} style={[styles.kpiCardWrapper, { width: "48%" }]}>
+    <Animated.View 
+      entering={FadeInDown.delay(200 + (index * 100)).duration(600)} 
+      style={[styles.kpiCardWrapper, { width: "48%" }]}
+    >
       <Animated.View style={animatedStyle}>
         <Pressable 
           {...pressHandlers}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel={`${stat.label}: ${stat.value}. ${stat.trend}`}
+          accessibilityHint={`Navigates to ${stat.label} management`}
           onPress={() => {
             haptics.selection();
             if(stat.route) router.push(stat.route);
@@ -156,7 +173,7 @@ const StatCard = ({ stat, index }: { stat: any, index: number }) => {
       </Animated.View>
     </Animated.View>
   );
-};
+});
 
 export const AdminDashboard = () => {
   const { data, isLoading, error, refetch, isRefetching } = useDashboardSummary();
@@ -298,10 +315,17 @@ export const AdminDashboard = () => {
                    <CairoClock />
                 </View>
               </View>
-              <TouchableOpacity style={styles.createBtn} activeOpacity={0.8} onPress={() => {
-                haptics.impact();
-                router.push("/(tabs)/timetable");
-              }}>
+              <TouchableOpacity 
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Schedule new session"
+                style={styles.createBtn} 
+                activeOpacity={0.8} 
+                onPress={() => {
+                  haptics.impact();
+                  router.push("/(tabs)/timetable");
+                }}
+              >
                 <Plus color="#fff" size={14} />
                 <Text style={styles.createBtnText}>SCHEDULE</Text>
               </TouchableOpacity>

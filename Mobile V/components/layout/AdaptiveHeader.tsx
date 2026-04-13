@@ -19,8 +19,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../shared/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { NotificationCenter } from "./NotificationCenter";
+import { NotificationCenter } from "../notifications/NotificationCenter";
 import { useAuthStore, useUIStore } from "../../shared/store/stores";
+import { useNotifications } from "../../shared/queries/useNotificationQueries";
+import { haptics } from "../../shared/lib/haptics";
 
 interface AdaptiveHeaderProps {
   title: string;
@@ -43,6 +45,10 @@ export const AdaptiveHeader = ({
   const { user } = useAuthStore();
   const { toggleDrawer } = useUIStore();
   const insets = useSafeAreaInsets();
+  const { data: notifData } = useNotifications();
+  const unreadCount = notifData?.unreadCount || 0;
+  
+  const [notifVisible, setNotifVisible] = React.useState(false);
   
   const backScale = useSharedValue(1);
   const backAnimStyle = useAnimatedStyle(() => ({
@@ -121,8 +127,30 @@ export const AdaptiveHeader = ({
         </Animated.View>
 
         <View style={styles.right}>
-          {finalRightAction !== undefined ? finalRightAction : (user ? <NotificationCenter /> : null)}
+          {finalRightAction !== undefined ? finalRightAction : (user ? (
+            <View style={styles.rightActions}>
+              <TouchableOpacity 
+                onPress={() => {
+                  haptics.selection();
+                  setNotifVisible(true);
+                }} 
+                style={styles.bellButton}
+              >
+                <Ionicons name="notifications-outline" size={24} color={unreadCount > 0 ? theme.colors.primary : theme.colors.text} />
+                {unreadCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+          ) : null)}
         </View>
+
+        <NotificationCenter 
+          visible={notifVisible} 
+          onClose={() => setNotifVisible(false)} 
+        />
       </View>
     </View>
   );
@@ -171,5 +199,31 @@ const styles = StyleSheet.create({
     right: 0,
     height: 1,
     backgroundColor: "rgba(16, 185, 129, 0.1)", // Desktop parity: emerald/10
+  },
+  rightActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  bellButton: {
+    padding: 8,
+    position: "relative",
+  },
+  badge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 7,
+    minWidth: 14,
+    height: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: theme.colors.bg,
+  },
+  badgeText: {
+    color: "#000",
+    fontSize: 7,
+    fontWeight: "900",
   }
 });

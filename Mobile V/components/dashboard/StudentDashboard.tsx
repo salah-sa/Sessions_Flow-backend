@@ -122,7 +122,12 @@ export const StudentDashboard = () => {
         }
       >
         {/* Header Region */}
-        <Animated.View entering={FadeInDown.delay(100).duration(600)} style={styles.header}>
+        <Animated.View 
+          entering={FadeInDown.delay(100).duration(600)} 
+          style={styles.header}
+          accessible={true}
+          accessibilityLabel={`Dashboard for ${identity?.name}. Role: Student.`}
+        >
           <View style={styles.avatarWrap}>
             <Avatar 
               userId={identity?.studentId || "unknown"} 
@@ -147,7 +152,12 @@ export const StudentDashboard = () => {
         </Animated.View>
 
         {/* Priority Directive Card */}
-        <Animated.View entering={FadeInDown.delay(300).duration(600)} style={styles.sectionLarge}>
+        <Animated.View 
+          entering={FadeInDown.delay(300).duration(600)} 
+          style={styles.sectionLarge}
+          accessible={true}
+          accessibilityLabel={`Priority Directive: ${primaryAction?.label || "None"}.`}
+        >
           <GlassView intensity={20} style={styles.directiveCard}>
             <LinearGradient 
               colors={['rgba(16,185,129,0.1)', 'transparent']}
@@ -168,6 +178,10 @@ export const StudentDashboard = () => {
                 <Animated.View style={ctaAnimStyle}>
                   <Pressable 
                     {...ctaPress}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel="Enter Operations"
+                    accessibilityHint="Opens the current session dashboard"
                     onPress={() => {
                       haptics.selection();
                       router.push(`/(tabs)/sessions/${(todaySession || nextSession).id}`);
@@ -247,7 +261,7 @@ export const StudentDashboard = () => {
   );
 };
 
-const TimelineItem = ({ session, index }: { session: any, index: number }) => {
+const TimelineItem = React.memo(({ session, index }: { session: any, index: number }) => {
   const isEnded = session.status === "Ended";
   const dateObj = new Date(session.scheduledAt);
   const { animatedStyle, pressHandlers } = useAnimatedPress({ scale: 0.98 });
@@ -256,6 +270,9 @@ const TimelineItem = ({ session, index }: { session: any, index: number }) => {
     <Animated.View style={animatedStyle}>
       <Pressable 
         {...pressHandlers}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={`Session ${session.number} on ${format(dateObj, "MMMM d")}. Status: ${isEnded ? "Completed" : "Upcoming"}`}
         onPress={() => {
           haptics.selection();
           router.push(`/(tabs)/sessions/${session.id}`);
@@ -284,7 +301,7 @@ const TimelineItem = ({ session, index }: { session: any, index: number }) => {
       </Pressable>
     </Animated.View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

@@ -6,20 +6,19 @@ import { theme } from '../shared/theme';
 import { OptimizedList } from '../components/ui/OptimizedList';
 import { RoleGuard } from '../components/auth/RoleGuard';
 
+import { StudentConsole } from '../components/admin/StudentConsole';
+
 export default function StudentsScreen() {
   const scrollY = useSharedValue(0);
 
   return (
     <RoleGuard allowedRoles={["Admin", "Engineer"]}>
       <View style={styles.container}>
-        <AdaptiveHeader title="Students" scrollY={scrollY} showBack />
-        <OptimizedList
-          data={[]}
-          renderItem={() => null}
-          onScroll={(e) => { scrollY.value = e.nativeEvent.contentOffset.y; }}
-          emptyTitle="Coming Soon"
-          emptyDescription="Students management module is currently under construction."
-        />
+        <AdaptiveHeader title="STUDENTS" scrollY={scrollY} />
+        
+        <View style={styles.content}>
+           <StudentConsole />
+        </View>
       </View>
     </RoleGuard>
   );
@@ -30,4 +29,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.bg,
   },
+  content: {
+    flex: 1,
+    paddingTop: 110,
+    paddingHorizontal: theme.spacing.lg,
+  }
 });

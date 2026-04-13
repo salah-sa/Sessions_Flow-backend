@@ -3,8 +3,8 @@ import { View, StyleSheet } from 'react-native';
 import { AdaptiveHeader } from '../components/layout/AdaptiveHeader';
 import { useSharedValue } from 'react-native-reanimated';
 import { theme } from '../shared/theme';
-import { OptimizedList } from '../components/ui/OptimizedList';
 import { RoleGuard } from '../components/auth/RoleGuard';
+import { AdminConsole } from '../components/admin/AdminConsole';
 
 export default function AdminScreen() {
   const scrollY = useSharedValue(0);
@@ -12,14 +12,10 @@ export default function AdminScreen() {
   return (
     <RoleGuard allowedRoles={["Admin"]}>
       <View style={styles.container}>
-        <AdaptiveHeader title="Admin Console" scrollY={scrollY} showBack />
-        <OptimizedList
-          data={[]}
-          renderItem={() => null}
-          onScroll={(e) => { scrollY.value = e.nativeEvent.contentOffset.y; }}
-          emptyTitle="Coming Soon"
-          emptyDescription="Admin Console is currently under construction."
-        />
+        <AdaptiveHeader title="COMMAND CONSOLE" scrollY={scrollY} showBack />
+        <View style={{ flex: 1 }}>
+          <AdminConsole />
+        </View>
       </View>
     </RoleGuard>
   );

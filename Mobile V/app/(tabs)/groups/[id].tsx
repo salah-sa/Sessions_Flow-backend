@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { theme } from "../../../shared/theme";
-import { useGroup } from "../../../shared/queries/useGroupQueries";
+import { useGroup, useGroupMutations } from "../../../shared/queries/useGroupQueries";
 import { useInfiniteSessions } from "../../../shared/queries/useSessionQueries";
 import { AdaptiveHeader } from "../../../components/layout/AdaptiveHeader";
 import { useSharedValue } from "react-native-reanimated";
@@ -26,14 +26,42 @@ import { Badge } from "../../../components/ui/Badge";
 import { format } from "date-fns";
 import { ActionSurface, ActionSurfaceRef } from "../../../components/ui/ActionSurface";
 import { haptics } from "../../../shared/lib/haptics";
+import { TextInput } from "react-native-gesture-handler";
+import { useToast } from "../../../providers/ToastProvider";
 
 export default function GroupDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: group, isLoading: groupLoading } = useGroup(id as string);
   const { data: sessionsData, isLoading: sessionsLoading } = useInfiniteSessions({ groupId: id });
+  const groupMutations = useGroupMutations();
+  const { show: showToast } = useToast();
   
   const [selectedAction, setSelectedAction] = React.useState<"attendance" | "members" | "edit" | null>(null);
   const actionSurfaceRef = React.useRef<ActionSurfaceRef>(null);
+
+  const [editData, setEditData] = React.useState({ name: "", level: 0, colorTag: "" });
+
+  React.useEffect(() => {
+    if (group) {
+        setEditData({
+            name: group.name,
+            level: group.level,
+            colorTag: group.colorTag || "#0ea5e9"
+        });
+    }
+  }, [group]);
+
+  const handleSaveMetadata = async () => {
+    if (!id) return;
+    haptics.impact();
+    try {
+        await groupMutations.updateMutation.mutateAsync({ id, data: editData });
+        showToast("Group Configuration Synchronized", "success");
+        actionSurfaceRef.current?.collapse();
+    } catch (err) {
+        showToast("Sync Error", "error");
+    }
+  };
 
   const openAction = (type: "attendance" | "members" | "edit") => {
     haptics.impact();
@@ -237,17 +265,63 @@ export default function GroupDetailScreen() {
                 )}
               </ScrollView>
             </View>
-          ) : selectedAction === "attendance" ? (
-            <View style={styles.placeholderSurface}>
-              <Ionicons name="checkbox" size={48} color={theme.colors.primary} />
-              <Text style={styles.surfaceHeroText}>ATTENDANCE BRIDGE</Text>
-              <Text style={styles.surfaceSubText}>Link to active session for real-time marking.</Text>
+          ) : selectedAction === "edit" ? (
+            <View style={styles.formContainer}>
+              <Text style={styles.label}>OPERATIONAL NAME</Text>
+              <TextInput 
+                style={styles.input}
+                value={editData.name}
+                onChangeText={(v) => setEditData({...editData, name: v})}
+                placeholder="Group Name"
+                placeholderTextColor="rgba(255,255,255,0.2)"
+              />
+              <View style={styles.formRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.label}>LEVEL</Text>
+                  <TextInput 
+                    style={styles.input}
+                    value={String(editData.level)}
+                    onChangeText={(v) => setEditData({...editData, level: parseInt(v) || 0})}
+                    keyboardType="numeric"
+                  />
+                </View>
+                <View style={{ width: 16 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.label}>COLOR TAG</Text>
+                  <TouchableOpacity 
+                    style={[styles.colorPicker, { backgroundColor: editData.colorTag || theme.colors.primary }]} 
+                    onPress={() => haptics.selection()}
+                  />
+                </View>
+              </View>
+              <TouchableOpacity 
+                style={[styles.saveBtn, { marginTop: 24 }]}
+                onPress={handleSaveMetadata}
+                disabled={groupMutations.updateMutation.isPending}
+              >
+                {groupMutations.updateMutation.isPending ? (
+                  <ActivityIndicator color="#000" />
+                ) : (
+                  <Text style={styles.saveBtnText}>COMMIT CONFIGURATION</Text>
+                )}
+              </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.placeholderSurface}>
-              <Ionicons name="settings" size={48} color={theme.colors.primary} />
-              <Text style={styles.surfaceHeroText}>CORE CONFIG</Text>
-              <Text style={styles.surfaceSubText}>Modifying encrypted group parameters...</Text>
+              <Ionicons name="checkbox" size={48} color={theme.colors.primary} />
+              <Text style={styles.surfaceHeroText}>ATTENDANCE BRIDGE</Text>
+              <View style={styles.activeSessionGuard}>
+                {group?.sessions?.find(s => s.status === 'Active') ? (
+                  <TouchableOpacity 
+                    style={styles.linkBtn}
+                    onPress={() => router.push(`/(tabs)/sessions/${group.sessions?.find(s => s.status === 'Active')?.id}`)}
+                  >
+                    <Text style={styles.linkBtnText}>OPEN ACTIVE SESSION UNIT</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <Text style={styles.surfaceSubText}>No active sessions detected for this node.</Text>
+                )}
+              </View>
             </View>
           )}
         </View>
@@ -555,6 +629,71 @@ const styles = StyleSheet.create({
     color: theme.colors.textDim,
     fontSize: 10,
     fontWeight: "800",
+    letterSpacing: 1,
+  },
+  formContainer: {
+    flex: 1,
+    padding: 20,
+  },
+  label: {
+    color: theme.colors.textDim,
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
+  input: {
+    height: 56,
+    backgroundColor: "rgba(255,255,255,0.03)",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    color: "#fff",
+    fontSize: 15,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+    marginBottom: 20,
+  },
+  formRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+  },
+  colorPicker: {
+    width: "100%",
+    height: 56,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    marginBottom: 20,
+  },
+  saveBtn: {
+    height: 60,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  saveBtnText: {
+    color: "#000",
+    fontWeight: "900",
+    fontSize: 12,
+    letterSpacing: 2,
+  },
+  activeSessionGuard: {
+    alignItems: "center",
+    marginTop: 20,
+  },
+  linkBtn: {
+    backgroundColor: "rgba(14, 165, 233, 0.1)",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(14, 165, 233, 0.3)",
+  },
+  linkBtnText: {
+    color: theme.colors.primary,
+    fontWeight: "900",
+    fontSize: 11,
     letterSpacing: 1,
   }
 });
