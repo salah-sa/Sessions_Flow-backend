@@ -17,7 +17,8 @@ import {
   FlatList,
   ActivityIndicator,
   ScrollView,
-  Keyboard
+  Keyboard,
+  Alert
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { theme } from "../../../shared/theme";
@@ -100,6 +101,17 @@ export default function ChatDetailScreen() {
   
   const scrollY = useSharedValue(0);
   const flatListRef = useRef<FlatList>(null);
+  
+  const isMemberOnline = usePresenceStore(s => s.isOnline);
+  const onlineCount = React.useMemo(() => {
+    let count = 0;
+    if (group?.engineer && isMemberOnline(group.engineer.id)) count++;
+    group?.students?.forEach(s => {
+      if (isMemberOnline(s.id || s.userId)) count++;
+    });
+    return count;
+  }, [group, isMemberOnline]);
+
 
   // Focus Handling
   useEffect(() => {
@@ -370,16 +382,16 @@ export default function ChatDetailScreen() {
       />
       
       <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={[styles.flex, { paddingTop: insets.top + (Platform.OS === 'ios' ? 56 : 64) }]}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.flex}
+        keyboardVerticalOffset={Platform.OS === "ios" ? (56 + insets.top) : 0}
       >
         {isLoading ? (
           <View style={styles.center}>
             <ActivityIndicator color={theme.colors.primary} />
           </View>
         ) : (
-          <View style={styles.flex}>
+          <View style={[styles.flex, { paddingTop: insets.top + (Platform.OS === 'ios' ? 56 : 64) }]}>
             <FlatList
               ref={flatListRef}
               data={invertedMessages}
@@ -394,6 +406,7 @@ export default function ChatDetailScreen() {
               initialNumToRender={15}
               maxToRenderPerBatch={10}
               windowSize={5}
+              keyboardDismissMode="interactive"
             />
             <TypingIndicator groupId={id as string} />
           </View>
@@ -407,72 +420,81 @@ export default function ChatDetailScreen() {
             style={styles.inputBarWrapper}
           >
             <View style={styles.inputBarContent}>
-              <View style={styles.leftActions}>
-                <TouchableOpacity 
-                  onPress={() => {
-                    haptics.selection();
-                    if (!showEmojiPicker) Keyboard.dismiss();
-                    setShowEmojiPicker(!showEmojiPicker);
-                  }} 
-                  style={styles.actionBtn}
-                  accessibilityLabel="Emoji"
-                >
-                  <Ionicons name={showEmojiPicker ? "keypad-outline" : "happy-outline"} size={22} color={showEmojiPicker ? theme.colors.primary : "rgba(255,255,255,0.5)"} />
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                  onPress={handlePickImage} 
-                  style={styles.actionBtn}
-                  accessibilityLabel="Attach Image"
-                >
-                  <Ionicons name="images-outline" size={22} color="rgba(255,255,255,0.5)" />
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                  onPress={handlePickDocument} 
-                  style={styles.actionBtn}
-                  accessibilityLabel="Attach Document"
-                >
-                  <Ionicons name="add-circle-outline" size={22} color="rgba(255,255,255,0.5)" />
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity 
+                onPress={() => {
+                  haptics.selection();
+                  if (!showEmojiPicker) Keyboard.dismiss();
+                  setShowEmojiPicker(!showEmojiPicker);
+                }} 
+                style={styles.actionBtn}
+                accessibilityLabel="Toggle Emoji Picker"
+              >
+                <Ionicons 
+                  name={showEmojiPicker ? "keypad-outline" : "happy-outline"} 
+                  size={24} 
+                  color={showEmojiPicker ? theme.colors.primary : theme.colors.textDim} 
+                />
+              </TouchableOpacity>
           
               <TextInput
                 style={styles.input}
-                placeholder={isOnline ? "Type a message..." : "Waiting for network..."}
+                placeholder={isOnline ? "Message..." : "Waiting for network..."}
                 placeholderTextColor={theme.colors.textDim}
                 value={inputText}
                 onChangeText={handleInputChange}
                 multiline
-                maxLength={1000}
+                maxLength={4000}
                 textAlignVertical="center"
                 editable={isOnline}
+                onFocus={() => setShowEmojiPicker(false)}
               />
+
+              <TouchableOpacity 
+                onPress={() => {
+                  haptics.impact();
+                  Alert.alert(
+                    "ATTACHMENT",
+                    "Select content to share",
+                    [
+                      { text: "Photo Library", onPress: handlePickImage },
+                      { text: "Document / File", onPress: handlePickDocument },
+                      { text: "Cancel", style: "cancel" }
+                    ]
+                  );
+                }} 
+                style={styles.actionBtn}
+                accessibilityLabel="Attach Content"
+              >
+                <Ionicons name="add-outline" size={26} color={theme.colors.textDim} />
+              </TouchableOpacity>
               
               <TouchableOpacity 
                 onPress={() => handleSend()} 
                 disabled={!inputText.trim() || !isOnline}
                 style={[styles.sendBtn, (!inputText.trim() || !isOnline) && styles.disabledSendBtn]}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Ionicons 
-                  name={isOnline ? "send" : "cloud-offline"} 
+                  name="send" 
                   size={18} 
-                  color={inputText.trim() && isOnline ? "#fff" : "rgba(255,255,255,0.3)"} 
+                  color={inputText.trim() && isOnline ? "#000" : "rgba(255,255,255,0.3)"} 
                 />
               </TouchableOpacity>
             </View>
 
-            {/* Inline Emoji Picker */}
+
+            {/* Upgraded Emoji Grid (Phase 3) */}
             {showEmojiPicker && (
               <View style={styles.emojiContainer}>
                 <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.emojiList}
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={styles.emojiGrid}
                   keyboardShouldPersistTaps="always"
                 >
-                  {['😀','😂','🥰','😎','🥺','✨','🔥','❤️','👍','🎉','😭','🙌','🫡','🤔','👀','🚀','💯','✅'].map(emoji => (
+                  {[
+                    '😀','😂','🥰','😎','🥺','✨','🔥','❤️','👍','🎉','😭','🙌','🫡','🤔','👀','🚀','💯','✅',
+                    '⚡️','🌈','🍕','🍔','☕️','🎮','🎨','📱','💻','⌚️','🎧','🎸','⚽️','🏀','🎾','🎱','🎲','🎭',
+                    '💡','💎','💰','📈','🔔','📅','📍','🏠','🏢','🚗','✈️','🛸','🍀','🌸','🌍','🌕','☀️','❄️'
+                  ].map(emoji => (
                     <TouchableOpacity 
                       key={emoji} 
                       onPress={() => {
@@ -511,26 +533,48 @@ export default function ChatDetailScreen() {
       <CinematicModal
         visible={showMembers}
         onClose={() => setShowMembers(false)}
-        title={`MEMBERS (${(group?.students?.length || 0) + (group?.engineer ? 1 : 0)})`}
+        title="CHANNEL DIRECTORY"
       >
-        <ScrollView style={styles.membersList} contentContainerStyle={{ paddingBottom: 40 }}>
+        <View style={styles.modalHeaderExtra}>
+          <View style={styles.countBadge}>
+            <View style={[styles.presenceDot, { backgroundColor: theme.colors.success }]} />
+            <Text style={styles.countText}>{onlineCount} ONLINE</Text>
+          </View>
+          <Text style={styles.countTextDim}>•</Text>
+          <Text style={styles.countTextDim}>{(group?.students?.length || 0) + (group?.engineer ? 1 : 0)} TOTAL</Text>
+        </View>
+
+        <ScrollView style={styles.membersList} contentContainerStyle={{ paddingBottom: 60 }}>
           {group?.engineer && (
-            <View style={styles.memberRow}>
-              <Avatar 
-                userId={group.engineer.id} 
-                name={group.engineer.name} 
-                avatarUrl={group.engineer.avatarUrl}
-                size={40}
-              />
-              <View style={styles.memberInfo}>
-                <Text style={styles.memberName}>
-                  {group.engineer.name} 
-                  {user?.id === group.engineer.id && <Text style={styles.meLabel}> (me)</Text>}
-                </Text>
-                <Text style={styles.memberRole}>Engineer / Instructor</Text>
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>ENGINEER</Text>
+                <View style={styles.sectionLine} />
               </View>
-            </View>
+              <View style={styles.memberRow}>
+                <Avatar 
+                  userId={group.engineer.id} 
+                  name={group.engineer.name} 
+                  avatarUrl={group.engineer.avatarUrl}
+                  size={46}
+                />
+                <View style={styles.memberInfo}>
+                  <View style={styles.nameRow}>
+                    <Text style={styles.memberName}>{group.engineer.name}</Text>
+                    <View style={[styles.roleBadge, { backgroundColor: "rgba(14, 165, 233, 0.15)" }]}>
+                      <Text style={[styles.roleBadgeText, { color: theme.colors.primary }]}>STAFF</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.memberRole}>Lead Engineer / Instructor</Text>
+                </View>
+              </View>
+            </>
           )}
+
+          <View style={[styles.sectionHeader, { marginTop: 24 }]}>
+            <Text style={styles.sectionTitle}>STUDENTS</Text>
+            <View style={styles.sectionLine} />
+          </View>
 
           {group?.students?.map(student => (
             <View key={student.id} style={styles.memberRow}>
@@ -538,17 +582,27 @@ export default function ChatDetailScreen() {
                 userId={student.userId || student.id} 
                 name={student.name} 
                 avatarUrl={student.avatarUrl}
-                size={40}
+                size={42}
               />
               <View style={styles.memberInfo}>
-                <Text style={styles.memberName}>
-                  {student.name}
-                  {user?.id === student.id && <Text style={styles.meLabel}> (me)</Text>}
-                </Text>
-                <Text style={styles.memberRole}>Student • {student.studentId || "No Code"}</Text>
+                <View style={styles.nameRow}>
+                  <Text style={styles.memberName}>{student.name}</Text>
+                  {user?.id === (student.userId || student.id) && (
+                    <View style={[styles.roleBadge, { backgroundColor: "rgba(255, 255, 255, 0.1)" }]}>
+                      <Text style={[styles.roleBadgeText, { color: theme.colors.textDim }]}>YOU</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.memberRole}>Resident Student • {student.studentId || "Verified"}</Text>
               </View>
             </View>
           ))}
+          
+          {(!group?.students || group.students.length === 0) && !group?.engineer && (
+            <View style={styles.emptyMembers}>
+              <Text style={styles.emptyText}>No members found</Text>
+            </View>
+          )}
         </ScrollView>
       </CinematicModal>
     </View>
@@ -627,21 +681,24 @@ const styles = StyleSheet.create({
   emojiContainer: {
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.05)",
-    backgroundColor: "rgba(0,0,0,0.2)",
+    backgroundColor: "rgba(0,0,0,0.3)",
+    height: 240, // Fixed height for grid
   },
-  emojiList: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    gap: 12,
+  emojiGrid: {
+    padding: 12,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
   },
   emojiItem: {
-    width: 40,
-    height: 40,
+    width: "16%", // ~6 per row
+    aspectRatio: 1,
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: 8,
   },
   emojiText: {
-    fontSize: 26,
+    fontSize: 28,
   },
   lightboxContainer: {
     padding: 10,
@@ -699,5 +756,76 @@ const styles = StyleSheet.create({
     color: theme.colors.textDim,
     fontSize: 12,
     marginTop: 2,
+  },
+  modalHeaderExtra: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingBottom: 16,
+    gap: 8,
+  },
+  countBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(16, 185, 129, 0.1)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 6,
+  },
+  presenceDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  countText: {
+    color: theme.colors.success,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  countTextDim: {
+    color: theme.colors.textDim,
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    gap: 12,
+  },
+  sectionTitle: {
+    color: theme.colors.textDim,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+  },
+  sectionLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  roleBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  roleBadgeText: {
+    fontSize: 9,
+    fontWeight: "800",
+  },
+  emptyMembers: {
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  emptyText: {
+    color: theme.colors.textDim,
+    fontSize: 14,
   }
 });
