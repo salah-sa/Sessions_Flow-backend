@@ -62,15 +62,33 @@ export const ChatBubble = ({
 
   return (
     <View style={[
-      styles.container, 
-      isOwn ? styles.ownContainer : styles.otherContainer,
-      { maxWidth: maxBubbleWidth, marginBottom: marginBot }
+      styles.row,
+      isOwn ? styles.rowOwn : styles.rowOther,
+      { marginBottom: marginBot }
     ]}>
-      {(!isOwn && isFirstInGroup) && (
-        <Text style={[styles.senderName, isRTL && { textAlign: 'right', marginRight: 4 }]}>
-          {message.senderName}
-        </Text>
+      {/* Remote Avatar */}
+      {!isOwn && (
+        <View style={styles.avatarContainer}>
+          {isFirstInGroup ? (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{message.senderName?.[0] || "?"}</Text>
+            </View>
+          ) : (
+            <View style={styles.avatarSpacer} />
+          )}
+        </View>
       )}
+
+      <View style={[
+        styles.container, 
+        isOwn ? styles.ownContainer : styles.otherContainer,
+        { maxWidth: "70%" }
+      ]}>
+        {(!isOwn && isFirstInGroup) && (
+          <Text style={[styles.senderName, isRTL && { textAlign: 'right', marginRight: 4 }]}>
+            {message.senderName}
+          </Text>
+        )}
       
       <GlassView 
         intensity={isOwn ? 40 : 15} 
@@ -112,7 +130,12 @@ export const ChatBubble = ({
             </View>
           </TouchableOpacity>
         ) : (
-          <Text style={[styles.text, isRTL && { textAlign: 'right' }]}>{message.text}</Text>
+          <Text 
+            style={[styles.text, isRTL && { textAlign: 'right' }]}
+            textBreakStrategy="highQuality"
+          >
+            {message.text}
+          </Text>
         )}
         
         <View style={[styles.footer, isRTL && { flexDirection: 'row-reverse', justifyContent: 'flex-start' }]}>
@@ -128,19 +151,69 @@ export const ChatBubble = ({
         </View>
       </GlassView>
     </View>
+
+      {/* Own Avatar (Optional to display, adding for parity structure if requested, otherwise we can just use spacer) */}
+      {isOwn && (
+        <View style={styles.avatarContainer}>
+          {isFirstInGroup ? (
+             <View style={[styles.avatar, styles.ownAvatar]}>
+               <Text style={styles.avatarText}>{message.senderName?.[0] || "?"}</Text>
+             </View>
+          ) : (
+             <View style={styles.avatarSpacer} />
+          )}
+        </View>
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    alignItems: "flex-end", // Align avatars at the bottom of the message group, or top? User usually prefers top. Let's use flex-start.
+  },
+  rowOwn: {
+    justifyContent: "flex-end",
+  },
+  rowOther: {
+    justifyContent: "flex-start",
+  },
+  avatarContainer: {
+    marginHorizontal: 8,
+    alignSelf: "flex-end", // Avatar at the bottom next to the latest message in the bubble group
+  },
+  avatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+  },
+  ownAvatar: {
+    backgroundColor: "rgba(14, 165, 233, 0.2)",
+    borderColor: "rgba(14, 165, 233, 0.4)",
+  },
+  avatarText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
+  avatarSpacer: {
+    width: 28,
+  },
   container: {
-    marginBottom: 16,
-    maxWidth: "85%",
+    // marginBottom removed from here, applied to row wrapper
   },
   ownContainer: {
-    alignSelf: "flex-end",
+    alignItems: "flex-end",
   },
   otherContainer: {
-    alignSelf: "flex-start",
+    alignItems: "flex-start",
   },
   senderName: {
     fontSize: 10,

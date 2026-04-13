@@ -25,6 +25,7 @@ const NAV_ITEMS = [
   { name: "History", href: "/(tabs)/history", icon: "time-outline", roles: ["Admin", "Engineer", "Student"] },
   { name: "Archive", href: "/(tabs)/archive", icon: "archive-outline", roles: ["Admin", "Engineer"] },
   { name: "Profile", href: "/(tabs)/profile", icon: "person-outline", roles: ["Admin", "Engineer", "Student"] },
+  { name: "Settings", href: "/settings", icon: "settings-outline", roles: ["Admin", "Engineer", "Student"] },
 ];
 
 export const SideDrawer = () => {
@@ -155,6 +156,20 @@ export const SideDrawer = () => {
         </View>
 
         <View style={styles.footer}>
+          <TouchableOpacity 
+            style={[styles.navItem, isRTL && styles.rowReverse, { marginBottom: 16 }]}
+            onPress={() => {
+              haptics.selection();
+              toggleDrawer();
+              useAuthStore.getState().logout();
+              router.replace("/(auth)/login");
+            }}
+          >
+            <Ionicons name="log-out-outline" size={22} color="#ef4444" />
+            <Text style={[styles.navText, { color: "#ef4444" }, isRTL ? { marginRight: 16 } : { marginLeft: 16 }]}>
+              Logout
+            </Text>
+          </TouchableOpacity>
           <Text style={styles.version}>v.2.0.0 (Mobile Core)</Text>
         </View>
       </Animated.View>

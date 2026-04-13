@@ -21,7 +21,7 @@ import {
 import { useLocalSearchParams, router } from "expo-router";
 import { theme } from "../../../shared/theme";
 import { useGroup } from "../../../shared/queries/useGroupQueries";
-import { useChatMessages, useSendMessage } from "../../../shared/queries/useChatQueries";
+import { useChatMessages, useSendMessage, useSendFileMessage } from "../../../shared/queries/useChatQueries";
 import { useAuthStore } from "../../../shared/store/stores";
 import { useChatStore } from "../../../shared/store/stores";
 import { usePresenceStore } from "../../../shared/store/presenceStore";
@@ -71,10 +71,14 @@ export default function ChatDetailScreen() {
   const [showMembers, setShowMembers] = useState(false);
   
   const { 
-    setActiveGroup, 
+    unreadCounts, 
     clearUnread, 
-    setLastMessage, 
+    lastMessages, 
+    activeGroupId, 
+    setActiveGroup, 
+    pendingMessages,
     queueMessage,
+    removeFromQueue,
     mutedGroups,
     toggleMute
   } = useChatStore();
@@ -82,6 +86,7 @@ export default function ChatDetailScreen() {
   const { data: group } = useGroup(id as string);
   const { data: messages = [], isLoading } = useChatMessages(id as string);
   const sendMessageMutation = useSendMessage();
+  const sendFileMutation = useSendFileMessage();
   
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   
@@ -102,9 +107,39 @@ export default function ChatDetailScreen() {
       quality: 0.8,
     });
 
-    if (!result.canceled) {
+    if (!result.canceled && result.assets[0].uri && id) {
       haptics.success();
-      handleSend(`[IMAGE] ${result.assets[0].uri}`);
+      const asset = result.assets[0];
+      const messageId = Math.random().toString(36).substring(7);
+      
+      const pendingMsg: ChatMessage = {
+        id: messageId,
+        groupId: id as string,
+        senderId: user!.id,
+        senderName: user!.name,
+        text: `[IMAGE] ${asset.uri}`,
+        sentAt: new Date().toISOString(),
+        status: "pending",
+      };
+
+      queryClient.setQueryData(
+        queryKeys.chat.messages(id as string),
+        (old: ChatMessage[] | undefined) => [...(old || []), pendingMsg]
+      );
+
+      try {
+        await sendFileMutation.mutateAsync({
+          groupId: id as string,
+          text: `[IMAGE]`,
+          fileUri: asset.uri,
+          fileName: asset.fileName || 'upload.jpg',
+          fileType: asset.mimeType || 'image/jpeg',
+          id: messageId
+        });
+      } catch (err) {
+        console.error("Upload failed", err);
+        queueMessage(pendingMsg);
+      }
     }
   };
 
@@ -114,9 +149,38 @@ export default function ChatDetailScreen() {
       copyToCacheDirectory: true,
     });
 
-    if (result.assets && result.assets.length > 0) {
+    if (result.assets && result.assets.length > 0 && id) {
       haptics.success();
-      handleSend(`[DOCUMENT] ${result.assets[0].name}`);
+      const asset = result.assets[0];
+      const messageId = Math.random().toString(36).substring(7);
+
+      const pendingMsg: ChatMessage = {
+        id: messageId,
+        groupId: id as string,
+        senderId: user!.id,
+        senderName: user!.name,
+        text: `[DOCUMENT] ${asset.name}`,
+        sentAt: new Date().toISOString(),
+        status: "pending",
+      };
+
+      queryClient.setQueryData(
+        queryKeys.chat.messages(id as string),
+        (old: ChatMessage[] | undefined) => [...(old || []), pendingMsg]
+      );
+
+      try {
+        await sendFileMutation.mutateAsync({
+          groupId: id as string,
+          text: `[DOCUMENT]`,
+          fileUri: asset.uri,
+          fileName: asset.name,
+          fileType: asset.mimeType || 'application/octet-stream',
+          id: messageId
+        });
+      } catch (err) {
+        queueMessage(pendingMsg);
+      }
     }
   };
 
@@ -150,6 +214,8 @@ export default function ChatDetailScreen() {
         message: text,
         id: messageId
       });
+      // Ensure local state clears
+      setInputText("");
     } catch (err) {
       console.error("[Chat] Send Error", err);
       queueMessage(pendingMsg);
@@ -229,7 +295,7 @@ export default function ChatDetailScreen() {
       
       <KeyboardAvoidingView 
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={[styles.flex, { paddingTop: insets.top + 56 }]}
+        style={[styles.flex, { paddingTop: insets.top + (Platform.OS === 'ios' ? 56 : 64) }]}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
         {isLoading ? (
@@ -258,7 +324,7 @@ export default function ChatDetailScreen() {
         )}
 
         {/* Input Bar */}
-        <View style={[styles.inputBarContainer, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+        <View style={[styles.inputBarContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           <GlassView 
             intensity={90} 
             tint="dark"
@@ -299,6 +365,7 @@ export default function ChatDetailScreen() {
             onPress={() => handleSend()} 
             disabled={!inputText.trim()}
             style={[styles.sendBtn, !inputText.trim() && styles.disabledBtn]}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="send" size={20} color={inputText.trim() ? "#fff" : theme.colors.textDim} />
           </TouchableOpacity>
