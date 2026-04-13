@@ -9,6 +9,9 @@
 import { API_BASE_URL, MOBILE_VERSION, PLATFORM } from "./config";
 import { secureStorage } from "../../services/secureStorage";
 import { apiMonitor } from "../lib/apiMonitor";
+import * as Sentry from "@sentry/react-native";
+import { smartRetry, DEFAULT_RETRY_CONFIG } from "../lib/resilience";
+import { apiMonitor as legacyMonitor } from "../lib/apiMonitor"; // Just ensuring we keep existing logic if needed
 import { router } from "expo-router";
 
 let cachedToken: string | null = null;
@@ -48,17 +51,14 @@ export async function fetchWithAuth<T>(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
 
+  const requestId = Math.random().toString(36).substring(7);
   let url = endpoint.startsWith("http") ? endpoint : `${API_BASE_URL}${endpoint}`;
+
+  apiMonitor.start(requestId, endpoint, options.method || "GET");
 
   // Phase 14.A: Force HTTPS in production
   if (!__DEV__ && url.startsWith("http://")) {
     url = url.replace("http://", "https://");
-  }
-
-  // Phase 16: Track API calls in DEV mode to catch duplicate requests
-  if (__DEV__) {
-    const rawEndpoint = url.replace(API_BASE_URL, "");
-    apiMonitor.track(rawEndpoint, options.method || "GET");
   }
 
   const defaultHeaders: Record<string, string> = {
@@ -86,8 +86,13 @@ export async function fetchWithAuth<T>(
   };
 
   try {
-    const response = await fetch(url, mergedOptions);
+    const response = await smartRetry(() => fetch(url, mergedOptions), {
+      ...DEFAULT_RETRY_CONFIG,
+      retries: 2,
+    }, `API:${endpoint}`);
     clearTimeout(timeoutId);
+
+    apiMonitor.end(requestId, response.status);
 
     // Handle 401 Unauthorized -> Refresh Strategy
     if (response.status === 401 && !url.includes("/auth/refresh")) {
@@ -110,8 +115,14 @@ export async function fetchWithAuth<T>(
   } catch (error: any) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
+      apiMonitor.error(requestId, new Error("TIMEOUT"));
+      Sentry.captureMessage('REQUEST_TIMEOUT', {
+        level: 'error',
+        extra: { endpoint, requestId }
+      });
       throw new Error("REQUEST_TIMEOUT: Server took too long to respond.");
     }
+    apiMonitor.error(requestId, error);
     if (__DEV__) console.error(`[API Error] ${endpoint}:`, error);
     throw error;
   }

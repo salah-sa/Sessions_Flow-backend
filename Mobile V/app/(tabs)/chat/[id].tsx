@@ -36,6 +36,8 @@ import { ChatBubble } from "../../../components/ui/ChatBubble";
 import { Ionicons } from "@expo/vector-icons";
 import { ChatMessage } from "../../../shared/types";
 import { haptics } from "../../../shared/lib/haptics";
+import { logger } from "../../../shared/lib/logger";
+import * as Sentry from "@sentry/react-native";
 
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
@@ -81,9 +83,12 @@ export default function ChatDetailScreen() {
     pendingMessages,
     queueMessage,
     removeFromQueue,
+    updatePendingMessage,
     mutedGroups,
     toggleMute
   } = useChatStore();
+
+  const isOnline = useAppStore(s => s.isOnline);
 
   const { data: group } = useGroup(id as string);
   const { data: messages = [], isLoading } = useChatMessages(id as string);
@@ -97,12 +102,22 @@ export default function ChatDetailScreen() {
 
   // Focus Handling
   useEffect(() => {
+    logger.track("CHAT_OPEN", { groupId: id });
+    Sentry.addBreadcrumb({
+      category: 'chat',
+      message: `Opened group ${id}`,
+      level: 'info'
+    });
     setActiveGroup(id as string);
     clearUnread(id as string);
-    return () => setActiveGroup(null);
+    return () => {
+      logger.track("CHAT_CLOSE", { groupId: id });
+      setActiveGroup(null);
+    };
   }, [id]);
 
   const handlePickImage = async () => {
+    logger.track("IMAGE_PICK_START");
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
@@ -110,6 +125,7 @@ export default function ChatDetailScreen() {
     });
 
     if (!result.canceled && result.assets[0].uri && id) {
+      logger.track("IMAGE_PICK_SUCCESS", { uri: result.assets[0].uri });
       haptics.success();
       const asset = result.assets[0];
       const messageId = Math.random().toString(36).substring(7);
@@ -153,12 +169,14 @@ export default function ChatDetailScreen() {
   };
 
   const handlePickDocument = async () => {
+    logger.track("DOCUMENT_PICK_START");
     const result = await DocumentPicker.getDocumentAsync({
       type: "*/*",
       copyToCacheDirectory: true,
     });
 
     if (result.assets && result.assets.length > 0 && id) {
+      logger.track("DOCUMENT_PICK_SUCCESS", { name: result.assets[0].name });
       haptics.success();
       const asset = result.assets[0];
       const messageId = Math.random().toString(36).substring(7);
@@ -203,6 +221,12 @@ export default function ChatDetailScreen() {
     const text = (textOverride || inputText).trim();
     if (!text || !user || !id || isSending) return;
     
+    logger.track("MESSAGE_SEND_START", { length: text.length, isOverride: !!textOverride });
+    Sentry.addBreadcrumb({
+      category: 'chat',
+      message: 'Sending text message',
+      level: 'info'
+    });
     setIsSending(true);
     if (!textOverride) setInputText("");
     haptics.impact();
@@ -230,8 +254,10 @@ export default function ChatDetailScreen() {
         message: text,
         id: messageId
       });
+      logger.track("MESSAGE_SEND_SUCCESS", { messageId });
       setInputText("");
     } catch (err) {
+      logger.error("MESSAGE_SEND_FAILED", err, { messageId });
       console.error("[Chat] Send Error", err);
       const errorMsg = { ...pendingMsg, status: "error" as const };
       queueMessage(errorMsg);
@@ -246,6 +272,7 @@ export default function ChatDetailScreen() {
   };
 
   const handleRetry = (msg: ChatMessage) => {
+    logger.track("MESSAGE_RETRY", { messageId: msg.id });
     removeFromQueue(msg.id);
     // Remove from cache before retrying to prevent logic mess
     queryClient.setQueryData(
@@ -411,24 +438,26 @@ export default function ChatDetailScreen() {
           
               <TextInput
                 style={styles.input}
-                placeholder="Type a message..."
+                placeholder={isOnline ? "Type a message..." : "Waiting for network..."}
                 placeholderTextColor={theme.colors.textDim}
                 value={inputText}
                 onChangeText={handleInputChange}
                 multiline
                 maxLength={1000}
                 textAlignVertical="center"
+                editable={isOnline}
               />
               
               <TouchableOpacity 
                 onPress={() => handleSend()} 
-                style={[styles.sendBtn, !inputText.trim() && styles.disabledSendBtn]}
+                disabled={!inputText.trim() || !isOnline}
+                style={[styles.sendBtn, (!inputText.trim() || !isOnline) && styles.disabledSendBtn]}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Ionicons 
-                  name="send" 
+                  name={isOnline ? "send" : "cloud-offline"} 
                   size={18} 
-                  color={inputText.trim() ? "#fff" : "rgba(255,255,255,0.3)"} 
+                  color={inputText.trim() && isOnline ? "#fff" : "rgba(255,255,255,0.3)"} 
                 />
               </TouchableOpacity>
             </View>

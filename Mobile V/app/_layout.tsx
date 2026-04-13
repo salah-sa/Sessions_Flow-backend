@@ -33,10 +33,21 @@ import { Outfit_700Bold } from "@expo-google-fonts/outfit";
 import { Sora_700Bold } from "@expo-google-fonts/sora";
 import { useEffect } from "react";
 import { useOfflineAttendanceSync } from "../shared/hooks/useOfflineAttendanceSync";
+import { useNetworkRecovery } from "../hooks/useNetworkRecovery";
+import { logger } from "../shared/lib/logger";
 import "../shared/i18n";
+import * as Sentry from "@sentry/react-native";
+import { ErrorFallback } from "../components/ui/ErrorFallback";
 
 // Keep splash screen visible while loading resources
 SplashScreen.preventAutoHideAsync();
+
+// ── Sentry Initialization ──────
+Sentry.init({
+  dsn: 'https://placeholder@sentry.io/450', // Replace with real production DSN
+  tracesSampleRate: 1.0,
+  debug: __DEV__,
+});
 
 // ── Query Client — matches desktop main.tsx defaults ──────
 const queryClient = new QueryClient({
@@ -66,6 +77,8 @@ function RootLayoutNav() {
   });
   // Phase 55: Auto-flush offline attendance records
   useOfflineAttendanceSync();
+  // Phase 102: Self-healing network recovery
+  useNetworkRecovery();
 
   useEffect(() => {
     if ((isHydrated && fontsLoaded) || fontError) {
@@ -75,6 +88,7 @@ function RootLayoutNav() {
 
   // Phase 16: Heartbeat Engine
   useEffect(() => {
+    logger.track("APP_MOUNT", { platform: Platform.OS });
     if (!isHydrated) return;
     let heartbeatInterval: NodeJS.Timeout | null = null;
     let appStateSub: any;
@@ -124,32 +138,34 @@ function RootLayoutNav() {
   );
 }
 
-export default function RootLayout() {
+export default Sentry.wrap(function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <ToastProvider>
-            <AuthProvider>
-              <SignalRProvider>
-                <StatusBar style="light" />
-                <ConnectionBanner />
-                <RootLayoutNav />
-                <OfflineOverlay />
-              </SignalRProvider>
-            </AuthProvider>
-          </ToastProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </GestureHandlerRootView>
+    <Sentry.ErrorBoundary fallback={({ error, resetError }) => <ErrorFallback error={error as Error} retry={resetError} />}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            <ToastProvider>
+              <AuthProvider>
+                <SignalRProvider>
+                  <StatusBar style="light" />
+                  <ConnectionBanner />
+                  <RootLayoutNav />
+                  <OfflineOverlay />
+                </SignalRProvider>
+              </AuthProvider>
+            </ToastProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </GestureHandlerRootView>
+    </Sentry.ErrorBoundary>
   );
-}
+});
 
 // Phase 95/97: Global error boundary for production resilience
 export function ErrorBoundary({ error, retry }: { error: Error; retry: () => void }) {
   useEffect(() => {
     // Phase 97: Log fault to telemetry hub
-    console.error("[CRITICAL_FAULT] System Halted", error);
+    logger.error("SYSTEM_HALTED", error);
   }, [error]);
 
   return (
