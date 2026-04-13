@@ -414,11 +414,7 @@ export default function ChatDetailScreen() {
 
         {/* Input Bar */}
         <View style={[styles.inputBarContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          <GlassView 
-            intensity={90} 
-            tint="dark"
-            style={styles.inputBarWrapper}
-          >
+          <View style={styles.inputBarInner}>
             <View style={styles.inputBarContent}>
               <TouchableOpacity 
                 onPress={() => {
@@ -510,7 +506,7 @@ export default function ChatDetailScreen() {
               </View>
             )}
             
-          </GlassView>
+          </View>
       </View>
     </KeyboardAvoidingView>
 
@@ -632,8 +628,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.05)",
   },
-  inputBarWrapper: {
-    paddingTop: 10,
+  inputBarInner: {
+    backgroundColor: "rgba(15, 23, 42, 0.92)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)",
+    paddingTop: 8,
   },
   inputBarContent: {
     flexDirection: "row",
@@ -648,7 +647,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   actionBtn: {
-    padding: 8,
+    padding: 10,
     marginRight: 2,
   },
   input: {
@@ -666,9 +665,9 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.05)",
   },
   sendBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: theme.colors.primary,
     justifyContent: "center",
     alignItems: "center",
