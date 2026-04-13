@@ -13,7 +13,8 @@ import {
   ScrollView, 
   TouchableOpacity,
   Switch,
-  Platform
+  Platform,
+  Linking
 } from "react-native";
 import { theme } from "../../shared/theme";
 import { useAuthStore, useUIStore } from "../../shared/store/stores";
@@ -29,20 +30,33 @@ import { haptics } from "../../shared/lib/haptics";
 import { useToast } from "../../providers/ToastProvider";
 import { router } from "expo-router";
 import { RoleGuard } from "../../components/auth/RoleGuard";
+import { useBiometrics } from "../../shared/hooks/useBiometrics";
+import * as ImagePicker from "expo-image-picker";
+import { useAuthMutations } from "../../shared/queries/useAuthQueries";
 
 export default function ProfileScreen() {
-  const { user, logout } = useAuthStore();
-  const { theme: currentTheme, setTheme, language, setLanguage } = useUIStore();
+  const { user, logout, token } = useAuthStore();
+  const { 
+    theme: currentTheme, 
+    setTheme, 
+    language, 
+    setLanguage,
+    biometricsEnabled,
+    setBiometrics,
+    notificationPrefs,
+    updateNotificationPrefs
+  } = useUIStore();
   const { show: showToast } = useToast();
   const scrollY = useSharedValue(0);
-
+  const { authenticate, isCompatible } = useBiometrics();
+  const { updateAvatarMutation: updateAvatar } = useAuthMutations();
   const { data: systemSettings } = useSettings();
   const { updateSettings } = useSettingsMutations();
-
   const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
   const [localPricing, setLocalPricing] = useState<Record<string, string>>({});
-  const { token } = useAuthStore();
+  const [scannerVibration, setScannerVibration] = useState(true);
 
   // Sync settings to local state for editing
   React.useEffect(() => {
@@ -88,6 +102,43 @@ export default function ProfileScreen() {
     setTheme(currentTheme === "dark" ? "light" : "dark");
   };
 
+  const handleAvatarChange = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+
+    if (!result.canceled) {
+      haptics.success();
+      showToast("Uploading Identity Fragment...", "success");
+      try {
+        await updateAvatar.mutateAsync(result.assets[0].uri);
+        showToast("Identity Verified & Synced", "success");
+      } catch (err) {
+        showToast("Sync Error: Identity Rejected", "error");
+      }
+    }
+  };
+
+  const handleBiometricToggle = async (val: boolean) => {
+    if (val) {
+      const auth = await authenticate("Enroll device for secure biometric access");
+      if (auth.success) {
+        setBiometrics(true);
+        showToast("Biometric Access Granted", "success");
+        haptics.success();
+      } else {
+        setBiometrics(false);
+        showToast(auth.error || "Enrollment Failed", "error");
+      }
+    } else {
+      setBiometrics(false);
+      haptics.impact();
+    }
+  };
+
   const menuItems = [
     { 
       id: "security", 
@@ -122,13 +173,18 @@ export default function ProfileScreen() {
         {/* Identity Section */}
         <View style={styles.identityContainer}>
           <GlassView intensity={30} style={styles.identityCard}>
-            <Avatar 
-              userId={user?.id || ""}
-              name={user?.name || ""} 
-              avatarUrl={user?.avatarUrl} 
-              size={80} 
-              showPresence={true} 
-            />
+            <TouchableOpacity onPress={handleAvatarChange}>
+              <Avatar 
+                userId={user?.id || ""}
+                name={user?.name || ""} 
+                avatarUrl={user?.avatarUrl} 
+                size={80} 
+                showPresence={true} 
+              />
+              <View style={styles.editOverlay}>
+                <Ionicons name="camera" size={12} color="#fff" />
+              </View>
+            </TouchableOpacity>
             <Text style={styles.name}>{user?.name?.toUpperCase()}</Text>
             <View style={styles.roleBadge}>
               <Text style={styles.roleText}>{user?.role?.toUpperCase()} NODE</Text>
@@ -150,9 +206,28 @@ export default function ProfileScreen() {
                 value={currentTheme === "dark"} 
                 onValueChange={toggleTheme}
                 trackColor={{ false: "#334155", true: theme.colors.primary }}
-                thumbColor={Platform.OS === "ios" ? "#fff" : "#fff"}
               />
             </View>
+
+            {isCompatible && (
+              <>
+                <View style={styles.divider} />
+                <View style={styles.settingItem}>
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="finger-print-outline" size={20} color={theme.colors.textDim} />
+                    <View style={styles.textStack}>
+                      <Text style={styles.settingLabel}>Biometric Unlock</Text>
+                      <Text style={styles.settingSub}>FaceID / TouchID</Text>
+                    </View>
+                  </View>
+                  <Switch 
+                    value={biometricsEnabled} 
+                    onValueChange={handleBiometricToggle}
+                    trackColor={{ false: "#334155", true: theme.colors.primary }}
+                  />
+                </View>
+              </>
+            )}
 
             <View style={styles.divider} />
 
@@ -165,7 +240,7 @@ export default function ProfileScreen() {
                     if (item.id === "security") setIsTokenModalOpen(true);
                     if (item.id === "localization") {
                       setLanguage(language === "en" ? "ar" : "en");
-                      showToast(`Language set to ${language === "en" ? "Arabic" : "English"}`, "success");
+                      showToast(`Node set to ${language === "en" ? "MEA_NODE" : "US_NODE"}`, "success");
                     }
                   }}
                 >
@@ -178,7 +253,47 @@ export default function ProfileScreen() {
                   </View>
                   <Ionicons name="chevron-forward" size={16} color={theme.colors.textDim} />
                 </TouchableOpacity>
-                {item.id !== "data" && <View style={styles.divider} />}
+                <View style={styles.divider} />
+              </React.Fragment>
+            ))}
+
+            <TouchableOpacity style={styles.settingItem} onPress={() => setIsScannerModalOpen(true)}>
+              <View style={styles.settingInfo}>
+                <Ionicons name="barcode-outline" size={20} color={theme.colors.textDim} />
+                <View style={styles.textStack}>
+                  <Text style={styles.settingLabel}>Hardware Calibration</Text>
+                  <Text style={styles.settingSub}>Scanner & Laser Params</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={theme.colors.textDim} />
+            </TouchableOpacity>
+          </GlassView>
+        </View>
+
+        {/* Notifications (Phase 83) */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>COMMUNICATION EGRESS</Text>
+          <GlassView intensity={15} style={styles.settingsGroup}>
+            {[
+              { id: 'sessions', label: 'Session Intelligence', sub: 'Critical session metrics alerts' },
+              { id: 'system', label: 'System Telemetry', sub: 'Node status & server health' },
+              { id: 'mentions', label: 'Chat Mentions', sub: 'Direct operator comms' },
+            ].map((pref, idx) => (
+              <React.Fragment key={pref.id}>
+                <View style={styles.settingItem}>
+                  <View style={styles.settingInfo}>
+                    <View style={styles.textStack}>
+                      <Text style={styles.settingLabel}>{pref.label}</Text>
+                      <Text style={styles.settingSub}>{pref.sub}</Text>
+                    </View>
+                  </View>
+                  <Switch 
+                    value={(notificationPrefs as any)[pref.id]} 
+                    onValueChange={(val) => updateNotificationPrefs({ [pref.id]: val })}
+                    trackColor={{ false: "#334155", true: theme.colors.primary }}
+                  />
+                </View>
+                {idx < 2 && <View style={styles.divider} />}
               </React.Fragment>
             ))}
           </GlassView>
@@ -232,8 +347,63 @@ export default function ProfileScreen() {
           <Text style={styles.logoutText}>TERMINATE SESSION</Text>
         </TouchableOpacity>
 
-        <Text style={styles.versionText}>SF_MOBILE_CORE v2.0.4-PROD</Text>
+        {/* Phase 89: Help & Support */}
+        <TouchableOpacity 
+          style={styles.helpLink} 
+          onPress={() => {
+            haptics.selection();
+            Linking.openURL("https://sessionflow.app/support");
+          }}
+        >
+          <Ionicons name="help-circle-outline" size={16} color={theme.colors.textDim} />
+          <Text style={styles.helpText}>OPERATIONAL SUPPORT & MANUALS</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.versionText}>SF_MOBILE_CORE v2.1.0-PHASE-90</Text>
       </ScrollView>
+
+      {/* Hardware Calibration Modal */}
+      <CinematicModal
+        visible={isScannerModalOpen}
+        onClose={() => setIsScannerModalOpen(false)}
+        title="HARDWARE CALIBRATION"
+      >
+        <View style={styles.modalContent}>
+          <Text style={styles.label}>SCANNER HAPTIC MOTOR</Text>
+          <GlassView intensity={15} style={[styles.settingItem, { borderRadius: 16, marginBottom: 20 }]}>
+             <View style={styles.settingInfo}>
+                <Ionicons name="pulse" size={20} color={theme.colors.primary} />
+                <Text style={styles.settingLabel}>Success Vibration</Text>
+              </View>
+              <Switch 
+                value={scannerVibration} 
+                onValueChange={setScannerVibration}
+                trackColor={{ false: "#334155", true: theme.colors.primary }}
+              />
+          </GlassView>
+
+          <Text style={styles.label}>LASER LINE INTENSITY</Text>
+          <View style={styles.healthCard}>
+            <View style={styles.healthHeader}>
+              <Text style={styles.healthLabel}>OP_LEVEL</Text>
+              <Text style={styles.healthVal}>95% (OPTIMAL)</Text>
+            </View>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressBar, { width: "95%" }]} />
+            </View>
+          </View>
+
+          <TouchableOpacity 
+            style={[styles.saveBtn, { marginTop: 32 }]} 
+            onPress={() => {
+              haptics.success();
+              setIsScannerModalOpen(false);
+            }}
+          >
+            <Text style={styles.saveBtnText}>CALIBRATE SENSORS</Text>
+          </TouchableOpacity>
+        </View>
+      </CinematicModal>
 
       {/* Security Token Modal */}
       <CinematicModal
@@ -325,6 +495,19 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     marginTop: 20,
     letterSpacing: -0.5,
+  },
+  editOverlay: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    backgroundColor: theme.colors.primary,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#000",
   },
   roleBadge: {
     backgroundColor: "rgba(14, 165, 233, 0.1)",
@@ -454,6 +637,31 @@ const styles = StyleSheet.create({
     marginTop: 40,
     opacity: 0.3,
     letterSpacing: 1,
+  },
+  helpLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 24,
+    opacity: 0.6,
+  },
+  helpText: {
+    color: theme.colors.textDim,
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1.5,
+    marginLeft: 8,
+  },
+  progressTrack: {
+    height: 4,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 2,
+    overflow: "hidden",
+    marginTop: 8,
+  },
+  progressBar: {
+    height: "100%",
+    backgroundColor: theme.colors.primary,
   },
   tokenContainer: {
     borderRadius: 20,

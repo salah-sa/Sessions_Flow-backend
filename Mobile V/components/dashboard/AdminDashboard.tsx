@@ -23,6 +23,7 @@ import { GlassView } from "../ui/GlassView";
 import { Skeleton } from "../ui/Skeleton";
 import { EmptyState } from "../ui/EmptyState";
 import { Button } from "../ui/Button";
+import { ActivityFeedWidget } from "./ActivityFeedWidget";
 import { haptics } from "../../shared/lib/haptics";
 import { 
   Users, 
@@ -54,15 +55,29 @@ export const AdminDashboard = () => {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Skeleton width="100%" height={80} borderRadius={20} style={{ marginBottom: 20 }} />
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-          <Skeleton width="48%" height={120} borderRadius={20} style={{ marginBottom: 15 }} />
-          <Skeleton width="48%" height={120} borderRadius={20} style={{ marginBottom: 15 }} />
-          <Skeleton width="48%" height={120} borderRadius={20} style={{ marginBottom: 15 }} />
-          <Skeleton width="48%" height={120} borderRadius={20} style={{ marginBottom: 15 }} />
-        </View>
-        <Skeleton width="100%" height={200} borderRadius={20} />
+      <View style={styles.container}>
+        <AdaptiveHeader title="Initializing..." scrollY={scrollY} />
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* Quick Actions Skeleton */}
+          <View style={styles.headerRow}>
+            <Skeleton width={120} height={36} borderRadius={8} />
+            <Skeleton width={100} height={36} borderRadius={8} />
+          </View>
+          
+          {/* KPI Grid Skeleton */}
+          <View style={styles.kpiGrid}>
+            <Skeleton width="48%" height={110} borderRadius={16} style={{ marginBottom: 16 }} />
+            <Skeleton width="48%" height={110} borderRadius={16} style={{ marginBottom: 16 }} />
+            <Skeleton width="48%" height={110} borderRadius={16} style={{ marginBottom: 16 }} />
+            <Skeleton width="48%" height={110} borderRadius={16} style={{ marginBottom: 16 }} />
+          </View>
+
+          {/* System Analytics Skeleton */}
+          <View style={styles.section}>
+            <Skeleton width={130} height={12} borderRadius={4} style={{ marginBottom: 16 }} />
+            <Skeleton width="100%" height={180} borderRadius={20} />
+          </View>
+        </ScrollView>
       </View>
     );
   }
@@ -251,9 +266,32 @@ export const AdminDashboard = () => {
               </GlassView>
             </Animated.View>
 
+            {/* Quick Activity Feed */}
+            <Animated.View entering={FadeInDown.delay(900).duration(800)} style={styles.section}>
+              <Text style={styles.sectionTitle}>RECENT OPERATIONS</Text>
+              <GlassView intensity={20} style={styles.analyticsCard}>
+                <ActivityFeedWidget activities={data?.recentActivity || []} />
+              </GlassView>
+            </Animated.View>
           </>
         )}
       </ScrollView>
+
+      {/* Primary Floating Action Button */}
+      {!isLoading && !error && (
+        <Animated.View entering={FadeInDown.delay(500)} style={styles.fabContainer}>
+          <TouchableOpacity 
+            style={styles.fab}
+            activeOpacity={0.8}
+            onPress={() => {
+              haptics.impact();
+              router.push("/(tabs)/timetable");
+            }}
+          >
+            <Plus color="#fff" size={24} />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
     </View>
   );
 };
@@ -441,5 +479,24 @@ const styles = StyleSheet.create({
   barFill: {
     height: "100%",
     borderRadius: 3,
+  },
+  fabContainer: {
+    position: "absolute",
+    bottom: 120, // Sit above the tab bar
+    right: 24,
+    zIndex: 100,
+  },
+  fab: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
   }
 });

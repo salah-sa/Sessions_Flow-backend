@@ -11,8 +11,10 @@ import {
   Text, 
   StyleSheet, 
   TouchableOpacity,
-  Pressable
+  Pressable,
+  TextInput
 } from "react-native";
+import { useState, useMemo } from "react";
 import { theme } from "../../../shared/theme";
 import { useInfiniteGroups } from "../../../shared/queries/useGroupQueries";
 import { AdaptiveHeader } from "../../../components/layout/AdaptiveHeader";
@@ -20,6 +22,7 @@ import { useSharedValue } from "react-native-reanimated";
 import { OptimizedList } from "../../../components/ui/OptimizedList";
 import { GlassView } from "../../../components/ui/GlassView";
 import { Badge } from "../../../components/ui/Badge";
+import { haptics } from "../../../shared/lib/haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Group } from "../../../shared/types";
@@ -27,8 +30,16 @@ import { RoleGuard } from "../../../components/auth/RoleGuard";
 
 export default function GroupsScreen() {
   const { data, isLoading, refetch, isRefetching, fetchNextPage, hasNextPage } = useInfiniteGroups();
-  const groups = data?.pages.flatMap(page => page.items) || [];
+  const allGroups = data?.pages.flatMap(page => page.items) || [];
+  const [searchQuery, setSearchQuery] = useState("");
   const scrollY = useSharedValue(0);
+
+  const filteredGroups = useMemo(() => {
+    return allGroups.filter(g => 
+      g.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      String(g.level).includes(searchQuery)
+    );
+  }, [allGroups, searchQuery]);
 
   const renderItem = ({ item }: { item: Group }) => (
     <Pressable 
@@ -86,10 +97,24 @@ export default function GroupsScreen() {
   return (
     <RoleGuard allowedRoles={["Admin", "Engineer"]}>
       <View style={styles.container}>
-        <AdaptiveHeader title="Fleet Groups" scrollY={scrollY} />
+        <AdaptiveHeader title="Fleet Matrix" scrollY={scrollY} />
+
+        <View style={styles.headerControls}>
+          <View style={styles.searchContainer}>
+            <Ionicons name="search" size={16} color={theme.colors.textDim} style={styles.searchIcon} />
+            <TextInput 
+              style={styles.searchInput}
+              placeholder="Search groups or levels..."
+              placeholderTextColor={theme.colors.textDim}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              clearButtonMode="while-editing"
+            />
+          </View>
+        </View>
       
       <OptimizedList
-        data={groups || []}
+        data={filteredGroups || []}
         renderItem={renderItem}
         loading={isLoading}
         onRefresh={refetch}
@@ -104,6 +129,16 @@ export default function GroupsScreen() {
         emptyTitle="No Groups Active"
         emptyDescription="Your fleet is currently offline. Connect new groups via Admin Console."
       />
+
+      <RoleGuard allowedRoles={["Admin"]}>
+        <TouchableOpacity 
+          style={styles.fab} 
+          onPress={() => haptics.impact()}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="add" size={32} color="#000" />
+        </TouchableOpacity>
+      </RoleGuard>
       </View>
     </RoleGuard>
   );
@@ -113,11 +148,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.bg,
-  },
-  listContent: {
-    paddingTop: 110,
-    paddingHorizontal: theme.spacing.lg,
-    paddingBottom: 120,
   },
   card: {
     marginBottom: 16,
@@ -191,5 +221,56 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: "100%",
+  },
+  headerControls: {
+    position: "absolute",
+    top: 90,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    backgroundColor: theme.colors.bg,
+    paddingBottom: 12,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    marginHorizontal: theme.spacing.lg,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    paddingHorizontal: 12,
+    height: 40,
+    marginTop: 8,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    color: theme.colors.text,
+    fontSize: 14,
+    height: "100%",
+  },
+  listContent: {
+    paddingTop: 150,
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: 120,
+  },
+  fab: {
+    position: "absolute",
+    bottom: 100,
+    right: 20,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: theme.colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 15,
+    elevation: 10,
   }
 });

@@ -30,6 +30,8 @@ const darkColors = {
   // Core
   bg: "#020617",         // --color-ui-bg: slate-950
   surface: "rgba(15, 23, 42, 0.75)", // --color-ui-surface
+  bgElevated: "#0F172A", // --color-ui-elevated: slate-900
+  bgInput: "#1E293B",    // --color-ui-input: slate-800
   text: "#F8FAFC",       // slate-50
   textDim: "#94A3B8",    // slate-400
   textMuted: "#64748B",  // slate-500
@@ -37,6 +39,7 @@ const darkColors = {
   // Brand
   primary: brand[500],   // Electric Blue #3B82F6
   primaryDim: "rgba(59, 130, 246, 0.15)",
+  secondary: brand[400],
 
   // Accents
   accent: "#10B981",     // Emerald — oklch(0.7 0.2 160)
@@ -71,12 +74,15 @@ type ColorScheme = typeof darkColors;
 const lightColors: ColorScheme = {
   bg: "#F8FAFC",
   surface: "rgba(255, 255, 255, 0.75)",
+  bgElevated: "#FFFFFF",
+  bgInput: "#F1F5F9",
   text: "#0F172A",
   textDim: "#64748B",
   textMuted: "#94A3B8",
 
   primary: brand[500],
   primaryDim: "rgba(59, 130, 246, 0.1)",
+  secondary: brand[400],
 
   accent: "#10B981",
   accentDim: "rgba(16, 185, 129, 0.1)",
@@ -138,6 +144,15 @@ const spacing = {
   xl: 24,
   "2xl": 32,
   "3xl": 48,
+};
+
+// ── Accessibility (WCAG 2.1 standards) ──────────────────
+const accessibility = {
+  minTouchTarget: 44, // Minimum touch target size (pt)
+  highContrastBorder: "rgba(255, 255, 255, 0.1)",
+  hapticSuccess: "success",
+  hapticWarning: "warning",
+  hapticError: "error",
 };
 
 // ── Border Radii (matches desktop --radius-xl/2xl/3xl) ──

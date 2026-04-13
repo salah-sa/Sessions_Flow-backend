@@ -204,17 +204,44 @@ export default function GroupDetailScreen() {
         onClose={() => setSelectedAction(null)}
       >
         <View style={styles.surfaceContent}>
-          {selectedAction === "attendance" ? (
+          {selectedAction === "members" ? (
+            <View style={styles.rosterContainer}>
+              <View style={styles.rosterHeader}>
+                <Text style={styles.rosterCount}>{group?.students?.length || 0} OPERATORS STATIONED</Text>
+                <TouchableOpacity 
+                  style={styles.enrollSmallBtn}
+                  onPress={() => haptics.impact()}
+                >
+                  <Ionicons name="person-add" size={14} color={theme.colors.primary} />
+                  <Text style={styles.enrollSmallText}>ENROLL</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={styles.rosterList} showsVerticalScrollIndicator={false}>
+                {group?.students?.map((student, idx) => (
+                  <GlassView key={student.id || idx} intensity={10} style={styles.memberItem}>
+                    <View style={styles.avatarPlaceholder}>
+                      <Text style={styles.avatarText}>{student.name.charAt(0)}</Text>
+                    </View>
+                    <View style={styles.memberInfo}>
+                      <Text style={styles.memberName}>{student.name}</Text>
+                      <Text style={styles.memberId}>{student.uniqueStudentCode || "NO-CODE"}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color={theme.colors.textDim} />
+                  </GlassView>
+                ))}
+                {(!group?.students || group.students.length === 0) && (
+                  <View style={styles.emptyRoster}>
+                    <Ionicons name="people" size={48} color="rgba(255,255,255,0.05)" />
+                    <Text style={styles.emptyRosterText}>NO PERSONNEL DETECTED</Text>
+                  </View>
+                )}
+              </ScrollView>
+            </View>
+          ) : selectedAction === "attendance" ? (
             <View style={styles.placeholderSurface}>
               <Ionicons name="checkbox" size={48} color={theme.colors.primary} />
               <Text style={styles.surfaceHeroText}>ATTENDANCE BRIDGE</Text>
               <Text style={styles.surfaceSubText}>Link to active session for real-time marking.</Text>
-            </View>
-          ) : selectedAction === "members" ? (
-            <View style={styles.placeholderSurface}>
-              <Ionicons name="people" size={48} color={theme.colors.primary} />
-              <Text style={styles.surfaceHeroText}>PERSONNEL ROSTER</Text>
-              <Text style={styles.surfaceSubText}>{group?.numberOfStudents} Operators Stationed</Text>
             </View>
           ) : (
             <View style={styles.placeholderSurface}>
@@ -445,4 +472,89 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontStyle: "italic",
   },
+  rosterContainer: {
+    flex: 1,
+  },
+  rosterHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+    paddingHorizontal: 4,
+  },
+  rosterCount: {
+    color: theme.colors.textDim,
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 2,
+  },
+  enrollSmallBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(14, 165, 233, 0.1)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: "rgba(14, 165, 233, 0.2)",
+  },
+  enrollSmallText: {
+    color: theme.colors.primary,
+    fontSize: 10,
+    fontWeight: "900",
+  },
+  rosterList: {
+    flex: 1,
+  },
+  memberItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+  },
+  avatarPlaceholder: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  avatarText: {
+    color: theme.colors.text,
+    fontWeight: "800",
+    fontSize: 14,
+  },
+  memberInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  memberName: {
+    color: theme.colors.text,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  memberId: {
+    color: theme.colors.textDim,
+    fontSize: 10,
+    marginTop: 2,
+  },
+  emptyRoster: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+    gap: 16,
+  },
+  emptyRosterText: {
+    color: theme.colors.textDim,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1,
+  }
 });

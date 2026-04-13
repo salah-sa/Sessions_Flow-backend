@@ -4,14 +4,18 @@ import {
   Text, 
   View, 
   Platform, 
-  TouchableOpacity 
+  TouchableOpacity,
+  Pressable 
 } from "react-native";
 import { BlurView } from "expo-blur";
 import Animated, { 
   useAnimatedStyle, 
   interpolate, 
-  SharedValue 
+  SharedValue,
+  withSpring,
+  useSharedValue
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../shared/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -24,6 +28,7 @@ interface AdaptiveHeaderProps {
   showBack?: boolean;
   onBack?: () => void;
   rightAction?: React.ReactNode;
+  rightElement?: React.ReactNode; // Alias for parity
 }
 
 export const AdaptiveHeader = ({ 
@@ -31,9 +36,17 @@ export const AdaptiveHeader = ({
   scrollY, 
   showBack, 
   onBack,
-  rightAction 
+  rightAction,
+  rightElement
 }: AdaptiveHeaderProps) => {
+  const finalRightAction = rightElement !== undefined ? rightElement : rightAction;
   const { user } = useAuthStore();
+  const insets = useSafeAreaInsets();
+  
+  const backScale = useSharedValue(1);
+  const backAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: backScale.value }]
+  }));
   
   const animatedBlurStyle = useAnimatedStyle(() => {
     const opacity = interpolate(
@@ -65,7 +78,7 @@ export const AdaptiveHeader = ({
   });
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { height: (Platform.OS === 'ios' ? 56 : 56) + insets.top, paddingTop: insets.top }]}>
       <Animated.View style={[StyleSheet.absoluteFill, animatedBlurStyle]}>
         <BlurView 
           intensity={80} 
@@ -78,12 +91,16 @@ export const AdaptiveHeader = ({
       <View style={styles.content}>
         <View style={styles.left}>
           {showBack && (
-            <TouchableOpacity 
+            <Pressable 
               onPress={() => onBack ? onBack() : router.back()} 
+              onPressIn={() => { backScale.value = withSpring(0.85); }}
+              onPressOut={() => { backScale.value = withSpring(1); }}
               style={styles.backButton}
             >
-              <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
-            </TouchableOpacity>
+              <Animated.View style={backAnimStyle}>
+                <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
+              </Animated.View>
+            </Pressable>
           )}
         </View>
 
@@ -92,7 +109,7 @@ export const AdaptiveHeader = ({
         </Animated.View>
 
         <View style={styles.right}>
-          {rightAction !== undefined ? rightAction : (user ? <NotificationCenter /> : null)}
+          {finalRightAction !== undefined ? finalRightAction : (user ? <NotificationCenter /> : null)}
         </View>
       </View>
     </View>
@@ -105,8 +122,6 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: Platform.OS === 'ios' ? 100 : 80,
-    paddingTop: Platform.OS === 'ios' ? 44 : 24,
     zIndex: 100,
   },
   content: {

@@ -12,13 +12,9 @@ import { Platform } from "react-native";
 export const BASE_LAN_IP = Platform.OS === 'android' ? "10.0.2.2" : "192.168.1.103"; 
 export const BASE_PORT = "5180";
 
-export const API_BASE_URL = __DEV__
-  ? `http://${BASE_LAN_IP}:${BASE_PORT}/api`
-  : "https://api.sessionflow.com/api"; // Placeholder for production
+export const API_BASE_URL = "https://sessionsflow-backend-production.up.railway.app/api";
 
-export const SIGNALR_URL = __DEV__
-  ? `http://${BASE_LAN_IP}:${BASE_PORT}/hub`
-  : "https://api.sessionflow.com/hub";
+export const SIGNALR_URL = "https://sessionsflow-backend-production.up.railway.app/hub";
 
 /**
  * Resolves media URLs from the backend.

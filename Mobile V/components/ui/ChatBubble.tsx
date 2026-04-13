@@ -12,7 +12,8 @@ import { GlassView } from "./GlassView";
  * ═══════════════════════════════════════════════════════════
  */
 
-import { Image, TouchableOpacity } from "react-native";
+import { Image, TouchableOpacity, Linking } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 interface ChatBubbleProps {
   message: ChatMessageType;
@@ -22,7 +23,10 @@ interface ChatBubbleProps {
 
 export const ChatBubble = ({ message, isOwn, onImagePress }: ChatBubbleProps) => {
   const isImage = message.text.startsWith("[IMAGE] ");
+  const isDoc = message.text.startsWith("[DOCUMENT] ");
+  
   const imageUri = isImage ? message.text.replace("[IMAGE] ", "") : null;
+  const docName = isDoc ? message.text.replace("[DOCUMENT] ", "") : null;
 
   return (
     <View style={[styles.container, isOwn ? styles.ownContainer : styles.otherContainer]}>
@@ -41,6 +45,17 @@ export const ChatBubble = ({ message, isOwn, onImagePress }: ChatBubbleProps) =>
         {isImage ? (
           <TouchableOpacity onPress={() => onImagePress?.(imageUri!)}>
             <Image source={{ uri: imageUri! }} style={styles.contentImage} />
+          </TouchableOpacity>
+        ) : isDoc ? (
+          <TouchableOpacity 
+            style={styles.docContainer}
+            onPress={() => Linking.openURL(message.fileUrl || "#")}
+          >
+            <Ionicons name="document-text" size={32} color={theme.colors.primary} />
+            <View style={styles.docInfo}>
+              <Text style={styles.docText} numberOfLines={1}>{docName}</Text>
+              <Text style={styles.docSize}>PHASE 79 SECURE PAYLOAD</Text>
+            </View>
           </TouchableOpacity>
         ) : (
           <Text style={styles.text}>{message.text}</Text>
@@ -123,5 +138,30 @@ const styles = StyleSheet.create({
     height: 150,
     borderRadius: 12,
     marginBottom: 4,
+  },
+  docContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    padding: 10,
+    borderRadius: 12,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  docInfo: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  docText: {
+    color: theme.colors.text,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  docSize: {
+    color: theme.colors.textDim,
+    fontSize: 9,
+    fontWeight: "800",
+    marginTop: 2,
   }
 });

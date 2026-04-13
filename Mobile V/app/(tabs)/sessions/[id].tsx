@@ -15,7 +15,8 @@ import {
   ActivityIndicator,
   FlatList,
   Dimensions,
-  TextInput
+  TextInput,
+  AppState
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { theme } from "../../../shared/theme";
@@ -31,6 +32,12 @@ import { format } from "date-fns";
 import { haptics } from "../../../shared/lib/haptics";
 import { AttendanceStatus } from "../../../shared/types";
 import { useToast } from "../../../providers/ToastProvider";
+import Animated, { 
+  FadeInDown, 
+  FadeInRight,
+  useAnimatedStyle,
+  withSpring
+} from "react-native-reanimated";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 48) / 2;
@@ -41,6 +48,8 @@ export default function SessionExecutionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { show: showToast } = useToast();
   const scrollY = useSharedValue(0);
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === "Admin" || user?.role === "Engineer";
   
   const { data: session, isLoading: sessionLoading } = useSession(id as string);
   const { data: attendance = [], isLoading: attendanceLoading } = useSessionAttendance(id as string);
@@ -68,23 +77,41 @@ export default function SessionExecutionScreen() {
     }
   };
 
-  // Timer Logic
+  // Timer Logic with AppState synchronization
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (session?.status === "Active" && session.startedAt) {
-      interval = setInterval(() => {
+    
+    const updateTimer = () => {
+      if (session?.status === "Active" && session.startedAt) {
         const start = new Date(session.startedAt!).getTime();
         const now = new Date().getTime();
         const diff = now - start;
         
+        if (diff <= 0) return;
+
         const h = Math.floor(diff / 3600000).toString().padStart(2, "0");
         const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, "0");
         const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, "0");
         
         setElapsedTime(`${h}:${m}:${s}`);
-      }, 1000);
+      }
+    };
+
+    if (session?.status === "Active" && session.startedAt) {
+      updateTimer();
+      interval = setInterval(updateTimer, 1000);
     }
-    return () => clearInterval(interval);
+
+    const subscription = AppState.addEventListener("change", nextAppState => {
+      if (nextAppState === "active") {
+        updateTimer();
+      }
+    });
+
+    return () => {
+      clearInterval(interval);
+      subscription.remove();
+    };
   }, [session]);
 
   const handleStart = async () => {
@@ -138,6 +165,19 @@ export default function SessionExecutionScreen() {
         scrollY={scrollY} 
         showBack={true}
         onBack={() => router.back()}
+        rightElement={
+          isAdmin && (
+            <TouchableOpacity 
+              onPress={() => {
+                haptics.selection();
+                router.push({ pathname: "/sessions/scanner", params: { sessionId: id } });
+              }}
+              style={styles.headerBtn}
+            >
+              <Ionicons name="scan" size={24} color={theme.colors.primary} />
+            </TouchableOpacity>
+          )
+        }
       />
       
       <ScrollView 
@@ -146,31 +186,39 @@ export default function SessionExecutionScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Status Hub */}
-        <View style={styles.hub}>
+        <Animated.View 
+          entering={FadeInDown.duration(600).springify()}
+          style={styles.hub}
+        >
           <RadarHUD presentCount={presentCount} totalCount={attendance.length} />
           
           {session?.status === "Active" && (
-            <GlassView intensity={30} style={styles.timerCard}>
+            <GlassView intensity={40} style={styles.timerCard}>
+              <View style={styles.glowOverlay} />
               <Text style={styles.timerSub}>ACTIVE DURATION</Text>
               <Text style={styles.timerText}>{elapsedTime}</Text>
             </GlassView>
           )}
 
-          {session?.status === "Scheduled" && (
+          {session?.status === "Scheduled" && isAdmin && (
             <TouchableOpacity onPress={handleStart} style={styles.startBtn}>
               <Ionicons name="play" size={24} color="#000" />
               <Text style={styles.startBtnText}>START OPERATION</Text>
             </TouchableOpacity>
           )}
-        </View>
+        </Animated.View>
 
         {/* Attendance Roster */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>PERSONNEL ROSTER</Text>
-          <Badge count={attendance.length} variant="outline" />
-        </View>
+        <Animated.View 
+          entering={FadeInDown.delay(200).duration(600)}
+          style={styles.rosterSection}
+        >
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>PERSONNEL ROSTER</Text>
+            <Badge count={attendance.length} variant="outline" />
+          </View>
 
-        <View style={styles.grid}>
+          <View style={styles.grid}>
           {attendance?.map((record) => (
             <TouchableOpacity 
               key={record.studentId}
@@ -194,10 +242,11 @@ export default function SessionExecutionScreen() {
             </TouchableOpacity>
           ))}
         </View>
+        </Animated.View>
       </ScrollView>
 
       {/* Action Bar */}
-      {session?.status === "Active" && (
+      {session?.status === "Active" && isAdmin && (
         <View style={styles.actionBar}>
           <TouchableOpacity 
             style={styles.endBtn}
@@ -282,6 +331,15 @@ const styles = StyleSheet.create({
   },
   hub: {
     marginBottom: 30,
+  },
+  rosterSection: {
+    marginTop: 10,
+  },
+  glowOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: theme.colors.primary,
+    opacity: 0.05,
+    borderRadius: 24,
   },
   timerCard: {
     padding: 20,
@@ -385,6 +443,16 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     color: theme.colors.textDim,
     letterSpacing: 1,
+  },
+  headerBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(14, 165, 233, 0.2)",
   },
   actionBar: {
     position: "absolute",

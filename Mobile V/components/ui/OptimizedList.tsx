@@ -23,6 +23,7 @@ interface OptimizedListProps<T> extends FlatListProps<T> {
   emptyDescription?: string;
   onRefresh?: () => void;
   refreshing?: boolean;
+  isFetchingNextPage?: boolean;
 }
 
 export function OptimizedList<T>({ 
@@ -31,6 +32,7 @@ export function OptimizedList<T>({
   emptyDescription,
   onRefresh,
   refreshing = false,
+  isFetchingNextPage = false,
   ...props 
 }: OptimizedListProps<T>) {
   
@@ -55,6 +57,13 @@ export function OptimizedList<T>({
           title={emptyTitle} 
           description={emptyDescription} 
         />
+      }
+      ListFooterComponent={
+        isFetchingNextPage ? (
+          <View style={styles.footerLoader}>
+            <ActivityIndicator color={theme.colors.primary} size="small" />
+          </View>
+        ) : undefined
       }
       refreshControl={
         onRefresh ? (
@@ -83,5 +92,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  footerLoader: {
+    paddingVertical: 20,
+    alignItems: "center",
+    justifyContent: "center",
   }
 });

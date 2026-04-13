@@ -50,34 +50,59 @@ export const useAuthStore = create<AuthState>()(
 interface SessionState {
   activeSession: Session | null;
   attendanceRecords: Record<string, AttendanceRecord>;
+  pendingAttendance: Array<{ sessionId: string, records: any[] }>;
   setActiveSession: (session: Session | null) => void;
   setAttendanceRecords: (records: AttendanceRecord[]) => void;
   updateAttendanceRecord: (record: AttendanceRecord) => void;
+  queueAttendanceUpdate: (sessionId: string, record: any) => void;
+  clearPendingAttendance: () => void;
 }
 
-export const useSessionStore = create<SessionState>((set) => ({
-  activeSession: null,
-  attendanceRecords: {},
-  setActiveSession: (session) => set({ activeSession: session }),
-  setAttendanceRecords: (records) => {
-    const map = records.reduce((acc, r) => {
-      acc[r.studentId] = r;
-      return acc;
-    }, {} as Record<string, AttendanceRecord>);
-    set({ attendanceRecords: map });
-  },
-  updateAttendanceRecord: (record) =>
-    set((state) => ({
-      attendanceRecords: { ...state.attendanceRecords, [record.studentId]: record },
-    })),
-}));
+export const useSessionStore = create<SessionState>()(
+  persist(
+    (set) => ({
+      activeSession: null,
+      attendanceRecords: {},
+      pendingAttendance: [],
+      setActiveSession: (session) => set({ activeSession: session }),
+      setAttendanceRecords: (records) => {
+        const map = records.reduce((acc, r) => {
+          acc[r.studentId] = r;
+          return acc;
+        }, {} as Record<string, AttendanceRecord>);
+        set({ attendanceRecords: map });
+      },
+      updateAttendanceRecord: (record) =>
+        set((state) => ({
+          attendanceRecords: { ...state.attendanceRecords, [record.studentId]: record },
+        })),
+      queueAttendanceUpdate: (sessionId, record) => 
+        set((state) => ({
+          pendingAttendance: [...state.pendingAttendance, { sessionId, records: [record] }]
+        })),
+      clearPendingAttendance: () => set({ pendingAttendance: [] }),
+    }),
+    {
+      name: "sf-session-storage",
+      storage: createJSONStorage(() => AsyncStorage)
+    }
+  )
+);
 
 // UI Store
 interface UIState {
   theme: "light" | "dark";
   language: "en" | "ar";
+  biometricsEnabled: boolean;
+  notificationPrefs: {
+    sessions: boolean;
+    system: boolean;
+    mentions: boolean;
+  };
   setTheme: (theme: "light" | "dark") => void;
   setLanguage: (lang: "en" | "ar") => void;
+  setBiometrics: (enabled: boolean) => void;
+  updateNotificationPrefs: (prefs: Partial<UIState["notificationPrefs"]>) => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -85,8 +110,18 @@ export const useUIStore = create<UIState>()(
     (set) => ({
       theme: "dark",
       language: "en",
+      biometricsEnabled: false,
+      notificationPrefs: {
+        sessions: true,
+        system: true,
+        mentions: true,
+      },
       setTheme: (theme) => set({ theme }),
       setLanguage: (language) => set({ language }),
+      setBiometrics: (biometricsEnabled) => set({ biometricsEnabled }),
+      updateNotificationPrefs: (prefs) => set((state) => ({ 
+        notificationPrefs: { ...state.notificationPrefs, ...prefs } 
+      })),
     }),
     { 
       name: "sf-ui-storage",
@@ -130,10 +165,16 @@ interface ChatState {
   lastMessages: Record<string, ChatMessage>;
   pendingMessages: ChatMessage[];
   activeGroupId: string | null;
+  typingStates: Record<string, string[]>; // groupId -> list of userNames
+  mutedGroups: string[];
+  pinnedGroups: string[];
   incrementUnread: (groupId: string) => void;
   clearUnread: (groupId: string) => void;
   setLastMessage: (groupId: string, msg: ChatMessage) => void;
   setActiveGroup: (groupId: string | null) => void;
+  setTyping: (groupId: string, userName: string, isTyping: boolean) => void;
+  toggleMute: (groupId: string) => void;
+  togglePin: (groupId: string) => void;
   queueMessage: (msg: ChatMessage) => void;
   removeFromQueue: (msgId: string) => void;
   flushQueue: () => ChatMessage[];
@@ -161,6 +202,31 @@ export const useChatStore = create<ChatState>()(
           return { lastMessages: { ...state.lastMessages, [groupId]: msg } };
         }),
       setActiveGroup: (groupId) => set({ activeGroupId: groupId }),
+      typingStates: {},
+      setTyping: (groupId, userName, isTyping) =>
+        set((state) => {
+          const current = state.typingStates[groupId] || [];
+          const next = isTyping 
+            ? [...new Set([...current, userName])]
+            : current.filter(n => n !== userName);
+          
+          if (next.length === current.length) return state;
+          return { typingStates: { ...state.typingStates, [groupId]: next } };
+        }),
+      mutedGroups: [],
+      pinnedGroups: [],
+      toggleMute: (groupId) =>
+        set((state) => ({
+          mutedGroups: state.mutedGroups.includes(groupId)
+            ? state.mutedGroups.filter((id) => id !== groupId)
+            : [...state.mutedGroups, groupId],
+        })),
+      togglePin: (groupId) =>
+        set((state) => ({
+          pinnedGroups: state.pinnedGroups.includes(groupId)
+            ? state.pinnedGroups.filter((id) => id !== groupId)
+            : [...state.pinnedGroups, groupId],
+        })),
       queueMessage: (msg) =>
         set((state) => ({
           pendingMessages: [...state.pendingMessages, msg],

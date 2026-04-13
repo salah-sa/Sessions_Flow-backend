@@ -9,6 +9,8 @@
 import { API_BASE_URL, MOBILE_VERSION, PLATFORM } from "./config";
 import { secureStorage } from "../../services/secureStorage";
 import { apiMonitor } from "../lib/apiMonitor";
+import { useAuthStore } from "../store/stores";
+import { router } from "expo-router";
 
 let cachedToken: string | null = null;
 let isRefreshing = false;
@@ -89,7 +91,7 @@ export async function fetchWithAuth<T>(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Request failed with status ${response.status}`);
+      throw new Error(errorData.error || errorData.message || `Request failed with status ${response.status}`);
     }
 
     // Handle empty responses
@@ -101,7 +103,7 @@ export async function fetchWithAuth<T>(
 
     return await response.json();
   } catch (error) {
-    console.error(`[API Error] ${endpoint}:`, error);
+    if (__DEV__) console.error(`[API Error] ${endpoint}:`, error);
     throw error;
   }
 }
@@ -114,7 +116,7 @@ async function handle401<T>(url: string, options: RequestInit, isBlob = false): 
   if (!isRefreshing) {
     isRefreshing = true;
     try {
-      console.info("[Auth] Token expired. Attempting refresh...");
+      if (__DEV__) console.info("[Auth] Token expired. Attempting refresh...");
       const refreshToken = await secureStorage.getRefreshToken();
       
       const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
@@ -136,9 +138,16 @@ async function handle401<T>(url: string, options: RequestInit, isBlob = false): 
         return fetchWithAuth<T>(url, options, isBlob);
       } else {
         // Refresh failed (e.g. refresh token expired) -> Force logout
-        console.warn("[Auth] Refresh token invalid. Logging out.");
+        if (__DEV__) console.warn("[Auth] Refresh token invalid. Logging out.");
         await secureStorage.clearAll();
-        // Here we would ideally trigger a global logout event or navigate to login
+        
+        try {
+          useAuthStore.getState().logout();
+          router.replace("/(auth)/login");
+        } catch(e) {
+          console.error("Logout navigation failure", e);
+        }
+
         throw new Error("Session expired. Please log in again.");
       }
     } catch (error) {

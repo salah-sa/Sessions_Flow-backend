@@ -22,6 +22,8 @@ import { Avatar } from "../ui/Avatar";
 import { GlassView } from "../ui/GlassView";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
+import { CircularProgress } from "../ui/CircularProgress";
+import { LiveSessionTile } from "./LiveSessionTile";
 import { haptics } from "../../shared/lib/haptics";
 import { Skeleton } from "../ui/Skeleton";
 import { EmptyState } from "../ui/EmptyState";
@@ -42,10 +44,35 @@ export const StudentDashboard = () => {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Skeleton width="90%" height={100} borderRadius={20} style={{ marginBottom: 20 }} />
-        <Skeleton width="90%" height={200} borderRadius={20} style={{ marginBottom: 20 }} />
-        <Skeleton width="90%" height={300} borderRadius={20} />
+      <View style={styles.container}>
+        <AdaptiveHeader title="Initializing..." scrollY={scrollY} />
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* Header Skeleton */}
+          <View style={[styles.header, { marginBottom: 32 }]}>
+            <Skeleton width={80} height={80} borderRadius={40} />
+            <View style={styles.headerInfo}>
+              <Skeleton width={120} height={12} borderRadius={4} style={{ marginBottom: 8 }} />
+              <Skeleton width={200} height={28} borderRadius={6} style={{ marginBottom: 8 }} />
+              <Skeleton width={160} height={14} borderRadius={4} />
+            </View>
+          </View>
+          
+          {/* Directive Card Skeleton */}
+          <Skeleton width="100%" height={140} borderRadius={24} style={{ marginBottom: 32 }} />
+
+          {/* Progress Card Skeleton */}
+          <View style={styles.section}>
+            <Skeleton width={130} height={12} borderRadius={4} style={{ marginBottom: 16 }} />
+            <Skeleton width="100%" height={160} borderRadius={24} />
+          </View>
+
+          {/* Timeline Skeletons */}
+          <View style={styles.section}>
+            <Skeleton width={150} height={12} borderRadius={4} style={{ marginBottom: 16 }} />
+            <Skeleton width="100%" height={80} borderRadius={16} style={{ marginBottom: 12 }} />
+            <Skeleton width="100%" height={80} borderRadius={16} style={{ marginBottom: 12 }} />
+          </View>
+        </ScrollView>
       </View>
     );
   }
@@ -130,17 +157,34 @@ export const StudentDashboard = () => {
 
         {/* Course Trajectory (Progress) */}
         <Animated.View entering={FadeInDown.delay(500).duration(800)} style={styles.section}>
-          <Text style={styles.sectionTitle}>COURSE TRAJECTORY</Text>
-          <View style={styles.progressCard}>
-            <View style={styles.progressHeader}>
-              <Text style={styles.progressPercent}>{progress.percentage.toFixed(0)}%</Text>
-              <Text style={styles.progressStats}>{progress.completed} / {progress.total} COMPLETE</Text>
+          <GlassView intensity={20} style={styles.progressCard}>
+            <View style={styles.progressRow}>
+              <View style={styles.progressTextCol}>
+                <Text style={styles.sectionTitle}>COURSE TRAJECTORY</Text>
+                <Text style={styles.progressPercent}>{progress.percentage.toFixed(0)}%</Text>
+                <Text style={styles.progressStats}>{progress.completed} / {progress.total} COMPLETE</Text>
+                <View style={{ marginTop: 12 }}>
+                  <Badge variant="info" style={{ alignSelf: 'flex-start' }}>
+                    <Text style={[styles.badgeText, { color: theme.colors.primary }]}>
+                      {progress.remaining} EXP TO LEVEL UP
+                    </Text>
+                  </Badge>
+                </View>
+              </View>
+              <View style={styles.progressRingCol}>
+                <CircularProgress percentage={progress.percentage} level={identity.level} size={110} />
+              </View>
             </View>
-            <View style={styles.progressBarBg}>
-              <View style={[styles.progressBarFill, { width: `${progress.percentage}%` }]} />
-            </View>
-          </View>
+          </GlassView>
         </Animated.View>
+
+        {/* Live Session Priority Tile */}
+        {(() => {
+          // Find Active or nearest Scheduled session
+          const activeOrNext = timeline.find((s: any) => s.status === 'Active' || s.status === 'Scheduled');
+          if (!activeOrNext) return null;
+          return <LiveSessionTile session={activeOrNext} />;
+        })()}
 
         {/* Timeline (Sessions) */}
         <Animated.View entering={FadeInDown.delay(700).duration(800)} style={styles.section}>
@@ -328,39 +372,36 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   progressCard: {
-    backgroundColor: "rgba(255,255,255,0.02)",
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.lg,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.xl,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: "rgba(255,255,255,0.05)",
   },
-  progressHeader: {
+  progressRow: {
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 12,
+  },
+  progressTextCol: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  progressRingCol: {
+    marginLeft: 16,
+    justifyContent: "center",
+    alignItems: "center",
   },
   progressPercent: {
-    fontSize: 32,
+    fontSize: 40,
     fontFamily: theme.typography.h1.fontFamily,
     color: theme.colors.text,
+    letterSpacing: -1,
+    marginVertical: 4,
   },
   progressStats: {
-    fontSize: 10,
-    fontWeight: "800",
+    fontSize: 12,
+    fontWeight: "600",
     color: theme.colors.textDim,
-    marginBottom: 6,
-  },
-  progressBarBg: {
-    height: 6,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  progressBarFill: {
-    height: "100%",
-    backgroundColor: theme.colors.primary,
-    borderRadius: 3,
   },
   timelineItem: {
     flexDirection: "row",

@@ -14,8 +14,10 @@ import {
   Platform, 
   ScrollView,
   TouchableOpacity,
-  Dimensions
+  Dimensions,
+  LayoutChangeEvent
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { theme } from "../../shared/theme";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
@@ -24,7 +26,10 @@ import { router } from "expo-router";
 import { useToast } from "../../providers/ToastProvider";
 import Animated, { 
   FadeInDown, 
-  FadeInUp
+  FadeInUp,
+  FadeOutUp,
+  useAnimatedStyle,
+  withSpring
 } from "react-native-reanimated";
 import { useForm, Controller } from "react-hook-form";
 
@@ -34,6 +39,13 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const { show: showToast } = useToast();
   const [regMode, setRegMode] = useState<"engineer" | "student">("engineer");
+
+  const [pillWidth, setPillWidth] = useState(100);
+  const pillStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: withSpring(regMode === "engineer" ? 0 : pillWidth, { damping: 18, stiffness: 150 }) }]
+    };
+  }, [regMode, pillWidth]);
 
   const { control, handleSubmit, formState: { errors } } = useForm({
     defaultValues: {
@@ -76,11 +88,12 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         {/* Header Section */}
         <Animated.View entering={FadeInDown.delay(200).duration(800)} style={styles.header}>
@@ -90,22 +103,34 @@ export default function RegisterScreen() {
 
         {/* Mode Toggle */}
         <Animated.View entering={FadeInDown.delay(400).duration(800)} style={styles.toggleContainer}>
-          <TouchableOpacity 
-            onPress={() => setRegMode("engineer")}
-            style={[styles.toggleButton, regMode === "engineer" && styles.toggleActive]}
+          <View style={styles.toggleWrapper}
+            onLayout={(e: LayoutChangeEvent) => {
+              setPillWidth((e.nativeEvent.layout.width - 8) / 2); // 8 is total padding
+            }}
           >
-            <Text style={[styles.toggleText, regMode === "engineer" && styles.toggleTextActive]}>
-              ENGINEER
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={() => setRegMode("student")}
-            style={[styles.toggleButton, regMode === "student" && styles.toggleActive]}
-          >
-            <Text style={[styles.toggleText, regMode === "student" && styles.toggleTextActive]}>
-              STUDENT
-            </Text>
-          </TouchableOpacity>
+            {/* Animated Background Pill */}
+            <Animated.View style={[styles.toggleActivePill, { width: pillWidth }, pillStyle]} />
+            
+            <TouchableOpacity 
+              activeOpacity={0.8}
+              onPress={() => setRegMode("engineer")}
+              style={styles.toggleButton}
+            >
+              <Text style={[styles.toggleText, regMode === "engineer" && styles.toggleTextActive]}>
+                ENGINEER
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              activeOpacity={0.8}
+              onPress={() => setRegMode("student")}
+              style={styles.toggleButton}
+            >
+              <Text style={[styles.toggleText, regMode === "student" && styles.toggleTextActive]}>
+                STUDENT
+              </Text>
+            </TouchableOpacity>
+          </View>
         </Animated.View>
 
         {/* Form Section */}
@@ -180,7 +205,7 @@ export default function RegisterScreen() {
           />
 
           {regMode === "student" && (
-            <Animated.View entering={FadeInDown} style={styles.studentExtra}>
+            <Animated.View entering={FadeInDown} exiting={FadeOutUp} style={styles.studentExtra}>
               <View style={{ flexDirection: 'row', gap: 12 }}>
                 <View style={{ flex: 1 }}>
                   <Controller
@@ -245,7 +270,8 @@ export default function RegisterScreen() {
       {/* Ambient Blobs */}
       <View style={[styles.blob, { top: -50, right: -50, backgroundColor: theme.colors.primary + '11' }]} />
       <View style={[styles.blob, { bottom: -50, left: -50, backgroundColor: theme.colors.success + '08' }]} />
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -277,22 +303,36 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   toggleContainer: {
+    marginBottom: 32,
+    alignItems: "center",
+  },
+  toggleWrapper: {
     flexDirection: "row",
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "rgba(255,255,255,0.03)",
     padding: 4,
-    borderRadius: theme.radius.md,
-    marginBottom: 24,
+    borderRadius: 100, // fully rounded like macOS pill
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.05)",
+    position: "relative",
+  },
+  toggleActivePill: {
+    position: "absolute",
+    top: 4,
+    left: 4,
+    bottom: 4,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 100,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
   },
   toggleButton: {
     flex: 1,
     paddingVertical: 12,
     alignItems: "center",
-    borderRadius: theme.radius.sm,
-  },
-  toggleActive: {
-    backgroundColor: theme.colors.primary,
+    borderRadius: 100,
+    zIndex: 2, // ensures text is above the absolute pill
   },
   toggleText: {
     fontSize: 10,

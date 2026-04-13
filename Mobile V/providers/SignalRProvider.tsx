@@ -9,7 +9,7 @@
 import React, { createContext, useContext, useEffect, useRef, useCallback, useState } from "react";
 import * as signalR from "@microsoft/signalr";
 import { AppState, AppStateStatus } from "react-native";
-import { useAuthStore, useAppStore } from "../shared/store/stores";
+import { useAuthStore, useAppStore, useChatStore } from "../shared/store/stores";
 import { usePresenceStore } from "../shared/store/presenceStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../shared/queries/keys";
@@ -139,12 +139,32 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       queryClient.invalidateQueries({ queryKey: ["groups"] });
     });
 
+    connection.on("StudentEnrolled", (groupId: string) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups.byId(groupId) });
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+    });
+
+    connection.on("StudentRemoved", (groupId: string) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups.byId(groupId) });
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+    });
+
     // ═══════════════════════════════════════════════
     // 7. Avatar Updated (Real-time avatar sync)
     // ═══════════════════════════════════════════════
     connection.on("AvatarUpdated", (_userId: string, _avatarUrl: string) => {
       queryClient.invalidateQueries({ queryKey: ["chat"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
+    });
+
+    connection.on("UserTyping", (groupId: string, userName: string) => {
+      useChatStore.getState().setTyping(groupId, userName, true);
+    });
+
+    connection.on("UserStoppedTyping", (groupId: string, userName: string) => {
+      useChatStore.getState().setTyping(groupId, userName, false);
     });
   };
 
@@ -205,7 +225,17 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(`${SIGNALR_URL}?access_token=${token}`)
-      .withAutomaticReconnect([0, 1000, 3000, 5000, 10000])
+      .withAutomaticReconnect({
+        nextRetryDelayInMilliseconds: (retryContext) => {
+          if (retryContext.elapsedMilliseconds < 30000) {
+            return 2000;
+          } else if (retryContext.elapsedMilliseconds < 120000) {
+            return 10000;
+          } else {
+            return 30000;
+          }
+        }
+      })
       .configureLogging(signalR.LogLevel.Warning)
       .build();
 

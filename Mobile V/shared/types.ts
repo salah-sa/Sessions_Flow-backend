@@ -63,6 +63,8 @@ export interface Student {
   groupId: string;
   studentId?: string;
   uniqueStudentCode?: string;
+  username?: string; // Phase 100: For student parity
+  avatarUrl?: string;
   userId?: string; // Links to User account
   isDeleted: boolean;
   createdAt: string;

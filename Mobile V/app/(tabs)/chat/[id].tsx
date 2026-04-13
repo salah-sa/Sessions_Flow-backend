@@ -37,12 +37,31 @@ import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { CinematicModal } from "../../../components/ui/CinematicModal";
 import { Image } from "react-native";
+import { useSignalR } from "../../../providers/SignalRProvider";
+
+const TypingIndicator = ({ groupId }: { groupId: string }) => {
+  const typingUsers = useChatStore(s => s.typingStates[groupId] || []);
+  if (typingUsers.length === 0) return null;
+
+  const text = typingUsers.length > 2 
+    ? `${typingUsers.length} people are typing...`
+    : typingUsers.join(" and ") + (typingUsers.length === 1 ? " is typing..." : " are typing...");
+
+  return (
+    <GlassView intensity={20} style={styles.typingIndicator}>
+      <ActivityIndicator size="small" color={theme.colors.primary} style={{ marginRight: 8 }} />
+      <Text style={styles.typingText}>{text}</Text>
+    </GlassView>
+  );
+};
 
 export default function ChatDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
+  const { invoke } = useSignalR();
   const [inputText, setInputText] = useState("");
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   
   const { 
@@ -129,6 +148,21 @@ export default function ChatDetailScreen() {
     }
   };
 
+  const handleInputChange = (text: string) => {
+    setInputText(text);
+
+    if (text.length > 0 && !typingTimeoutRef.current) {
+      invoke("UserTyping", id, user?.name).catch(() => {});
+    }
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    
+    typingTimeoutRef.current = setTimeout(() => {
+      invoke("UserStoppedTyping", id, user?.name).catch(() => {});
+      typingTimeoutRef.current = null;
+    }, 3000);
+  };
+
   const renderItem = ({ item }: { item: ChatMessage }) => (
     <ChatBubble 
       message={item} 
@@ -156,16 +190,22 @@ export default function ChatDetailScreen() {
             <ActivityIndicator color={theme.colors.primary} />
           </View>
         ) : (
-          <FlatList
-            ref={flatListRef}
-            data={[...messages].reverse()}
-            renderItem={renderItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            inverted
-            onScroll={(e) => { scrollY.value = e.nativeEvent.contentOffset.y; }}
-            scrollEventThrottle={16}
-          />
+          <View style={styles.flex}>
+            <FlatList
+              ref={flatListRef}
+              data={[...messages].reverse()}
+              renderItem={renderItem}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.listContent}
+              inverted
+              onScroll={(e) => { scrollY.value = e.nativeEvent.contentOffset.y; }}
+              scrollEventThrottle={16}
+              initialNumToRender={15}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+            />
+            <TypingIndicator groupId={id as string} />
+          </View>
         )}
 
         {/* Input Bar */}
@@ -191,7 +231,7 @@ export default function ChatDetailScreen() {
             placeholder="Type a message..."
             placeholderTextColor={theme.colors.textDim}
             value={inputText}
-            onChangeText={setInputText}
+            onChangeText={handleInputChange}
             multiline
             maxLength={1000}
           />
@@ -286,5 +326,23 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 400,
     borderRadius: 20,
+  },
+  typingIndicator: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    borderWidth: 1,
+    borderColor: "rgba(14, 165, 233, 0.2)",
+  },
+  typingText: {
+    color: theme.colors.textDim,
+    fontSize: 12,
+    fontStyle: "italic",
+    fontWeight: "600",
   }
 });

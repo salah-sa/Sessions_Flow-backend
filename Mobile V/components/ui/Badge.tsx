@@ -12,7 +12,7 @@ import { theme } from "../../shared/theme";
 interface BadgeProps {
   count?: number;
   label?: string;
-  variant?: "primary" | "error" | "success" | "warning" | "outline";
+  variant?: "primary" | "error" | "success" | "warning" | "outline" | "dim" | "info";
   dot?: boolean;
   style?: ViewStyle;
   children?: React.ReactNode;
@@ -25,6 +25,8 @@ export const Badge = ({ count, label, variant = "primary", dot, style, children 
       case "success": return theme.colors.success;
       case "warning": return theme.colors.warning;
       case "outline": return "transparent";
+      case "info": return theme.colors.secondary;
+      case "dim": return "rgba(255,255,255,0.05)";
       default: return theme.colors.primary;
     }
   };
