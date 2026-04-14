@@ -39,7 +39,7 @@ public class PresenceService : IPresenceService
             });
     }
 
-    public void UserDisconnected(string connectionId)
+    public Task<bool> UserDisconnectedAsync(string connectionId)
     {
         if (_connectionUserMap.TryRemove(connectionId, out var userId))
         {
@@ -52,10 +52,12 @@ public class PresenceService : IPresenceService
                     {
                         _onlineUsers.TryRemove(userId, out _);
                         _statusMap[userId] = "offline";
+                        return Task.FromResult(true);
                     }
                 }
             }
         }
+        return Task.FromResult(false);
     }
 
     public bool IsOnline(string userId)
@@ -95,7 +97,7 @@ public class PresenceService : IPresenceService
         return userId;
     }
 
-    public void SetPresence(string userId, bool isOnline, string connectionId)
+    public async Task SetPresenceAsync(string userId, bool isOnline, string connectionId)
     {
         if (isOnline)
         {
@@ -103,7 +105,7 @@ public class PresenceService : IPresenceService
         }
         else
         {
-            UserDisconnected(connectionId);
+            await UserDisconnectedAsync(connectionId);
         }
     }
 

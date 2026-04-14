@@ -66,7 +66,7 @@ public static class ChatEndpoints
                         id = sender.Id,
                         name = sender.Name,
                         role = sender.Role.ToString(),
-                        avatarUrl = sender.AvatarUrl
+                        avatarUrl = AuthEndpoints.ResolveAvatarUrl(sender.AvatarUrl, ctx.Request)
                     } : null,
                     text = m.Text,
                     fileUrl = m.FileUrl,
@@ -184,7 +184,7 @@ public static class ChatEndpoints
                     id = sender.Id,
                     name = sender.Name,
                     role = sender.Role.ToString(),
-                    avatarUrl = sender.AvatarUrl
+                    avatarUrl = AuthEndpoints.ResolveAvatarUrl(sender.AvatarUrl, req)
                 } : null,
                 text = message.Text,
                 fileUrl = message.FileUrl,
