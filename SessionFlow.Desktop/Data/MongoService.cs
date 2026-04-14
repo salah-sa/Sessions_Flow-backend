@@ -126,6 +126,7 @@ public class MongoService
     public IMongoCollection<Setting> Settings => _database.GetCollection<Setting>("Settings");
     public IMongoCollection<EngineerCode> EngineerCodes => _database.GetCollection<EngineerCode>("EngineerCodes");
     public IMongoCollection<PendingEngineer> PendingEngineers => _database.GetCollection<PendingEngineer>("PendingEngineers");
+    public IMongoCollection<PendingStudentRequest> PendingStudentRequests => _database.GetCollection<PendingStudentRequest>("PendingStudentRequests");
     public IMongoCollection<Station> Stations => _database.GetCollection<Station>("Stations");
     public IMongoCollection<Notification> Notifications => _database.GetCollection<Notification>("Notifications");
     public IMongoCollection<AuditLog> AuditLogs => _database.GetCollection<AuditLog>("AuditLogs");

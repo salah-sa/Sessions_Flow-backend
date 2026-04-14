@@ -1,17 +1,26 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Bell, Check, Trash2, Info, CheckCircle, AlertTriangle, XCircle, Clock, ArrowUpRight } from "lucide-react";
+import { Bell, Check, Trash2, Info, CheckCircle, AlertTriangle, XCircle, Clock, ArrowUpRight, Users, X } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { Button, Badge } from "../ui";
 import { NotificationType } from "../../types";
-import { useNotifications, useNotificationMutations } from "../../queries/useNotificationQueries";
+import { useNotifications, useNotificationMutations, usePendingStudentRequests } from "../../queries/useNotificationQueries";
+import { useAuthStore } from "../../store/stores";
 
 const NotificationCenter: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const user = useAuthStore((s) => s.user);
+  
   const { data: notifData } = useNotifications();
   const notifications = notifData?.notifications || [];
-  const unreadCount = notifData?.unreadCount || 0;
-  const { markAsReadMutation, markAllAsReadMutation } = useNotificationMutations();
+  const baseUnreadCount = notifData?.unreadCount || 0;
+  
+  const { data: pendingRequestsData } = usePendingStudentRequests();
+  const pendingRequests = user?.role === "Engineer" || user?.role === "Admin" ? (pendingRequestsData || []) : [];
+  
+  const unreadCount = baseUnreadCount + pendingRequests.length;
+  
+  const { markAsReadMutation, markAllAsReadMutation, approveStudentMutation, denyStudentMutation } = useNotificationMutations();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click
@@ -83,7 +92,58 @@ const NotificationCenter: React.FC = () => {
           </div>
 
           <div className="max-h-[60vh] overflow-y-auto custom-scrollbar">
-            {notifications.length === 0 ? (
+            {pendingRequests.length > 0 && (
+              <div className="mb-2 border-b border-white/5 pb-2">
+                <div className="px-6 py-2">
+                  <h4 className="text-[10px] font-black text-brand-400 uppercase tracking-widest">Join Requests</h4>
+                </div>
+                <div className="divide-y divide-white/5">
+                  {pendingRequests.map((req: any) => (
+                    <div key={req.id} className="px-6 py-4 transition-all flex gap-4 group bg-brand-500/[0.05] relative overflow-hidden">
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-500 shadow-glow" />
+                      <div className="shrink-0 mt-1">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center border bg-brand-500/10 border-brand-500/20 text-brand-500">
+                          <Users className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <div>
+                          <p className="text-[13px] font-sora font-black tracking-tight text-white">{req.name}</p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">Wants to join <span className="font-bold text-white">{req.groupName}</span></p>
+                          <p className="text-[10px] text-slate-500">{req.identifier} • {req.email}</p>
+                        </div>
+                        <div className="flex items-center gap-2 pt-1">
+                          <Button 
+                            className="h-7 px-3 text-[9px] uppercase tracking-wider bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              approveStudentMutation.mutate(req.id);
+                            }}
+                            disabled={approveStudentMutation.isPending}
+                          >
+                            <Check className="w-3 h-3 mr-1" />
+                            Accept
+                          </Button>
+                          <Button 
+                            className="h-7 px-3 text-[9px] uppercase tracking-wider bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              denyStudentMutation.mutate(req.id);
+                            }}
+                            disabled={denyStudentMutation.isPending}
+                          >
+                            <X className="w-3 h-3 mr-1" />
+                            Deny
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {notifications.length === 0 && pendingRequests.length === 0 ? (
               <div className="p-16 text-center space-y-6 opacity-30">
                 <div className="w-16 h-16 bg-slate-900 rounded-[1.5rem] flex items-center justify-center mx-auto border border-white/5">
                     <Bell className="w-6 h-6 text-slate-500" />

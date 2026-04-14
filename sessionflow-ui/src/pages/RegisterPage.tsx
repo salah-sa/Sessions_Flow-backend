@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { registerEngineer, registerStudent } from "../api/authService";
+import { registerEngineer, registerStudentQueue } from "../api/authService";
 import { useTranslation } from "react-i18next";
 import { useSharedAuth } from "../hooks/useSharedAuth";
 import { AuthLayout } from "../components/auth/AuthLayout";
@@ -12,10 +12,10 @@ import { StyleGradientAnimated } from "../components/auth/styles/StyleGradientAn
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   identifier: z.string().min(3, "Must be at least 3 characters"),
+  email: z.string().email("Invalid email").optional(),
   password: z.string().min(6, "Must be at least 6 characters"),
   confirmPassword: z.string().min(6, "Must be at least 6 characters"),
-  studentId: z.string().optional(),
-  engineerCode: z.string().optional(),
+  groupName: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
@@ -45,24 +45,26 @@ const RegisterPage: React.FC = () => {
           data.password
         );
       } else {
-        if (!data.studentId || !data.engineerCode) {
-          toast.error("Student ID and Engineer Code are required");
+        if (!data.groupName || !data.email) {
+          toast.error("Group Name and Email are required");
           setLoading(false);
           return;
         }
-        result = await registerStudent(
+        result = await registerStudentQueue(
           data.name,
           data.identifier,
+          data.email,
           data.password,
-          data.studentId,
-          data.engineerCode
+          data.groupName
         );
       }
 
       if (result.success) {
         sharedAuth.setMascotState("success");
-        toast.success(t("auth.register_success") || "Registration successful!");
-        setTimeout(() => sharedAuth.onNavigate("/login"), 800);
+        toast.success(sharedAuth.loginMode === "engineer" 
+          ? "Registration submitted. Awaiting approval." 
+          : "Request sent to engineer. You will receive an email upon approval.");
+        setTimeout(() => sharedAuth.onNavigate("/login"), 1500);
       } else {
         sharedAuth.setMascotState("error");
         toast.error(result.error || t("auth.register_failed") || "Registration failed");

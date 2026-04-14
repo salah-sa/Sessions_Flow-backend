@@ -13,11 +13,16 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
-  registerStudent: (data: { name: string; username: string; password: string; studentId: string; engineerCode: string }) =>
-    fetchWithAuth<{ message: string; id: string }>("/auth/register-student", {
+  registerStudentQueue: (data: { name: string; username: string; email: string; password: string; groupName: string }) =>
+    fetchWithAuth<{ message: string; id: string }>("/auth/register-student-request", {
       method: "POST",
       body: JSON.stringify(data),
     }),
+  getPendingStudentRequests: () => fetchWithAuth<any[]>("/auth/pending-student-requests"),
+  approveStudentRequest: (id: string) =>
+    fetchWithAuth<{ message: string; user: any }>(`/auth/approve-student-request/${id}`, { method: "POST" }),
+  denyStudentRequest: (id: string) =>
+    fetchWithAuth<{ message: string }>(`/auth/deny-student-request/${id}`, { method: "POST" }),
   getMe: () => fetchWithAuth<User>("/auth/me"),
   updateAvatar: (avatarUrl: string) =>
     fetchWithAuth<{ avatarUrl: string }>("/auth/profile/avatar", {

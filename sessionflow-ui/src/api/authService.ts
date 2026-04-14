@@ -65,20 +65,47 @@ export async function registerEngineer(
 }
 
 /**
- * Register Student — Creates student account immediately (auto-approved).
+ * Register Student — Creates a pending student request for the engineer to approve.
  */
-export async function registerStudent(
+export async function registerStudentQueue(
   name: string,
   username: string,
+  email: string,
   password: string,
-  studentId: string,
-  engineerCode: string
+  groupName: string
 ): Promise<AuthResult> {
   try {
-    await authApi.registerStudent({ name, username, password, studentId, engineerCode });
+    await authApi.registerStudentQueue({ name, username, email, password, groupName });
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || "Registration failed" };
+  }
+}
+
+export async function getPendingStudentRequests(): Promise<any[]> {
+  try {
+    return await authApi.getPendingStudentRequests();
+  } catch (err: any) {
+    console.error("Failed to fetch pending requests", err);
+    return [];
+  }
+}
+
+export async function approveStudentRequest(id: string): Promise<AuthResult> {
+  try {
+    const res = await authApi.approveStudentRequest(id);
+    return { success: true, user: res.user };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Approval failed" };
+  }
+}
+
+export async function denyStudentRequest(id: string): Promise<AuthResult> {
+  try {
+    await authApi.denyStudentRequest(id);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Deny failed" };
   }
 }
 

@@ -97,8 +97,7 @@ public class AuthService
 
     public async Task<(User? user, string? error)> RegisterStudentAsync(string name, string username, string password, string studentId, string engineerCode)
     {
-        // 1. Check if username or studentId already exists in Users
-        // 1. Check if username or studentId already exists in Users
+        // ... legacy signup ... 
         var usernameFilter = Builders<User>.Filter.Regex(u => u.Username, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(username)}$", "i"));
         var usernameExists = await _db.Users.Find(usernameFilter).AnyAsync();
         if (usernameExists) return (null, "Username already taken.");
@@ -106,43 +105,173 @@ public class AuthService
         var sidExists = await _db.Users.Find(u => u.StudentId == studentId).AnyAsync();
         if (sidExists) return (null, "An account with this Student ID already exists.");
 
-        // 2. Validate EngineerCode exists and is USED by an engineer
         var codeFilter = Builders<EngineerCode>.Filter.Regex(c => c.Code, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(engineerCode)}$", "i"))
                        & Builders<EngineerCode>.Filter.Eq(c => c.IsUsed, true);
         var code = await _db.EngineerCodes.Find(codeFilter).FirstOrDefaultAsync();
         if (code == null || !code.UsedByEngineerId.HasValue)
             return (null, "Invalid Engineer Code.");
 
-        // 3. Find groups managed by this engineer
-        var groupIds = await _db.Groups.Find(g => g.EngineerId == code.UsedByEngineerId.Value && !g.IsDeleted)
-                                      .Project(g => g.Id)
-                                      .ToListAsync();
+        var groupIds = await _db.Groups.Find(g => g.EngineerId == code.UsedByEngineerId.Value && !g.IsDeleted).Project(g => g.Id).ToListAsync();
 
-        // 4. Validate StudentId exists in those groups and isn't linked to a User yet
         var studentRecord = await _db.Students.Find(s => groupIds.Contains(s.GroupId) && (s.StudentId == studentId || s.UniqueStudentCode == studentId) && !s.IsDeleted && s.UserId == null).FirstOrDefaultAsync();
         if (studentRecord == null)
             return (null, "Student ID not found in any group managed by this engineer, or already registered.");
 
-        // 5. Create the User account using the actual selected identifier
         var user = new User
         {
             Name = name,
             Username = username,
-            Email = $"{username}@student.local", // Fake email for internal purposes
+            Email = $"{username}@student.local",
             StudentId = studentId,
             EngineerCode = engineerCode,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
             Role = UserRole.Student,
-            IsApproved = true // Students are auto-approved
+            IsApproved = true
         };
 
         await _db.Users.InsertOneAsync(user);
 
-        // 6. Link the Student record to the User account
         var updateStudent = Builders<Student>.Update.Set(s => s.UserId, user.Id).Set(s => s.UpdatedAt, DateTimeOffset.UtcNow);
         await _db.Students.UpdateOneAsync(s => s.Id == studentRecord.Id, updateStudent);
 
         return (user, null);
+    }
+
+    public async Task<(PendingStudentRequest? pending, string? error)> QueueStudentRequestAsync(string name, string username, string email, string password, string groupName)
+    {
+        // 1. Check if username exists
+        var usernameFilter = Builders<User>.Filter.Regex(u => u.Username, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(username)}$", "i"));
+        if (await _db.Users.Find(usernameFilter).AnyAsync())
+            return (null, "Username is already taken.");
+
+        // 2. Find groups that match this name (case-insensitive)
+        var groupFilter = Builders<Group>.Filter.Regex(g => g.Name, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(groupName)}$", "i"))
+                        & Builders<Group>.Filter.Eq(g => g.IsDeleted, false);
+        
+        var groups = await _db.Groups.Find(groupFilter).ToListAsync();
+        if (groups.Count == 0)
+            return (null, "Group not found. Please ensure you entered the exact correct group name.");
+
+        // If multiple groups have the exact same name, we could queue for all or take the first. 
+        // We will queue for the first one found to keep it simple, or queue multiple.
+        var group = groups.First();
+
+        var pending = new PendingStudentRequest
+        {
+            Name = name,
+            Username = username,
+            Email = email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+            GroupName = group.Name,
+            GroupId = group.Id,
+            EngineerId = group.EngineerId,
+            Status = PendingStatus.Pending
+        };
+
+        await _db.PendingStudentRequests.InsertOneAsync(pending);
+
+        // Notify the specific Engineer
+        await _notificationService.CreateNotificationAsync(
+            group.EngineerId,
+            "New Student Join Request",
+            $"{name} wants to join {group.Name}",
+            NotificationType.Info
+        );
+
+        return (pending, null);
+    }
+
+    public async Task<(User? user, string? error)> ApproveStudentRequestAsync(Guid pendingId)
+    {
+        var pending = await _db.PendingStudentRequests.Find(p => p.Id == pendingId).FirstOrDefaultAsync();
+        if (pending == null) return (null, "Request not found.");
+        if (pending.Status != PendingStatus.Pending) return (null, "Request already processed.");
+
+        // Double check username availability
+        var usernameFilter = Builders<User>.Filter.Regex(u => u.Username, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(pending.Username)}$", "i"));
+        if (await _db.Users.Find(usernameFilter).AnyAsync())
+            return (null, "The requested username is no longer available.");
+
+        // Look up the engineer to get their EngineerCode
+        var engineer = await _db.Users.Find(u => u.Id == pending.EngineerId).FirstOrDefaultAsync();
+        if (engineer == null || string.IsNullOrEmpty(engineer.EngineerCode))
+            return (null, "Managing engineer is not fully configured. Code missing.");
+
+        // Generate the Student Record
+        var studentCode = Models.Student.GenerateCode(pending.Name, pending.GroupId);
+        var student = new Student
+        {
+            GroupId = pending.GroupId,
+            Name = pending.Name,
+            StudentId = studentCode, // Standard generated format
+            UniqueStudentCode = studentCode,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        await _db.Students.InsertOneAsync(student);
+
+        // Create the User Account
+        var user = new User
+        {
+            Name = pending.Name,
+            Username = pending.Username,
+            Email = pending.Email, // Store real email for recovery and communication
+            StudentId = studentCode,
+            EngineerCode = engineer.EngineerCode,
+            PasswordHash = pending.PasswordHash,
+            Role = UserRole.Student,
+            IsApproved = true
+        };
+        await _db.Users.InsertOneAsync(user);
+
+        // Link the student record
+        var updateStudent = Builders<Student>.Update.Set(s => s.UserId, user.Id).Set(s => s.UpdatedAt, DateTimeOffset.UtcNow);
+        await _db.Students.UpdateOneAsync(s => s.Id == student.Id, updateStudent);
+
+        // Update pending status
+        var updatePending = Builders<PendingStudentRequest>.Update
+            .Set(p => p.Status, PendingStatus.Approved)
+            .Set(p => p.UpdatedAt, DateTimeOffset.UtcNow);
+        await _db.PendingStudentRequests.UpdateOneAsync(p => p.Id == pendingId, updatePending);
+
+        // Send Email Async
+        _ = Task.Run(async () => {
+            try {
+                using var scope = _serviceProvider.CreateScope();
+                var mail = scope.ServiceProvider.GetRequiredService<SmtpEmailService>();
+                await mail.SendEmailAsync(
+                    user.Email,
+                    "SessionFlow: Student Activation Completed",
+                    $@"<div style='font-family: sans-serif; background: #020617; color: white; padding: 40px; border-radius: 20px;'>
+                        <h2 style='color: #22c55e;'>Access Granted</h2>
+                        <p>Welcome, <strong>{user.Name}</strong>. Your request to join <strong>{pending.GroupName}</strong> has been approved.</p>
+                        <div style='background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;'>
+                            <p style='font-size: 12px; color: #64748b; margin: 0;'>Your Generated Student ID:</p>
+                            <p style='font-size: 20px; font-weight: bold; color: #3b82f6; margin: 5px 0;'>{studentCode}</p>
+                            <br/>
+                            <p style='font-size: 12px; color: #64748b; margin: 0;'>Engineer Clearance Code:</p>
+                            <p style='font-size: 20px; font-weight: bold; color: #10b981; margin: 5px 0;'>{engineer.EngineerCode}</p>
+                        </div>
+                        <p>You can now log in using your Username and Password.</p>
+                    </div>"
+                );
+            } catch { /* Ignored */ }
+        });
+
+        return (user, null);
+    }
+
+    public async Task<(bool success, string? error)> DenyStudentRequestAsync(Guid pendingId)
+    {
+        var update = Builders<PendingStudentRequest>.Update
+            .Set(p => p.Status, PendingStatus.Denied)
+            .Set(p => p.UpdatedAt, DateTimeOffset.UtcNow);
+        
+        var result = await _db.PendingStudentRequests.UpdateOneAsync(p => p.Id == pendingId && p.Status == PendingStatus.Pending, update);
+        
+        if (result.MatchedCount == 0)
+            return (false, "Request not found or already processed.");
+
+        return (true, null);
     }
 
     public async Task<(User? user, string? error)> ApproveEngineerAsync(Guid pendingId)
