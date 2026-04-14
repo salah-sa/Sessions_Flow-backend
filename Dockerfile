@@ -18,18 +18,13 @@ RUN dotnet publish HeadlessHost/HeadlessHost.csproj -c Release -o /app/publish
 # Copy built frontend directly into the published directory for embedding
 COPY --from=build-ui /app/ui/dist /app/publish/wwwroot/
 
-# Stage 3: Runtime
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine AS runtime
+# Stage 3: Runtime (Debian-based for full glibc + socket compatibility)
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
-
-# Add globalization support for Alpine
-RUN apk add --no-cache icu-libs
-ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 
 COPY --from=build-backend /app/publish .
 
-# Standard Railway/Docker variables
+# Railway/Docker detection
 ENV DOTNET_RUNNING_IN_CONTAINER=true
-EXPOSE 8080
 
 ENTRYPOINT ["dotnet", "HeadlessHost.dll"]
