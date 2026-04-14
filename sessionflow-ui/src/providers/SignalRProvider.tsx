@@ -56,7 +56,7 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 sounds.playNotification();
                 useNotificationPopupStore.getState().notify(
                     msg.groupId,
-                    msg.senderName,
+                    msg.senderName ?? "Unknown",
                     msg.text,
                     msg.sender?.avatarUrl ?? undefined
                 );
