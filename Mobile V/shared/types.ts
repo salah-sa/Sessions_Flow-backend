@@ -128,6 +128,8 @@ export interface ChatMessage {
   groupId: string;
   senderId: string;
   senderName?: string;
+  senderAvatar?: string; // Top-level avatar URL (some APIs embed this directly)
+  senderProfileImage?: string; // Alternative field name for avatar
   text: string;
   blocks?: MessageBlock[]; // Primary source for modern rendering
   mentions?: MessageMention[];

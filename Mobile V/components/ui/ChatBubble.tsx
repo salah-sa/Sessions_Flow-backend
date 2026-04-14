@@ -4,6 +4,7 @@ import { theme } from "../../shared/theme";
 import { ChatMessage as ChatMessageType } from "../../shared/types";
 import { format } from "date-fns";
 import { GlassView } from "./GlassView";
+import { resolveMediaUrl } from "../../shared/api/config";
 
 /**
  * ═══════════════════════════════════════════════════════════
@@ -45,12 +46,31 @@ export const ChatBubble = ({
   const disableHeavyFeatures = useAdaptiveStore(s => s.disableHeavyFeatures);
   
   const text = message.text || "";
-  const isImage = text.startsWith("[IMAGE] ");
-  const isDoc = text.startsWith("[DOCUMENT] ");
-  
-  const imageUri = isImage ? text.replace("[IMAGE] ", "") : null;
-  const docName = isDoc ? text.replace("[DOCUMENT] ", "") : null;
   const isRTL = language === "ar";
+
+  // ── Media Detection (Desktop Parity) ──────────────────────
+  // Primary: check fileUrl + fileType (how the server actually stores media)
+  // Fallback: parse [IMAGE]/[DOCUMENT] tags from text field
+  const hasFile = !!message.fileUrl;
+  const isImageByType = hasFile && (message.fileType?.startsWith("image/") || false);
+  const isImageByText = text.startsWith("[IMAGE]");
+  const isDocByType = hasFile && !isImageByType;
+  const isDocByText = text.startsWith("[DOCUMENT]");
+  
+  const isImage = isImageByType || (isImageByText && !hasFile);
+  const isDoc = isDocByType || (isDocByText && !hasFile);
+
+  // Resolve the actual image URI
+  const imageUri = isImage
+    ? (hasFile ? resolveMediaUrl(message.fileUrl!) : text.replace(/^\[IMAGE\]\s*/, "") || null)
+    : null;
+  const docName = isDoc
+    ? (message.fileName || text.replace(/^\[DOCUMENT\]\s*/, "") || "Attachment")
+    : null;
+
+  // Display text: strip [IMAGE]/[DOCUMENT] tags so we never show raw tags
+  const displayText = text.replace(/^\[IMAGE\]\s*/, "").replace(/^\[DOCUMENT\]\s*/, "");
+  const shouldShowText = !isImage && !isDoc && displayText.trim().length > 0;
 
   // Bubble width limits — compact like WhatsApp/Telegram
   const maxBubbleWidth = width * 0.72;
@@ -72,8 +92,8 @@ export const ChatBubble = ({
           <Avatar 
             userId={message.senderId} 
             name={message.senderName || "Unknown"} 
-            avatarUrl={message.sender?.avatarUrl}
-            profileImage={(message.sender as any)?.profileImage}
+            avatarUrl={message.sender?.avatarUrl || (message as any).senderAvatar}
+            profileImage={(message.sender as any)?.profileImage || (message as any).senderProfileImage}
             size={28}
             showPresence={false}
           />
@@ -111,13 +131,14 @@ export const ChatBubble = ({
           { borderColor: isOwn ? "rgba(14, 165, 233, 0.4)" : "rgba(255,255,255,0.08)" }
         ]}
       >
-        {isImage ? (
+        {/* ── File Attachment (image/video/doc) ── */}
+        {hasFile && isImage && imageUri ? (
           <TouchableOpacity 
             onPress={() => {
               if (disableHeavyFeatures && !manualLoad) {
                 setManualLoad(true);
               } else if (!imageError) {
-                onImagePress?.(imageUri!);
+                onImagePress?.(imageUri);
               }
             }}
             activeOpacity={imageError ? 1 : 0.7}
@@ -134,19 +155,20 @@ export const ChatBubble = ({
               </View>
             ) : (
               <Image 
-                source={{ uri: imageUri! }} 
+                source={{ uri: imageUri }} 
                 style={[styles.contentImage, { width: maxImageWidth, height: 200 }]} 
                 resizeMode="cover"
                 onError={() => setImageError(true)}
               />
             )}
           </TouchableOpacity>
-        ) : isDoc ? (
+        ) : hasFile && isDoc ? (
           <TouchableOpacity 
             style={styles.docContainer}
             onPress={() => {
-              if (message.fileUrl && message.fileUrl !== "#") {
-                Linking.openURL(message.fileUrl).catch(err => console.log("Failed to open URL", err));
+              const resolvedUrl = resolveMediaUrl(message.fileUrl!);
+              if (resolvedUrl) {
+                Linking.openURL(resolvedUrl).catch(err => console.log("Failed to open URL", err));
               }
             }}
           >
@@ -156,14 +178,27 @@ export const ChatBubble = ({
               <Text style={styles.docSize}>SECURE PAYLOAD</Text>
             </View>
           </TouchableOpacity>
-        ) : (
+        ) : isImageByText ? (
+          /* Fallback: [IMAGE] in text but no fileUrl — show placeholder */
+          <View style={[styles.imageErrorContainer, { width: maxImageWidth }]}>
+            <Ionicons name="image-outline" size={32} color={theme.colors.textDim} />
+            <Text style={styles.imageErrorText}>IMAGE_UNAVAILABLE</Text>
+          </View>
+        ) : shouldShowText ? (
+          <Text 
+            style={[styles.text, isRTL && { textAlign: 'right' }]}
+            textBreakStrategy="highQuality"
+          >
+            {displayText}
+          </Text>
+        ) : !hasFile ? (
           <Text 
             style={[styles.text, isRTL && { textAlign: 'right' }]}
             textBreakStrategy="highQuality"
           >
             {message.text}
           </Text>
-        )}
+        ) : null}
         
         <View style={[styles.footer, isRTL && { flexDirection: 'row-reverse', justifyContent: 'flex-start' }]}>
           <Text style={styles.time}>{format(new Date(message.sentAt), "h:mm a")}</Text>
@@ -180,7 +215,11 @@ export const ChatBubble = ({
                 </TouchableOpacity>
               ) : (
                 <Ionicons 
-                  name={message.status === "read" ? "checkmark-done" : message.status === "sent" ? "checkmark" : "time-outline"} 
+                  name={
+                    message.status === "read" ? "checkmark-done" 
+                    : message.status === "pending" ? "time-outline" 
+                    : "checkmark" /* sent, delivered, or undefined = delivered */
+                  } 
                   size={12} 
                   color={message.status === "read" ? theme.colors.primary : theme.colors.textDim} 
                   style={[isRTL ? { marginRight: 4 } : { marginLeft: 4 }]}
@@ -198,8 +237,8 @@ export const ChatBubble = ({
           <Avatar 
             userId={message.senderId} 
             name={message.senderName || "Me"} 
-            avatarUrl={message.sender?.avatarUrl}
-            profileImage={(message.sender as any)?.profileImage}
+            avatarUrl={message.sender?.avatarUrl || (message as any).senderAvatar}
+            profileImage={(message.sender as any)?.profileImage || (message as any).senderProfileImage}
             size={28}
             showPresence={false}
           />

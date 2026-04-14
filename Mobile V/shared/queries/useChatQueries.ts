@@ -36,7 +36,15 @@ export const useSendMessage = () => {
     }) => chatApi.sendMessage(groupId, message, undefined, mentions, id),
     
     // Note: Mobile uses optimistic updates in the screen component
-    onSuccess: (_, { groupId }) => {
+    onSuccess: (serverMsg, { groupId, id }) => {
+      // Immediately mark optimistic entry as "sent" so the clock icon disappears
+      queryClient.setQueryData(
+        queryKeys.chat.messages(groupId),
+        (old: any[] | undefined) =>
+          (old || []).map((m: any) =>
+            m.id === id ? { ...m, ...serverMsg, status: serverMsg?.status || "sent" } : m
+          )
+      );
       queryClient.invalidateQueries({ queryKey: queryKeys.chat.messages(groupId) });
     },
   });
