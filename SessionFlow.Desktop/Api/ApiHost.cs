@@ -48,9 +48,13 @@ public static class ApiHost
         // Ensure Kestrel uses the correct port from configuration (defaulting to 5180)
         // Check for --port command line argument first for multi-instance support
         // In containers (Railway/Docker), ASPNETCORE_URLS env var controls the port.
-        // Only call UseUrls for local/desktop mode.
         var isContainer = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
-        if (!isContainer)
+        if (isContainer)
+        {
+            var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+            builder.WebHost.UseUrls($"http://+:{port}");
+        }
+        else
         {
             var kestrelUrl = builder.Configuration["Kestrel:Url"] ?? "http://127.0.0.1:5180";
             var portIdx = Array.IndexOf(args, "--port");
