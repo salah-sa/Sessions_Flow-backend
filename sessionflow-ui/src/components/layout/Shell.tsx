@@ -5,6 +5,7 @@ import { gsap } from "gsap";
 import TopBar from "./TopBar";
 import Sidebar from "./Sidebar";
 import ConnectionBanner from "./ConnectionBanner";
+import NotificationPopup from "../chat/NotificationPopup";
 import { useRealtimeNotifications } from "../../hooks/realtime";
 import { useHeartbeat } from "../../hooks/useHeartbeat";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
@@ -47,6 +48,7 @@ const Shell: React.FC = () => {
 
   return (
     <div className="h-screen w-screen flex flex-col bg-[#0a0f1a] text-slate-50 overflow-hidden font-sans selection:bg-emerald-500/30">   
+      <NotificationPopup />
       {/* Cinematic Ambient Nebula System */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden mix-blend-screen opacity-10 lg:opacity-20 transition-opacity duration-1000">
         {/* Dynamic Orbs */}

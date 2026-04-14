@@ -218,4 +218,32 @@ public class SessionHub : Hub
             await Clients.Group($"chat_{gId}")
                 .SendAsync(isOnline ? "UserOnline" : "UserOffline", userId);
     }
+
+    /// <summary>
+    /// Keep alive signal sent by clients every 30s.
+    /// </summary>
+    public async Task Heartbeat()
+    {
+        var userId = GetUserId();
+        if (string.IsNullOrEmpty(userId)) return;
+        _presence.RecordHeartbeat(userId);
+    }
+
+    /// <summary>
+    /// Explicit offline signal sent by clients on unmount.
+    /// </summary>
+    public async Task GoOffline()
+    {
+        await UpdatePresence(false);
+    }
+
+    /// <summary>
+    /// Requested by clients on network reconnection to sync state.
+    /// </summary>
+    public async Task RequestPresenceSnapshot()
+    {
+        var onlineUsers = _presence.GetOnlineUserIds();
+        var snapshot = _presence.GetPresenceSnapshot(onlineUsers);
+        await Clients.Caller.SendAsync("PresenceSnapshot", snapshot);
+    }
 }
