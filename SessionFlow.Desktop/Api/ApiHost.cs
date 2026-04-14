@@ -45,7 +45,13 @@ public static class ApiHost
         SecureBootstrapService.InjectSecrets(builder.Configuration);
         
         // Ensure Kestrel uses the correct port from configuration (defaulting to 5180)
+        // Check for --port command line argument first for multi-instance support
         var kestrelUrl = builder.Configuration["Kestrel:Url"] ?? "http://127.0.0.1:5180";
+        var portIdx = Array.IndexOf(args, "--port");
+        if (portIdx >= 0 && portIdx < args.Length - 1)
+        {
+            kestrelUrl = $"http://127.0.0.1:{args[portIdx + 1]}";
+        }
         builder.WebHost.UseUrls(kestrelUrl);
 
         // Configure Serilog
@@ -100,7 +106,10 @@ public static class ApiHost
                     ValidateIssuerSigningKey = true,
                     ValidIssuer = issuer,
                     ValidAudience = audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey.Trim()))
+                    {
+                        KeyId = "SessionFlow-Primary-Key"
+                    }
                 };
                 
                 // Allow JWT for SignalR hub connection (passed in query string)

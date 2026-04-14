@@ -7,9 +7,11 @@ interface AuthState {
   user: User | null;
   token: string | null;
   rememberMe: boolean;
+  _hasHydrated: boolean; // Add hydration flag
   setAuth: (user: User, token: string) => void;
   setRememberMe: (val: boolean) => void;
   updateUser: (user: User) => void;
+  setHasHydrated: (val: boolean) => void; // Setter for hydration
   logout: () => void;
 }
 
@@ -19,12 +21,14 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       rememberMe: false,
+      _hasHydrated: false,
       setAuth: (user, token) => {
         localStorage.setItem("sf_token", token);
         set({ user, token });
       },
       setRememberMe: (val) => set({ rememberMe: val }),
       updateUser: (user) => set({ user }),
+      setHasHydrated: (val) => set({ _hasHydrated: val }),
       logout: () => {
         localStorage.removeItem("sf_token");
         localStorage.removeItem("sf-auth-storage");
@@ -34,7 +38,9 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "sf-auth-storage",
-      // Persist to localStorage — rememberMe controls whether we clear on window close
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );
