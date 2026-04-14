@@ -187,6 +187,7 @@ public static class GroupEndpoints
                     groupId = s.GroupId,
                     studentId = s.StudentId,
                     uniqueStudentCode = s.UniqueStudentCode,
+                    userId = s.UserId,
                     createdAt = s.CreatedAt
                 }),
                 studentCount = studentCount,

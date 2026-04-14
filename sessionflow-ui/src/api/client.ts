@@ -30,7 +30,9 @@ export async function fetchWithAuth<T>(
     if (!response.ok) {
       if (response.status === 401) {
         useAuthStore.getState().logout();
-        window.location.href = "/login";
+        if (!window.location.pathname.includes("/login")) {
+          window.location.href = "/login";
+        }
         throw new Error("Session expired. Please login again.");
       }
       const errorData = await response.json().catch(() => ({}));

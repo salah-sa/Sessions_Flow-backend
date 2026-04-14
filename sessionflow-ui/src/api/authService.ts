@@ -37,11 +37,6 @@ export async function loginUser(
     store.setAuth(response.user, response.token);
     store.setRememberMe(rememberMe);
 
-    // If not remembering, clear on browser close
-    if (!rememberMe) {
-      window.addEventListener("beforeunload", handleSessionCleanup, { once: true });
-    }
-
     return { success: true, user: response.user };
   } catch (err: any) {
     return { success: false, error: err.message || "Login failed" };
@@ -114,15 +109,17 @@ export async function denyStudentRequest(id: string): Promise<AuthResult> {
  * Returns true if session is valid, false otherwise.
  */
 export async function validateSession(): Promise<boolean> {
-  const { token, logout, updateUser } = useAuthStore.getState();
+  const { token, updateUser } = useAuthStore.getState();
   if (!token) return false;
 
   try {
     const user = await authApi.getMe();
     updateUser(user);
     return true;
-  } catch {
-    logout();
+  } catch (error: any) {
+    // client.ts fetchWithAuth automatically handles 401 by logging out.
+    // We shouldn't blindly logout here on transient network failures (like server starting).
+    console.warn("[Session Validation] Network or transient error, keeping session alive.", error);
     return false;
   }
 }
@@ -132,15 +129,4 @@ export async function validateSession(): Promise<boolean> {
  */
 export function logoutUser(): void {
   useAuthStore.getState().logout();
-}
-
-/**
- * Session cleanup handler — clears persistent auth when rememberMe is false.
- */
-function handleSessionCleanup(): void {
-  const { rememberMe } = useAuthStore.getState();
-  if (!rememberMe) {
-    localStorage.removeItem("sf_token");
-    localStorage.removeItem("sf-auth-storage");
-  }
 }

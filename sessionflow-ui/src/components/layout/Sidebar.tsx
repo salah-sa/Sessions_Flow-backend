@@ -17,7 +17,7 @@ import {
   ArchiveRestore
 } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { useAuthStore, useUIStore } from "../../store/stores";
+import { useAuthStore, useUIStore, useChatStore } from "../../store/stores";
 import { useTranslation } from "react-i18next";
 import { useHoverSound } from "../../hooks/useHoverSound";
 
@@ -74,8 +74,11 @@ const Sidebar: React.FC = () => {
     }
   };
 
-  // Shared NavLink renderer
-  const renderNavLink = (item: { name: string; href: string; icon: React.ComponentType<any> }) => (
+  const renderNavLink = (item: { name: string; href: string; icon: React.ComponentType<any> }) => {
+    const isChat = item.href === "/chat";
+    const totalUnreadChat = Object.values(useChatStore((s) => s.unreadCounts)).reduce((a, b) => a + b, 0);
+
+    return (
     <NavLink
       key={item.name}
       to={item.href}
@@ -95,7 +98,14 @@ const Sidebar: React.FC = () => {
           {isActive && (
             <div className="absolute start-[-12px] w-1 h-5 bg-emerald-500 rounded-e-full shadow-[4px_0_12px_rgba(16,185,129,0.4)]" />
           )}
-          <item.icon className={cn("w-5 h-5 shrink-0 transition-transform group-hover:scale-110", isActive && "drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]")} />
+          <div className="relative shrink-0">
+            <item.icon className={cn("w-5 h-5 transition-transform group-hover:scale-110", isActive && "drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]")} />
+            {isChat && totalUnreadChat > 0 && (
+              <div className="absolute -top-1.5 -end-1.5 w-4 h-4 bg-red-500 text-white text-[8px] font-black flex items-center justify-center rounded-full shadow-[0_0_10px_rgba(239,68,68,0.6)] animate-pulse">
+                {totalUnreadChat > 9 ? "9+" : totalUnreadChat}
+              </div>
+            )}
+          </div>
           {(sidebarOpen || window.innerWidth < 1024) && (
             <span className={cn("font-bold text-[11px] uppercase tracking-widest transition-colors", isActive ? "text-emerald-400" : "text-slate-500")}>
               {item.name}
@@ -104,7 +114,7 @@ const Sidebar: React.FC = () => {
         </>
       )}
     </NavLink>
-  );
+  )};
 
   return (
     <aside
