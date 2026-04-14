@@ -7,6 +7,7 @@ using SessionFlow.Desktop.Services;
 using System.IO;
 using SessionFlow.Desktop.Data;
 using MongoDB.Driver;
+using SessionFlow.Desktop.Models;
 
 namespace SessionFlow.Desktop.Api.Endpoints;
 
@@ -23,7 +24,7 @@ public static class AuthEndpoints
             if (string.IsNullOrWhiteSpace(req.Identifier) || string.IsNullOrWhiteSpace(req.Password))
                 return Results.BadRequest(new { error = "Identifier and password are required." });
 
-            var (user, token, error) = await auth.LoginAsync(req.Identifier.Trim(), req.Password, req.StudentId?.Trim(), req.EngineerCode?.Trim());
+            var (user, token, error) = await auth.LoginAsync(req.Identifier.Trim(), req.Password, req.Portal, req.StudentId?.Trim(), req.EngineerCode?.Trim());
             if (error != null)
                 return Results.BadRequest(new { error });
 
@@ -147,54 +148,65 @@ public static class AuthEndpoints
             var engineer = await db.Users.Find(u => u.Id == groupObj.EngineerId).FirstOrDefaultAsync();
             var students = await db.Students.Find(s => s.GroupId == groupObj.Id && !s.IsDeleted).ToListAsync();
             
+            // Filter out students who already have a registered user account
+            var registeredStudentIds = (await db.Users.Find(u => u.Role == UserRole.Student && u.StudentId != null)
+                .Project(u => u.StudentId)
+                .ToListAsync())
+                .ToHashSet();
+
+            // Filter out students who have a pending request
+            var pendingStudentNames = (await db.PendingStudentRequests
+                .Find(p => p.GroupId == groupObj.Id && p.Status == PendingStatus.Pending)
+                .Project(p => p.Name)
+                .ToListAsync())
+                .ToHashSet();
+
+            var availableStudents = students
+                .Where(s => !registeredStudentIds.Contains(s.Id.ToString()) && !registeredStudentIds.Contains(s.UniqueStudentCode))
+                .Where(s => !pendingStudentNames.Contains(s.Name))
+                .ToList();
+
             return Results.Ok(new
             {
                 groupName = groupObj.Name,
                 engineerName = engineer?.Name ?? "Unknown Engineer",
                 level = groupObj.Level,
-                students = students.Select(s => new { id = s.Id, name = s.Name }).ToList()
+                students = availableStudents.Select(s => new { id = s.Id, name = s.Name }).ToList()
             });
         });
 
-        group.MapGet("/pending-student-requests", async (HttpContext ctx, AuthService auth, MongoService db) =>
+        group.MapGet("/pending-student-requests", async (HttpContext ctx, AuthService auth) =>
         {
             var user = await auth.GetUserFromClaimsAsync(ctx.User);
-            if (user == null || user.Role != Models.UserRole.Engineer)
-                return Results.Unauthorized();
+            if (user == null) return Results.Unauthorized();
 
-            var pending = await db.PendingStudentRequests
-                .Find(p => p.EngineerId == user.Id && p.Status == Models.PendingStatus.Pending)
-                .SortByDescending(p => p.RequestedAt)
-                .ToListAsync();
-
+            var pending = await auth.GetPendingStudentRequestsAsync(user);
             return Results.Ok(pending);
-        }).RequireAuthorization();
+        }).RequireAuthorization("CanViewStudentRequests");
 
         group.MapPost("/approve-student-request/{id}", async (Guid id, HttpContext ctx, AuthService auth) =>
         {
-            var user = await auth.GetUserFromClaimsAsync(ctx.User);
-            if (user == null || user.Role != Models.UserRole.Engineer)
-                return Results.Unauthorized();
+            var executor = await auth.GetUserFromClaimsAsync(ctx.User);
+            if (executor == null) return Results.Unauthorized();
 
-            var (approvedUser, error) = await auth.ApproveStudentRequestAsync(id);
+            var (approvedUser, error) = await auth.ApproveStudentRequestAsync(id, executor);
             if (error != null)
                 return Results.BadRequest(new { error });
 
             return Results.Ok(new { message = "Request approved.", user = new { id = approvedUser!.Id, name = approvedUser.Name } });
-        }).RequireAuthorization();
+        }).RequireAuthorization("CanApproveStudentRequests");
 
         group.MapPost("/deny-student-request/{id}", async (Guid id, HttpContext ctx, AuthService auth) =>
         {
-            var user = await auth.GetUserFromClaimsAsync(ctx.User);
-            if (user == null || user.Role != Models.UserRole.Engineer)
-                return Results.Unauthorized();
+            var executor = await auth.GetUserFromClaimsAsync(ctx.User);
+            if (executor == null) return Results.Unauthorized();
 
-            var (success, error) = await auth.DenyStudentRequestAsync(id);
+            var (success, error) = await auth.DenyStudentRequestAsync(id, executor);
             if (!success)
                 return Results.BadRequest(new { error });
 
             return Results.Ok(new { message = "Request denied." });
-        }).RequireAuthorization();
+        }).RequireAuthorization("CanApproveStudentRequests");
 
         group.MapGet("/me", async (HttpContext ctx, AuthService auth) =>
         {
@@ -264,7 +276,8 @@ public static class AuthEndpoints
     public record UpdatePasswordRequest(string CurrentPassword, string NewPassword);
     public record UpdateAvatarRequest(string AvatarUrl);
 
-    public record LoginRequest(string Identifier, string Password, string? StudentId = null, string? EngineerCode = null);
+    public enum LoginPortal { Admin, Student }
+    public record LoginRequest(string Identifier, string Password, LoginPortal Portal = LoginPortal.Admin, string? StudentId = null, string? EngineerCode = null);
     public record RegisterRequest(string Name, string Email, string Password, string? AccessCode = null);
     public record RegisterStudentRequest(string Name, string Username, string Password, string StudentId, string EngineerCode);
     public record RegisterStudentQueueRequest(string Name, string Username, string Email, string Password, string GroupName);

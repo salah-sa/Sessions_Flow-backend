@@ -31,11 +31,14 @@ public class AuthService
         _generatedAdminPassword = _config["Security:DefaultAdminPassword"] ?? "Admin1234!";
     }
 
-    public async Task<(User? user, string? token, string? error)> LoginAsync(string identifier, string password, string? studentId = null, string? engineerCode = null)
+    public async Task<(User? user, string? token, string? error)> LoginAsync(string identifier, string password, Api.Endpoints.AuthEndpoints.LoginPortal portal, string? studentId = null, string? engineerCode = null)
     {
         User? user;
-        if (studentId != null && engineerCode != null)
+        if (portal == Api.Endpoints.AuthEndpoints.LoginPortal.Student)
         {
+            if (string.IsNullOrWhiteSpace(studentId) || string.IsNullOrWhiteSpace(engineerCode))
+                return (null, null, "Student ID and Engineer Code are required for the Student portal.");
+
             // Student Login
             var filter = Builders<User>.Filter.Regex(u => u.Username, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(identifier)}$", "i"))
                        & Builders<User>.Filter.Eq(u => u.StudentId, studentId)
@@ -47,6 +50,9 @@ public class AuthService
             // Admin/Engineer Login
             var filter = Builders<User>.Filter.Regex(u => u.Email, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(identifier)}$", "i"));
             user = await _db.Users.Find(filter).FirstOrDefaultAsync();
+
+            if (user != null && user.Role == UserRole.Student)
+                return (null, null, "Access Denied: Students are not permitted to access the Operations portal.");
         }
 
         if (user == null)
@@ -184,10 +190,34 @@ public class AuthService
         return (pending, null);
     }
 
-    public async Task<(User? user, string? error)> ApproveStudentRequestAsync(Guid pendingId)
+    public async Task<List<PendingStudentRequest>> GetPendingStudentRequestsAsync(User user)
+    {
+        if (user.Role == UserRole.Admin)
+        {
+            return await _db.PendingStudentRequests
+                .Find(p => p.Status == PendingStatus.Pending)
+                .SortByDescending(p => p.RequestedAt)
+                .ToListAsync();
+        }
+        else if (user.Role == UserRole.Engineer)
+        {
+            return await _db.PendingStudentRequests
+                .Find(p => p.EngineerId == user.Id && p.Status == PendingStatus.Pending)
+                .SortByDescending(p => p.RequestedAt)
+                .ToListAsync();
+        }
+        return new List<PendingStudentRequest>();
+    }
+
+    public async Task<(User? user, string? error)> ApproveStudentRequestAsync(Guid pendingId, User executor)
     {
         var pending = await _db.PendingStudentRequests.Find(p => p.Id == pendingId).FirstOrDefaultAsync();
         if (pending == null) return (null, "Request not found.");
+        
+        // Strict Scoping Enforcement
+        if (executor.Role == UserRole.Engineer && pending.EngineerId != executor.Id)
+            return (null, "Action forbidden. This request does not belong to your assigned sector.");
+
         if (pending.Status != PendingStatus.Pending) return (null, "Request already processed.");
 
         // Double check username availability
@@ -241,7 +271,7 @@ public class AuthService
             try {
                 using var scope = _serviceProvider.CreateScope();
                 var mail = scope.ServiceProvider.GetRequiredService<SmtpEmailService>();
-                await mail.SendEmailAsync(
+                var (emailSuccess, emailError) = await mail.SendEmailAsync(
                     user.Email,
                     "SessionFlow: Student Activation Completed",
                     $@"<div style='font-family: sans-serif; background: #020617; color: white; padding: 40px; border-radius: 20px;'>
@@ -257,7 +287,21 @@ public class AuthService
                         <p>You can now log in using your Username and Password.</p>
                     </div>"
                 );
-            } catch { /* Ignored */ }
+
+                if (!emailSuccess)
+                {
+                    // Notify engineer that email failed
+                    var notifService = scope.ServiceProvider.GetRequiredService<NotificationService>();
+                    await notifService.CreateNotificationAsync(
+                        pending.EngineerId,
+                        "Email Delivery Failed",
+                        $"Could not send activation email to {user.Email}: {emailError}. Please notify the student manually with their Student ID {studentCode}.",
+                        NotificationType.Warning
+                    );
+                }
+            } catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine($"Email dispatch exception: {ex.Message}");
+            }
         });
 
         // Publish Event for real-time frontend update
@@ -271,8 +315,17 @@ public class AuthService
         return (user, null);
     }
 
-    public async Task<(bool success, string? error)> DenyStudentRequestAsync(Guid pendingId)
+    public async Task<(bool success, string? error)> DenyStudentRequestAsync(Guid pendingId, User executor)
     {
+        var pending = await _db.PendingStudentRequests.Find(p => p.Id == pendingId).FirstOrDefaultAsync();
+        if (pending == null) return (false, "Request not found.");
+        
+        // Strict Scoping Enforcement
+        if (executor.Role == UserRole.Engineer && pending.EngineerId != executor.Id)
+            return (false, "Action forbidden. This request does not belong to your assigned sector.");
+
+        if (pending.Status != PendingStatus.Pending) return (false, "Request already processed.");
+
         var update = Builders<PendingStudentRequest>.Update
             .Set(p => p.Status, PendingStatus.Denied)
             .Set(p => p.UpdatedAt, DateTimeOffset.UtcNow);
@@ -556,13 +609,27 @@ public class AuthService
         };
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.Name),
             new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.Role, user.Role.ToString())
         };
+
+        if (user.Role == UserRole.Admin)
+        {
+            claims.Add(new Claim("scope", "view:student_requests"));
+            claims.Add(new Claim("scope", "approve:student"));
+            claims.Add(new Claim("scope", "view:audit_logs"));
+            claims.Add(new Claim("scope", "manage:engineers"));
+        }
+        else if (user.Role == UserRole.Engineer)
+        {
+            claims.Add(new Claim("scope", "view:student_requests"));
+            claims.Add(new Claim("scope", "approve:student"));
+        }
+
 
         var token = new JwtSecurityToken(
             issuer: issuer,
