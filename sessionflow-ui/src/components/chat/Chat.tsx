@@ -13,6 +13,7 @@ import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { Group, Student, User as ProjectUser } from "../../types";
 import { createMentionEngine, MentionEngine, MentionableMember } from "../../lib/MentionEngine";
+import AnimatedChatIcon from "../ui/AnimatedChatIcon";
 
 // ═══════════════════════════════════════════════
 // Block-based Message Renderer (Token System)
@@ -429,7 +430,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage,
             {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 bg-slate-800/50 rounded-[2rem]" />)}
           </div>
         ) : messages.length === 0 ? (
-          <EmptyState icon={MessageSquare} title="ENCRYPTED CHANNEL" description="Direct link established. You can now start communicating." />
+          <EmptyState 
+            icon={() => <AnimatedChatIcon size={48} state="idle" />} 
+            title="ENCRYPTED CHANNEL" 
+            description="Direct link established. You can now start communicating." 
+          />
         ) : (
           messages.map((msg, i) => {
             const prevMsg = messages[i-1];

@@ -412,6 +412,26 @@
 .animate-scale-in { animation: scale-in 0.3s ease-out forwards; }
 .animate-mesh { animation: mesh-shift 8s ease infinite; background-size: 200% 200%; }
 
+@keyframes bell-ring {
+  0%, 100% { transform: rotate(0); }
+  10%, 30%, 50%, 70%, 90% { transform: rotate(-10deg); }
+  20%, 40%, 60%, 80% { transform: rotate(10deg); }
+}
+
+@keyframes bounce-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.animate-bell-ring {
+  animation: bell-ring 1s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  transform-origin: top center;
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 2s ease-in-out infinite;
+}
+
 /* Stagger delays for form fields */
 .stagger-1 { animation-delay: 0ms; }
 .stagger-2 { animation-delay: 80ms; }

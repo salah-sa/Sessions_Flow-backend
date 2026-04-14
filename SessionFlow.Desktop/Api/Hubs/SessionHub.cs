@@ -383,9 +383,17 @@ public class SessionHub : Hub
             if (user != null) {
                 var studentInfos = await _auth.ResolveAllStudentsForUser(user);
                 var groupIds = studentInfos.Select(s => s.GroupId).ToList();
+                
+                // Add Engineers
                 var groups = await _db.Groups.Find(g => groupIds.Contains(g.Id) && !g.IsDeleted).ToListAsync();
                 foreach (var g in groups) {
                     visibleUserIds.Add(g.EngineerId.ToString());
+                }
+
+                // Add Peer Students
+                var peers = await _db.Students.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted && s.UserId != null).ToListAsync();
+                foreach (var p in peers) {
+                    visibleUserIds.Add(p.UserId!.Value.ToString());
                 }
             }
         }

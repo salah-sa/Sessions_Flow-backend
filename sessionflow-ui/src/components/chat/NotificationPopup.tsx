@@ -4,6 +4,7 @@ import { useNotificationPopupStore } from "../../store/notificationStore";
 import { MessageSquare, X } from "lucide-react";
 import { useChatStore } from "../../store/stores";
 import { useNavigate } from "react-router-dom";
+import AnimatedChatIcon from "../ui/AnimatedChatIcon";
 import { cn } from "../../lib/utils";
 
 // ═══════════════════════════════════════════════════════════════
@@ -68,7 +69,7 @@ const NotificationPopup: React.FC = () => {
                   {notification.avatarUrl ? (
                     <img src={notification.avatarUrl} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <MessageSquare className="w-5 h-5" />
+                    <AnimatedChatIcon size={20} state="ping" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0 pr-6">

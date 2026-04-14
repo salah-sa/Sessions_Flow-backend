@@ -135,6 +135,27 @@ public static class AuthEndpoints
             });
         });
 
+        group.MapGet("/discover-group", async (string name, MongoService db) =>
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return Results.BadRequest(new { error = "Group name is required." });
+
+            var groupObj = await db.Groups.Find(g => g.Name == name && !g.IsDeleted).FirstOrDefaultAsync();
+            if (groupObj == null)
+                return Results.NotFound(new { error = "Group not found." });
+
+            var engineer = await db.Users.Find(u => u.Id == groupObj.EngineerId).FirstOrDefaultAsync();
+            var students = await db.Students.Find(s => s.GroupId == groupObj.Id && !s.IsDeleted).ToListAsync();
+            
+            return Results.Ok(new
+            {
+                groupName = groupObj.Name,
+                engineerName = engineer?.Name ?? "Unknown Engineer",
+                level = groupObj.Level,
+                students = students.Select(s => new { id = s.Id, name = s.Name }).ToList()
+            });
+        });
+
         group.MapGet("/pending-student-requests", async (HttpContext ctx, AuthService auth, MongoService db) =>
         {
             var user = await auth.GetUserFromClaimsAsync(ctx.User);

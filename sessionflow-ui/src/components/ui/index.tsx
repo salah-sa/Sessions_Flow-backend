@@ -57,7 +57,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, variant = "default", ...props }, ref) => {
     const variants = {
-      default: "text-[11px] font-black uppercase tracking-widest",
+      default: "text-[11px] font-black tracking-widest",
       auth: "text-sm font-medium tracking-normal normal-case",
     };
     return (

@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { registerEngineer, registerStudentQueue } from "../api/authService";
+import { authApi } from "../api/resources";
 import { useTranslation } from "react-i18next";
 import { useSharedAuth } from "../hooks/useSharedAuth";
 import { AuthLayout } from "../components/auth/AuthLayout";
@@ -29,9 +30,52 @@ const RegisterPage: React.FC = () => {
   
   const sharedAuth = useSharedAuth();
   
-  const { register, handleSubmit, formState: { errors } } = useForm<RegisterFormValues>({
+  const { register, handleSubmit, formState: { errors }, watch, resetField, setValue } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
   });
+
+  const [discoveryStep, setDiscoveryStep] = useState<'search' | 'pick-student' | 'register'>('search');
+  const [discoveredGroup, setDiscoveredGroup] = useState<any>(null);
+  const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null);
+
+  const groupName = watch("groupName");
+
+  const onDiscover = async () => {
+    if (!groupName) {
+      toast.error("Please enter a group name");
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await authApi.discoverGroup(groupName);
+      setDiscoveredGroup(result);
+      setDiscoveryStep('pick-student');
+      sharedAuth.setMascotState("watching");
+      toast.success("Group found! Please select your name.");
+    } catch (err: any) {
+      toast.error(err.message || "Group not found. Check the name.");
+      sharedAuth.setMascotState("error");
+      setTimeout(() => sharedAuth.setMascotState("idle"), 1000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onSelectStudent = (student: { id: string; name: string }) => {
+    setSelectedStudent(student);
+    setValue("name", student.name);
+    setDiscoveryStep('register');
+    sharedAuth.setMascotState("success");
+    setTimeout(() => sharedAuth.setMascotState("idle"), 500);
+  };
+
+  const onResetDiscovery = () => {
+    setDiscoveryStep('search');
+    setDiscoveredGroup(null);
+    setSelectedStudent(null);
+    resetField("groupName");
+    resetField("name");
+  };
 
   const onSubmit = async (data: RegisterFormValues) => {
     setLoading(true);
@@ -45,8 +89,8 @@ const RegisterPage: React.FC = () => {
           data.password
         );
       } else {
-        if (!data.groupName || !data.email) {
-          toast.error("Group Name and Email are required");
+        if (!data.groupName || !data.email || !selectedStudent) {
+          toast.error("Group Selection and Email are required");
           setLoading(false);
           return;
         }
@@ -88,6 +132,12 @@ const RegisterPage: React.FC = () => {
         onSubmit={handleSubmit(onSubmit)}
         loading={loading}
         isRegister={true}
+        discoveryStep={discoveryStep}
+        discoveredGroup={discoveredGroup}
+        onDiscover={onDiscover}
+        selectedStudent={selectedStudent}
+        onSelectStudent={onSelectStudent}
+        onResetDiscovery={onResetDiscovery}
       />
     </AuthLayout>
   );

@@ -77,7 +77,7 @@ export const WeekView: React.FC<WeekViewProps> = ({ sessions, currentDate, onAdd
       {/* Grid Matrix */}
       <div className="flex-1 overflow-y-auto relative custom-scrollbar bg-[radial-gradient(ellipse_at_top,rgba(56,189,248,0.05),transparent_60%)] [perspective:2500px]">
         {/* Antigravity 3D Grid Plane */}
-        <div className="grid grid-cols-8 min-h-[1344px] relative [transform-style:preserve-3d] [transform:rotateX(12deg)_rotateY(-2deg)_scale(0.95)] origin-top group/matrix transition-transform duration-[2s] ease-[cubic-bezier(0.16,1,0.3,1)] hover:[transform:rotateX(0deg)_rotateY(0deg)_scale(1)]">
+        <div className="grid grid-cols-8 min-h-[1344px] relative [transform-style:preserve-3d] [transform:rotateX(4deg)_rotateY(-1deg)_scale(0.98)] origin-top group/matrix transition-transform duration-[2s] ease-[cubic-bezier(0.16,1,0.3,1)] hover:[transform:rotateX(0deg)_rotateY(0deg)_scale(1)]">
           
           {/* Spatial Grid Background Base */}
           <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:96px_96px] [transform:translateZ(-50px)] pointer-events-none" />

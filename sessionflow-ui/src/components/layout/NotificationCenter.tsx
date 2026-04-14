@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Bell, Check, Trash2, Info, CheckCircle, AlertTriangle, XCircle, Clock, ArrowUpRight, Users, X } from "lucide-react";
+import { Bell, Check, Trash2, Info, CheckCircle, AlertTriangle, XCircle, Clock, ArrowUpRight, Users, X, Loader2 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { Button, Badge } from "../ui";
 import { NotificationType } from "../../types";
 import { useNotifications, useNotificationMutations, usePendingStudentRequests } from "../../queries/useNotificationQueries";
 import { useAuthStore } from "../../store/stores";
+import { motion, AnimatePresence } from "framer-motion";
 
 const NotificationCenter: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,12 +35,12 @@ const NotificationCenter: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Auto-mark all as read when opened
-  useEffect(() => {
-    if (isOpen && unreadCount > 0) {
-      markAllAsReadMutation.mutate();
-    }
-  }, [isOpen]);
+  // Auto-mark all as read disabled to avoid state flickering with pending requests
+  // useEffect(() => {
+  //   if (isOpen && unreadCount > 0) {
+  //     markAllAsReadMutation.mutate();
+  //   }
+  // }, [isOpen]);
 
   const handleMarkAsRead = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -65,16 +66,23 @@ const NotificationCenter: React.FC = () => {
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all border border-transparent hover:border-white/5 group/bell"
       >
-        <Bell className={cn("w-5 h-5", unreadCount > 0 && "animate-pulse text-brand-500 shadow-glow")} />
+        <Bell className={cn("w-5 h-5 transition-all duration-300", unreadCount > 0 && "animate-bell-ring text-red-500")} />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-lg bg-brand-500 text-[8px] font-black text-white border-2 border-slate-950 shadow-glow shadow-brand-500/20">
+          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-lg bg-red-600 text-[8px] font-black text-white border-2 border-slate-950 shadow-[0_0_10px_rgba(239,68,68,0.5)] animate-bounce-subtle">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
 
-      {isOpen && (
-        <div className="absolute right-0 mt-4 w-[calc(100vw-2rem)] md:w-[420px] bg-slate-950 border border-white/10 rounded-[2rem] shadow-2xl z-[100] overflow-hidden animate-in fade-in zoom-in duration-300 origin-top-right rtl:origin-top-left backdrop-blur-3xl shadow-brand-500/5">
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ opacity: 0, y: 15, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 15, scale: 0.95 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="absolute right-0 mt-4 w-[calc(100vw-2rem)] md:w-[420px] bg-slate-950/90 border border-white/10 rounded-[2.5rem] shadow-2xl z-[100] overflow-hidden backdrop-blur-3xl shadow-brand-500/5 ring-1 ring-white/10"
+          >
           <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
             <div className="flex items-center gap-4">
                <div className="w-1.5 h-6 bg-brand-500 rounded-full shadow-glow" />
@@ -91,57 +99,73 @@ const NotificationCenter: React.FC = () => {
             )}
           </div>
 
-          <div className="max-h-[60vh] overflow-y-auto custom-scrollbar">
-            {pendingRequests.length > 0 && (
-              <div className="mb-2 border-b border-white/5 pb-2">
-                <div className="px-6 py-2">
-                  <h4 className="text-[10px] font-black text-brand-400 uppercase tracking-widest">Join Requests</h4>
+            <div className="max-h-[60vh] overflow-y-auto custom-scrollbar">
+              {pendingRequests.length > 0 && (
+                <div className="mb-2 border-b border-white/5 pb-2">
+                  <div className="px-6 py-2 flex items-center justify-between">
+                    <h4 className="text-[10px] font-black text-brand-400 uppercase tracking-widest flex items-center gap-2">
+                      <Users className="w-3 h-3" />
+                      Join Requests
+                    </h4>
+                    <Badge variant="success" className="text-[8px] animate-pulse">Action Required</Badge>
+                  </div>
+                  <div className="divide-y divide-white/5">
+                    {pendingRequests.map((req: any) => (
+                      <motion.div 
+                        key={req.id} 
+                        layout
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="px-6 py-5 transition-all flex gap-4 group bg-emerald-500/5 hover:bg-emerald-500/10 relative overflow-hidden"
+                      >
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 shadow-glow opacity-50 group-hover:opacity-100 transition-opacity" />
+                        <div className="shrink-0 mt-1">
+                          <div className="w-10 h-10 rounded-2xl flex items-center justify-center border bg-emerald-500/20 border-emerald-500/30 text-emerald-400 shadow-glow shadow-emerald-500/10 group-hover:scale-110 transition-transform">
+                            <Users className="w-5 h-5" />
+                          </div>
+                        </div>
+                        <div className="flex-1 space-y-3">
+                          <div>
+                            <p className="text-[13px] font-sora font-black tracking-tight text-white uppercase">{req.name}</p>
+                            <p className="text-[11px] text-slate-400 mt-0.5 leading-tight">
+                              Wants to join <span className="text-emerald-400 font-bold">{req.groupName}</span>
+                            </p>
+                            <div className="flex items-center gap-2 mt-1.5 opacity-60 text-[9px] font-medium text-slate-500">
+                               <span className="bg-white/5 px-1.5 py-0.5 rounded border border-white/5">{req.identifier}</span>
+                               <span className="bg-white/5 px-1.5 py-0.5 rounded border border-white/5">{req.email}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              size="sm"
+                              className="h-8 px-4 text-[10px] font-black uppercase tracking-wider bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                approveStudentMutation.mutate(req.id);
+                              }}
+                              disabled={approveStudentMutation.isPending}
+                            >
+                              {approveStudentMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Check className="w-3 h-3 mr-1.5" /> Approve</>}
+                            </Button>
+                            <Button 
+                              size="sm"
+                              className="h-8 px-4 text-[10px] font-black uppercase tracking-wider bg-white/5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 border border-white/5 active:scale-95 transition-all flex-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                denyStudentMutation.mutate(req.id);
+                              }}
+                              disabled={denyStudentMutation.isPending}
+                            >
+                              <X className="w-3 h-3 mr-1.5" />
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
                 </div>
-                <div className="divide-y divide-white/5">
-                  {pendingRequests.map((req: any) => (
-                    <div key={req.id} className="px-6 py-4 transition-all flex gap-4 group bg-brand-500/[0.05] relative overflow-hidden">
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-500 shadow-glow" />
-                      <div className="shrink-0 mt-1">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center border bg-brand-500/10 border-brand-500/20 text-brand-500">
-                          <Users className="w-4 h-4" />
-                        </div>
-                      </div>
-                      <div className="flex-1 space-y-2">
-                        <div>
-                          <p className="text-[13px] font-sora font-black tracking-tight text-white">{req.name}</p>
-                          <p className="text-[11px] text-slate-400 mt-0.5">Wants to join <span className="font-bold text-white">{req.groupName}</span></p>
-                          <p className="text-[10px] text-slate-500">{req.identifier} • {req.email}</p>
-                        </div>
-                        <div className="flex items-center gap-2 pt-1">
-                          <Button 
-                            className="h-7 px-3 text-[9px] uppercase tracking-wider bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              approveStudentMutation.mutate(req.id);
-                            }}
-                            disabled={approveStudentMutation.isPending}
-                          >
-                            <Check className="w-3 h-3 mr-1" />
-                            Accept
-                          </Button>
-                          <Button 
-                            className="h-7 px-3 text-[9px] uppercase tracking-wider bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              denyStudentMutation.mutate(req.id);
-                            }}
-                            disabled={denyStudentMutation.isPending}
-                          >
-                            <X className="w-3 h-3 mr-1" />
-                            Deny
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+              )}
 
             {notifications.length === 0 && pendingRequests.length === 0 ? (
               <div className="p-16 text-center space-y-6 opacity-30">
@@ -205,8 +229,9 @@ const NotificationCenter: React.FC = () => {
                <ArrowUpRight className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition-opacity" />
              </button>
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -19,6 +19,7 @@ export const authApi = {
       body: JSON.stringify(data),
     }),
   getPendingStudentRequests: () => fetchWithAuth<any[]>("/auth/pending-student-requests"),
+  discoverGroup: (name: string) => fetchWithAuth<{ groupName: string; engineerName: string; level: number; students: { id: string; name: string }[] }>(`/auth/discover-group?name=${name}`),
   approveStudentRequest: (id: string) =>
     fetchWithAuth<{ message: string; user: any }>(`/auth/approve-student-request/${id}`, { method: "POST" }),
   denyStudentRequest: (id: string) =>

@@ -1516,11 +1516,18 @@ i18n
     },
   });
 
-// Handle RTL
-i18n.on('languageChanged', (lng) => {
+// Handle RTL initial state and changes
+const handleDirectionChange = (lng: string) => {
   const direction = lng === 'ar' ? 'rtl' : 'ltr';
   document.documentElement.dir = direction;
   document.documentElement.lang = lng;
+};
+
+// Apply initial direction
+handleDirectionChange(i18n.language);
+
+i18n.on('languageChanged', (lng) => {
+  handleDirectionChange(lng);
 });
 
 export default i18n;
