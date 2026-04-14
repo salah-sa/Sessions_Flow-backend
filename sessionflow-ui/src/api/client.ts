@@ -29,20 +29,22 @@ export async function fetchWithAuth<T>(
 
     if (!response.ok) {
       if (response.status === 401) {
-        // Login cooldown: don't trigger logout within 5 seconds of a successful login.
-        // This prevents the race condition where background queries (SignalR, dashboard, etc.)
-        // fire 401 before the token fully propagates, nuking the session.
-        const { _lastLoginAt, logout } = useAuthStore.getState();
-        const timeSinceLogin = Date.now() - _lastLoginAt;
-        const LOGIN_COOLDOWN_MS = 5000;
+        // Only the /auth/me endpoint is the definitive "session expired" signal.
+        // Background query re-fetches (from SignalR invalidation) can transiently 401
+        // without meaning the session is truly dead.
+        const isSessionCheck = endpoint === "/auth/me" || endpoint.startsWith("/auth/me?");
 
-        if (timeSinceLogin > LOGIN_COOLDOWN_MS) {
-          logout();
-          if (!window.location.pathname.includes("/login")) {
-            window.location.href = "/login";
+        if (isSessionCheck) {
+          const { _lastLoginAt, logout } = useAuthStore.getState();
+          const timeSinceLogin = Date.now() - _lastLoginAt;
+          const LOGIN_COOLDOWN_MS = 5000;
+
+          if (timeSinceLogin > LOGIN_COOLDOWN_MS) {
+            logout();
+            if (!window.location.pathname.includes("/login")) {
+              window.location.href = "/login";
+            }
           }
-        } else {
-          console.warn(`[fetchWithAuth] 401 suppressed — login cooldown active (${timeSinceLogin}ms since login)`);
         }
         throw new Error("Session expired. Please login again.");
       }

@@ -16,6 +16,7 @@ const StudentsPage = lazy(() => import("./pages/StudentsPage"));
 const HistoryPage = lazy(() => import("./pages/HistoryPage"));
 const ChatPage = lazy(() => import("./pages/ChatPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
+const EngineerControlTowerPage = lazy(() => import("./pages/EngineerControlTowerPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const ArchivePage = lazy(() => import("./pages/ArchivePage"));
@@ -145,14 +146,29 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: "admin",
-        element: (
-          <RoleGuard allowedRoles={["Admin"]}>
-            <Suspense fallback={<PageLoader />}>
-              <AdminPage />
-            </Suspense>
-          </RoleGuard>
-        ),
+        path: "control-tower",
+        children: [
+          {
+            path: "admin",
+            element: (
+              <RoleGuard allowedRoles={["Admin"]}>
+                <Suspense fallback={<PageLoader />}>
+                  <AdminPage />
+                </Suspense>
+              </RoleGuard>
+            )
+          },
+          {
+            path: "engineer",
+            element: (
+              <RoleGuard allowedRoles={["Engineer"]}>
+                <Suspense fallback={<PageLoader />}>
+                  <EngineerControlTowerPage />
+                </Suspense>
+              </RoleGuard>
+            )
+          }
+        ]
       },
       {
         path: "settings",

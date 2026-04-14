@@ -5,6 +5,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
 import { Card, Button, Input, Badge, Skeleton } from "../components/ui";
 import { useSystemQueries, useAdminMutations } from "../queries/useAdminQueries";
+import { usePendingStudentRequests, useEngineerMutations } from "../queries/useEngineerQueries";
 import { PendingEngineer, EngineerCode } from "../types";
 import { cn } from "../lib/utils";
 import { useTranslation } from "react-i18next";
@@ -20,9 +21,10 @@ import { useQueryClient } from "@tanstack/react-query";
 const AdminPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"pending" | "codes" | "engineers" | "audit">("pending");
+  const [activeTab, setActiveTab] = useState<"pending" | "students" | "codes" | "engineers" | "audit">("pending");
   const [searchQuery, setSearchQuery] = useState("");
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [studentProcessingIds, setStudentProcessingIds] = useState<Set<string>>(new Set());
 
   const dateLocale = i18n.language === "ar" ? ar : enUS;
 
@@ -33,16 +35,21 @@ const AdminPage: React.FC = () => {
     auditLogs: auditLogsQuery 
   } = useSystemQueries();
 
-  const loading = pendingEngineers.isLoading || engineerCodes.isLoading || allEngineers.isLoading || auditLogsQuery.isLoading;
+  const { data: pendingStudentsData, isLoading: isLoadingStudents } = usePendingStudentRequests();
+
+  const loading = pendingEngineers.isLoading || engineerCodes.isLoading || allEngineers.isLoading || auditLogsQuery.isLoading || isLoadingStudents;
   const pending = pendingEngineers.data || [];
+  const pendingStudents = pendingStudentsData || [];
   const codes = engineerCodes.data || [];
   const engineers = allEngineers.data || [];
   const auditLogs = auditLogsQuery.data || [];
 
   const { approveMutation, denyMutation, generateCodeMutation, revokeCodeMutation } = useAdminMutations();
+  const { approveStudentMutation, denyStudentMutation } = useEngineerMutations();
 
   const fetchData = async () => {
     queryClient.invalidateQueries({ queryKey: ["system"] });
+    queryClient.invalidateQueries({ queryKey: ["pending-student-requests"] });
   };
 
   const handleApprove = async (id: string) => {
@@ -73,6 +80,40 @@ const AdminPage: React.FC = () => {
       toast.error(t("common.error"));
     } finally {
       setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
+
+  const handleApproveStudent = async (id: string, name: string) => {
+    if (studentProcessingIds.has(id)) return;
+    setStudentProcessingIds(prev => new Set(prev).add(id));
+    try {
+      await approveStudentMutation.mutateAsync(id);
+      toast.success(`${name} approved successfully`);
+    } catch (err: any) {
+      toast.error(err.message || "Approval failed");
+    } finally {
+      setStudentProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
+
+  const handleDenyStudent = async (id: string, name: string) => {
+    if (studentProcessingIds.has(id)) return;
+    setStudentProcessingIds(prev => new Set(prev).add(id));
+    try {
+      await denyStudentMutation.mutateAsync(id);
+      toast.error(`${name}'s request denied`);
+    } catch (err: any) {
+      toast.error(err.message || "Deny failed");
+    } finally {
+      setStudentProcessingIds(prev => {
         const next = new Set(prev);
         next.delete(id);
         return next;
@@ -171,8 +212,9 @@ const AdminPage: React.FC = () => {
       <div className="px-10 py-6 bg-slate-900/40 border-b border-white/5 flex flex-wrap gap-4 shrink-0 justify-center">
          {[
            { id: "pending", name: t("admin.tabs.pending"), icon: UserPlus },
+           { id: "students", name: "Students", icon: Users },
            { id: "codes", name: t("admin.tabs.codes"), icon: Key },
-           { id: "engineers", name: t("admin.tabs.engineers"), icon: Users },
+           { id: "engineers", name: t("admin.tabs.engineers"), icon: Shield },
            { id: "audit", name: t("admin.tabs.audit"), icon: FileText }
          ].map((item: any) => (
            <button
@@ -271,7 +313,70 @@ const AdminPage: React.FC = () => {
                   </tbody>
                </table>
             </div>
-         ) : activeTab === "codes" ? (
+         ) : activeTab === "students" ? (
+             <div className="p-8 animate-fade-in">
+                <table className="w-full text-start border-collapse card-base bg-slate-900/20 border-white/5 p-0 overflow-hidden">
+                   <thead>
+                      <tr className="bg-slate-950 border-b border-white/5 text-slate-500 text-[10px] uppercase font-black tracking-widest">
+                         <th className="px-8 py-5 text-start">Student Identity</th>
+                         <th className="px-8 py-5 text-start">Requested Group</th>
+                         <th className="px-8 py-5 text-start">Requested Date</th>
+                         <th className="px-8 py-5 text-end">Actions</th>
+                      </tr>
+                   </thead>
+                   <tbody className="text-sm">
+                      {pendingStudents.length === 0 ? (
+                         <tr><td colSpan={4} className="px-8 py-20 text-center text-slate-600 font-black uppercase tracking-[0.4em] text-[10px]">No Pending Students</td></tr>
+                      ) : pendingStudents.map((req: any) => (
+                         <tr key={req.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
+                            <td className="px-8 py-6">
+                               <div className="flex items-center gap-4">
+                                  <div className="w-11 h-11 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex items-center justify-center">
+                                     <Users className="w-4 h-4 text-emerald-500" />
+                                  </div>
+                                  <div className="text-start">
+                                     <p className="font-black text-white uppercase tracking-tight">{req.name}</p>
+                                     <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{req.username} • {req.email}</p>
+                                  </div>
+                               </div>
+                            </td>
+                            <td className="px-8 py-6">
+                               <Badge className="bg-emerald-500/10 text-emerald-400 border-none">{req.groupName}</Badge>
+                            </td>
+                            <td className="px-8 py-6 font-black text-slate-500 uppercase text-[10px] tracking-widest">
+                               {format(new Date(req.requestedAt), "MMM dd, yyyy")}
+                            </td>
+                            <td className="px-8 py-6 text-end">
+                               <div className="flex justify-end gap-3">
+                                  <button 
+                                    onClick={() => handleApproveStudent(req.id, req.name)} 
+                                    disabled={studentProcessingIds.has(req.id)}
+                                    className={cn(
+                                       "h-9 px-6 bg-emerald-500 text-black text-[9px] font-black uppercase tracking-widest rounded-xl shadow-glow shadow-emerald-500/10 transition-all flex items-center gap-2",
+                                       studentProcessingIds.has(req.id) ? "opacity-50 grayscale cursor-not-allowed" : "hover:scale-105"
+                                    )}
+                                  >
+                                     {studentProcessingIds.has(req.id) && <RefreshCcw className="w-3 h-3 animate-spin" />}
+                                     Approve
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDenyStudent(req.id, req.name)} 
+                                    disabled={studentProcessingIds.has(req.id)}
+                                    className={cn(
+                                       "h-9 px-6 bg-slate-900 border border-white/5 text-red-500 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all",
+                                       studentProcessingIds.has(req.id) ? "opacity-50 grayscale cursor-not-allowed" : "hover:bg-red-500 hover:text-white"
+                                    )}
+                                  >
+                                     Cancel
+                                  </button>
+                               </div>
+                            </td>
+                         </tr>
+                      ))}
+                   </tbody>
+                </table>
+             </div>
+          ) : activeTab === "codes" ? (
             <div className="p-8 space-y-8 animate-fade-in text-start">
                <div className="flex items-center justify-between pb-6 border-b border-white/5">
                   <div className="space-y-1">

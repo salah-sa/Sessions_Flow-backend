@@ -22,11 +22,12 @@ export async function loginUser(
   identifier: string,
   password: string,
   rememberMe: boolean,
+  portal: "Admin" | "Student",
   studentId?: string,
   engineerCode?: string
 ): Promise<AuthResult> {
   try {
-    const credentials: any = { identifier, password };
+    const credentials: any = { identifier, password, portal };
     if (studentId) credentials.studentId = studentId;
     if (engineerCode) credentials.engineerCode = engineerCode;
 

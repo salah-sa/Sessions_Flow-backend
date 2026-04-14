@@ -4,11 +4,15 @@ import { cn } from "../../lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { Button, Badge } from "../ui";
 import { NotificationType } from "../../types";
-import { useNotifications, useNotificationMutations, usePendingStudentRequests } from "../../queries/useNotificationQueries";
+import { useNotifications, useNotificationMutations } from "../../queries/useNotificationQueries";
+import { usePendingStudentRequests } from "../../queries/useEngineerQueries";
 import { useAuthStore } from "../../store/stores";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const NotificationCenter: React.FC = () => {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const user = useAuthStore((s) => s.user);
   
@@ -21,7 +25,7 @@ const NotificationCenter: React.FC = () => {
   
   const unreadCount = baseUnreadCount + pendingRequests.length;
   
-  const { markAsReadMutation, markAllAsReadMutation, approveStudentMutation, denyStudentMutation } = useNotificationMutations();
+  const { markAsReadMutation, markAllAsReadMutation } = useNotificationMutations();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click
@@ -131,33 +135,21 @@ const NotificationCenter: React.FC = () => {
                               Wants to join <span className="text-emerald-400 font-bold">{req.groupName}</span>
                             </p>
                             <div className="flex items-center gap-2 mt-1.5 opacity-60 text-[9px] font-medium text-slate-500">
-                               <span className="bg-white/5 px-1.5 py-0.5 rounded border border-white/5">{req.identifier}</span>
+                               <span className="bg-white/5 px-1.5 py-0.5 rounded border border-white/5">{req.username}</span>
                                <span className="bg-white/5 px-1.5 py-0.5 rounded border border-white/5">{req.email}</span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 mt-2">
                             <Button 
                               size="sm"
-                              className="h-8 px-4 text-[10px] font-black uppercase tracking-wider bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex-1"
+                              className="h-8 px-4 text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 active:scale-95 transition-all w-full"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                approveStudentMutation.mutate(req.id);
+                                setIsOpen(false); // Close notification center
+                                navigate(`/control-tower/engineer?tab=students&requestId=${req.id}`);
                               }}
-                              disabled={approveStudentMutation.isPending}
                             >
-                              {approveStudentMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Check className="w-3 h-3 mr-1.5" /> Approve</>}
-                            </Button>
-                            <Button 
-                              size="sm"
-                              className="h-8 px-4 text-[10px] font-black uppercase tracking-wider bg-white/5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 border border-white/5 active:scale-95 transition-all flex-1"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                denyStudentMutation.mutate(req.id);
-                              }}
-                              disabled={denyStudentMutation.isPending}
-                            >
-                              <X className="w-3 h-3 mr-1.5" />
-                              Cancel
+                              View Request <ArrowUpRight className="w-3 h-3 ml-1.5 opacity-60" />
                             </Button>
                           </div>
                         </div>

@@ -3,7 +3,7 @@ import { User, Group, Student, Session, PendingEngineer, PaginatedResponse } fro
 
 // Auth Module
 export const authApi = {
-  login: (credentials: { identifier: string; password: string; studentId?: string; engineerCode?: string }) => 
+  login: (credentials: { identifier: string; password: string; portal: "Admin" | "Student"; studentId?: string; engineerCode?: string }) => 
     fetchWithAuth<{ token: string; user: User }>("/auth/login", {
       method: "POST",
       body: JSON.stringify(credentials),

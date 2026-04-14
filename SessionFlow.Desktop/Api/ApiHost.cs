@@ -70,6 +70,11 @@ public static class ApiHost
         builder.Services.AddHealthChecks()
             .AddCheck("MongoDB", new MongoHealthCheck(builder.Configuration));
             
+        builder.Services.ConfigureHttpJsonOptions(options =>
+        {
+            options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        });
+
         builder.Services.AddSingleton<MongoService>();
         
         // ── Redis Infrastructure (Graceful Fallback) ──────────────────
@@ -171,6 +176,10 @@ public static class ApiHost
         builder.Services.AddAuthorization(options =>
         {
             options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+            options.AddPolicy("CanViewStudentRequests", policy => policy.RequireClaim("scope", "view:student_requests"));
+            options.AddPolicy("CanApproveStudentRequests", policy => policy.RequireClaim("scope", "approve:student"));
+            options.AddPolicy("CanViewAuditLogs", policy => policy.RequireClaim("scope", "view:audit_logs"));
+            options.AddPolicy("CanManageEngineers", policy => policy.RequireClaim("scope", "manage:engineers"));
         });
 
         // 3. CORS — allow mobile and local origins for development

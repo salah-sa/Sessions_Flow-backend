@@ -35,6 +35,7 @@ const LoginPage: React.FC = () => {
         data.identifier,
         data.password,
         sharedAuth.rememberMe,
+        sharedAuth.loginMode === "student" ? "Student" : "Admin",
         sharedAuth.loginMode === "student" ? data.studentId : undefined,
         sharedAuth.loginMode === "student" ? data.engineerCode : undefined
       );
