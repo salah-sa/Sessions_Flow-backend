@@ -360,7 +360,40 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
         console.error("[SignalR] Connection failed:", err);
         setState(signalR.HubConnectionState.Disconnected);
         useAppStore.getState().setConnectionStatus("Disconnected");
-        useAppStore.getState().setConnectionMode("degraded");
+        useAppStore.getState().setConnectionMode("hybrid");
+        // Retry with exponential backoff (3 attempts: 2s, 5s, 10s)
+        let retryCount = 0;
+        const maxRetries = 3;
+        const retryDelays = [2000, 5000, 10000];
+        const attemptRetry = () => {
+          if (retryCount >= maxRetries || !connectionRef.current) {
+            useAppStore.getState().setConnectionMode("degraded");
+            return;
+          }
+          setTimeout(() => {
+            if (connectionRef.current?.state === signalR.HubConnectionState.Disconnected) {
+              console.log(`[SignalR] Retry attempt ${retryCount + 1}/${maxRetries}`);
+              connectionRef.current.start()
+                .then(() => {
+                  console.log("[SignalR] Retry succeeded");
+                  setState(signalR.HubConnectionState.Connected);
+                  useAppStore.getState().setConnectionStatus("Connected");
+                  useAppStore.getState().setConnectionMode("full");
+                  clearDegradeTimer();
+                  connection.invoke("RequestPresenceSnapshot").catch(() => {});
+                  for (const { event, cb } of pendingListeners.current) {
+                    connection.on(event, cb);
+                  }
+                  pendingListeners.current = [];
+                })
+                .catch(() => {
+                  retryCount++;
+                  attemptRetry();
+                });
+            }
+          }, retryDelays[retryCount] || 10000);
+        };
+        attemptRetry();
       });
 
     return () => {
