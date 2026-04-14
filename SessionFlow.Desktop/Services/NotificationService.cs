@@ -1,22 +1,21 @@
 using MongoDB.Driver;
-using Microsoft.AspNetCore.SignalR;
-using SessionFlow.Desktop.Api.Hubs;
 using SessionFlow.Desktop.Data;
 using SessionFlow.Desktop.Models;
+using SessionFlow.Desktop.Services.EventBus;
 
 namespace SessionFlow.Desktop.Services;
 
 public class NotificationService
 {
     private readonly MongoService _db;
-    private readonly IHubContext<SessionHub> _hubContext;
+    private readonly IEventBus _eventBus;
     
     public static Action<string, string>? ShowToastAction { get; set; }
 
-    public NotificationService(MongoService db, IHubContext<SessionHub> hubContext)
+    public NotificationService(MongoService db, IEventBus eventBus)
     {
         _db = db;
-        _hubContext = hubContext;
+        _eventBus = eventBus;
     }
 
     public async Task<Notification> CreateNotificationAsync(Guid userId, string title, string message, NotificationType type = NotificationType.Info)
@@ -33,8 +32,14 @@ public class NotificationService
 
         await _db.Notifications.InsertOneAsync(notification);
         
-        // SignalR broadcast for real-time UI updates
-        await _hubContext.Clients.User(userId.ToString()).SendAsync("NewNotification");
+        // Publish through event bus (decoupled from SignalR)
+        await _eventBus.PublishAsync(Events.NotificationCreated, EventTargetType.User, userId.ToString(), new
+        {
+            notificationId = notification.Id,
+            title,
+            message,
+            type = type.ToString()
+        });
         
         return notification;
     }
@@ -56,8 +61,12 @@ public class NotificationService
         var update = Builders<Notification>.Update.Set(n => n.IsRead, true);
         await _db.Notifications.UpdateOneAsync(n => n.Id == notificationId, update);
         
-        // Notify client to update count
-        await _hubContext.Clients.User(notification.UserId.ToString()).SendAsync("NewNotification");
+        // Notify client to update count via event bus
+        await _eventBus.PublishAsync(Events.NotificationCreated, EventTargetType.User, notification.UserId.ToString(), new
+        {
+            notificationId,
+            action = "read"
+        });
     }
 
     public async Task MarkAllAsReadAsync(Guid userId)
@@ -65,8 +74,11 @@ public class NotificationService
         var update = Builders<Notification>.Update.Set(n => n.IsRead, true);
         await _db.Notifications.UpdateManyAsync(n => n.UserId == userId && !n.IsRead, update);
         
-        // Notify client to update count
-        await _hubContext.Clients.User(userId.ToString()).SendAsync("NewNotification");
+        // Notify client to update count via event bus
+        await _eventBus.PublishAsync(Events.NotificationCreated, EventTargetType.User, userId.ToString(), new
+        {
+            action = "readAll"
+        });
     }
 
     public async Task<long> GetUnreadCountAsync(Guid userId)

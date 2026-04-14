@@ -377,9 +377,9 @@ const GroupsPage: React.FC = () => {
           </div>
         </div>
       ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10 p-4 pt-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 p-2 pt-8">
           {filteredGroups.map((group) => (
-            <div key={group.id} className="relative group/deck w-full h-[400px]">
+            <div key={group.id} className="relative group/deck w-full h-[380px]">
                {/* Deck Stack Backgrounds */}
                <div className={cn(
                  "absolute inset-x-6 top-8 bottom-0 rounded-[2rem] border border-white/5 backdrop-blur-sm transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover/deck:rotate-[10deg] group-hover/deck:translate-x-12 group-hover/deck:translate-y-6 group-hover/deck:scale-95 shadow-2xl opacity-50",

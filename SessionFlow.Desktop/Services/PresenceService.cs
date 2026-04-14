@@ -3,11 +3,10 @@ using System.Collections.Concurrent;
 namespace SessionFlow.Desktop.Services;
 
 /// <summary>
-/// PresenceService tracks which users are currently online.
-/// Uses an in-memory ConcurrentDictionary for fast lookups.
-/// Updated by the SignalR hub on connect/disconnect and UpdatePresence calls.
+/// In-memory fallback presence service.
+/// Used when Redis is unavailable. Implements IPresenceService.
 /// </summary>
-public class PresenceService
+public class PresenceService : IPresenceService
 {
     // Maps userId → set of connectionIds (a user can have multiple connections)
     private readonly ConcurrentDictionary<string, HashSet<string>> _onlineUsers = new();
@@ -18,10 +17,14 @@ public class PresenceService
     // Maps userId → last heartbeat timestamp
     private readonly ConcurrentDictionary<string, DateTimeOffset> _lastSeen = new();
 
+    // Maps userId → status (online, away, offline)
+    private readonly ConcurrentDictionary<string, string> _statusMap = new();
+
     public void UserConnected(string userId, string connectionId)
     {
         _connectionUserMap[connectionId] = userId;
         RecordHeartbeat(userId);
+        _statusMap[userId] = "online";
 
         _onlineUsers.AddOrUpdate(
             userId,
@@ -48,6 +51,7 @@ public class PresenceService
                     if (connections.Count == 0)
                     {
                         _onlineUsers.TryRemove(userId, out _);
+                        _statusMap[userId] = "offline";
                     }
                 }
             }
@@ -78,6 +82,7 @@ public class PresenceService
             {
                 userId = id,
                 isOnline = IsOnline(id),
+                status = GetStatus(id),
                 lastSeen = _lastSeen.TryGetValue(id, out var ls) ? ls : (DateTimeOffset?)null
             });
         }
@@ -100,5 +105,18 @@ public class PresenceService
         {
             UserDisconnected(connectionId);
         }
+    }
+
+    public Task SetAwayAsync(string userId)
+    {
+        _statusMap[userId] = "away";
+        RecordHeartbeat(userId); // Still alive, just away
+        return Task.CompletedTask;
+    }
+
+    public string GetStatus(string userId)
+    {
+        if (_statusMap.TryGetValue(userId, out var status)) return status;
+        return IsOnline(userId) ? "online" : "offline";
     }
 }

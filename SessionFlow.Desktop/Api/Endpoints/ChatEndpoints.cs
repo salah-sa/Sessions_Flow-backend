@@ -80,7 +80,7 @@ public static class ChatEndpoints
         });
 
         group.MapPost("/{groupIdStr}/messages", async (string groupIdStr, HttpRequest req,
-            MongoService db, HttpContext ctx, IHubContext<SessionHub> hub, Microsoft.AspNetCore.Hosting.IWebHostEnvironment env, AuthService auth) =>
+            MongoService db, HttpContext ctx, Services.EventBus.IEventBus eventBus, Microsoft.AspNetCore.Hosting.IWebHostEnvironment env, AuthService auth) =>
         {
             if (!Guid.TryParse(groupIdStr, out var groupId)) return Results.BadRequest("Invalid Group ID");
             var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -192,7 +192,7 @@ public static class ChatEndpoints
                 sentAt = message.SentAt
             };
 
-            await hub.Clients.Group($"chat_{groupId}").SendAsync("NewChatMessage", groupId.ToString(), msgData);
+            await eventBus.PublishAsync(Services.EventBus.Events.MessageReceive, Services.EventBus.EventTargetType.Group, $"chat_{groupId}", new { groupId = groupId.ToString(), message = msgData });
 
             return Results.Created($"/api/chat/{groupId}/messages", msgData);
         }).DisableAntiforgery(); // Disable default antiforgery check for multipart API submission

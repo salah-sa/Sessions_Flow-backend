@@ -5,6 +5,7 @@ using MongoDB.Driver;
 using SessionFlow.Desktop.Data;
 using SessionFlow.Desktop.Models;
 using SessionFlow.Desktop.Services;
+using SessionFlow.Desktop.Services.EventBus;
 
 namespace SessionFlow.Desktop.Api.Hubs;
 
@@ -12,14 +13,16 @@ namespace SessionFlow.Desktop.Api.Hubs;
 public class SessionHub : Hub
 {
     private readonly MongoService _db;
-    private readonly PresenceService _presence;
+    private readonly IPresenceService _presence;
     private readonly AuthService _auth;
+    private readonly IEventBus _eventBus;
 
-    public SessionHub(MongoService db, PresenceService presence, AuthService auth)
+    public SessionHub(MongoService db, IPresenceService presence, AuthService auth, IEventBus eventBus)
     {
         _db = db;
         _presence = presence;
         _auth = auth;
+        _eventBus = eventBus;
     }
 
     private string? GetUserId() => Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -65,7 +68,7 @@ public class SessionHub : Hub
             foreach (var gId in groups)
                 await Groups.AddToGroupAsync(Context.ConnectionId, $"chat_{gId}");
 
-            await UpdatePresence(true);
+            await BroadcastPresenceUpdate(userId, Events.PresenceOnline);
         }
         await base.OnConnectedAsync();
     }
@@ -76,47 +79,43 @@ public class SessionHub : Hub
         if (!string.IsNullOrEmpty(userId))
         {
             _presence.UserDisconnected(Context.ConnectionId);
-            await UpdatePresence(false);
+            await BroadcastPresenceUpdate(userId, Events.PresenceOffline);
         }
 
         await base.OnDisconnectedAsync(exception);
     }
 
-    /// <summary>
-    /// Join a session group to receive real-time attendance updates.
-    /// </summary>
+    // ═══════════════════════════════════════════════
+    // Session Management
+    // ═══════════════════════════════════════════════
+
     public async Task JoinSession(string sessionId)
     {
         await Groups.AddToGroupAsync(Context.ConnectionId, $"session_{sessionId}");
     }
 
-    /// <summary>
-    /// Leave a session group.
-    /// </summary>
     public async Task LeaveSession(string sessionId)
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"session_{sessionId}");
     }
 
-    /// <summary>
-    /// Join a chat group to receive real-time messages.
-    /// SECURED: Validates group membership before joining.
-    /// </summary>
+    // ═══════════════════════════════════════════════
+    // Chat — Secured Group Join/Leave
+    // ═══════════════════════════════════════════════
+
     public async Task JoinChat(string groupId)
     {
         var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var role = Context.User?.FindFirst(ClaimTypes.Role)?.Value;
         if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
-            return; // Silently reject unauthenticated
+            return;
 
         if (!Guid.TryParse(groupId, out var groupGuid))
             return;
 
-        // Verify group exists
         var group = await _db.Groups.Find(g => g.Id == groupGuid && !g.IsDeleted).FirstOrDefaultAsync();
         if (group == null) return;
 
-        // Verify membership by role
         if (role == "Engineer" && group.EngineerId != userGuid) return;
         if (role == "Student")
         {
@@ -125,22 +124,19 @@ public class SessionHub : Hub
             var students = await _auth.ResolveAllStudentsForUser(user);
             if (students == null || !students.Any(s => s.GroupId == groupGuid)) return;
         }
-        // Admin: allowed for all groups
 
         await Groups.AddToGroupAsync(Context.ConnectionId, $"chat_{groupId}");
     }
 
-    /// <summary>
-    /// Leave a chat group.
-    /// </summary>
     public async Task LeaveChat(string groupId)
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"chat_{groupId}");
     }
 
-    /// <summary>
-    /// Send a chat message: persist to DB and broadcast to the chat group.
-    /// </summary>
+    // ═══════════════════════════════════════════════
+    // Messaging — via Event Bus
+    // ═══════════════════════════════════════════════
+
     public async Task SendChatMessage(string groupId, string text)
     {
         var userIdStr = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -162,22 +158,27 @@ public class SessionHub : Hub
 
         await _db.ChatMessages.InsertOneAsync(message);
 
-        // Load the sender for the broadcast
         var sender = await _db.Users.Find(u => u.Id == userGuid).FirstOrDefaultAsync();
 
-        await Clients.Group($"chat_{groupId}").SendAsync("NewChatMessage", groupId, new
+        // Publish through event bus → EventDispatcher routes to SignalR group
+        await _eventBus.PublishAsync(Events.MessageReceive, EventTargetType.Group, $"chat_{groupId}", new
         {
-            id = message.Id,
-            groupId = message.GroupId,
-            senderId = message.SenderId,
-            senderName = sender?.Name ?? userName,
-            text = message.Text,
-            sentAt = message.SentAt,
-            sender = sender == null ? null : new { 
-                id = sender.Id, 
-                name = sender.Name, 
-                role = sender.Role.ToString(), 
-                avatarUrl = sender.AvatarUrl 
+            groupId,
+            message = new
+            {
+                id = message.Id,
+                groupId = message.GroupId,
+                senderId = message.SenderId,
+                senderName = sender?.Name ?? userName,
+                text = message.Text,
+                sentAt = message.SentAt,
+                sender = sender == null ? null : new
+                {
+                    id = sender.Id,
+                    name = sender.Name,
+                    role = sender.Role.ToString(),
+                    avatarUrl = sender.AvatarUrl
+                }
             }
         });
     }
@@ -188,66 +189,32 @@ public class SessionHub : Hub
     public async Task MarkMessagesAsRead(string groupId)
     {
         var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userName = Context.User?.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
         if (string.IsNullOrEmpty(userId)) return;
 
-        await Clients.Group($"chat_{groupId}").SendAsync("MessagesRead", groupId, userId);
+        await _eventBus.PublishAsync(Events.MessageRead, EventTargetType.Group, $"chat_{groupId}", new
+        {
+            groupId,
+            userId,
+            userName
+        });
     }
 
-    /// <summary>
-    /// Update the user's online/offline presence.
-    /// </summary>
+    // ═══════════════════════════════════════════════
+    // Presence — via Event Bus + Redis
+    // ═══════════════════════════════════════════════
+
     public async Task UpdatePresence(bool isOnline)
     {
         var userIdStr = GetUserId();
-        var role = Context.User?.FindFirst(ClaimTypes.Role)?.Value;
-
-        if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userGuid))
+        if (string.IsNullOrEmpty(userIdStr))
             return;
 
         _presence.SetPresence(userIdStr, isOnline, Context.ConnectionId);
-
-        var eventName = isOnline ? "UserOnline" : "UserOffline";
-
-        if (role == "Admin")
-        {
-            // Broadcast to absolutely everyone
-            await Clients.All.SendAsync(eventName, userIdStr);
-        }
-        else if (role == "Engineer")
-        {
-            var groups = Context.Items["groups"] as List<Guid> ?? await GetUserGroupIds(userIdStr);
-            foreach (var gId in groups)
-            {
-                await Clients.Group($"chat_{gId}").SendAsync(eventName, userIdStr);
-            }
-        }
-        else if (role == "Student")
-        {
-            // Student ONLY sends their presence update to their engineer(s) and admins to prevent data leakage.
-            var user = await _db.Users.Find(u => u.Id == userGuid).FirstOrDefaultAsync();
-            if (user != null)
-            {
-                var studentInfos = await _auth.ResolveAllStudentsForUser(user);
-                var groupIds = studentInfos.Select(s => s.GroupId).ToList();
-                var groups = await _db.Groups.Find(g => groupIds.Contains(g.Id) && !g.IsDeleted).ToListAsync();
-                
-                var engIds = groups.Select(g => g.EngineerId.ToString()).Distinct().ToList();
-                foreach (var engId in engIds) {
-                    await Clients.User(engId).SendAsync(eventName, userIdStr);
-                }
-            }
-            
-            // Also notify any admins listening (for global dashboard presence)
-            var admins = await _db.Users.Find(u => u.Role == UserRole.Admin).Project(u => u.Id).ToListAsync();
-            foreach (var adminId in admins) {
-                await Clients.User(adminId.ToString()).SendAsync(eventName, userIdStr);
-            }
-        }
+        var eventName = isOnline ? Events.PresenceOnline : Events.PresenceOffline;
+        await BroadcastPresenceUpdate(userIdStr, eventName);
     }
 
-    /// <summary>
-    /// Keep alive signal sent by clients every 30s.
-    /// </summary>
     public async Task Heartbeat()
     {
         var userId = GetUserId();
@@ -255,17 +222,133 @@ public class SessionHub : Hub
         _presence.RecordHeartbeat(userId);
     }
 
-    /// <summary>
-    /// Explicit offline signal sent by clients on unmount.
-    /// </summary>
     public async Task GoOffline()
     {
         await UpdatePresence(false);
     }
 
+    public async Task SetAway()
+    {
+        var userIdStr = GetUserId();
+        if (string.IsNullOrEmpty(userIdStr)) return;
+
+        await _presence.SetAwayAsync(userIdStr);
+        await BroadcastPresenceUpdate(userIdStr, Events.PresenceAway);
+    }
+
+    public async Task RejoinGroups()
+    {
+        var userId = GetUserId();
+        if (string.IsNullOrEmpty(userId)) return;
+
+        var groups = await GetUserGroupIds(userId);
+        Context.Items["groups"] = groups;
+
+        foreach (var gId in groups)
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"chat_{gId}");
+
+        await UpdatePresence(true);
+    }
+
     /// <summary>
-    /// Requested by clients on network reconnection to sync state.
+    /// Centralized presence broadcaster.
+    /// Routes to chat groups + admins via event bus.
     /// </summary>
+    private async Task BroadcastPresenceUpdate(string userId, string eventName)
+    {
+        var role = Context.User?.FindFirst(ClaimTypes.Role)?.Value;
+        var payload = new { userId };
+
+        if (role == "Admin")
+        {
+            await _eventBus.PublishAsync(eventName, EventTargetType.All, "", payload);
+        }
+        else
+        {
+            // Broadcast to all chat groups this user belongs to
+            var groups = Context.Items["groups"] as List<Guid> ?? await GetUserGroupIds(userId);
+            foreach (var gId in groups)
+            {
+                await _eventBus.PublishAsync(eventName, EventTargetType.Group, $"chat_{gId}", payload);
+            }
+
+            // Also notify all admins
+            var admins = await _db.Users.Find(u => u.Role == UserRole.Admin).Project(u => u.Id).ToListAsync();
+            foreach (var adminId in admins)
+            {
+                await _eventBus.PublishAsync(eventName, EventTargetType.User, adminId.ToString(), payload);
+            }
+        }
+    }
+
+    // ═══════════════════════════════════════════════
+    // Call Signaling — via Event Bus
+    // ═══════════════════════════════════════════════
+
+    public async Task CallUser(string targetUserId)
+    {
+        var callerIdStr = GetUserId();
+        var callerName = Context.User?.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+        if (string.IsNullOrEmpty(callerIdStr)) return;
+
+        if (Guid.TryParse(callerIdStr, out var callerGuid))
+        {
+            var caller = await _db.Users.Find(u => u.Id == callerGuid).FirstOrDefaultAsync();
+            await _eventBus.PublishAsync(Events.CallIncoming, EventTargetType.User, targetUserId, new
+            {
+                callerId = callerIdStr,
+                callerName = caller?.Name ?? callerName,
+                callerAvatar = caller?.AvatarUrl
+            });
+        }
+    }
+
+    public async Task AnswerCall(string callerId, bool accepted)
+    {
+        var responderId = GetUserId();
+        var responderName = Context.User?.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+        if (string.IsNullOrEmpty(responderId)) return;
+
+        var eventName = accepted ? Events.CallAccepted : Events.CallRejected;
+        await _eventBus.PublishAsync(eventName, EventTargetType.User, callerId, new
+        {
+            responderId,
+            responderName
+        });
+    }
+
+    public async Task SendOffer(string targetUserId, string sdpOffer)
+    {
+        var senderId = GetUserId();
+        if (string.IsNullOrEmpty(senderId)) return;
+        await _eventBus.PublishAsync(Events.CallOffer, EventTargetType.User, targetUserId, new { senderId, sdp = sdpOffer });
+    }
+
+    public async Task SendAnswer(string targetUserId, string sdpAnswer)
+    {
+        var senderId = GetUserId();
+        if (string.IsNullOrEmpty(senderId)) return;
+        await _eventBus.PublishAsync(Events.CallAnswer, EventTargetType.User, targetUserId, new { senderId, sdp = sdpAnswer });
+    }
+
+    public async Task SendIceCandidate(string targetUserId, string candidate)
+    {
+        var senderId = GetUserId();
+        if (string.IsNullOrEmpty(senderId)) return;
+        await _eventBus.PublishAsync(Events.CallIce, EventTargetType.User, targetUserId, new { senderId, candidate });
+    }
+
+    public async Task EndCall(string targetUserId)
+    {
+        var senderId = GetUserId();
+        if (string.IsNullOrEmpty(senderId)) return;
+        await _eventBus.PublishAsync(Events.CallEnded, EventTargetType.User, targetUserId, new { senderId });
+    }
+
+    // ═══════════════════════════════════════════════
+    // Presence Snapshot (Reconnection Sync)
+    // ═══════════════════════════════════════════════
+
     public async Task RequestPresenceSnapshot()
     {
         var role = Context.User?.FindFirst(ClaimTypes.Role)?.Value;
@@ -277,7 +360,7 @@ public class SessionHub : Hub
         if (role == "Admin") 
         {
             var adminSnapshot = _presence.GetPresenceSnapshot(onlineUsers);
-            await Clients.Caller.SendAsync("PresenceSnapshot", adminSnapshot);
+            await Clients.Caller.SendAsync(Events.PresenceSnapshot, adminSnapshot);
             return;
         }
 
@@ -290,7 +373,8 @@ public class SessionHub : Hub
             var groupIds = groups.Select(g => g.Id).ToList();
             var students = await _db.Students.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync();
             foreach (var s in students) {
-                if (s.UserId != Guid.Empty && s.UserId != null) visibleUserIds.Add(s.UserId.ToString());
+                var studentUserId = s.UserId.ToString();
+                if (s.UserId != Guid.Empty && !string.IsNullOrEmpty(studentUserId)) visibleUserIds.Add(studentUserId);
             }
         }
         else if (role == "Student")
@@ -306,7 +390,6 @@ public class SessionHub : Hub
             }
         }
 
-        // Include all admins
         var admins = await _db.Users.Find(u => u.Role == UserRole.Admin).ToListAsync();
         foreach(var admin in admins) {
             visibleUserIds.Add(admin.Id.ToString());
@@ -315,6 +398,6 @@ public class SessionHub : Hub
         var filteredUsers = onlineUsers.Where(u => visibleUserIds.Contains(u)).ToList();
         var snapshot = _presence.GetPresenceSnapshot(filteredUsers);
         
-        await Clients.Caller.SendAsync("PresenceSnapshot", snapshot);
+        await Clients.Caller.SendAsync(Events.PresenceSnapshot, snapshot);
     }
 }

@@ -1,10 +1,12 @@
 import React, { useMemo } from "react";
-import { X, Shield, User as UserIcon, Crown, Wifi, WifiOff } from "lucide-react";
+import { X, Shield, User as UserIcon, Crown, Wifi, WifiOff, Phone } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../../lib/utils";
 import { Group } from "../../types";
 import { usePresenceStore, PresenceStatus } from "../../store/presenceStore";
 import { useAuthStore } from "../../store/stores";
+import { useCallStore } from "../../store/callStore";
+import { useSignalR } from "../../providers/SignalRProvider";
 import { useTranslation } from "react-i18next";
 
 // ═══════════════════════════════════════════════════════════
@@ -91,6 +93,13 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
   const source = usePresenceStore((s) => s.getPresence(member.userId).source);
   const { user } = useAuthStore();
   const isMe = member.userId === user?.id;
+  const { invoke } = useSignalR();
+
+  const handleCall = () => {
+    if (status !== "online" || isMe) return;
+    useCallStore.getState().startCall(member.userId, member.name, member.avatarUrl || undefined);
+    invoke("CallUser", member.userId).catch(console.error);
+  };
 
   const initial = member.name?.charAt(0).toUpperCase() || "?";
 
@@ -101,7 +110,7 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
       className={cn(
-        "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300",
+        "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group/member",
         status === "online"
           ? "bg-emerald-500/5 hover:bg-emerald-500/10"
           : "bg-transparent hover:bg-white/5"
@@ -164,8 +173,19 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
         </div>
       </div>
 
-      {/* Status */}
-      <StatusDot status={status} confidence={confidence} />
+      {/* Status + Call */}
+      <div className="flex items-center gap-2">
+        {status === "online" && !isMe && (
+          <button
+            onClick={handleCall}
+            className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white flex items-center justify-center transition-all duration-200 opacity-0 group-hover/member:opacity-100"
+            title={`Call ${member.name}`}
+          >
+            <Phone className="w-3.5 h-3.5" />
+          </button>
+        )}
+        <StatusDot status={status} confidence={confidence} />
+      </div>
     </motion.div>
   );
 };
