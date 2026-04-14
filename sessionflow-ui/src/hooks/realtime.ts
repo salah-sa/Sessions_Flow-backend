@@ -53,7 +53,10 @@ export const useRealtimeNotifications = () => {
         action: {
           label: "View",
           onClick: () => {
-            // Navigate to chat — handled by router
+            import("../store/stores").then(({ useChatStore }) => {
+              useChatStore.getState().setActiveGroup(groupId);
+              window.location.href = "/chat";
+            });
           },
         },
       });

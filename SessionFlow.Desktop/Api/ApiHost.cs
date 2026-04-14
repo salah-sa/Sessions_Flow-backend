@@ -47,13 +47,19 @@ public static class ApiHost
         
         // Ensure Kestrel uses the correct port from configuration (defaulting to 5180)
         // Check for --port command line argument first for multi-instance support
-        var kestrelUrl = builder.Configuration["Kestrel:Url"] ?? "http://127.0.0.1:5180";
-        var portIdx = Array.IndexOf(args, "--port");
-        if (portIdx >= 0 && portIdx < args.Length - 1)
+        // In containers (Railway/Docker), ASPNETCORE_URLS env var controls the port.
+        // Only call UseUrls for local/desktop mode.
+        var isContainer = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
+        if (!isContainer)
         {
-            kestrelUrl = $"http://127.0.0.1:{args[portIdx + 1]}";
+            var kestrelUrl = builder.Configuration["Kestrel:Url"] ?? "http://127.0.0.1:5180";
+            var portIdx = Array.IndexOf(args, "--port");
+            if (portIdx >= 0 && portIdx < args.Length - 1)
+            {
+                kestrelUrl = $"http://127.0.0.1:{args[portIdx + 1]}";
+            }
+            builder.WebHost.UseUrls(kestrelUrl);
         }
-        builder.WebHost.UseUrls(kestrelUrl);
 
         // Configure Serilog
         builder.Host.UseSerilog((context, services, configuration) => configuration
@@ -195,7 +201,10 @@ public static class ApiHost
                 else
                 {
                     // Fallback for development if no config is present
-                    policy.SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost" || new Uri(origin).Host == "127.0.0.1");
+                    policy.SetIsOriginAllowed(origin => 
+                        new Uri(origin).Host == "localhost" || 
+                        new Uri(origin).Host == "127.0.0.1" ||
+                        new Uri(origin).Host == "sessionsflow-backend-production.up.railway.app");
                 }
 
                 policy.WithMethods("GET", "POST", "PUT", "DELETE", "PATCH")

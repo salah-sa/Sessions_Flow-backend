@@ -39,12 +39,13 @@ const NotificationCenter: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Auto-mark all as read disabled to avoid state flickering with pending requests
-  // useEffect(() => {
-  //   if (isOpen && unreadCount > 0) {
-  //     markAllAsReadMutation.mutate();
-  //   }
-  // }, [isOpen]);
+  // Auto-mark actual notifications as read when panel opens
+  // Separated from pendingRequests to avoid badge flickering
+  useEffect(() => {
+    if (isOpen && baseUnreadCount > 0) {
+      markAllAsReadMutation.mutate();
+    }
+  }, [isOpen, baseUnreadCount]);
 
   const handleMarkAsRead = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
