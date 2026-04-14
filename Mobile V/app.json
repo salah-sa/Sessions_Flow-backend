@@ -23,7 +23,10 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#020617"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "plugins": [
       "expo-font",
@@ -36,6 +39,12 @@
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "179aa976-d171-4f0f-b6cf-baa75a87b3a8"
+      }
     }
   }
 }
