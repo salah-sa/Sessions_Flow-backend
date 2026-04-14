@@ -263,4 +263,20 @@ public class RedisPresenceService : IPresenceService
         }
         return null;
     }
+
+    public int GetConnectionCount(string userId)
+    {
+        if (_redisAvailable && _db != null)
+        {
+            try
+            {
+                return (int)_db.HashLength($"{_prefix}user:conns:{userId}");
+            }
+            catch
+            {
+                return _fallback.GetConnectionCount(userId);
+            }
+        }
+        return _fallback.GetConnectionCount(userId);
+    }
 }

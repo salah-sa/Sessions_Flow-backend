@@ -16,4 +16,9 @@ public interface IPresenceService
     Task SetPresenceAsync(string userId, bool isOnline, string connectionId);
     Task SetAwayAsync(string userId);
     string GetStatus(string userId);
+    /// <summary>
+    /// Returns how many active connections exist for a user.
+    /// Used by the hub to suppress duplicate presence broadcasts on multi-client connect.
+    /// </summary>
+    int GetConnectionCount(string userId);
 }

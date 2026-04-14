@@ -42,12 +42,31 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const setupGlobalListeners = (connection: signalR.HubConnection) => {
 
     // ═══════════════════════════════════════════════
+    // Message Deduplication Guard (multi-client safety)
+    // When the same user has Web+Desktop open, both SignalR connections
+    // may deliver the same event. This rolling set prevents duplicate processing.
+    // ═══════════════════════════════════════════════
+    const processedMessageIds = new Set<string>();
+    const MESSAGE_DEDUP_MAX = 100;
+
+    // ═══════════════════════════════════════════════
     // 1. Chat Messages
     // ═══════════════════════════════════════════════
     connection.on(Events.MESSAGE_RECEIVE, (data: any) => {
       const groupId = data?.groupId;
       const msg = data?.message;
 
+      // Deduplication: skip if we already processed this message event
+      const msgId = msg?.id;
+      if (msgId) {
+        if (processedMessageIds.has(msgId)) return;
+        processedMessageIds.add(msgId);
+        // Evict oldest entries to prevent memory leak
+        if (processedMessageIds.size > MESSAGE_DEDUP_MAX) {
+          const first = processedMessageIds.values().next().value;
+          if (first) processedMessageIds.delete(first);
+        }
+      }
       if (groupId) {
         queryClient.invalidateQueries({ queryKey: queryKeys.chat.messages(groupId) });
         queryClient.invalidateQueries({ queryKey: ["dashboard", "summary"] });
@@ -183,8 +202,7 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
     connection.on(Events.PRESENCE_AWAY, (data: any) => {
       const userId = data?.userId;
       if (userId) {
-        usePresenceStore.getState().setServerOffline(userId);
-        usePresenceStore.getState().setClientOnline(userId); // Still alive, just away
+        usePresenceStore.getState().setServerAway(userId);
       }
     });
 

@@ -68,7 +68,17 @@ public class SessionHub : Hub
             foreach (var gId in groups)
                 await Groups.AddToGroupAsync(Context.ConnectionId, $"chat_{gId}");
 
-            await BroadcastPresenceUpdate(userId, Events.PresenceOnline);
+            // JOIN ROLE GROUP
+            var role = Context.User?.FindFirst(ClaimTypes.Role)?.Value;
+            if (!string.IsNullOrEmpty(role))
+                await Groups.AddToGroupAsync(Context.ConnectionId, $"role_{role}");
+
+            // Only broadcast PresenceOnline if this is the user's FIRST connection.
+            // Prevents event storms when Web + Desktop connect simultaneously.
+            if (_presence.GetConnectionCount(userId) <= 1)
+            {
+                await BroadcastPresenceUpdate(userId, Events.PresenceOnline);
+            }
         }
         await base.OnConnectedAsync();
     }
@@ -216,6 +226,11 @@ public class SessionHub : Hub
 
         foreach (var gId in groups)
             await Groups.AddToGroupAsync(Context.ConnectionId, $"chat_{gId}");
+
+        // JOIN ROLE GROUP
+        var role = Context.User?.FindFirst(ClaimTypes.Role)?.Value;
+        if (!string.IsNullOrEmpty(role))
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"role_{role}");
 
         await UpdatePresence(true);
     }

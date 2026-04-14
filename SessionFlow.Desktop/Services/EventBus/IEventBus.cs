@@ -12,7 +12,9 @@ public enum EventTargetType
     /// <summary>Broadcast to all connected clients</summary>
     All,
     /// <summary>Send only to the connection that raised the event (caller)</summary>
-    Caller
+    Caller,
+    /// <summary>Broadcast to all users in a specific role (managed via role_{roleName} groups)</summary>
+    Role
 }
 
 /// <summary>

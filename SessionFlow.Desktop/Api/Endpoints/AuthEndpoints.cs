@@ -279,7 +279,10 @@ public static class AuthEndpoints
         if (string.IsNullOrEmpty(relativeUrl)) return null;
         if (relativeUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase)) return relativeUrl;
         
-        var baseUrl = $"{request.Scheme}://{request.Host}";
+        // Support reverse proxy headers (Railway, Nginx, Cloudflare)
+        var scheme = request.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? request.Scheme;
+        var host = request.Headers["X-Forwarded-Host"].FirstOrDefault() ?? request.Host.ToString();
+        var baseUrl = $"{scheme}://{host}";
         return $"{baseUrl.TrimEnd('/')}/{relativeUrl.TrimStart('/')}";
     }
 

@@ -121,4 +121,16 @@ public class PresenceService : IPresenceService
         if (_statusMap.TryGetValue(userId, out var status)) return status;
         return IsOnline(userId) ? "online" : "offline";
     }
+
+    public int GetConnectionCount(string userId)
+    {
+        if (_onlineUsers.TryGetValue(userId, out var connections))
+        {
+            lock (connections)
+            {
+                return connections.Count;
+            }
+        }
+        return 0;
+    }
 }
