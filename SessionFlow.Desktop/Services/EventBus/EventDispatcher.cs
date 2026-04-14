@@ -86,6 +86,15 @@ public class EventDispatcher : BackgroundService
                     .SendAsync(envelope.EventName, payload);
                 break;
 
+            case EventTargetType.Caller:
+                // For Caller target, envelope.Target must contain the connectionId
+                if (!string.IsNullOrEmpty(envelope.Target))
+                {
+                    await _hubContext.Clients.Client(envelope.Target)
+                        .SendAsync(envelope.EventName, payload);
+                }
+                break;
+
             default:
                 _logger.LogWarning("Unknown target type {TargetType} for event {Event}",
                     envelope.TargetType, envelope.EventName);

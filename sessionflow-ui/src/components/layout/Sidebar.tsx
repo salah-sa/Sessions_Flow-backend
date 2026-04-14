@@ -33,6 +33,7 @@ const Sidebar: React.FC = () => {
   const { t, i18n } = useTranslation();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const playHover = useHoverSound();
+  const totalUnreadChat = useChatStore((s) => Object.values(s.unreadCounts).reduce((a, b) => a + b, 0));
 
   const toggleLanguage = () => {
     const nextLng = i18n.language === 'en' ? 'ar' : 'en';
@@ -64,7 +65,12 @@ const Sidebar: React.FC = () => {
   ];
 
   const adminItems = [
-    { name: t("common.operations"), href: "/admin", icon: ShieldCheck },
+    { name: t("common.operations"), href: "/control-tower/admin", icon: ShieldCheck },
+    { name: t("common.settings"), href: "/settings", icon: Settings },
+  ];
+
+  const engineerItems = [
+    { name: t("common.operations"), href: "/control-tower/engineer", icon: ShieldCheck },
     { name: t("common.settings"), href: "/settings", icon: Settings },
   ];
 
@@ -77,7 +83,6 @@ const Sidebar: React.FC = () => {
 
   const renderNavLink = (item: { name: string; href: string; icon: React.ComponentType<any> }) => {
     const isChat = item.href === "/chat";
-    const totalUnreadChat = Object.values(useChatStore((s) => s.unreadCounts)).reduce((a, b) => a + b, 0);
 
     return (
     <NavLink
@@ -176,16 +181,18 @@ const Sidebar: React.FC = () => {
           return true;
         }).map(renderNavLink)}
 
-        {/* Admin Section */}
-        {user?.role === "Admin" && (
+        {/* Operations/Admin Section */}
+        {(user?.role === "Admin" || user?.role === "Engineer") && (
           <>
             <div className="pt-6 pb-3">
               <div className={cn("h-px bg-emerald-500/10", sidebarOpen ? "mx-2" : "mx-4")} />
               {(sidebarOpen || window.innerWidth < 1024) && (
-                <p className="text-[10px] uppercase font-extrabold text-slate-600 mt-5 px-4 tracking-[0.2em] rtl:tracking-normal">{t("common.admin")}</p>
+                <p className="text-[10px] uppercase font-extrabold text-slate-600 mt-5 px-4 tracking-[0.2em] rtl:tracking-normal">
+                  {user?.role === "Admin" ? t("common.admin") : "Control Tower"}
+                </p>
               )}
             </div>
-            {adminItems.map(renderNavLink)}
+            {(user?.role === "Admin" ? adminItems : engineerItems).map(renderNavLink)}
           </>
         )}
       </div>

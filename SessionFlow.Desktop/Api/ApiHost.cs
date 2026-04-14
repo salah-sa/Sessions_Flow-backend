@@ -182,13 +182,23 @@ public static class ApiHost
             options.AddPolicy("CanManageEngineers", policy => policy.RequireClaim("scope", "manage:engineers"));
         });
 
-        // 3. CORS — allow mobile and local origins for development
+        // 3. CORS — Production Hardening: Restrict origins based on environment configuration
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("LocalOnly", policy =>
             {
-                policy.SetIsOriginAllowed(_ => true) // Allow mobile devices on LAN during development
-                      .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH")
+                var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>();
+                if (allowedOrigins != null && allowedOrigins.Length > 0)
+                {
+                    policy.WithOrigins(allowedOrigins);
+                }
+                else
+                {
+                    // Fallback for development if no config is present
+                    policy.SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost" || new Uri(origin).Host == "127.0.0.1");
+                }
+
+                policy.WithMethods("GET", "POST", "PUT", "DELETE", "PATCH")
                       .AllowAnyHeader()
                       .AllowCredentials();
             });

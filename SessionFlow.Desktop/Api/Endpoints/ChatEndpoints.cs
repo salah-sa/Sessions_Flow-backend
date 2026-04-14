@@ -135,7 +135,8 @@ public static class ChatEndpoints
                     var uploadsFolder = Path.Combine(webRoot, "uploads");
                     Directory.CreateDirectory(uploadsFolder);
                     
-                    var uniqueFileName = $"{Guid.NewGuid()}_{file.FileName}";
+                    var safeFileName = Path.GetFileName(file.FileName);
+                    var uniqueFileName = $"{Guid.NewGuid()}_{safeFileName}";
                     var filePath = Path.Combine(uploadsFolder, uniqueFileName);
                     
                     using (var stream = new FileStream(filePath, FileMode.Create))
@@ -144,7 +145,7 @@ public static class ChatEndpoints
                     }
                     
                     fileUrl = $"/uploads/{uniqueFileName}";
-                    fileName = file.FileName;
+                    fileName = safeFileName;
                     fileType = file.ContentType;
                 }
             }

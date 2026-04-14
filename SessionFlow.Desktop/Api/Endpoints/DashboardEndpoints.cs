@@ -441,28 +441,8 @@ public static class DashboardEndpoints
                 recentActivity = recentActivityTask.Result.Select(enrichSession).Where(x => x != null),
                 nextUpcomingSession = nextUpcomingSession
             });
-        }).AllowAnonymous();
+        });
 
-        // TEMPORARY DIAGNOSTIC ENDPOINT - remove after debugging
-        group.MapGet("/debug", async (MongoService db) =>
-        {
-            var allGroups = await db.Groups.Find(_ => true).ToListAsync();
-            var nonDeleted = allGroups.Where(g => !g.IsDeleted).ToList();
-            
-            return Results.Ok(new
-            {
-                totalInDb = allGroups.Count,
-                nonDeletedCount = nonDeleted.Count,
-                groups = nonDeleted.Select(g => new
-                {
-                    id = g.Id,
-                    name = g.Name,
-                    isDeleted = g.IsDeleted,
-                    status = g.Status.ToString(),
-                    statusInt = (int)g.Status,
-                    level = g.Level
-                })
-            });
-        }).AllowAnonymous();
+
     }
 }

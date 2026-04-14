@@ -62,7 +62,7 @@ public class NotificationService
         await _db.Notifications.UpdateOneAsync(n => n.Id == notificationId, update);
         
         // Notify client to update count via event bus
-        await _eventBus.PublishAsync(Events.NotificationCreated, EventTargetType.User, notification.UserId.ToString(), new
+        await _eventBus.PublishAsync(Events.NotificationRead, EventTargetType.User, notification.UserId.ToString(), new
         {
             notificationId,
             action = "read"
@@ -75,7 +75,7 @@ public class NotificationService
         await _db.Notifications.UpdateManyAsync(n => n.UserId == userId && !n.IsRead, update);
         
         // Notify client to update count via event bus
-        await _eventBus.PublishAsync(Events.NotificationCreated, EventTargetType.User, userId.ToString(), new
+        await _eventBus.PublishAsync(Events.NotificationRead, EventTargetType.User, userId.ToString(), new
         {
             action = "readAll"
         });
