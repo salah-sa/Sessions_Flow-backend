@@ -259,6 +259,9 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
           connection.invoke(req.methodName, ...req.args).then(req.resolve).catch(req.reject);
         }
         pendingInvokes.current = [];
+
+        // Request initial presence snapshot on mount
+        connection.invoke("RequestPresenceSnapshot").catch(console.error);
       })
       .catch((err) => {
         console.error("[SignalR] Connection failed:", err);

@@ -28,22 +28,29 @@ export function useChatRecovery() {
     // If we have a token but no user, auth store is corrupted
     if (token && !user && !hasRecovered.current) {
       hasRecovered.current = true;
-      console.warn("[ChatRecovery] Auth store corrupted — token exists but user is null. Triggering recovery via normalized query.");
+      
+      // Add a small delay for store hydration to settle
+      setTimeout(() => {
+        // Re-check after delay
+        const latestUser = useAuthStore.getState().user;
+        if (latestUser) return;
 
-      refetch().then(({ data: freshUser }) => {
-        if (freshUser) {
-          console.info("[ChatRecovery] Successfully recovered auth state.");
-          setAuth(freshUser, token);
-          // Force refetch all data with now-valid auth
-          queryClient.invalidateQueries();
-        } else {
-          console.error("[ChatRecovery] /auth/me returned null — forcing logout.");
+        console.warn("[ChatRecovery] Auth store corrupted — token exists but user is null. Triggering recovery via normalized query.");
+
+        refetch().then(({ data: freshUser }) => {
+          if (freshUser) {
+            console.info("[ChatRecovery] Successfully recovered auth state.");
+            setAuth(freshUser, token);
+            queryClient.invalidateQueries();
+          } else {
+            console.error("[ChatRecovery] /auth/me returned null — forcing logout.");
+            logout();
+          }
+        }).catch((err) => {
+          console.error("[ChatRecovery] Token is also invalid — forcing logout.", err);
           logout();
-        }
-      }).catch((err) => {
-        console.error("[ChatRecovery] Token is also invalid — forcing logout.", err);
-        logout();
-      });
+        });
+      }, 1000);
     }
 
     // Reset recovery flag when user successfully logs in

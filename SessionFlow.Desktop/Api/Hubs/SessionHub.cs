@@ -65,8 +65,7 @@ public class SessionHub : Hub
             foreach (var gId in groups)
                 await Groups.AddToGroupAsync(Context.ConnectionId, $"chat_{gId}");
 
-            foreach (var gId in groups)
-                await Clients.Group($"chat_{gId}").SendAsync("UserOnline", userId);
+            await UpdatePresence(true);
         }
         await base.OnConnectedAsync();
     }
@@ -77,11 +76,7 @@ public class SessionHub : Hub
         if (!string.IsNullOrEmpty(userId))
         {
             _presence.UserDisconnected(Context.ConnectionId);
-
-            var groups = Context.Items["groups"] as List<Guid> ?? new();
-
-            foreach (var gId in groups)
-                await Clients.Group($"chat_{gId}").SendAsync("UserOffline", userId);
+            await UpdatePresence(false);
         }
 
         await base.OnDisconnectedAsync(exception);
@@ -203,20 +198,51 @@ public class SessionHub : Hub
     /// </summary>
     public async Task UpdatePresence(bool isOnline)
     {
-        var userId = GetUserId();
-        if (string.IsNullOrEmpty(userId))
+        var userIdStr = GetUserId();
+        var role = Context.User?.FindFirst(ClaimTypes.Role)?.Value;
+
+        if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userGuid))
             return;
 
-        _presence.SetPresence(userId, isOnline, Context.ConnectionId);
+        _presence.SetPresence(userIdStr, isOnline, Context.ConnectionId);
 
-        var groups = Context.Items["groups"] as List<Guid>;
+        var eventName = isOnline ? "UserOnline" : "UserOffline";
 
-        if (groups == null)
-            groups = await GetUserGroupIds(userId); // fallback only
-
-        foreach (var gId in groups)
-            await Clients.Group($"chat_{gId}")
-                .SendAsync(isOnline ? "UserOnline" : "UserOffline", userId);
+        if (role == "Admin")
+        {
+            // Broadcast to absolutely everyone
+            await Clients.All.SendAsync(eventName, userIdStr);
+        }
+        else if (role == "Engineer")
+        {
+            var groups = Context.Items["groups"] as List<Guid> ?? await GetUserGroupIds(userIdStr);
+            foreach (var gId in groups)
+            {
+                await Clients.Group($"chat_{gId}").SendAsync(eventName, userIdStr);
+            }
+        }
+        else if (role == "Student")
+        {
+            // Student ONLY sends their presence update to their engineer(s) and admins to prevent data leakage.
+            var user = await _db.Users.Find(u => u.Id == userGuid).FirstOrDefaultAsync();
+            if (user != null)
+            {
+                var studentInfos = await _auth.ResolveAllStudentsForUser(user);
+                var groupIds = studentInfos.Select(s => s.GroupId).ToList();
+                var groups = await _db.Groups.Find(g => groupIds.Contains(g.Id) && !g.IsDeleted).ToListAsync();
+                
+                var engIds = groups.Select(g => g.EngineerId.ToString()).Distinct().ToList();
+                foreach (var engId in engIds) {
+                    await Clients.User(engId).SendAsync(eventName, userIdStr);
+                }
+            }
+            
+            // Also notify any admins listening (for global dashboard presence)
+            var admins = await _db.Users.Find(u => u.Role == UserRole.Admin).Project(u => u.Id).ToListAsync();
+            foreach (var adminId in admins) {
+                await Clients.User(adminId.ToString()).SendAsync(eventName, userIdStr);
+            }
+        }
     }
 
     /// <summary>
@@ -242,8 +268,53 @@ public class SessionHub : Hub
     /// </summary>
     public async Task RequestPresenceSnapshot()
     {
+        var role = Context.User?.FindFirst(ClaimTypes.Role)?.Value;
+        var userIdStr = GetUserId();
+        if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userGuid)) return;
+
         var onlineUsers = _presence.GetOnlineUserIds();
-        var snapshot = _presence.GetPresenceSnapshot(onlineUsers);
+
+        if (role == "Admin") 
+        {
+            var adminSnapshot = _presence.GetPresenceSnapshot(onlineUsers);
+            await Clients.Caller.SendAsync("PresenceSnapshot", adminSnapshot);
+            return;
+        }
+
+        var visibleUserIds = new HashSet<string>();
+        visibleUserIds.Add(userIdStr);
+
+        if (role == "Engineer")
+        {
+            var groups = await _db.Groups.Find(g => g.EngineerId == userGuid && !g.IsDeleted).ToListAsync();
+            var groupIds = groups.Select(g => g.Id).ToList();
+            var students = await _db.Students.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync();
+            foreach (var s in students) {
+                if (s.UserId != Guid.Empty && s.UserId != null) visibleUserIds.Add(s.UserId.ToString());
+            }
+        }
+        else if (role == "Student")
+        {
+            var user = await _db.Users.Find(u => u.Id == userGuid).FirstOrDefaultAsync();
+            if (user != null) {
+                var studentInfos = await _auth.ResolveAllStudentsForUser(user);
+                var groupIds = studentInfos.Select(s => s.GroupId).ToList();
+                var groups = await _db.Groups.Find(g => groupIds.Contains(g.Id) && !g.IsDeleted).ToListAsync();
+                foreach (var g in groups) {
+                    visibleUserIds.Add(g.EngineerId.ToString());
+                }
+            }
+        }
+
+        // Include all admins
+        var admins = await _db.Users.Find(u => u.Role == UserRole.Admin).ToListAsync();
+        foreach(var admin in admins) {
+            visibleUserIds.Add(admin.Id.ToString());
+        }
+
+        var filteredUsers = onlineUsers.Where(u => visibleUserIds.Contains(u)).ToList();
+        var snapshot = _presence.GetPresenceSnapshot(filteredUsers);
+        
         await Clients.Caller.SendAsync("PresenceSnapshot", snapshot);
     }
 }
