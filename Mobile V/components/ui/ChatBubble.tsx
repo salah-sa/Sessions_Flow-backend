@@ -144,7 +144,11 @@ export const ChatBubble = ({
         ) : isDoc ? (
           <TouchableOpacity 
             style={styles.docContainer}
-            onPress={() => Linking.openURL(message.fileUrl || "#")}
+            onPress={() => {
+              if (message.fileUrl && message.fileUrl !== "#") {
+                Linking.openURL(message.fileUrl).catch(err => console.log("Failed to open URL", err));
+              }
+            }}
           >
             <Ionicons name="document-text" size={24} color={theme.colors.primary} />
             <View style={styles.docInfo}>
