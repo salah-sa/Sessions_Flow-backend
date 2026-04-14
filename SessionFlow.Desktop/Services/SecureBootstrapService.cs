@@ -163,6 +163,11 @@ public static class SecureBootstrapService
 
     private static void PersistToEnvFile(string key, string value)
     {
+        // Do not attempt to write to .env file in a containerized environment (Railway/Docker)
+        // as the filesystem is often read-only or ephemeral, and environment variables take precedence.
+        if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true")
+            return;
+
         try
         {
             var lines = File.Exists(EnvFilePath)
