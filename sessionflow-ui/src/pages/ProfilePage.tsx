@@ -127,7 +127,7 @@ const ProfilePage: React.FC = () => {
                       className="w-32 h-32 rounded-[2.5rem] bg-slate-900 flex items-center justify-center text-4xl font-black text-white shadow-2xl border-4 border-white/10 mb-8 group/avatar relative overflow-hidden cursor-pointer"
                     >
                        {user?.avatarUrl ? (
-                         <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                         <img src={`${user.avatarUrl}${user.avatarUrl.includes('?') ? '&' : '?'}v=${Date.now()}`} alt="Avatar" className="w-full h-full object-cover" key={user.avatarUrl} />
                        ) : (
                          user?.name?.charAt(0).toUpperCase()
                        )}

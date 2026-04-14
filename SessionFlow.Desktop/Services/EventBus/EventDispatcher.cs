@@ -94,6 +94,14 @@ public class EventDispatcher : BackgroundService
                         .SendAsync(envelope.EventName, payload);
                 }
                 break;
+            
+            case EventTargetType.Role:
+                if (!string.IsNullOrEmpty(envelope.Target))
+                {
+                    await _hubContext.Clients.Group($"role_{envelope.Target}")
+                        .SendAsync(envelope.EventName, payload);
+                }
+                break;
 
             default:
                 _logger.LogWarning("Unknown target type {TargetType} for event {Event}",

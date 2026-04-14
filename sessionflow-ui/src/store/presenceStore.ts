@@ -47,6 +47,8 @@ interface PresenceState extends HeuristicState {
   // ── Source 1: Server Signals (Highest Priority) ────
   /** Server-authoritative online set */
   serverOnline: Set<string>;
+  /** Server-authoritative away set */
+  serverAway: Set<string>;
   /** Whether the server presence channel is healthy */
   serverHealthy: boolean;
   /** Last time we received a server presence event */
@@ -54,6 +56,7 @@ interface PresenceState extends HeuristicState {
 
   setServerOnline: (userId: string) => void;
   setServerOffline: (userId: string) => void;
+  setServerAway: (userId: string) => void;
   setBulkServerOnline: (userIds: string[]) => void;
   setServerHealth: (healthy: boolean) => void;
 
@@ -98,6 +101,7 @@ const LAST_SEEN_RECENCY_MS = 120_000; // 2 min = "recently seen" heuristic
 function resolvePresence(
   userId: string,
   serverOnline: Set<string>,
+  serverAway: Set<string>,
   clientOnline: Set<string>,
   serverHealthy: boolean,
   lastServerEvent: number,
@@ -111,11 +115,12 @@ function resolvePresence(
   // ── SOURCE 1: Server is fresh (<30s) — AUTHORITATIVE ──
   if (serverHealthy && serverAge < SERVER_FRESH_MS) {
     const isOn = serverOnline.has(userId);
+    const isAway = serverAway.has(userId);
     return {
-      status: isOn ? "online" : "offline",
+      status: isOn ? "online" : isAway ? "away" : "offline",
       confidence: 1.0,
       source: "server",
-      lastSeen: isOn ? now : userLastSeen,
+      lastSeen: isOn || isAway ? now : userLastSeen,
     };
   }
 
@@ -174,6 +179,7 @@ function resolvePresence(
 export const usePresenceStore = create<PresenceState>((set, get) => ({
   // Source 1
   serverOnline: new Set<string>(),
+  serverAway: new Set<string>(),
   serverHealthy: false,
   lastServerEvent: 0,
 
@@ -209,10 +215,22 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
 
   setServerOffline: (userId) =>
     set((s) => {
-      if (!s.serverOnline.has(userId)) return s;
-      const next = new Set(s.serverOnline);
-      next.delete(userId);
-      return { serverOnline: next, lastServerEvent: Date.now(), serverHealthy: true };
+      const hadOnline = s.serverOnline.has(userId);
+      const hadAway = s.serverAway.has(userId);
+      if (!hadOnline && !hadAway) return s;
+      const nextOnline = hadOnline ? (() => { const n = new Set(s.serverOnline); n.delete(userId); return n; })() : s.serverOnline;
+      const nextAway = hadAway ? (() => { const n = new Set(s.serverAway); n.delete(userId); return n; })() : s.serverAway;
+      return { serverOnline: nextOnline, serverAway: nextAway, lastServerEvent: Date.now(), serverHealthy: true };
+    }),
+
+  setServerAway: (userId) =>
+    set((s) => {
+      const now = Date.now();
+      const nextOnline = new Set(s.serverOnline);
+      nextOnline.delete(userId); // Remove from online if present
+      const nextAway = new Set(s.serverAway).add(userId);
+      const lsm = new Map(s.lastSeenMap).set(userId, now);
+      return { serverOnline: nextOnline, serverAway: nextAway, lastServerEvent: now, serverHealthy: true, lastSeenMap: lsm };
     }),
 
   setBulkServerOnline: (userIds) =>
@@ -279,8 +297,8 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
 
   // ── Adaptive Resolver ──────────────────────────────
   getPresence: (userId) => {
-    const { serverOnline, clientOnline, serverHealthy, lastServerEvent, lastSeenMap, wsStability, reconnectCount } = get();
-    return resolvePresence(userId, serverOnline, clientOnline, serverHealthy, lastServerEvent, {
+    const { serverOnline, serverAway, clientOnline, serverHealthy, lastServerEvent, lastSeenMap, wsStability, reconnectCount } = get();
+    return resolvePresence(userId, serverOnline, serverAway, clientOnline, serverHealthy, lastServerEvent, {
       lastSeenMap, wsStability, reconnectCount,
     });
   },

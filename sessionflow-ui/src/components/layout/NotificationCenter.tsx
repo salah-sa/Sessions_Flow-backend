@@ -40,10 +40,13 @@ const NotificationCenter: React.FC = () => {
   }, []);
 
   // Auto-mark actual notifications as read when panel opens
-  // Separated from pendingRequests to avoid badge flickering
+  // Debounced to give user 3s to see what's new before clearing badge
   useEffect(() => {
     if (isOpen && baseUnreadCount > 0) {
-      markAllAsReadMutation.mutate();
+      const timer = setTimeout(() => {
+        markAllAsReadMutation.mutate();
+      }, 3000);
+      return () => clearTimeout(timer);
     }
   }, [isOpen, baseUnreadCount]);
 
