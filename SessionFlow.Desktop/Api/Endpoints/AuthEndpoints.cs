@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.SignalR;
 using SessionFlow.Desktop.Services;
 using System.IO;
+using SessionFlow.Desktop.Data;
+using MongoDB.Driver;
 
 namespace SessionFlow.Desktop.Api.Endpoints;
 
@@ -93,6 +95,69 @@ public static class AuthEndpoints
             });
         });
 
+        group.MapPost("/register-student-request", async (RegisterStudentQueueRequest req, AuthService auth) =>
+        {
+            if (string.IsNullOrWhiteSpace(req.Name) || string.IsNullOrWhiteSpace(req.Username) ||
+                string.IsNullOrWhiteSpace(req.Password) || string.IsNullOrWhiteSpace(req.GroupName) ||
+                string.IsNullOrWhiteSpace(req.Email))
+                return Results.BadRequest(new { error = "All fields are required." });
+
+            if (req.Password.Length < 6)
+                return Results.BadRequest(new { error = "Password must be at least 6 characters." });
+
+            var (pending, error) = await auth.QueueStudentRequestAsync(
+                req.Name.Trim(), req.Username.Trim().ToLowerInvariant(), req.Email.Trim().ToLowerInvariant(), req.Password, req.GroupName.Trim());
+
+            if (error != null)
+                return Results.Conflict(new { error });
+
+            return Results.Created($"/api/pending-student/{pending!.Id}", new
+            {
+                message = "Request submitted. Awaiting engineer approval.",
+                id = pending.Id
+            });
+        });
+
+        group.MapGet("/pending-student-requests", async (HttpContext ctx, AuthService auth, MongoService db) =>
+        {
+            var user = await auth.GetUserFromClaimsAsync(ctx.User);
+            if (user == null || user.Role != Models.UserRole.Engineer)
+                return Results.Unauthorized();
+
+            var pending = await db.PendingStudentRequests
+                .Find(p => p.EngineerId == user.Id && p.Status == Models.PendingStatus.Pending)
+                .SortByDescending(p => p.RequestedAt)
+                .ToListAsync();
+
+            return Results.Ok(pending);
+        }).RequireAuthorization();
+
+        group.MapPost("/approve-student-request/{id}", async (Guid id, HttpContext ctx, AuthService auth) =>
+        {
+            var user = await auth.GetUserFromClaimsAsync(ctx.User);
+            if (user == null || user.Role != Models.UserRole.Engineer)
+                return Results.Unauthorized();
+
+            var (approvedUser, error) = await auth.ApproveStudentRequestAsync(id);
+            if (error != null)
+                return Results.BadRequest(new { error });
+
+            return Results.Ok(new { message = "Request approved.", user = new { id = approvedUser!.Id, name = approvedUser.Name } });
+        }).RequireAuthorization();
+
+        group.MapPost("/deny-student-request/{id}", async (Guid id, HttpContext ctx, AuthService auth) =>
+        {
+            var user = await auth.GetUserFromClaimsAsync(ctx.User);
+            if (user == null || user.Role != Models.UserRole.Engineer)
+                return Results.Unauthorized();
+
+            var (success, error) = await auth.DenyStudentRequestAsync(id);
+            if (!success)
+                return Results.BadRequest(new { error });
+
+            return Results.Ok(new { message = "Request denied." });
+        }).RequireAuthorization();
+
         group.MapGet("/me", async (HttpContext ctx, AuthService auth) =>
         {
             var user = await auth.GetUserFromClaimsAsync(ctx.User);
@@ -164,4 +229,5 @@ public static class AuthEndpoints
     public record LoginRequest(string Identifier, string Password, string? StudentId = null, string? EngineerCode = null);
     public record RegisterRequest(string Name, string Email, string Password, string? AccessCode = null);
     public record RegisterStudentRequest(string Name, string Username, string Password, string StudentId, string EngineerCode);
+    public record RegisterStudentQueueRequest(string Name, string Username, string Email, string Password, string GroupName);
 }

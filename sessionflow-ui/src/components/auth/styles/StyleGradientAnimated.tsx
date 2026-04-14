@@ -319,7 +319,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
 
                 {/* ═══ Student-only fields ═══ */}
                 <AnimatePresence>
-                  {isStudent && (
+                  {isRegister && isStudent && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
@@ -327,42 +327,47 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                       transition={{ duration: 0.3, ease: "easeInOut" }}
                       className="space-y-3 overflow-hidden"
                     >
-                      {/* Student ID */}
-                      <div className="space-y-1">
+                      {/* Email Field */}
+                      <div className="space-y-1 mt-3">
                         <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">
-                          Student ID
+                          Email Address
                         </label>
                         <div className={`relative group rounded-xl transition-all duration-300 ${
-                          focusedField === "studentId" ? "ring-2 ring-emerald-500/25" : ""
+                          focusedField === "email" ? "ring-2 ring-emerald-500/25" : ""
+                        }`}>
+                          <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-emerald-400 transition-colors duration-300" />
+                          <Input
+                            {...props.register("email")}
+                            type="email"
+                            className="w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] focus:border-emerald-500/30 transition-all duration-300 text-[13px] placeholder:text-slate-600 font-medium normal-case tracking-normal"
+                            placeholder="name@example.com"
+                            onFocus={() => { setFocusedField("email"); props.handleFieldFocus("text"); }}
+                            onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
+                          />
+                        </div>
+                        <AnimatePresence>
+                          <FieldError error={(props.errors as any).email} />
+                        </AnimatePresence>
+                      </div>
+
+                      {/* Group Name Field */}
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">
+                          Group Name
+                        </label>
+                        <div className={`relative group rounded-xl transition-all duration-300 ${
+                          focusedField === "groupName" ? "ring-2 ring-emerald-500/25" : ""
                         }`}>
                           <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-emerald-400 transition-colors duration-300" />
                           <Input
-                            {...props.register("studentId")}
+                            {...props.register("groupName")}
                             className="w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] focus:border-emerald-500/30 transition-all duration-300 text-[13px] placeholder:text-slate-600 font-medium normal-case tracking-normal"
-                            placeholder="STU-2025-XXXXX"
-                            onFocus={() => { setFocusedField("studentId"); props.handleFieldFocus("text"); }}
+                            placeholder="Exact group name (e.g. Math-101)"
+                            onFocus={() => { setFocusedField("groupName"); props.handleFieldFocus("text"); }}
                             onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
                           />
                         </div>
-                      </div>
-
-                      {/* Engineer Code */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">
-                          Engineer Code
-                        </label>
-                        <div className={`relative group rounded-xl transition-all duration-300 ${
-                          focusedField === "engineerCode" ? "ring-2 ring-emerald-500/25" : ""
-                        }`}>
-                          <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-emerald-400 transition-colors duration-300" />
-                          <Input
-                            {...props.register("engineerCode")}
-                            className="w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] focus:border-emerald-500/30 transition-all duration-300 text-[13px] placeholder:text-slate-600 font-medium normal-case tracking-normal"
-                            placeholder="Enter your engineer code"
-                            onFocus={() => { setFocusedField("engineerCode"); props.handleFieldFocus("text"); }}
-                            onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
-                          />
-                        </div>
+                        <p className="text-[10px] text-slate-500 mt-1 pl-1">💡 It's better to copy the exact Group Name.</p>
                       </div>
                     </motion.div>
                   )}
