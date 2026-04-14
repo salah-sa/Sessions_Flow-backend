@@ -27,20 +27,18 @@ public static class GoogleAuthEndpoints
         // POST /api/admin/gmail/authorize — initiate browser OAuth flow
         google.MapPost("/authorize", async (GoogleAuthService auth, HttpContext ctx) =>
         {
-            // For a desktop app, we usually use a local listener or a custom scheme
-            // For simplicity in this hybrid app, we'll use the system browser and redirect back to our API
-            var redirectUri = "http://localhost:5180/api/admin/gmail/callback";
+            // Use the actual request host instead of hardcoded localhost
+            var baseUrl = $"{ctx.Request.Scheme}://{ctx.Request.Host}";
+            var redirectUri = $"{baseUrl}/api/admin/gmail/callback";
             var url = await auth.GetAuthorizationUrlAsync(redirectUri);
 
-            // Open the browser for the user
-            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-
-            return Results.Ok(new { message = "Auth Window Launched. Complete sign-in in your system browser." });
+            // Return the URL to the frontend so it can open the browser natively
+            return Results.Ok(new { message = "Auth Window Launched", url = url });
         });
 
         // GET /api/admin/gmail/callback — receive OAuth code
         // IMPORTANT: In production, you would handle this via a more secure protocol (e.g. PKCE)
-        google.MapGet("/callback", async (string? code, string? error, GoogleAuthService auth) =>
+        google.MapGet("/callback", async (string? code, string? error, GoogleAuthService auth, HttpContext ctx) =>
         {
             if (!string.IsNullOrEmpty(error))
                 return Results.BadRequest(new { error });
@@ -48,7 +46,8 @@ public static class GoogleAuthEndpoints
             if (string.IsNullOrEmpty(code))
                 return Results.BadRequest(new { error = "No authorization code provided." });
 
-            var redirectUri = "http://localhost:5180/api/admin/gmail/callback";
+            var baseUrl = $"{ctx.Request.Scheme}://{ctx.Request.Host}";
+            var redirectUri = $"{baseUrl}/api/admin/gmail/callback";
             await auth.ExchangeCodeForTokenAsync(code, redirectUri);
 
             // Return a simple HTML page that closes itself or redirects to the app UI

@@ -200,10 +200,12 @@ interface AppState {
   /** 3-mode architecture: full / hybrid / degraded */
   connectionMode: ConnectionMode;
   isSyncing: boolean;
+  userDismissedOffline: boolean;
   setOnline: (isOnline: boolean) => void;
   setConnectionStatus: (status: "Connected" | "Disconnected" | "Reconnecting") => void;
   setConnectionMode: (mode: ConnectionMode) => void;
   setSyncing: (isSyncing: boolean) => void;
+  dismissOfflineModal: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -211,12 +213,14 @@ export const useAppStore = create<AppState>((set) => ({
   connectionStatus: "Disconnected",
   connectionMode: "degraded",
   isSyncing: false,
+  userDismissedOffline: false,
   setOnline: (isOnline) => 
-    set((state) => (state.isOnline === isOnline ? state : { isOnline })),
+    set((state) => (state.isOnline === isOnline ? state : { isOnline, userDismissedOffline: isOnline ? false : state.userDismissedOffline })),
   setConnectionStatus: (connectionStatus) => 
     set((state) => (state.connectionStatus === connectionStatus ? state : { connectionStatus })),
   setConnectionMode: (connectionMode) => 
     set((state) => (state.connectionMode === connectionMode ? state : { connectionMode })),
   setSyncing: (isSyncing) => 
     set((state) => (state.isSyncing === isSyncing ? state : { isSyncing })),
+  dismissOfflineModal: () => set({ userDismissedOffline: true }),
 }));

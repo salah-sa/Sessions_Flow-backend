@@ -23,7 +23,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
 COPY --from=build-backend /app/publish .
 # Default environment variables
-ENV ASPNETCORE_URLS=http://+:5173
+ENV ASPNETCORE_URLS=http://+:${PORT:-8080}
 ENV DOTNET_RUNNING_IN_CONTAINER=true
-EXPOSE 5173
+EXPOSE 8080
 ENTRYPOINT ["dotnet", "HeadlessHost.dll"]
