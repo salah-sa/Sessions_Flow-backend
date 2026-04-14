@@ -88,11 +88,13 @@ export function useHeartbeat() {
     const handleVisibilityChange = () => {
       if (document.hidden) {
         setSelfStatus("hidden");
-        // Don't immediately mark as offline — user might switch back quickly
+        // Signal "away" to the server so all group members see the status change
+        invoke("SetAway").catch(() => {});
       } else {
         resetIdleTimer();
-        // Send heartbeat on tab return
+        // Send heartbeat on tab return to restore "online" status
         invoke("Heartbeat").catch(() => {});
+        invoke("UpdatePresence", true).catch(() => {});
       }
     };
 

@@ -268,30 +268,30 @@ public static class SessionEndpoints
         });
 
         // POST /api/sessions/{id}/start
-        group.MapPost("/{id:guid}/start", async (Guid id, SessionService sessionService, IHubContext<SessionHub> hub) =>
+        group.MapPost("/{id:guid}/start", async (Guid id, SessionService sessionService, Services.EventBus.IEventBus eventBus) =>
         {
             var (session, error) = await sessionService.StartSessionAsync(id);
             if (error != null)
                 return Results.BadRequest(new { error });
 
-            await hub.Clients.Group($"session_{id}").SendAsync("SessionStatusChanged", id.ToString(), "Active");
+            await eventBus.PublishAsync(Services.EventBus.Events.SessionStatusChanged, Services.EventBus.EventTargetType.Group, $"session_{id}", new { sessionId = id.ToString(), status = "Active" });
             return Results.Ok(new { id = session!.Id, status = session.Status.ToString(), startedAt = session.StartedAt });
         });
 
         // POST /api/sessions/{id}/end
-        group.MapPost("/{id:guid}/end", async (Guid id, EndSessionRequest? req, SessionService sessionService, IHubContext<SessionHub> hub) =>
+        group.MapPost("/{id:guid}/end", async (Guid id, EndSessionRequest? req, SessionService sessionService, Services.EventBus.IEventBus eventBus) =>
         {
             var (session, error) = await sessionService.EndSessionAsync(id, req?.Notes);
             if (error != null)
                 return Results.BadRequest(new { error });
 
-            await hub.Clients.Group($"session_{id}").SendAsync("SessionStatusChanged", id.ToString(), "Ended");
+            await eventBus.PublishAsync(Services.EventBus.Events.SessionStatusChanged, Services.EventBus.EventTargetType.Group, $"session_{id}", new { sessionId = id.ToString(), status = "Ended" });
             return Results.Ok(new { id = session!.Id, status = session.Status.ToString(), endedAt = session.EndedAt, notes = session.Notes });
         });
 
         // PUT /api/sessions/{id}/attendance
         group.MapPut("/{id:guid}/attendance", async (Guid id, List<AttendanceUpdateItem> items,
-            SessionService sessionService, IHubContext<SessionHub> hub, HttpContext ctx) =>
+            SessionService sessionService, Services.EventBus.IEventBus eventBus, HttpContext ctx) =>
         {
             var userRole = ctx.User.FindFirst(ClaimTypes.Role)?.Value ?? "Engineer";
 
@@ -328,7 +328,7 @@ public static class SessionEndpoints
                 markedAt = r.MarkedAt
             }).ToArray();
 
-            await hub.Clients.Group($"session_{id}").SendAsync("AttendanceUpdated", id.ToString(), recordData);
+            await eventBus.PublishAsync(Services.EventBus.Events.AttendanceUpdated, Services.EventBus.EventTargetType.Group, $"session_{id}", new { sessionId = id.ToString(), records = recordData });
             return Results.Ok(recordData);
         });
 

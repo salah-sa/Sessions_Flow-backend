@@ -95,7 +95,8 @@ public static class AuthEndpoints
             });
         });
 
-        group.MapPost("/register-student-request", async (RegisterStudentQueueRequest req, AuthService auth) =>
+        group.MapPost("/register-student-request", async (RegisterStudentQueueRequest req, AuthService auth,
+            SessionFlow.Desktop.Services.EventBus.IEventBus eventBus) =>
         {
             if (string.IsNullOrWhiteSpace(req.Name) || string.IsNullOrWhiteSpace(req.Username) ||
                 string.IsNullOrWhiteSpace(req.Password) || string.IsNullOrWhiteSpace(req.GroupName) ||
@@ -110,6 +111,22 @@ public static class AuthEndpoints
 
             if (error != null)
                 return Results.Conflict(new { error });
+
+            // Push real-time notification through event bus
+            if (pending?.EngineerId != null && pending.EngineerId != Guid.Empty)
+            {
+                await eventBus.PublishAsync(
+                    SessionFlow.Desktop.Services.EventBus.Events.RequestCreated,
+                    SessionFlow.Desktop.Services.EventBus.EventTargetType.User,
+                    pending.EngineerId.ToString(),
+                    new
+                    {
+                        requestId = pending.Id,
+                        studentName = pending.Name,
+                        groupName = pending.GroupName,
+                        requestedAt = pending.RequestedAt
+                    });
+            }
 
             return Results.Created($"/api/pending-student/{pending!.Id}", new
             {
@@ -180,7 +197,7 @@ public static class AuthEndpoints
         }).RequireAuthorization();
 
         group.MapPut("/profile/avatar", async (UpdateAvatarRequest req, HttpContext ctx, AuthService auth,
-            Microsoft.AspNetCore.Hosting.IWebHostEnvironment env, Microsoft.AspNetCore.SignalR.IHubContext<SessionFlow.Desktop.Api.Hubs.SessionHub> hub) =>
+            Microsoft.AspNetCore.Hosting.IWebHostEnvironment env, SessionFlow.Desktop.Services.EventBus.IEventBus eventBus) =>
         {
             var user = await auth.GetUserFromClaimsAsync(ctx.User);
             if (user == null) return Results.Unauthorized();
@@ -198,7 +215,7 @@ public static class AuthEndpoints
                 var avatarUrl = await auth.UpdateAvatarAsync(user.Id, req.AvatarUrl, webRoot);
 
                 // Broadcast avatar update to all connected clients for real-time sync
-                await hub.Clients.All.SendAsync("AvatarUpdated", user.Id.ToString(), avatarUrl);
+                await eventBus.PublishAsync(SessionFlow.Desktop.Services.EventBus.Events.AvatarUpdated, SessionFlow.Desktop.Services.EventBus.EventTargetType.All, "", new { userId = user.Id.ToString(), avatarUrl });
 
                 return Results.Ok(new { avatarUrl });
             }

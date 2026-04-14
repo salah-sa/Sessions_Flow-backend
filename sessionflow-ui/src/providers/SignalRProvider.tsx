@@ -4,10 +4,11 @@ import { useAuthStore, useAppStore, useChatStore } from "../store/stores";
 import { usePresenceStore } from "../store/presenceStore";
 import { useMuteStore } from "../store/muteStore";
 import { useNotificationPopupStore } from "../store/notificationStore";
+import { useCallStore } from "../store/callStore";
 import { sounds } from "../lib/sounds";
+import { Events } from "../lib/eventContracts";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../queries/keys";
-import { ChatMessage } from "../types";
 
 interface SignalRContextValue {
   on: (eventName: string, callback: (...args: any[]) => void) => () => void;
@@ -21,6 +22,8 @@ const SignalRContext = createContext<SignalRContextValue | null>(null);
 /**
  * Singleton SignalR provider. Manages ONE connection to /hub for the entire app.
  * Event listeners registered before the connection is ready are queued and replayed.
+ *
+ * ALL event names use standardized contracts from eventContracts.ts.
  */
 export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const connectionRef = useRef<signalR.HubConnection | null>(null);
@@ -35,14 +38,21 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Queue of method invocations requested before connection was ready
   const pendingInvokes = useRef<Array<{ methodName: string; args: any[]; resolve: (v: any) => void; reject: (e: any) => void }>>([]);
 
-  // Centralized Real-time Invalidations
+  // Centralized Real-time Invalidations — using standardized event contracts
   const setupGlobalListeners = (connection: signalR.HubConnection) => {
-    // 1. Chat Invalidations
-    connection.on("NewChatMessage", (groupId: string, msg?: ChatMessage) => {
-      // We invalidate instead of manual setQueryData to ensure consistency across persistent storage
-      queryClient.invalidateQueries({ queryKey: queryKeys.chat.messages(groupId) });
-      queryClient.invalidateQueries({ queryKey: ["dashboard", "summary"] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.data });
+
+    // ═══════════════════════════════════════════════
+    // 1. Chat Messages
+    // ═══════════════════════════════════════════════
+    connection.on(Events.MESSAGE_RECEIVE, (data: any) => {
+      const groupId = data?.groupId;
+      const msg = data?.message;
+
+      if (groupId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.chat.messages(groupId) });
+        queryClient.invalidateQueries({ queryKey: ["dashboard", "summary"] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.data });
+      }
 
       if (msg) {
         const { user } = useAuthStore.getState();
@@ -51,17 +61,16 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const { isMuted } = useMuteStore.getState();
 
           if (!isMuted(msg.groupId)) {
-            // Trigger Notification Popup if not focused or in an inactive group
             if (document.hidden || activeGroupId !== msg.groupId) {
-                sounds.playNotification();
-                useNotificationPopupStore.getState().notify(
-                    msg.groupId,
-                    msg.senderName ?? "Unknown",
-                    msg.text,
-                    msg.sender?.avatarUrl ?? undefined
-                );
+              sounds.playNotification();
+              useNotificationPopupStore.getState().notify(
+                msg.groupId,
+                msg.senderName ?? "Unknown",
+                msg.text,
+                msg.sender?.avatarUrl ?? undefined
+              );
             } else {
-                sounds.playPop(); // Regular click/pop context if currently chatting
+              sounds.playPop();
             }
           }
           incrementUnread(msg.groupId);
@@ -69,66 +78,64 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     });
 
-    connection.on("MessagesRead", (groupId: string) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.chat.messages(groupId) });
+    connection.on(Events.MESSAGE_READ, (data: any) => {
+      const groupId = data?.groupId;
+      if (groupId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.chat.messages(groupId) });
+      }
     });
 
-    // 2. Session Invalidations
-    connection.on("SessionStatusChanged", (sessionId: string) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byId(sessionId) });
+    // ═══════════════════════════════════════════════
+    // 2. Sessions
+    // ═══════════════════════════════════════════════
+    connection.on(Events.SESSION_STATUS_CHANGED, (data: any) => {
+      const sessionId = data?.sessionId;
+      if (sessionId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byId(sessionId) });
+      }
       queryClient.invalidateQueries({ queryKey: queryKeys.sessions.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
     });
 
-    // 3. Attendance Invalidations
-    connection.on("AttendanceUpdated", (sessionId: string) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byId(sessionId) });
-      queryClient.invalidateQueries({ queryKey: ["sessions", "attendance", sessionId] });
+    connection.on(Events.ATTENDANCE_UPDATED, (data: any) => {
+      const sessionId = data?.sessionId;
+      if (sessionId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byId(sessionId) });
+        queryClient.invalidateQueries({ queryKey: ["sessions", "attendance", sessionId] });
+      }
       queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
     });
 
-    connection.on("NewSessionGenerated", () => {
+    connection.on(Events.SESSION_GENERATED, () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.sessions.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
     });
 
-    // 4. Group Invalidations
-    connection.on("GroupStatusChanged", (groupId: string) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.groups.byId(groupId) });
+    // ═══════════════════════════════════════════════
+    // 3. Groups
+    // ═══════════════════════════════════════════════
+    connection.on(Events.GROUP_STATUS_CHANGED, (data: any) => {
+      const groupId = data?.groupId;
+      if (groupId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.groups.byId(groupId) });
+      }
       queryClient.invalidateQueries({ queryKey: queryKeys.groups.all });
     });
 
-    // ═══════════════════════════════════════════════
-    // 5. Real-Time Presence Events (3-Layer System)
-    // ═══════════════════════════════════════════════
-    connection.on("UserOnline", (userId: string) => {
-      usePresenceStore.getState().setServerOnline(userId);
-    });
-
-    connection.on("UserOffline", (userId: string) => {
-      usePresenceStore.getState().setServerOffline(userId);
-    });
-
-    connection.on("BulkPresence", (userIds: string[]) => {
-      usePresenceStore.getState().setBulkServerOnline(userIds);
-    });
-
-    // ═══════════════════════════════════════════════
-    // 6. Group Lifecycle Events (Full Cascade)
-    // ═══════════════════════════════════════════════
-    connection.on("GroupCreated", () => {
+    connection.on(Events.GROUP_CREATED, () => {
       queryClient.invalidateQueries({ queryKey: ["groups"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["chat"] });
     });
 
-    connection.on("GroupDeleted", (groupId: string) => {
-      // Purge the dead group data immediately (not just invalidate)
-      queryClient.removeQueries({ queryKey: queryKeys.groups.byId(groupId) });
-      queryClient.removeQueries({ queryKey: queryKeys.chat.messages(groupId) });
-      // Then cascade invalidation
+    connection.on(Events.GROUP_DELETED, (data: any) => {
+      const groupId = data?.groupId;
+      if (groupId) {
+        queryClient.removeQueries({ queryKey: queryKeys.groups.byId(groupId) });
+        queryClient.removeQueries({ queryKey: queryKeys.chat.messages(groupId) });
+      }
       queryClient.invalidateQueries({ queryKey: ["groups"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["chat"] });
@@ -136,26 +143,129 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
     });
 
-    connection.on("GroupCompleted", (groupId: string) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.groups.byId(groupId) });
+    connection.on(Events.GROUP_COMPLETED, (data: any) => {
+      const groupId = data?.groupId;
+      if (groupId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.groups.byId(groupId) });
+      }
       queryClient.invalidateQueries({ queryKey: ["groups"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["chat"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
     });
 
-    connection.on("GroupDescriptionUpdated", (groupId: string) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.groups.byId(groupId) });
+    connection.on(Events.GROUP_DESCRIPTION_UPDATED, (data: any) => {
+      const groupId = data?.groupId;
+      if (groupId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.groups.byId(groupId) });
+      }
       queryClient.invalidateQueries({ queryKey: ["groups"] });
     });
 
     // ═══════════════════════════════════════════════
-    // 7. Avatar Updated (Real-time avatar sync)
+    // 4. Real-Time Presence Events
     // ═══════════════════════════════════════════════
-    connection.on("AvatarUpdated", (_userId: string, _avatarUrl: string) => {
-      // Invalidate all chat caches so messages re-fetch with new sender avatars
+    connection.on(Events.PRESENCE_ONLINE, (data: any) => {
+      const userId = data?.userId;
+      if (userId) usePresenceStore.getState().setServerOnline(userId);
+    });
+
+    connection.on(Events.PRESENCE_OFFLINE, (data: any) => {
+      const userId = data?.userId;
+      if (userId) usePresenceStore.getState().setServerOffline(userId);
+    });
+
+    connection.on(Events.PRESENCE_AWAY, (data: any) => {
+      const userId = data?.userId;
+      if (userId) {
+        usePresenceStore.getState().setServerOffline(userId);
+        usePresenceStore.getState().setClientOnline(userId); // Still alive, just away
+      }
+    });
+
+    connection.on(Events.PRESENCE_SNAPSHOT, (snapshot: any[]) => {
+      if (Array.isArray(snapshot)) {
+        const onlineUserIds = snapshot
+          .filter((u: any) => u.isOnline)
+          .map((u: any) => u.userId);
+        usePresenceStore.getState().setBulkServerOnline(onlineUserIds);
+      }
+    });
+
+    // ═══════════════════════════════════════════════
+    // 5. Avatar
+    // ═══════════════════════════════════════════════
+    connection.on(Events.AVATAR_UPDATED, () => {
       queryClient.invalidateQueries({ queryKey: ["chat"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
+    });
+
+    // ═══════════════════════════════════════════════
+    // 6. Call Signaling Events
+    // ═══════════════════════════════════════════════
+    connection.on(Events.CALL_INCOMING, (data: any) => {
+      useCallStore.getState().receiveCall(data?.callerId, data?.callerName, data?.callerAvatar);
+      sounds.playRingtone();
+    });
+
+    connection.on(Events.CALL_ACCEPTED, () => {
+      useCallStore.getState().accepted();
+      sounds.stopRingtone();
+    });
+
+    connection.on(Events.CALL_REJECTED, () => {
+      useCallStore.getState().rejected();
+      sounds.stopRingtone();
+      sounds.playCallEnd();
+    });
+
+    connection.on(Events.CALL_ENDED, () => {
+      useCallStore.getState().ended();
+      sounds.stopRingtone();
+      sounds.playCallEnd();
+    });
+
+    // WebRTC signaling passthrough
+    connection.on(Events.CALL_OFFER, (data: any) => {
+      useCallStore.getState().setRemoteSdp(data?.sdp, "offer");
+    });
+
+    connection.on(Events.CALL_ANSWER, (data: any) => {
+      useCallStore.getState().setRemoteSdp(data?.sdp, "answer");
+    });
+
+    connection.on(Events.CALL_ICE, (data: any) => {
+      useCallStore.getState().addIceCandidate(data?.candidate);
+    });
+
+    // ═══════════════════════════════════════════════
+    // 7. Student Request Push Notifications
+    // ═══════════════════════════════════════════════
+    connection.on(Events.REQUEST_CREATED, () => {
+      queryClient.invalidateQueries({ queryKey: ["pending-student-requests"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      sounds.playNotification();
+    });
+
+    // ═══════════════════════════════════════════════
+    // 8. Notification System
+    // ═══════════════════════════════════════════════
+    connection.on(Events.NOTIFICATION_CREATED, () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: ["pending-student-requests"] });
+    });
+
+    // ═══════════════════════════════════════════════
+    // 9. Sync State (post-reconnect recovery)
+    // ═══════════════════════════════════════════════
+    connection.on(Events.SYNC_STATE, () => {
+      // Full-state resync: invalidate everything
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["chat"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
     });
   };
 
@@ -220,6 +330,10 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       usePresenceStore.getState().recordReconnect();
       usePresenceStore.getState().updateWsStability(true);
       usePresenceStore.getState().setServerHealth(true);
+
+      // Re-join all chat groups (lost on reconnect)
+      connection.invoke("RejoinGroups").catch(console.error);
+
       for (const req of pendingInvokes.current) {
         connection.invoke(req.methodName, ...req.args).then(req.resolve).catch(req.reject);
       }

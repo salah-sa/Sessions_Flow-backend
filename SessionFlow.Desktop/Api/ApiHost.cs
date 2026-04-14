@@ -14,6 +14,7 @@ using SessionFlow.Desktop.Api.Endpoints;
 using SessionFlow.Desktop.Api.Hubs;
 using SessionFlow.Desktop.Data;
 using SessionFlow.Desktop.Services;
+using SessionFlow.Desktop.Services.EventBus;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http;
@@ -70,7 +71,36 @@ public static class ApiHost
             .AddCheck("MongoDB", new MongoHealthCheck(builder.Configuration));
             
         builder.Services.AddSingleton<MongoService>();
-        builder.Services.AddSingleton<PresenceService>();
+        
+        // ── Redis Infrastructure (Graceful Fallback) ──────────────────
+        var redisConnectionString = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
+        var redisInstanceName = builder.Configuration["Redis:InstanceName"] ?? "SessionFlow:";
+
+        StackExchange.Redis.IConnectionMultiplexer? redisConnection = null;
+        try
+        {
+            redisConnection = StackExchange.Redis.ConnectionMultiplexer.Connect(redisConnectionString);
+            builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(redisConnection);
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "Redis connection failed ({Conn}) — running in local-only mode", redisConnectionString);
+        }
+
+        // ── Presence Service (Redis with in-memory fallback) ──────────
+        builder.Services.AddSingleton<IPresenceService>(sp =>
+        {
+            var logger = sp.GetRequiredService<ILogger<RedisPresenceService>>();
+            return new RedisPresenceService(redisConnection, logger, redisInstanceName);
+        });
+
+        // ── Event Bus (Redis Pub/Sub with local fallback) ─────────────
+        builder.Services.AddSingleton<IEventBus>(sp =>
+        {
+            var logger = sp.GetRequiredService<ILogger<Services.EventBus.RedisEventBus>>();
+            return new Services.EventBus.RedisEventBus(redisConnection, logger, redisInstanceName);
+        });
+
         builder.Services.AddScoped<AuthService>();
         builder.Services.AddScoped<SessionService>();
         builder.Services.AddScoped<GmailSenderService>();
@@ -85,8 +115,18 @@ public static class ApiHost
         builder.Services.AddHostedService<EmailReminderService>();
         builder.Services.AddHostedService<SessionMaintenanceService>();
         
-        // SignalR & Logging
-        builder.Services.AddSignalR();
+        // ── Event Dispatcher (Redis → SignalR Bridge) ─────────────────
+        builder.Services.AddHostedService<Services.EventBus.EventDispatcher>();
+        
+        // ── SignalR + Redis Backplane ──────────────────────────────────
+        var signalRBuilder = builder.Services.AddSignalR();
+        if (redisConnection != null)
+        {
+            signalRBuilder.AddStackExchangeRedis(redisConnectionString, options =>
+            {
+                options.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("SessionFlowSR");
+            });
+        }
         builder.Services.AddLogging();
 
         // 2. JWT Authentication

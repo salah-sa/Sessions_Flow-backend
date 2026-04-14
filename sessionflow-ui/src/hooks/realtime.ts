@@ -5,7 +5,7 @@ import { getHost } from "../lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../queries/keys";
 import { useMuteStore } from "../store/muteStore";
-import { usePresenceStore } from "../store/presenceStore";
+import { Events } from "../lib/eventContracts";
 
 // ═══════════════════════════════════════════════════════════
 // Real-Time Hooks
@@ -13,6 +13,9 @@ import { usePresenceStore } from "../store/presenceStore";
 // Note: The old usePresence hook has been replaced by the
 // global usePresenceStore + useHeartbeat system.
 // See: store/presenceStore.ts + hooks/useHeartbeat.ts
+//
+// Presence events are now handled globally in SignalRProvider.
+// This hook only handles page-level toast notifications.
 // ═══════════════════════════════════════════════════════════
 
 // Notifications Hook — uses query invalidation + mute filtering
@@ -31,11 +34,16 @@ export const useRealtimeNotifications = () => {
       }
     });
 
-    const unsub2 = on("NewNotification", () => {
+    const unsub2 = on(Events.NOTIFICATION_CREATED, () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
     });
 
-    const unsub3 = on("NewMessage", (groupId: string, senderName: string, text: string) => {
+    const unsub3 = on(Events.MESSAGE_RECEIVE, (data: any) => {
+      const groupId = data?.groupId;
+      const senderName = data?.message?.senderName;
+      const text = data?.message?.text;
+      if (!groupId || !senderName) return;
+
       // Mute filter — check if this group is muted before showing toast
       const isMuted = useMuteStore.getState().isMuted(groupId);
       if (isMuted) return; // Silent — badge update handled elsewhere
@@ -51,27 +59,13 @@ export const useRealtimeNotifications = () => {
       });
     });
 
-    // ── Layer 1 Presence Signals ──────────────────────────
-    const unsub4 = on("UserOnline", (userId: string) => {
-      usePresenceStore.getState().setServerOnline(userId);
-    });
-
-    const unsub5 = on("UserOffline", (userId: string) => {
-      usePresenceStore.getState().setServerOffline(userId);
-    });
-
-    const unsub6 = on("PresenceSnapshot", (snapshot: any[]) => {
-      // snapshot: { userId: string; isOnline: boolean; lastSeen: number }[]
-      usePresenceStore.getState().reconcile(snapshot);
-    });
+    // Note: Presence events (UserOnline, UserOffline, PresenceSnapshot)
+    // are now handled globally in SignalRProvider — no need to duplicate here.
 
     return () => {
       unsub1();
       unsub2();
       unsub3();
-      unsub4();
-      unsub5();
-      unsub6();
     };
   }, [on, queryClient]);
 };

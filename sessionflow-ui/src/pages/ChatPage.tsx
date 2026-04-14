@@ -93,17 +93,16 @@ const ChatPage: React.FC = () => {
   }, [activeGroups, activeGroupId, setActiveGroup, clearUnread]);
 
   // Handle SignalR Group Subscriptions
+  // NOTE: Users are auto-joined to all their chat groups via OnConnectedAsync.
+  // We only call JoinChat here as a safety re-join (e.g., after reconnection).
+  // We do NOT call LeaveChat — leaving a group kills global message delivery.
   useEffect(() => {
     if (!activeGroupId) return;
 
     clearUnread(activeGroupId);
     invoke("JoinChat", activeGroupId).catch(console.error);
-
-    return () => {
-      if (activeGroupId) {
-        invoke("LeaveChat", activeGroupId).catch(console.error);
-      }
-    };
+    // Mark messages as read when entering this group
+    invoke("MarkMessagesAsRead", activeGroupId).catch(console.error);
   }, [activeGroupId, invoke, clearUnread]);
 
   const handleNewMessage = React.useCallback((msg: ChatMessage) => {
@@ -146,9 +145,10 @@ const ChatPage: React.FC = () => {
   }, [queryClient, user?.id, setLastMessage]);
 
   useEffect(() => {
-    // SessionHub sends (groupId, messageObj) - we only care about the second argument msg
-    const unsub = on("NewChatMessage", (groupId: string, msg: ChatMessage) => {
-      handleNewMessage(msg);
+    // Event bus sends an envelope: { groupId, message } via Events.MESSAGE_RECEIVE
+    const unsub = on("message:receive", (data: any) => {
+      const msg = data?.message as ChatMessage;
+      if (msg) handleNewMessage(msg);
     });
     return () => unsub();
   }, [on, handleNewMessage]);
