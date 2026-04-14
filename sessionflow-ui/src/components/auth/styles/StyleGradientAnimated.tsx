@@ -373,6 +373,57 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                   )}
                 </AnimatePresence>
 
+                {/* ═══ Student-only fields (Login Only) ═══ */}
+                <AnimatePresence>
+                  {!isRegister && isStudent && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className="space-y-3 overflow-hidden mt-3"
+                    >
+                      {/* Student ID */}
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">
+                          Student ID
+                        </label>
+                        <div className={`relative group rounded-xl transition-all duration-300 ${
+                          focusedField === "studentId" ? "ring-2 ring-emerald-500/25" : ""
+                        }`}>
+                          <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-emerald-400 transition-colors duration-300" />
+                          <Input
+                            {...props.register("studentId")}
+                            className="w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] focus:border-emerald-500/30 transition-all duration-300 text-[13px] placeholder:text-slate-600 font-medium normal-case tracking-normal"
+                            placeholder="STU-2025-XXXXX"
+                            onFocus={() => { setFocusedField("studentId"); props.handleFieldFocus("text"); }}
+                            onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Engineer Code */}
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">
+                          Engineer Code
+                        </label>
+                        <div className={`relative group rounded-xl transition-all duration-300 ${
+                          focusedField === "engineerCode" ? "ring-2 ring-emerald-500/25" : ""
+                        }`}>
+                          <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-emerald-400 transition-colors duration-300" />
+                          <Input
+                            {...props.register("engineerCode")}
+                            className="w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] focus:border-emerald-500/30 transition-all duration-300 text-[13px] placeholder:text-slate-600 font-medium normal-case tracking-normal"
+                            placeholder="Enter your engineer code"
+                            onFocus={() => { setFocusedField("engineerCode"); props.handleFieldFocus("text"); }}
+                            onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
+                          />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {/* Remember + Forgot (login only) */}
                 {!isRegister && (
                   <div className="flex justify-between items-center px-0.5">
