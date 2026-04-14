@@ -32,8 +32,16 @@ export function useChatRecovery() {
       // Add a small delay for store hydration to settle
       setTimeout(() => {
         // Re-check after delay
-        const latestUser = useAuthStore.getState().user;
-        if (latestUser) return;
+        const latestState = useAuthStore.getState();
+        if (latestState.user) return;
+
+        // Don't force-logout during login cooldown
+        const timeSinceLogin = Date.now() - latestState._lastLoginAt;
+        if (timeSinceLogin < 5000) {
+          console.info("[ChatRecovery] Within login cooldown — skipping recovery.");
+          hasRecovered.current = false;
+          return;
+        }
 
         console.warn("[ChatRecovery] Auth store corrupted — token exists but user is null. Triggering recovery via normalized query.");
 
@@ -50,7 +58,7 @@ export function useChatRecovery() {
           console.error("[ChatRecovery] Token is also invalid — forcing logout.", err);
           logout();
         });
-      }, 1000);
+      }, 1500);
     }
 
     // Reset recovery flag when user successfully logs in

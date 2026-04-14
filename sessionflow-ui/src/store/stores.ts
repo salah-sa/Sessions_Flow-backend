@@ -7,11 +7,12 @@ interface AuthState {
   user: User | null;
   token: string | null;
   rememberMe: boolean;
-  _hasHydrated: boolean; // Add hydration flag
+  _hasHydrated: boolean;
+  _lastLoginAt: number; // Timestamp of last successful login
   setAuth: (user: User, token: string) => void;
   setRememberMe: (val: boolean) => void;
   updateUser: (user: User) => void;
-  setHasHydrated: (val: boolean) => void; // Setter for hydration
+  setHasHydrated: (val: boolean) => void;
   logout: () => void;
 }
 
@@ -22,9 +23,10 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       rememberMe: false,
       _hasHydrated: false,
+      _lastLoginAt: 0,
       setAuth: (user, token) => {
         localStorage.setItem("sf_token", token);
-        set({ user, token });
+        set({ user, token, _lastLoginAt: Date.now() });
       },
       setRememberMe: (val) => set({ rememberMe: val }),
       updateUser: (user) => set({ user }),
