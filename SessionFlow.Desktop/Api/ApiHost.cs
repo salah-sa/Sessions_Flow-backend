@@ -51,6 +51,10 @@ public static class ApiHost
         if (isContainer)
         {
             var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+            var railwayPort = Environment.GetEnvironmentVariable("RAILWAY_PORT");
+            var httpPorts = Environment.GetEnvironmentVariable("HTTP_PORTS");
+            var aspnetUrls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS");
+            Console.WriteLine($">>> [PORT DEBUG] PORT={port}, RAILWAY_PORT={railwayPort}, HTTP_PORTS={httpPorts}, ASPNETCORE_URLS={aspnetUrls}");
             Console.WriteLine($">>> [STG 2] Container Mode detected. Binding to 0.0.0.0:{port}");
             builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
         }
@@ -214,6 +218,17 @@ public static class ApiHost
 
         Console.WriteLine(">>> [STG 7] Building Application...");
         var app = builder.Build();
+
+        // ── DIAGNOSTIC: Log every incoming request ──────────────────────
+        app.Use(async (context, next) =>
+        {
+            Console.WriteLine($">>> [REQ] {context.Request.Method} {context.Request.Path} from {context.Connection.RemoteIpAddress}");
+            await next();
+            Console.WriteLine($">>> [RES] {context.Request.Method} {context.Request.Path} → {context.Response.StatusCode}");
+        });
+
+        // ── BARE-MINIMUM health ping (bypasses all auth/CORS) ──────────
+        app.MapGet("/ping", () => Results.Ok(new { status = "alive", time = DateTime.UtcNow }));
 
         // 4. Pipeline Configuration
         app.UseCors("LocalOnly");
