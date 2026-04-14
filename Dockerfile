@@ -24,4 +24,5 @@ WORKDIR /app
 COPY --from=build-backend /app/publish .
 # Default environment variables
 ENV DOTNET_RUNNING_IN_CONTAINER=true
+EXPOSE 8080
 ENTRYPOINT ["dotnet", "HeadlessHost.dll"]
