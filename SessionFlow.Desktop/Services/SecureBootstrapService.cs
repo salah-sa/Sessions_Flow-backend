@@ -152,7 +152,7 @@ public static class SecureBootstrapService
             if (eqIdx <= 0) continue;
 
             var key = trimmed[..eqIdx].Trim();
-            var value = trimmed[(eqIdx + 1)..].Trim().Trim('"');
+            var value = trimmed[(eqIdx + 1)..].Trim().Trim('"').Trim(); // Trim whitespace and quotes
 
             if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(key)))
             {
@@ -171,7 +171,7 @@ public static class SecureBootstrapService
 
             // Replace existing or append
             var idx = lines.FindIndex(l => l.TrimStart().StartsWith($"{key}="));
-            var entry = $"{key}=\"{value}\"";
+            var entry = $"{key}=\"{value.Trim()}\""; // Trim before persistence
 
             if (idx >= 0) lines[idx] = entry;
             else lines.Add(entry);

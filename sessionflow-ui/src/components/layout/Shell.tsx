@@ -18,13 +18,14 @@ const Shell: React.FC = () => {
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const token = useAuthStore((s) => s.token);
+  const hydrated = useAuthStore((s) => s._hasHydrated);
   
-  // Auth guard: redirect to login if no token
+  // Auth guard: redirect to login if no token and hydration is complete
   React.useEffect(() => {
-    if (!token) {
+    if (hydrated && !token) {
       navigate("/login", { replace: true });
     }
-  }, [token, navigate]);
+  }, [token, hydrated, navigate]);
 
   // Initialize real-time notifications
   useRealtimeNotifications();

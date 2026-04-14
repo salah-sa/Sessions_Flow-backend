@@ -536,7 +536,10 @@ public class AuthService
         var audience = _config["Jwt:Audience"] ?? "SessionFlow";
         var expiryDays = int.Parse(_config["Jwt:ExpiryDays"] ?? "7");
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey.Trim()))
+        {
+            KeyId = "SessionFlow-Primary-Key"
+        };
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new[]
