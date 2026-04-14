@@ -52,7 +52,7 @@ public static class ApiHost
         if (isContainer)
         {
             var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-            builder.WebHost.UseUrls($"http://+:{port}");
+            builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
         }
         else
         {
@@ -206,9 +206,10 @@ public static class ApiHost
                 {
                     // Fallback for development if no config is present
                     policy.SetIsOriginAllowed(origin => 
+                        !string.IsNullOrEmpty(origin) && (
                         new Uri(origin).Host == "localhost" || 
                         new Uri(origin).Host == "127.0.0.1" ||
-                        new Uri(origin).Host == "sessionsflow-backend-production.up.railway.app");
+                        new Uri(origin).Host == "sessionsflow-backend-production.up.railway.app"));
                 }
 
                 policy.WithMethods("GET", "POST", "PUT", "DELETE", "PATCH")
