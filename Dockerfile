@@ -30,7 +30,6 @@ COPY --from=build-backend /app/publish .
 
 # Standard Railway/Docker variables
 ENV DOTNET_RUNNING_IN_CONTAINER=true
-ENV ASPNETCORE_URLS=http://0.0.0.0:8080
 EXPOSE 8080
 
 ENTRYPOINT ["dotnet", "HeadlessHost.dll"]

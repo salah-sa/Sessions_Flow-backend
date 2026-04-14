@@ -27,6 +27,7 @@ public static class ApiHost
     public static WebApplication BuildAndConfigure(string[] args)
     {
         Console.WriteLine(">>> [STG 1] Initializing WebApplicationBuilder...");
+        var isContainer = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
         var baseDir = AppDomain.CurrentDomain.BaseDirectory;
 
         // Set ContentRoot and WebRoot BEFORE the builder initializes its internals.
@@ -40,14 +41,13 @@ public static class ApiHost
         Console.WriteLine(">>> [STG 2] Configuring Middleware & Environment...");
         // Ensure appsettings.json is loaded from the executable directory
         builder.Configuration.SetBasePath(baseDir);
-        builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+        builder.Configuration.AddJsonFile("appsettings.json", optional: isContainer, reloadOnChange: true);
         builder.Configuration.AddEnvironmentVariables();
 
         // Inject secrets from environment variables / .env file
         SecureBootstrapService.InjectSecrets(builder.Configuration);
         
         // Ensure Kestrel uses the correct port from configuration
-        var isContainer = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
         if (isContainer)
         {
             var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
@@ -91,6 +91,13 @@ public static class ApiHost
         // ── Redis Infrastructure (Graceful Fallback) ──────────────────
         Console.WriteLine(">>> [STG 4] Initializing Redis Connection...");
         var redisConnectionString = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
+        
+        // Ensure connection doesn't block startup in containers
+        if (isContainer && !redisConnectionString.Contains("connectTimeout"))
+        {
+            redisConnectionString += ",connectTimeout=2000,abortConnect=false";
+        }
+
         var redisInstanceName = builder.Configuration["Redis:InstanceName"] ?? "SessionFlow:";
 
         StackExchange.Redis.IConnectionMultiplexer? redisConnection = null;
