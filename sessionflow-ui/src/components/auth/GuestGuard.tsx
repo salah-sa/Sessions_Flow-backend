@@ -7,9 +7,11 @@ interface GuestGuardProps {
 }
 
 const GuestGuard: React.FC<GuestGuardProps> = ({ children }) => {
-  const { token } = useAuthStore();
+  const token = useAuthStore((s) => s.token);
+  const hydrated = useAuthStore((s) => s._hasHydrated);
 
-  if (token) {
+  // Don't redirect until hydration is complete — prevents flash-redirect race
+  if (hydrated && token) {
     return <Navigate to="/dashboard" replace />;
   }
 
