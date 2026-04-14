@@ -59,6 +59,7 @@ public static class Events
     // Notifications
     // ═══════════════════════════════════════════════
     public const string NotificationCreated = "notification:created";
+    public const string NotificationRead = "notification:read";
 
     // ═══════════════════════════════════════════════
     // Avatar

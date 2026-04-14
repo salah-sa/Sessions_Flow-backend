@@ -40,16 +40,18 @@ public class AuthService
                 return (null, null, "Student ID and Engineer Code are required for the Student portal.");
 
             // Student Login
-            var filter = Builders<User>.Filter.Regex(u => u.Username, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(identifier)}$", "i"))
+            var filter = Builders<User>.Filter.Eq(u => u.Username, identifier)
                        & Builders<User>.Filter.Eq(u => u.StudentId, studentId)
-                       & Builders<User>.Filter.Regex(u => u.EngineerCode, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(engineerCode)}$", "i"));
-            user = await _db.Users.Find(filter).FirstOrDefaultAsync();
+                       & Builders<User>.Filter.Eq(u => u.EngineerCode, engineerCode);
+            user = await _db.Users.Find(filter, new FindOptions { Collation = new Collation("en", strength: CollationStrength.Secondary) })
+                .FirstOrDefaultAsync();
         }
         else
         {
             // Admin/Engineer Login
-            var filter = Builders<User>.Filter.Regex(u => u.Email, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(identifier)}$", "i"));
-            user = await _db.Users.Find(filter).FirstOrDefaultAsync();
+            var filter = Builders<User>.Filter.Eq(u => u.Email, identifier);
+            user = await _db.Users.Find(filter, new FindOptions { Collation = new Collation("en", strength: CollationStrength.Secondary) })
+                .FirstOrDefaultAsync();
 
             if (user != null && user.Role == UserRole.Student)
                 return (null, null, "Access Denied: Students are not permitted to access the Operations portal.");
@@ -647,9 +649,7 @@ public class AuthService
         var existingAdmin = await _db.Users.Find(u => u.Email == "admin@sessionflow.local").FirstOrDefaultAsync();
         if (existingAdmin != null)
         {
-            // Update password to match current config to prevent locking out on password change/seed reset
-            var update = Builders<User>.Update.Set(u => u.PasswordHash, BCrypt.Net.BCrypt.HashPassword(_generatedAdminPassword));
-            await _db.Users.UpdateOneAsync(u => u.Id == existingAdmin.Id, update);
+            // PROD FIX: Only seed if missing. Do NOT overwrite existing password on restart.
             return;
         }
 

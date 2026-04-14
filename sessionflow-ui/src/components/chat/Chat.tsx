@@ -317,7 +317,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage,
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+      // Only auto-scroll if user is near the bottom (within 150px threshold)
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
+      
+      if (isNearBottom) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
     }
   }, [messages]);
 

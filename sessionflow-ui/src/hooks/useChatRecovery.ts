@@ -65,5 +65,5 @@ export function useChatRecovery() {
     if (user && token) {
       hasRecovered.current = false;
     }
-  }, [token, user, queryClient, setAuth, logout]);
+  }, [token, user, queryClient, setAuth, logout, refetch]);
 }

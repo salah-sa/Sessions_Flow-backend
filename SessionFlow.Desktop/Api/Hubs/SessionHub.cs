@@ -137,51 +137,8 @@ public class SessionHub : Hub
     // Messaging — via Event Bus
     // ═══════════════════════════════════════════════
 
-    public async Task SendChatMessage(string groupId, string text)
-    {
-        var userIdStr = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var userName = Context.User?.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
-
-        if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userGuid))
-            return;
-
-        if (!Guid.TryParse(groupId, out var groupGuid))
-            return;
-
-        var message = new ChatMessage
-        {
-            GroupId = groupGuid,
-            SenderId = userGuid,
-            Text = text.Trim(),
-            SentAt = DateTimeOffset.UtcNow
-        };
-
-        await _db.ChatMessages.InsertOneAsync(message);
-
-        var sender = await _db.Users.Find(u => u.Id == userGuid).FirstOrDefaultAsync();
-
-        // Publish through event bus → EventDispatcher routes to SignalR group
-        await _eventBus.PublishAsync(Events.MessageReceive, EventTargetType.Group, $"chat_{groupId}", new
-        {
-            groupId,
-            message = new
-            {
-                id = message.Id,
-                groupId = message.GroupId,
-                senderId = message.SenderId,
-                senderName = sender?.Name ?? userName,
-                text = message.Text,
-                sentAt = message.SentAt,
-                sender = sender == null ? null : new
-                {
-                    id = sender.Id,
-                    name = sender.Name,
-                    role = sender.Role.ToString(),
-                    avatarUrl = sender.AvatarUrl
-                }
-            }
-        });
-    }
+    // Redundant hub-based sending removed in favor of REST API for consistency and security.
+    // Use POST /api/chat/{groupId}/messages instead.
 
     /// <summary>
     /// Notify others in the group that messages have been read.

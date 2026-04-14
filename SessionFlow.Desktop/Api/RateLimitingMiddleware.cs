@@ -18,6 +18,31 @@ public class RateLimitingMiddleware
     // Track: IP -> list of attempt timestamps
     private static readonly ConcurrentDictionary<string, List<DateTime>> _attempts = new();
 
+    static RateLimitingMiddleware()
+    {
+        // Periodic cleanup to prevent memory leak from static dictionary
+        var timer = new System.Threading.Timer(_ => 
+        {
+            var now = DateTime.UtcNow;
+            var window = TimeSpan.FromMinutes(1);
+            
+            foreach (var key in _attempts.Keys)
+            {
+                if (_attempts.TryGetValue(key, out var attempts))
+                {
+                    lock (attempts)
+                    {
+                        attempts.RemoveAll(t => now - t > window);
+                        if (attempts.Count == 0)
+                        {
+                            _attempts.TryRemove(key, out var staleAttempts);
+                        }
+                    }
+                }
+            }
+        }, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
+    }
+
     public RateLimitingMiddleware(RequestDelegate next, IConfiguration config)
     {
         _next = next;

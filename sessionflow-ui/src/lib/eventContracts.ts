@@ -43,6 +43,7 @@ export const Events = {
 
   // Notifications
   NOTIFICATION_CREATED: "notification:created",
+  NOTIFICATION_READ: "notification:read",
 
   // Avatar
   AVATAR_UPDATED: "avatar:updated",

@@ -173,7 +173,7 @@ public static class AuthEndpoints
                 level = groupObj.Level,
                 students = availableStudents.Select(s => new { id = s.Id, name = s.Name }).ToList()
             });
-        });
+        }).RequireAuthorization(); // Standardize on authorized discovery only
 
         group.MapGet("/pending-student-requests", async (HttpContext ctx, AuthService auth) =>
         {

@@ -64,11 +64,15 @@ export const useCallStore = create<CallState>((set) => ({
   accepted: () =>
     set({ status: "active", callStartedAt: Date.now() }),
 
-  rejected: () =>
-    set({ status: "ended" }),
-
-  ended: () =>
-    set({ status: "ended" }),
+  rejected: () => {
+    set({ status: "ended" });
+    setTimeout(() => useCallStore.getState().reset(), 3000);
+  },
+  
+  ended: () => {
+    set({ status: "ended" });
+    setTimeout(() => useCallStore.getState().reset(), 3000);
+  },
 
   reset: () =>
     set({
