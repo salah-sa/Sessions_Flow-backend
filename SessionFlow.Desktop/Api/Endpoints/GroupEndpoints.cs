@@ -164,6 +164,12 @@ public static class GroupEndpoints
             var groupSessions = await db.Sessions.Find(s => s.GroupId == g.Id && !s.IsDeleted).ToListAsync();
             var completedSessionsCount = groupSessions.Count(s => s.Status == SessionStatus.Ended);
 
+            var studentsList = new List<Student>();
+            if (role == "Admin" || role == "Engineer")
+            {
+                studentsList = await db.Students.Find(s => s.GroupId == g.Id && !s.IsDeleted).ToListAsync();
+            }
+
             return Results.Ok(new
             {
                 id = g.Id,
@@ -173,6 +179,16 @@ public static class GroupEndpoints
                 colorTag = g.ColorTag,
                 engineerId = g.EngineerId,
                 engineerName = engineer?.Name,
+                engineer = engineer != null ? new { id = engineer.Id, name = engineer.Name, role = engineer.Role.ToString(), avatarUrl = engineer.AvatarUrl } : null,
+                students = studentsList.Select(s => new
+                {
+                    id = s.Id,
+                    name = s.Name,
+                    groupId = s.GroupId,
+                    studentId = s.StudentId,
+                    uniqueStudentCode = s.UniqueStudentCode,
+                    createdAt = s.CreatedAt
+                }),
                 studentCount = studentCount,
                 schedules = schedules.Select(s => new
                 {
@@ -450,10 +466,14 @@ public static class GroupEndpoints
                 if (studentInfos == null || !studentInfos.Any(s => s.GroupId == id)) return Results.Forbid();
             }
 
-            var students = await db.Students
-                .Find(s => s.GroupId == id && !s.IsDeleted)
-                .SortBy(s => s.Name)
-                .ToListAsync();
+            var students = new List<Student>();
+            if (role != "Student")
+            {
+                students = await db.Students
+                    .Find(s => s.GroupId == id && !s.IsDeleted)
+                    .SortBy(s => s.Name)
+                    .ToListAsync();
+            }
 
             return Results.Ok(students.Select(s => new
             {

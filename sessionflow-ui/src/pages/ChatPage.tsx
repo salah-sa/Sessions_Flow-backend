@@ -138,23 +138,18 @@ const ChatPage: React.FC = () => {
           }
         }
 
-        // 3. Notification Logic for others
-        if (msg.senderId !== user?.id) {
-          if (!useMuteStore.getState().isMuted(msg.groupId)) {
-            sounds.playPop();
-          }
-          incrementUnread(msg.groupId);
-        }
-
         return [...old, msg];
       }
     );
 
     setLastMessage(msg.groupId, msg);
-  }, [queryClient, user?.id, incrementUnread, setLastMessage]);
+  }, [queryClient, user?.id, setLastMessage]);
 
   useEffect(() => {
-    const unsub = on("ReceiveMessage", handleNewMessage);
+    // SessionHub sends (groupId, messageObj) - we only care about the second argument msg
+    const unsub = on("NewChatMessage", (groupId: string, msg: ChatMessage) => {
+      handleNewMessage(msg);
+    });
     return () => unsub();
   }, [on, handleNewMessage]);
 

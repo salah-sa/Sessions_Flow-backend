@@ -196,8 +196,11 @@ const MembersPanel: React.FC<MembersPanelProps> = ({ group, isOpen, onClose }) =
       });
     }
 
+    const { user } = useAuthStore.getState();
+    const isCurrentStudent = user?.role === "Student";
+
     // Students
-    if (group.students) {
+    if (group.students && !isCurrentStudent) {
       for (const student of group.students) {
         result.push({
           id: student.id,
@@ -209,7 +212,6 @@ const MembersPanel: React.FC<MembersPanelProps> = ({ group, isOpen, onClose }) =
     }
     
     // Polyfill Current User if not present (backend might filter out self)
-    const { user } = useAuthStore.getState();
     if (user && !result.some(m => m.userId === user.id)) {
       result.push({
         id: user.studentId || user.id,

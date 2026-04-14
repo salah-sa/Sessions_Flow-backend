@@ -88,6 +88,44 @@ class SoundEngine {
     osc.start();
     osc.stop(this.ctx.currentTime + 0.03);
   }
+
+  /**
+   * Warm, pleasant two-tone chime for pop-up notifications
+   */
+  playNotification() {
+    this.init();
+    if (!this.ctx) return;
+
+    // First note (C5)
+    const osc1 = this.ctx.createOscillator();
+    const gain1 = this.ctx.createGain();
+    osc1.type = "sine";
+    osc1.frequency.setValueAtTime(523.25, this.ctx.currentTime); // C5
+    gain1.gain.setValueAtTime(0, this.ctx.currentTime);
+    gain1.gain.linearRampToValueAtTime(0.15, this.ctx.currentTime + 0.05);
+    gain1.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+
+    // Second note (E5) delayed slightly
+    const osc2 = this.ctx.createOscillator();
+    const gain2 = this.ctx.createGain();
+    osc2.type = "sine";
+    osc2.frequency.setValueAtTime(659.25, this.ctx.currentTime + 0.1); // E5
+    gain2.gain.setValueAtTime(0, this.ctx.currentTime + 0.1);
+    gain2.gain.linearRampToValueAtTime(0.15, this.ctx.currentTime + 0.15);
+    gain2.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+
+    osc1.connect(gain1);
+    gain1.connect(this.ctx.destination);
+    
+    osc2.connect(gain2);
+    gain2.connect(this.ctx.destination);
+
+    osc1.start(this.ctx.currentTime);
+    osc1.stop(this.ctx.currentTime + 0.3);
+    
+    osc2.start(this.ctx.currentTime + 0.1);
+    osc2.stop(this.ctx.currentTime + 0.5);
+  }
 }
 
 export const sounds = new SoundEngine();

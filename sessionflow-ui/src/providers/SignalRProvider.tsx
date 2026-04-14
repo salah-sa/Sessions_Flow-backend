@@ -1,9 +1,13 @@
 import React, { createContext, useContext, useEffect, useRef, useCallback, useState } from "react";
 import * as signalR from "@microsoft/signalr";
-import { useAuthStore, useAppStore } from "../store/stores";
+import { useAuthStore, useAppStore, useChatStore } from "../store/stores";
 import { usePresenceStore } from "../store/presenceStore";
+import { useMuteStore } from "../store/muteStore";
+import { useNotificationPopupStore } from "../store/notificationStore";
+import { sounds } from "../lib/sounds";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../queries/keys";
+import { ChatMessage } from "../types";
 
 interface SignalRContextValue {
   on: (eventName: string, callback: (...args: any[]) => void) => () => void;
@@ -34,11 +38,35 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Centralized Real-time Invalidations
   const setupGlobalListeners = (connection: signalR.HubConnection) => {
     // 1. Chat Invalidations
-    connection.on("NewChatMessage", (groupId: string) => {
+    connection.on("NewChatMessage", (groupId: string, msg?: ChatMessage) => {
       // We invalidate instead of manual setQueryData to ensure consistency across persistent storage
       queryClient.invalidateQueries({ queryKey: queryKeys.chat.messages(groupId) });
       queryClient.invalidateQueries({ queryKey: ["dashboard", "summary"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.data });
+
+      if (msg) {
+        const { user } = useAuthStore.getState();
+        if (user && msg.senderId !== user.id) {
+          const { activeGroupId, incrementUnread } = useChatStore.getState();
+          const { isMuted } = useMuteStore.getState();
+
+          if (!isMuted(msg.groupId)) {
+            // Trigger Notification Popup if not focused or in an inactive group
+            if (document.hidden || activeGroupId !== msg.groupId) {
+                sounds.playNotification();
+                useNotificationPopupStore.getState().notify(
+                    msg.groupId,
+                    msg.senderName,
+                    msg.text,
+                    msg.sender?.avatarUrl ?? undefined
+                );
+            } else {
+                sounds.playPop(); // Regular click/pop context if currently chatting
+            }
+          }
+          incrementUnread(msg.groupId);
+        }
+      }
     });
 
     connection.on("MessagesRead", (groupId: string) => {

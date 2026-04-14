@@ -15,9 +15,13 @@ public class PresenceService
     // Maps connectionId → userId for reverse lookup on disconnect
     private readonly ConcurrentDictionary<string, string> _connectionUserMap = new();
 
+    // Maps userId → last heartbeat timestamp
+    private readonly ConcurrentDictionary<string, DateTimeOffset> _lastSeen = new();
+
     public void UserConnected(string userId, string connectionId)
     {
         _connectionUserMap[connectionId] = userId;
+        RecordHeartbeat(userId);
 
         _onlineUsers.AddOrUpdate(
             userId,
@@ -58,6 +62,26 @@ public class PresenceService
     public List<string> GetOnlineUserIds()
     {
         return _onlineUsers.Keys.ToList();
+    }
+
+    public void RecordHeartbeat(string userId)
+    {
+        _lastSeen[userId] = DateTimeOffset.UtcNow;
+    }
+
+    public List<object> GetPresenceSnapshot(IEnumerable<string> userIds)
+    {
+        var snapshot = new List<object>();
+        foreach (var id in userIds)
+        {
+            snapshot.Add(new
+            {
+                userId = id,
+                isOnline = IsOnline(id),
+                lastSeen = _lastSeen.TryGetValue(id, out var ls) ? ls : (DateTimeOffset?)null
+            });
+        }
+        return snapshot;
     }
 
     public string? GetUserIdForConnection(string connectionId)
