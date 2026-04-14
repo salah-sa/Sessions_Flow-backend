@@ -1,7 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Mail, Lock, User as UserIcon, Eye, EyeOff, Hash, KeyRound, CheckCircle2, AlertCircle, ShieldCheck } from "lucide-react";
-import { Input, Button } from "../../ui";
+import { 
+  Loader2, Mail, Lock, User as UserIcon, Eye, EyeOff, 
+  Hash, KeyRound, CheckCircle2, AlertCircle, ShieldCheck, 
+  Search, Users, ArrowRight, ArrowLeft 
+} from "lucide-react";
+import { Input, Button, Badge } from "../../ui";
 import { LoginStyleProps } from "../types";
 import { SocialButtons } from "../SocialButtons";
 import RealisticPandaMascot from "../RealisticPandaMascot";
@@ -65,7 +69,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
   const strengthIdx = getStrengthIndex(props.passwordStrength);
 
   return (
-    <div dir="ltr" className="absolute inset-0 bg-[#0a0f1a] overflow-hidden" style={{ direction: "ltr", textAlign: "left" }}>
+    <div className="absolute inset-0 bg-[#0a0f1a] overflow-hidden">
       {/* ═══ Background System — Matching Shell's Ambient Nebula ═══ */}
       <div
         ref={blobRef}
@@ -103,20 +107,15 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
           </div>
 
           <div className="relative rounded-[24px] overflow-hidden">
-            {/* Card glow border — Aero emerald accent */}
+            {/* Card glow border */}
             <div className="absolute inset-0 rounded-[24px] p-[1px]"
               style={{ background: "linear-gradient(135deg, rgba(16,185,129,0.4) 0%, rgba(6,182,212,0.25) 40%, rgba(255,255,255,0.03) 60%, rgba(59,130,246,0.3) 100%)" }}
             />
 
-            <div className="relative rounded-[23px] bg-[rgba(15,23,42,0.75)] backdrop-blur-2xl px-6 py-6 pt-10"
-              style={{
-                boxShadow: "0 0 1px rgba(16, 185, 129, 0.4), 0 0 20px rgba(16, 185, 129, 0.07), 0 8px 32px rgba(0,0,0,0.5)",
-              }}
-            >
-              {/* Top accent bar — Aero gradient */}
+            <div className="relative rounded-[23px] bg-[rgba(15,23,42,0.75)] backdrop-blur-2xl px-6 py-6 pt-10 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+              {/* Top accent bar */}
               <div className="absolute top-0 left-0 right-0 h-[2px]">
                 <div className="h-full bg-gradient-to-r from-emerald-500 via-cyan-400 to-blue-500 opacity-80" />
-                <div className="absolute inset-0 h-full bg-gradient-to-r from-emerald-500 via-cyan-400 to-blue-500 blur-sm opacity-50" />
               </div>
 
               {/* ═══ Header ═══ */}
@@ -129,7 +128,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                 </p>
               </div>
 
-              {/* ═══ Role Switcher — Matching TabsList ═══ */}
+              {/* ═══ Role Switcher ═══ */}
               <div className="relative flex p-[3px] bg-slate-950/60 rounded-xl mb-4 border border-white/[0.05]">
                 <motion.div
                   className="absolute top-[3px] bottom-[3px] rounded-[11px] bg-emerald-500/15 border border-emerald-500/25 shadow-[0_0_12px_rgba(16,185,129,0.15)]"
@@ -140,6 +139,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 />
                 <button
+                  type="button"
                   onClick={() => props.setLoginMode("engineer")}
                   className={`relative z-10 flex-1 py-2 text-[10px] font-black rounded-lg transition-colors duration-200 uppercase tracking-widest ${
                     props.loginMode === "engineer" ? "text-emerald-400" : "text-slate-600 hover:text-slate-400"
@@ -148,6 +148,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                   Engineer
                 </button>
                 <button
+                  type="button"
                   onClick={() => props.setLoginMode("student")}
                   className={`relative z-10 flex-1 py-2 text-[10px] font-black rounded-lg transition-colors duration-200 uppercase tracking-widest ${
                     props.loginMode === "student" ? "text-emerald-400" : "text-slate-600 hover:text-slate-400"
@@ -157,353 +158,308 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                 </button>
               </div>
 
-              {/* ═══ Form ═══ */}
-              <form onSubmit={props.onSubmit} className="space-y-3">
-
-                {/* Name field (register only) */}
-                <AnimatePresence>
-                  {isRegister && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="space-y-1 overflow-hidden"
-                    >
+              {/* ═══ Form / Discovery Logic ═══ */}
+              <div className="space-y-3">
+                {isRegister && isStudent && props.discoveryStep === "search" && (
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="space-y-4"
+                  >
+                    <div className="space-y-1">
                       <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">
-                        Full Name
+                        Find Your Group
                       </label>
                       <div className={`relative group rounded-xl transition-all duration-300 ${
-                        focusedField === "name" ? "ring-2 ring-emerald-500/25" : ""
+                        focusedField === "groupName" ? "ring-2 ring-emerald-500/25" : ""
                       }`}>
-                        <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-emerald-400 transition-colors duration-300" />
+                        <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-emerald-400" />
                         <Input
-                          {...props.register("name")}
-                          className="w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] focus:border-emerald-500/30 transition-all duration-300 text-[13px] placeholder:text-slate-600 font-medium normal-case tracking-normal"
-                          placeholder="Enter your full name"
-                          onFocus={() => { setFocusedField("name"); props.handleFieldFocus("text"); }}
+                          {...props.register("groupName")}
+                          className="w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] focus:border-emerald-500/30 transition-all text-[13px] placeholder:text-slate-600 font-medium normal-case tracking-normal"
+                          placeholder="Exact group name (e.g. Math-101)"
+                          onFocus={() => { setFocusedField("groupName"); props.handleFieldFocus("text"); }}
                           onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
                         />
                       </div>
-                      <AnimatePresence>
-                        <FieldError error={(props.errors as any).name} />
-                      </AnimatePresence>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Identifier field */}
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">
-                    {isStudent ? "Username" : "Email"}
-                  </label>
-                  <div className={`relative group rounded-xl transition-all duration-300 ${
-                    focusedField === "identifier" ? "ring-2 ring-emerald-500/25" : ""
-                  }`}>
-                    {isStudent ? (
-                      <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-emerald-400 transition-colors duration-300" />
-                    ) : (
-                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-emerald-400 transition-colors duration-300" />
-                    )}
-                    <Input
-                      {...props.register("identifier")}
-                      className="w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] focus:border-emerald-500/30 transition-all duration-300 text-[13px] placeholder:text-slate-600 font-medium normal-case tracking-normal"
-                      placeholder={isStudent ? "Enter your username" : "name@example.com"}
-                      onFocus={() => { setFocusedField("identifier"); props.handleFieldFocus("text"); }}
-                      onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
-                    />
-                  </div>
-                  <AnimatePresence>
-                    <FieldError error={(props.errors as any).identifier} />
-                  </AnimatePresence>
-                </div>
-
-                {/* Password field */}
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">
-                    Password
-                  </label>
-                  <div className={`relative group rounded-xl transition-all duration-300 ${
-                    focusedField === "password" ? "ring-2 ring-emerald-500/25" : ""
-                  }`}>
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-emerald-400 transition-colors duration-300" />
-                    <Input
-                      {...props.register("password")}
-                      type={showPassword ? "text" : "password"}
-                      className="w-full h-[42px] pl-10 pr-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] focus:border-emerald-500/30 transition-all duration-300 text-[13px] placeholder:text-slate-600 font-medium normal-case tracking-normal"
-                      placeholder="••••••••"
-                      onFocus={() => { setFocusedField("password"); props.handleFieldFocus("password"); }}
-                      onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
-                      onChange={(e) => { props.register("password").onChange(e); props.handlePasswordChange(e); }}
-                    />
-                    <button
+                      <p className="text-[9px] text-slate-500 mt-2 leading-relaxed px-1">
+                        <AlertCircle className="w-3 h-3 inline-block -mt-0.5 mr-1" />
+                        Enter the group name provided by your engineer to verify your identity.
+                      </p>
+                    </div>
+                    <Button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-300 transition-colors duration-200"
+                      onClick={() => props.onDiscover?.((props.register("groupName") as any).value || "")}
+                      disabled={props.loading}
+                      className="w-full h-[44px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all shadow-glow shadow-emerald-500/10"
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  <AnimatePresence>
-                    <FieldError error={(props.errors as any).password} />
-                  </AnimatePresence>
-
-                  {/* Password Strength Meter */}
-                  <AnimatePresence>
-                    {props.passwordStrength > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="pt-1 px-1"
-                      >
+                      {props.loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
                         <div className="flex items-center gap-2">
-                          <div className="flex-1 h-[3px] bg-slate-800 rounded-full overflow-hidden">
-                            <motion.div
-                              className={`h-full rounded-full ${strengthIdx >= 0 ? strengthConfig[strengthIdx].color : ""}`}
-                              initial={{ width: 0 }}
-                              animate={{ width: `${props.passwordStrength * 100}%` }}
-                              transition={{ duration: 0.4, ease: "easeOut" }}
-                            />
-                          </div>
-                          {strengthIdx >= 0 && (
-                            <span className={`text-[9px] font-bold uppercase tracking-wider ${strengthConfig[strengthIdx].textColor}`}>
-                              {strengthConfig[strengthIdx].label}
-                            </span>
-                          )}
+                          <Search className="w-4 h-4" />
+                          Search Group
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+                      )}
+                    </Button>
+                  </motion.div>
+                )}
 
-                {/* Confirm Password field (register only) */}
-                <AnimatePresence>
-                  {isRegister && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="space-y-1 overflow-hidden"
-                    >
+                {isRegister && isStudent && props.discoveryStep === "pick-student" && props.discoveredGroup && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="space-y-4"
+                  >
+                    <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-4 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/20 shadow-glow shadow-emerald-500/10">
+                          <Users className="w-5 h-5 text-emerald-400" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                            {props.discoveredGroup.groupName}
+                          </h3>
+                          <p className="text-[9px] text-emerald-400 font-bold uppercase tracking-widest mt-0.5">
+                            Level {props.discoveredGroup.level} • {props.discoveredGroup.engineerName}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="pt-2 border-t border-white/5">
+                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                           Who are you? <span className="text-[8px] text-slate-600 font-medium lowercase italic">(Select your name)</span>
+                        </p>
+                        <div className="grid grid-cols-1 gap-1.5 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
+                          {props.discoveredGroup.students.map((student) => (
+                            <button 
+                              key={student.id}
+                              type="button"
+                              onClick={() => props.onSelectStudent?.(student)}
+                              className="w-full px-4 py-2.5 bg-slate-950/40 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-500/30 rounded-xl text-start transition-all group flex items-center justify-between"
+                            >
+                              <span className="text-[11px] text-slate-400 group-hover:text-white font-bold uppercase transition-colors">{student.name}</span>
+                              <div className="w-5 h-5 rounded-full bg-white/5 group-hover:bg-emerald-500 flex items-center justify-center transition-all">
+                                <ArrowRight className="w-3 h-3 text-slate-600 group-hover:text-white" />
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <Button variant="outline" onClick={props.onResetDiscovery} className="w-full text-[10px] h-10 border-white/5 bg-transparent hover:bg-white/5">
+                      <ArrowLeft className="w-3 h-3 mr-2" />
+                      Not my group? Search again
+                    </Button>
+                  </motion.div>
+                )}
+
+                {(!isRegister || !isStudent || props.discoveryStep === "register") && (
+                  <form onSubmit={props.onSubmit} className="space-y-3">
+                    {/* Register-only Name field */}
+                    <AnimatePresence mode="wait">
+                      {isRegister && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="space-y-1 overflow-hidden"
+                        >
+                          <div className="flex items-center justify-between ml-1">
+                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em]">Full Name</label>
+                            {isStudent && props.selectedStudent && (
+                                <Badge variant="glow" className="text-[7px] py-0 px-1.5 opacity-80">
+                                    <ShieldCheck className="w-2.5 h-2.5 mr-1" />
+                                    Identity Locked
+                                </Badge>
+                            )}
+                          </div>
+                          <div className={`relative group rounded-xl transition-all ${focusedField === "name" ? "ring-2 ring-emerald-500/25" : ""} ${isStudent && props.selectedStudent ? "opacity-70 pointer-events-none" : ""}`}>
+                            <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-emerald-400" />
+                            <Input
+                              {...props.register("name")}
+                              readOnly={!!(isStudent && props.selectedStudent)}
+                              className={`w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] text-[13px] ${isStudent && props.selectedStudent ? "cursor-not-allowed text-slate-400" : ""}`}
+                              placeholder="Enter your full name"
+                              onFocus={() => { setFocusedField("name"); props.handleFieldFocus("text"); }}
+                              onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
+                            />
+                            {isStudent && props.selectedStudent && (
+                              <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
+                                <Lock className="w-3.5 h-3.5 text-slate-600" />
+                              </div>
+                            )}
+                          </div>
+                          <FieldError error={(props.errors as any).name} />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Email / Username field */}
+                    <div className="space-y-1">
                       <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">
-                        Confirm Password
+                        {isStudent ? "Username" : "Email"}
                       </label>
-                      <div className={`relative group rounded-xl transition-all duration-300 ${
-                        focusedField === "confirmPassword" ? "ring-2 ring-emerald-500/25" : ""
-                      }`}>
-                        <ShieldCheck className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-emerald-400 transition-colors duration-300" />
+                      <div className={`relative group rounded-xl transition-all ${focusedField === "identifier" ? "ring-2 ring-emerald-500/25" : ""}`}>
+                        {isStudent ? <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" /> : <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />}
                         <Input
-                          {...props.register("confirmPassword")}
-                          type={showConfirmPassword ? "text" : "password"}
-                          className="w-full h-[42px] pl-10 pr-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] focus:border-emerald-500/30 transition-all duration-300 text-[13px] placeholder:text-slate-600 font-medium normal-case tracking-normal"
-                          placeholder="••••••••"
-                          onFocus={() => { setFocusedField("confirmPassword"); props.handleFieldFocus("password"); }}
+                          {...props.register("identifier")}
+                          className="w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl text-[13px]"
+                          placeholder={isStudent ? "Enter your username" : "username@gmail.com"}
+                          onFocus={() => { setFocusedField("identifier"); props.handleFieldFocus("text"); }}
                           onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-300 transition-colors duration-200"
-                        >
-                          {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </div>
+                      <FieldError error={(props.errors as any).identifier} />
+                    </div>
+
+                    {/* Password field */}
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">Password</label>
+                      <div className={`relative group rounded-xl transition-all ${focusedField === "password" ? "ring-2 ring-emerald-500/25" : ""}`}>
+                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+                        <Input
+                          {...props.register("password")}
+                          type={showPassword ? "text" : "password"}
+                          className="w-full h-[42px] pl-10 pr-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl text-[13px]"
+                          placeholder="••••••••"
+                          onFocus={() => { setFocusedField("password"); props.handleFieldFocus("password"); }}
+                          onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
+                          onChange={(e) => { props.register("password").onChange(e); props.handlePasswordChange(e); }}
+                        />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-300">
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
-                      <AnimatePresence>
-                        <FieldError error={(props.errors as any).confirmPassword} />
-                      </AnimatePresence>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      <FieldError error={(props.errors as any).password} />
+                      
+                      {/* Strength Meter */}
+                      {isRegister && props.passwordStrength > 0 && (
+                        <div className="pt-1 px-1 flex items-center gap-2">
+                          <div className="flex-1 h-[3px] bg-slate-800 rounded-full overflow-hidden">
+                            <motion.div
+                              className={`h-full ${strengthIdx >= 0 ? strengthConfig[strengthIdx].color : ""}`}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${props.passwordStrength * 100}%` }}
+                            />
+                          </div>
+                          {strengthIdx >= 0 && <span className={`text-[9px] font-bold ${strengthConfig[strengthIdx].textColor}`}>{strengthConfig[strengthIdx].label}</span>}
+                        </div>
+                      )}
+                    </div>
 
-                {/* ═══ Student-only fields ═══ */}
-                <AnimatePresence>
-                  {isRegister && isStudent && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3, ease: "easeInOut" }}
-                      className="space-y-3 overflow-hidden"
-                    >
-                      {/* Email Field */}
-                      <div className="space-y-1 mt-3">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">
-                          Email Address
-                        </label>
-                        <div className={`relative group rounded-xl transition-all duration-300 ${
-                          focusedField === "email" ? "ring-2 ring-emerald-500/25" : ""
-                        }`}>
-                          <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-emerald-400 transition-colors duration-300" />
+                    {/* Confirm Password field (register only) */}
+                    <AnimatePresence mode="wait">
+                      {isRegister && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="space-y-1 overflow-hidden"
+                        >
+                          <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">Confirm Password</label>
+                          <div className={`relative group rounded-xl transition-all ${focusedField === "confirmPassword" ? "ring-2 ring-emerald-500/25" : ""}`}>
+                            <ShieldCheck className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+                            <Input
+                              {...props.register("confirmPassword")}
+                              type={showConfirmPassword ? "text" : "password"}
+                              className="w-full h-[42px] pl-10 pr-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl text-[13px]"
+                              placeholder="••••••••"
+                              onFocus={() => { setFocusedField("confirmPassword"); props.handleFieldFocus("password"); }}
+                              onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
+                            />
+                            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-300">
+                              {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
+                          <FieldError error={(props.errors as any).confirmPassword} />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Student-only Additional (Register) */}
+                    {isRegister && isStudent && (
+                      <div className="space-y-3 mt-3">
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">Email Address</label>
+                          <div className={`relative group rounded-xl transition-all ${focusedField === "email" ? "ring-2 ring-emerald-500/25" : ""}`}>
+                            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
                           <Input
                             {...props.register("email")}
-                            type="email"
-                            className="w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] focus:border-emerald-500/30 transition-all duration-300 text-[13px] placeholder:text-slate-600 font-medium normal-case tracking-normal"
-                            placeholder="name@example.com"
+                            className="w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl text-[13px]"
+                            placeholder="yourname@gmail.com"
                             onFocus={() => { setFocusedField("email"); props.handleFieldFocus("text"); }}
                             onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
                           />
-                        </div>
-                        <AnimatePresence>
+                          <p className="text-[10px] text-emerald-500/60 font-medium ml-1 mt-1">
+                            * Strictly Gmail accounts only
+                          </p>
+                          </div>
                           <FieldError error={(props.errors as any).email} />
-                        </AnimatePresence>
-                      </div>
-
-                      {/* Group Name Field */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">
-                          Group Name
-                        </label>
-                        <div className={`relative group rounded-xl transition-all duration-300 ${
-                          focusedField === "groupName" ? "ring-2 ring-emerald-500/25" : ""
-                        }`}>
-                          <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-emerald-400 transition-colors duration-300" />
-                          <Input
-                            {...props.register("groupName")}
-                            className="w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] focus:border-emerald-500/30 transition-all duration-300 text-[13px] placeholder:text-slate-600 font-medium normal-case tracking-normal"
-                            placeholder="Exact group name (e.g. Math-101)"
-                            onFocus={() => { setFocusedField("groupName"); props.handleFieldFocus("text"); }}
-                            onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
-                          />
-                        </div>
-                        <p className="text-[10px] text-slate-500 mt-1 pl-1">💡 It's better to copy the exact Group Name.</p>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* ═══ Student-only fields (Login Only) ═══ */}
-                <AnimatePresence>
-                  {!isRegister && isStudent && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3, ease: "easeInOut" }}
-                      className="space-y-3 overflow-hidden mt-3"
-                    >
-                      {/* Student ID */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">
-                          Student ID
-                        </label>
-                        <div className={`relative group rounded-xl transition-all duration-300 ${
-                          focusedField === "studentId" ? "ring-2 ring-emerald-500/25" : ""
-                        }`}>
-                          <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-emerald-400 transition-colors duration-300" />
-                          <Input
-                            {...props.register("studentId")}
-                            className="w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] focus:border-emerald-500/30 transition-all duration-300 text-[13px] placeholder:text-slate-600 font-medium normal-case tracking-normal"
-                            placeholder="STU-2025-XXXXX"
-                            onFocus={() => { setFocusedField("studentId"); props.handleFieldFocus("text"); }}
-                            onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
-                          />
                         </div>
                       </div>
-
-                      {/* Engineer Code */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">
-                          Engineer Code
-                        </label>
-                        <div className={`relative group rounded-xl transition-all duration-300 ${
-                          focusedField === "engineerCode" ? "ring-2 ring-emerald-500/25" : ""
-                        }`}>
-                          <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-emerald-400 transition-colors duration-300" />
-                          <Input
-                            {...props.register("engineerCode")}
-                            className="w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] focus:border-emerald-500/30 transition-all duration-300 text-[13px] placeholder:text-slate-600 font-medium normal-case tracking-normal"
-                            placeholder="Enter your engineer code"
-                            onFocus={() => { setFocusedField("engineerCode"); props.handleFieldFocus("text"); }}
-                            onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
-                          />
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Remember + Forgot (login only) */}
-                {!isRegister && (
-                  <div className="flex justify-between items-center px-0.5">
-                    <label className="flex items-center gap-2 text-[11px] text-slate-500 hover:text-slate-300 transition-colors cursor-pointer group">
-                      <div className="relative">
-                        <input
-                          type="checkbox"
-                          checked={props.rememberMe}
-                          onChange={(e) => props.setRememberMe(e.target.checked)}
-                          className="w-3.5 h-3.5 rounded bg-slate-950 border-white/10 text-emerald-500 focus:ring-emerald-500/30 transition-all cursor-pointer"
-                        />
-                      </div>
-                      <span className="font-medium">Remember me</span>
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setShowForgotDialog(true)}
-                      className="text-[11px] text-slate-500 hover:text-emerald-400 transition-colors duration-200 font-medium"
-                    >
-                      Forgot password?
-                    </button>
-                  </div>
-                )}
-
-                {/* Submit */}
-                <Button
-                  type="submit"
-                  disabled={props.loading}
-                  className="relative w-full h-[44px] bg-gradient-to-r from-emerald-600 via-emerald-500 to-blue-600 hover:from-emerald-500 hover:via-emerald-400 hover:to-blue-500 text-white font-black rounded-xl overflow-hidden transition-all duration-300 shadow-[0_4px_24px_rgba(16,185,129,0.25)] hover:shadow-[0_4px_32px_rgba(16,185,129,0.4)] active:scale-[0.98] mt-1 tracking-widest text-[11px] uppercase"
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    {props.loading ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : isRegister ? (
-                      <>
-                        <CheckCircle2 className="w-4 h-4" />
-                        Create Account
-                      </>
-                    ) : (
-                      "Sign In"
                     )}
-                  </span>
-                </Button>
-              </form>
 
-              {/* ═══ Social divider ═══ */}
-              <div className="mt-5">
-                <div className="relative flex items-center mb-4">
-                  <div className="flex-grow h-[1px] bg-gradient-to-r from-transparent via-white/8 to-transparent" />
-                  <span className="flex-shrink-0 mx-4 text-[9px] text-slate-600 uppercase tracking-[0.15em] font-bold">
-                    Or continue with
-                  </span>
-                  <div className="flex-grow h-[1px] bg-gradient-to-r from-transparent via-white/8 to-transparent" />
-                </div>
-                <SocialButtons mode="icon-only" layout="row" theme="dark" />
+                    {/* Student-only Additional (Login) */}
+                    {!isRegister && isStudent && (
+                      <div className="space-y-3 mt-3">
+                         <div className="space-y-1">
+                          <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">Student ID</label>
+                          <div className={`relative group rounded-xl transition-all ${focusedField === "studentId" ? "ring-2 ring-emerald-500/25" : ""}`}>
+                            <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+                            <Input
+                              {...props.register("studentId")}
+                              className="w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl text-[13px]"
+                              placeholder="STU-2025-XXXXX"
+                              onFocus={() => { setFocusedField("studentId"); props.handleFieldFocus("text"); }}
+                              onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">Engineer Code</label>
+                          <div className={`relative group rounded-xl transition-all ${focusedField === "engineerCode" ? "ring-2 ring-emerald-500/25" : ""}`}>
+                            <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+                            <Input
+                              {...props.register("engineerCode")}
+                              className="w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl text-[13px]"
+                              placeholder="Enter engineer code"
+                              onFocus={() => { setFocusedField("engineerCode"); props.handleFieldFocus("text"); }}
+                              onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Submit Button */}
+                    <Button
+                      type="submit"
+                      disabled={props.loading}
+                      className="w-full h-[46px] bg-gradient-to-r from-emerald-600 to-blue-600 text-white font-black rounded-xl uppercase tracking-widest text-[11px] mt-4 shadow-emerald-500/20 shadow-lg"
+                    >
+                      {props.loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                        isRegister ? <> <CheckCircle2 className="w-4 h-4 mr-2" /> Create Account </> : "Sign In"
+                      )}
+                    </Button>
+                  </form>
+                )}
               </div>
 
               {/* ═══ Footer ═══ */}
-              <div className="mt-4 text-center pb-1">
-                <p className="text-[12px] text-slate-500">
+              <div className="mt-6 text-center">
+                 <div className="relative flex items-center mb-4">
+                  <div className="flex-grow h-[1px] bg-white/5" />
+                  <span className="mx-4 text-[9px] text-slate-600 uppercase font-bold">Or continue with</span>
+                  <div className="flex-grow h-[1px] bg-white/5" />
+                </div>
+                <SocialButtons mode="icon-only" layout="row" theme="dark" />
+                
+                <p className="text-[12px] text-slate-500 mt-6">
                   {isRegister ? (
-                    <>
-                      Already have an account?{" "}
-                      <button
-                        onClick={() => props.onNavigate("/login")}
-                        className="text-emerald-400 font-bold hover:text-emerald-300 transition-colors duration-200"
-                      >
-                        Sign in
-                      </button>
-                    </>
+                    <>Already have an account? <button onClick={() => props.onNavigate("/login")} className="text-emerald-400 font-bold">Sign in</button></>
                   ) : (
-                    <>
-                      Don't have an account?{" "}
-                      <button
-                        onClick={() => props.onNavigate("/register")}
-                        className="text-emerald-400 font-bold hover:text-emerald-300 transition-colors duration-200"
-                      >
-                        Sign up
-                      </button>
-                    </>
+                    <>Don't have an account? <button onClick={() => props.onNavigate("/register")} className="text-emerald-400 font-bold">Sign up</button></>
                   )}
                 </p>
               </div>
@@ -512,41 +468,14 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
         </motion.div>
       </div>
 
-      {/* ═══ Forgot Password Dialog ═══ */}
+      {/* Forgot Dialog */}
       <AnimatePresence>
         {showForgotDialog && (
-          <motion.div
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-2xl"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setShowForgotDialog(false)}
-          >
-            <motion.div
-              className="w-full max-w-sm mx-4 bg-slate-950 border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6">
-                <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-center mb-4 mx-auto">
-                  <Lock className="w-5 h-5 text-emerald-400" />
-                </div>
-                <h3 className="text-center text-lg font-sora font-black text-white uppercase tracking-wider mb-2">
-                  Reset Password
-                </h3>
-                <p className="text-center text-[11px] text-slate-500 leading-relaxed mb-5">
-                  Please contact your system administrator to reset your password. They can be reached through the admin panel.
-                </p>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setShowForgotDialog(false)}
-                >
-                  Got It
-                </Button>
-              </div>
+          <motion.div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md" onClick={() => setShowForgotDialog(false)}>
+            <motion.div className="w-full max-w-sm bg-slate-950 border border-white/10 rounded-2xl p-6" onClick={e => e.stopPropagation()}>
+              <h3 className="text-white font-black uppercase text-center mb-4">Reset Password</h3>
+              <p className="text-slate-500 text-[11px] text-center mb-6 leading-relaxed">Please contact your administrator to reset your credentials. They can manage this via the secure admin panel.</p>
+              <Button onClick={() => setShowForgotDialog(false)} className="w-full">Got It</Button>
             </motion.div>
           </motion.div>
         )}

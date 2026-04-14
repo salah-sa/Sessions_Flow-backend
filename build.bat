@@ -5,6 +5,32 @@ echo ==========================================
 echo   SessionFlow Production Build Script
 echo ==========================================
 
+:: 0. Verify Docker Services (Mongo + Redis)
+echo [0/5] Verifying Docker Services (Mongo + Redis)...
+docker ps >nul 2>&1
+if %errorlevel% neq 0 (
+    echo   ! ERROR: Docker Desktop is not running. Please start it.
+    pause
+    exit /b 1
+)
+
+:: Start Mongo if not running
+docker inspect -f {{.State.Running}} mongo >nul 2>&1
+if %errorlevel% neq 0 (
+    echo   - Starting MongoDB container...
+    docker start mongo
+)
+
+:: Start Redis if not running
+docker inspect -f {{.State.Running}} redis-sessionflow >nul 2>&1
+if %errorlevel% neq 0 (
+    echo   - Starting Redis container...
+    docker start redis-sessionflow
+)
+
+:: Wait for services to stabilize
+timeout /t 3 /nobreak >nul
+
 :: 1. Force kill existing app instances to release file/port locks
 echo [1/5] Cleaning up existing sessions...
 taskkill /F /IM SessionFlow.Desktop.exe /T 2>nul

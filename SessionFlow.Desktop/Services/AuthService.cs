@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver;
 using SessionFlow.Desktop.Data;
 using SessionFlow.Desktop.Models;
+using SessionFlow.Desktop.Services.EventBus;
 
 namespace SessionFlow.Desktop.Services;
 
@@ -17,13 +18,15 @@ public class AuthService
     private readonly IConfiguration _config;
     private readonly string _generatedAdminPassword;
     private readonly NotificationService _notificationService;
+    private readonly IEventBus _eventBus;
     private readonly IServiceProvider _serviceProvider; // Use provider to avoid circular deps if any
 
-    public AuthService(MongoService db, IConfiguration config, NotificationService notificationService, IServiceProvider serviceProvider)
+    public AuthService(MongoService db, IConfiguration config, NotificationService notificationService, IEventBus eventBus, IServiceProvider serviceProvider)
     {
         _db = db;
         _config = config;
         _notificationService = notificationService;
+        _eventBus = eventBus;
         _serviceProvider = serviceProvider;
         _generatedAdminPassword = _config["Security:DefaultAdminPassword"] ?? "Admin1234!";
     }
@@ -257,6 +260,14 @@ public class AuthService
             } catch { /* Ignored */ }
         });
 
+        // Publish Event for real-time frontend update
+        await _eventBus.PublishAsync(Events.RequestAccepted, EventTargetType.All, "", new { 
+            PendingId = pendingId, 
+            UserId = user.Id, 
+            EngineerId = pending.EngineerId,
+            GroupId = pending.GroupId 
+        });
+
         return (user, null);
     }
 
@@ -270,6 +281,9 @@ public class AuthService
         
         if (result.MatchedCount == 0)
             return (false, "Request not found or already processed.");
+
+        // Publish Event for real-time frontend update
+        await _eventBus.PublishAsync(Events.RequestRejected, EventTargetType.All, "", new { PendingId = pendingId });
 
         return (true, null);
     }

@@ -20,6 +20,7 @@ import { cn } from "../../lib/utils";
 import { useAuthStore, useUIStore, useChatStore } from "../../store/stores";
 import { useTranslation } from "react-i18next";
 import { useHoverSound } from "../../hooks/useHoverSound";
+import AnimatedChatIcon from "../ui/AnimatedChatIcon";
 
 const Sidebar: React.FC = () => {
   const user = useAuthStore((s) => s.user);
@@ -99,7 +100,15 @@ const Sidebar: React.FC = () => {
             <div className="absolute start-[-12px] w-1 h-5 bg-emerald-500 rounded-e-full shadow-[4px_0_12px_rgba(16,185,129,0.4)]" />
           )}
           <div className="relative shrink-0">
-            <item.icon className={cn("w-5 h-5 transition-transform group-hover:scale-110", isActive && "drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]")} />
+            {isChat ? (
+              <AnimatedChatIcon 
+                size={20} 
+                state={totalUnreadChat > 0 ? "ping" : isActive ? "active" : "idle"}
+                className={cn("transition-transform group-hover:scale-110", isActive && "drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]")}
+              />
+            ) : (
+              <item.icon className={cn("w-5 h-5 transition-transform group-hover:scale-110", isActive && "drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]")} />
+            )}
             {isChat && totalUnreadChat > 0 && (
               <div className="absolute -top-1.5 -end-1.5 w-4 h-4 bg-red-500 text-white text-[8px] font-black flex items-center justify-center rounded-full shadow-[0_0_10px_rgba(239,68,68,0.6)] animate-pulse">
                 {totalUnreadChat > 9 ? "9+" : totalUnreadChat}

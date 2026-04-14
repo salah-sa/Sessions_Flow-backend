@@ -23,6 +23,17 @@ export interface LoginStyleProps extends SharedAuthProps {
   onSubmit: (e?: React.BaseSyntheticEvent) => Promise<void>;
   setValue?: UseFormSetValue<any>;
   isRegister?: boolean;
+  discoveryStep?: 'search' | 'pick-student' | 'register';
+  discoveredGroup?: {
+    groupName: string;
+    engineerName: string;
+    level: number;
+    students: { id: string; name: string }[];
+  } | null;
+  onDiscover?: (groupName: string) => Promise<void>;
+  selectedStudent?: { id: string; name: string } | null;
+  onSelectStudent?: (student: { id: string; name: string }) => void;
+  onResetDiscovery?: () => void;
 }
 
 export interface RegisterStyleProps extends SharedAuthProps {

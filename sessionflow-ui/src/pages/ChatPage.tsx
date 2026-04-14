@@ -16,6 +16,7 @@ import { sounds } from "../lib/sounds";
 import { useAuthStore, useChatStore, useAppStore } from "../store/stores";
 import { useMuteStore } from "../store/muteStore";
 import { useSignalR } from "../providers/SignalRProvider";
+import AnimatedChatIcon from "../components/ui/AnimatedChatIcon";
 import { cn } from "../lib/utils";
 import { Group, ChatMessage, MessageMention } from "../types";
 import { formatDistanceToNow } from "date-fns";
@@ -256,7 +257,7 @@ const ChatPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-sora font-black text-white tracking-widest uppercase flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-brand-500/20 border border-brand-500/30 flex items-center justify-center shadow-glow">
-                <MessageSquare className="w-4 h-4 text-brand-500" />
+                <AnimatedChatIcon size={16} state="active" />
               </div>
               {t("chat.title")}
             </h1>
@@ -420,7 +421,7 @@ const ChatPage: React.FC = () => {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-8 animate-pulse grayscale opacity-40">
             <div className="w-24 h-24 rounded-[2rem] bg-brand-500/10 border border-brand-500/20 flex items-center justify-center shadow-2xl">
-              <MessageSquare className="w-10 h-10 text-brand-500" />
+              <AnimatedChatIcon size={48} state="idle" />
             </div>
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-sora font-extrabold text-white tracking-[0.3em] uppercase">{t("chat.empty_title")}</h2>

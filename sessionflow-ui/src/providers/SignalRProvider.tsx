@@ -56,7 +56,9 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       if (msg) {
         const { user } = useAuthStore.getState();
-        if (user && msg.senderId !== user.id) {
+        const isSelf = user && msg.senderId?.toString().toLowerCase() === user.id?.toString().toLowerCase();
+
+        if (user && !isSelf) {
           const { activeGroupId, incrementUnread } = useChatStore.getState();
           const { isMuted } = useMuteStore.getState();
 
@@ -245,6 +247,18 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       queryClient.invalidateQueries({ queryKey: ["pending-student-requests"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
       sounds.playNotification();
+    });
+
+    connection.on(Events.REQUEST_ACCEPTED, () => {
+      queryClient.invalidateQueries({ queryKey: ["pending-student-requests"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: ["groups"] }); // Incase student list in group details changed
+      sounds.playPop();
+    });
+
+    connection.on(Events.REQUEST_REJECTED, () => {
+      queryClient.invalidateQueries({ queryKey: ["pending-student-requests"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
     });
 
     // ═══════════════════════════════════════════════
