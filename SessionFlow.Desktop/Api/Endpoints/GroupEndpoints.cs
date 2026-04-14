@@ -179,7 +179,7 @@ public static class GroupEndpoints
                 colorTag = g.ColorTag,
                 engineerId = g.EngineerId,
                 engineerName = engineer?.Name,
-                engineer = engineer != null ? new { id = engineer.Id, name = engineer.Name, role = engineer.Role.ToString(), avatarUrl = engineer.AvatarUrl } : null,
+                engineer = engineer != null ? new { id = engineer.Id, name = engineer.Name, role = engineer.Role.ToString(), avatarUrl = AuthEndpoints.ResolveAvatarUrl(engineer.AvatarUrl, ctx.Request) } : null,
                 students = studentsList.Select(s => new
                 {
                     id = s.Id,

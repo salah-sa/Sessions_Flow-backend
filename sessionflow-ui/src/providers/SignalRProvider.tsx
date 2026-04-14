@@ -59,23 +59,26 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const isSelf = user && msg.senderId?.toString().toLowerCase() === user.id?.toString().toLowerCase();
 
         if (user && !isSelf) {
-          const { activeGroupId, incrementUnread } = useChatStore.getState();
-          const { isMuted } = useMuteStore.getState();
+          // Delay to allow local React state (like activeGroupId) to settle during group switching
+          setTimeout(() => {
+            const { activeGroupId, incrementUnread } = useChatStore.getState();
+            const { isMuted } = useMuteStore.getState();
 
-          if (!isMuted(msg.groupId)) {
-            if (document.hidden || activeGroupId !== msg.groupId) {
-              sounds.playNotification();
-              useNotificationPopupStore.getState().notify(
-                msg.groupId,
-                msg.senderName ?? "Unknown",
-                msg.text,
-                msg.sender?.avatarUrl ?? undefined
-              );
-            } else {
-              sounds.playPop();
+            if (!isMuted(msg.groupId)) {
+              if (document.hidden || activeGroupId !== msg.groupId) {
+                sounds.playNotification();
+                useNotificationPopupStore.getState().notify(
+                  msg.groupId,
+                  msg.senderName ?? "Unknown",
+                  msg.text,
+                  msg.sender?.avatarUrl ?? undefined
+                );
+              } else {
+                sounds.playPop();
+              }
             }
-          }
-          incrementUnread(msg.groupId);
+            incrementUnread(msg.groupId);
+          }, 50);
         }
       }
     });

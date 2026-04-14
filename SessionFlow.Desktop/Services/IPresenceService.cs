@@ -7,13 +7,13 @@ namespace SessionFlow.Desktop.Services;
 public interface IPresenceService
 {
     void UserConnected(string userId, string connectionId);
-    void UserDisconnected(string connectionId);
+    Task<bool> UserDisconnectedAsync(string connectionId);
     bool IsOnline(string userId);
     List<string> GetOnlineUserIds();
     void RecordHeartbeat(string userId);
     List<object> GetPresenceSnapshot(IEnumerable<string> userIds);
     string? GetUserIdForConnection(string connectionId);
-    void SetPresence(string userId, bool isOnline, string connectionId);
+    Task SetPresenceAsync(string userId, bool isOnline, string connectionId);
     Task SetAwayAsync(string userId);
     string GetStatus(string userId);
 }

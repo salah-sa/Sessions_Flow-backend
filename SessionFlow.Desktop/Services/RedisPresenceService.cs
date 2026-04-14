@@ -87,44 +87,36 @@ public class RedisPresenceService : IPresenceService
         }
     }
 
-    public void UserDisconnected(string connectionId)
+    public async Task<bool> UserDisconnectedAsync(string connectionId)
     {
         var userId = GetUserIdForConnection(connectionId);
         _localConnectionMap.TryRemove(connectionId, out _);
-        _fallback.UserDisconnected(connectionId);
+        bool fallbackOffline = await _fallback.UserDisconnectedAsync(connectionId);
 
         if (_redisAvailable && _db != null && userId != null)
         {
             try
             {
-                var batch = _db.CreateBatch();
                 // Remove this connection
-                batch.KeyDeleteAsync($"{_prefix}connections:{connectionId}");
-                batch.HashDeleteAsync($"{_prefix}user:conns:{userId}", connectionId);
+                await _db.KeyDeleteAsync($"{_prefix}connections:{connectionId}");
+                await _db.HashDeleteAsync($"{_prefix}user:conns:{userId}", connectionId);
 
                 // Check if user has other connections
-                batch.Execute();
-
-                // Async check: if no more connections, remove presence
-                Task.Run(async () =>
+                var remaining = await _db.HashLengthAsync($"{_prefix}user:conns:{userId}");
+                if (remaining == 0)
                 {
-                    try
-                    {
-                        var remaining = await _db.HashLengthAsync($"{_prefix}user:conns:{userId}");
-                        if (remaining == 0)
-                        {
-                            await _db.KeyDeleteAsync($"{_prefix}presence:{userId}");
-                            await _db.KeyDeleteAsync($"{_prefix}user:conns:{userId}");
-                        }
-                    }
-                    catch { /* Best effort cleanup */ }
-                });
+                    await _db.KeyDeleteAsync($"{_prefix}presence:{userId}");
+                    await _db.KeyDeleteAsync($"{_prefix}user:conns:{userId}");
+                    return true;
+                }
+                return false;
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to remove presence from Redis for connection {ConnId}", connectionId);
             }
         }
+        return fallbackOffline;
     }
 
     public bool IsOnline(string userId)
@@ -210,7 +202,7 @@ public class RedisPresenceService : IPresenceService
         return _fallback.GetUserIdForConnection(connectionId);
     }
 
-    public void SetPresence(string userId, bool isOnline, string connectionId)
+    public async Task SetPresenceAsync(string userId, bool isOnline, string connectionId)
     {
         if (isOnline)
         {
@@ -218,7 +210,7 @@ public class RedisPresenceService : IPresenceService
         }
         else
         {
-            UserDisconnected(connectionId);
+            await UserDisconnectedAsync(connectionId);
         }
     }
 

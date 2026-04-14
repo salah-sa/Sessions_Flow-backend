@@ -71,7 +71,11 @@ const ChatPage: React.FC = () => {
     };
   }, [rawGroup, studentsInGroup]);
 
-  const { data: messages = [], isLoading: messagesLoading } = useChatMessages(activeGroupId || undefined);
+  const { 
+    data: messages = [], 
+    isLoading: messagesLoading,
+    isInitialLoading: messagesInitialLoading 
+  } = useChatMessages(activeGroupId || undefined);
   const sendMessageMutation = useSendMessage();
 
   // user is already destructured at line 37 for isStudent check

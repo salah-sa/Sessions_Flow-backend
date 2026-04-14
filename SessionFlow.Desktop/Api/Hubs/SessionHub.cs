@@ -78,8 +78,11 @@ public class SessionHub : Hub
         var userId = GetUserId();
         if (!string.IsNullOrEmpty(userId))
         {
-            _presence.UserDisconnected(Context.ConnectionId);
-            await BroadcastPresenceUpdate(userId, Events.PresenceOffline);
+            bool isFullyOffline = await _presence.UserDisconnectedAsync(Context.ConnectionId);
+            if (isFullyOffline)
+            {
+                await BroadcastPresenceUpdate(userId, Events.PresenceOffline);
+            }
         }
 
         await base.OnDisconnectedAsync(exception);
@@ -167,9 +170,19 @@ public class SessionHub : Hub
         if (string.IsNullOrEmpty(userIdStr))
             return;
 
-        _presence.SetPresence(userIdStr, isOnline, Context.ConnectionId);
-        var eventName = isOnline ? Events.PresenceOnline : Events.PresenceOffline;
-        await BroadcastPresenceUpdate(userIdStr, eventName);
+        if (isOnline)
+        {
+            _presence.UserConnected(userIdStr, Context.ConnectionId);
+            await BroadcastPresenceUpdate(userIdStr, Events.PresenceOnline);
+        }
+        else
+        {
+            bool isFullyOffline = await _presence.UserDisconnectedAsync(Context.ConnectionId);
+            if (isFullyOffline)
+            {
+                await BroadcastPresenceUpdate(userIdStr, Events.PresenceOffline);
+            }
+        }
     }
 
     public async Task Heartbeat()
@@ -213,28 +226,30 @@ public class SessionHub : Hub
     /// </summary>
     private async Task BroadcastPresenceUpdate(string userId, string eventName)
     {
+        // Simple safety to prevent re-entrant broadcasts from same connection
+        var broadcastKey = $"presence_msg_{eventName}";
+        if (Context.Items.ContainsKey(broadcastKey)) return;
+        Context.Items[broadcastKey] = true;
+
         var role = Context.User?.FindFirst(ClaimTypes.Role)?.Value;
         var payload = new { userId };
 
         if (role == "Admin")
         {
+            // Admins are seen by everyone
             await _eventBus.PublishAsync(eventName, EventTargetType.All, "", payload);
         }
         else
         {
-            // Broadcast to all chat groups this user belongs to
+            // For non-admins, we broadcast to their chat groups
             var groups = Context.Items["groups"] as List<Guid> ?? await GetUserGroupIds(userId);
             foreach (var gId in groups)
             {
                 await _eventBus.PublishAsync(eventName, EventTargetType.Group, $"chat_{gId}", payload);
             }
 
-            // Also notify all admins
-            var admins = await _db.Users.Find(u => u.Role == UserRole.Admin).Project(u => u.Id).ToListAsync();
-            foreach (var adminId in admins)
-            {
-                await _eventBus.PublishAsync(eventName, EventTargetType.User, adminId.ToString(), payload);
-            }
+            // And to all admins (admins monitor everyone)
+            await _eventBus.PublishAsync(eventName, EventTargetType.Role, "Admin", payload);
         }
     }
 
