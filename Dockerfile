@@ -19,10 +19,18 @@ RUN dotnet publish HeadlessHost/HeadlessHost.csproj -c Release -o /app/publish
 COPY --from=build-ui /app/ui/dist /app/publish/wwwroot/
 
 # Stage 3: Runtime
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine AS runtime
 WORKDIR /app
+
+# Add globalization support for Alpine
+RUN apk add --no-cache icu-libs
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+
 COPY --from=build-backend /app/publish .
-# Default environment variables
+
+# Standard Railway/Docker variables
 ENV DOTNET_RUNNING_IN_CONTAINER=true
+ENV ASPNETCORE_URLS=http://0.0.0.0:8080
 EXPOSE 8080
+
 ENTRYPOINT ["dotnet", "HeadlessHost.dll"]
