@@ -26,10 +26,10 @@ public static class ApiHost
 {
     public static WebApplication BuildAndConfigure(string[] args)
     {
+        Console.WriteLine(">>> [STG 1] Initializing WebApplicationBuilder...");
         var baseDir = AppDomain.CurrentDomain.BaseDirectory;
 
         // Set ContentRoot and WebRoot BEFORE the builder initializes its internals.
-        // This is critical for WPF-hosted apps where CWD != executable directory.
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
             Args = args,
@@ -37,6 +37,7 @@ public static class ApiHost
             WebRootPath = Path.Combine(baseDir, "wwwroot")
         });
 
+        Console.WriteLine(">>> [STG 2] Configuring Middleware & Environment...");
         // Ensure appsettings.json is loaded from the executable directory
         builder.Configuration.SetBasePath(baseDir);
         builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
@@ -45,13 +46,12 @@ public static class ApiHost
         // Inject secrets from environment variables / .env file
         SecureBootstrapService.InjectSecrets(builder.Configuration);
         
-        // Ensure Kestrel uses the correct port from configuration (defaulting to 5180)
-        // Check for --port command line argument first for multi-instance support
-        // In containers (Railway/Docker), ASPNETCORE_URLS env var controls the port.
+        // Ensure Kestrel uses the correct port from configuration
         var isContainer = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
         if (isContainer)
         {
             var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+            Console.WriteLine($">>> [STG 2] Container Mode detected. Binding to 0.0.0.0:{port}");
             builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
         }
         else
@@ -65,6 +65,7 @@ public static class ApiHost
             builder.WebHost.UseUrls(kestrelUrl);
         }
 
+        Console.WriteLine(">>> [STG 3] Registering Core Services...");
         // Configure Serilog
         builder.Host.UseSerilog((context, services, configuration) => configuration
             .ReadFrom.Configuration(context.Configuration)
@@ -88,6 +89,7 @@ public static class ApiHost
         builder.Services.AddSingleton<MongoService>();
         
         // ── Redis Infrastructure (Graceful Fallback) ──────────────────
+        Console.WriteLine(">>> [STG 4] Initializing Redis Connection...");
         var redisConnectionString = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
         var redisInstanceName = builder.Configuration["Redis:InstanceName"] ?? "SessionFlow:";
 
@@ -99,17 +101,17 @@ public static class ApiHost
         }
         catch (Exception ex)
         {
+            Console.WriteLine($">>> [WRN] Redis initialization skipped (not fatal): {ex.Message}");
             Serilog.Log.Warning(ex, "Redis connection failed ({Conn}) — running in local-only mode", redisConnectionString);
         }
 
-        // ── Presence Service (Redis with in-memory fallback) ──────────
+        // ... (Remaining service registrations)
         builder.Services.AddSingleton<IPresenceService>(sp =>
         {
             var logger = sp.GetRequiredService<ILogger<RedisPresenceService>>();
             return new RedisPresenceService(redisConnection, logger, redisInstanceName);
         });
 
-        // ── Event Bus (Redis Pub/Sub with local fallback) ─────────────
         builder.Services.AddSingleton<IEventBus>(sp =>
         {
             var logger = sp.GetRequiredService<ILogger<Services.EventBus.RedisEventBus>>();
@@ -129,11 +131,8 @@ public static class ApiHost
         builder.Services.AddScoped<ReportingService>();
         builder.Services.AddHostedService<EmailReminderService>();
         builder.Services.AddHostedService<SessionMaintenanceService>();
-        
-        // ── Event Dispatcher (Redis → SignalR Bridge) ─────────────────
         builder.Services.AddHostedService<Services.EventBus.EventDispatcher>();
         
-        // ── SignalR + Redis Backplane ──────────────────────────────────
         var signalRBuilder = builder.Services.AddSignalR();
         if (redisConnection != null)
         {
@@ -145,6 +144,7 @@ public static class ApiHost
         builder.Services.AddLogging();
 
         // 2. JWT Authentication
+        Console.WriteLine(">>> [STG 5] Configuring JWT & Auth...");
         var secretKey = builder.Configuration["Jwt:SecretKey"]
             ?? throw new InvalidOperationException("JWT SecretKey is not configured. Set SESSIONFLOW_JWT_SECRET environment variable.");
         var issuer = builder.Configuration["Jwt:Issuer"] ?? "SessionFlow";
@@ -167,7 +167,6 @@ public static class ApiHost
                     }
                 };
                 
-                // Allow JWT for SignalR hub connection (passed in query string)
                 options.Events = new JwtBearerEvents
                 {
                     OnMessageReceived = context =>
@@ -192,32 +191,21 @@ public static class ApiHost
             options.AddPolicy("CanManageEngineers", policy => policy.RequireClaim("scope", "manage:engineers"));
         });
 
-        // 3. CORS — Production Hardening: Restrict origins based on environment configuration
+        // 3. CORS — Production Hardening
+        Console.WriteLine(">>> [STG 6] Configuring CORS...");
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("LocalOnly", policy =>
             {
-                var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>();
-                if (allowedOrigins != null && allowedOrigins.Length > 0)
-                {
-                    policy.WithOrigins(allowedOrigins);
-                }
-                else
-                {
-                    // Fallback for development if no config is present
-                    policy.SetIsOriginAllowed(origin => 
-                        !string.IsNullOrEmpty(origin) && (
-                        new Uri(origin).Host == "localhost" || 
-                        new Uri(origin).Host == "127.0.0.1" ||
-                        new Uri(origin).Host == "sessionsflow-backend-production.up.railway.app"));
-                }
-
-                policy.WithMethods("GET", "POST", "PUT", "DELETE", "PATCH")
+                // In production troubleshooting mode, allow any origin but respect SignalR credentials
+                policy.SetIsOriginAllowed(_ => true) 
+                      .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH")
                       .AllowAnyHeader()
                       .AllowCredentials();
             });
         });
 
+        Console.WriteLine(">>> [STG 7] Building Application...");
         var app = builder.Build();
 
         // 4. Pipeline Configuration
