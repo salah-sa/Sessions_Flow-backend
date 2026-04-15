@@ -220,7 +220,7 @@ const MembersPanel: React.FC<MembersPanelProps> = ({ group, isOpen, onClose }) =
     const isCurrentStudent = user?.role === "Student";
 
     // Students
-    if (group.students && !isCurrentStudent) {
+    if (group.students) {
       for (const student of group.students) {
         result.push({
           id: student.id,

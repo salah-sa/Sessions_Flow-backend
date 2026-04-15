@@ -410,6 +410,9 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
       pendingListeners.current = [];
 
+      // Request presence snapshot on reconnect
+      connection.invoke("RequestPresenceSnapshot").catch(console.error);
+
       for (const req of pendingInvokes.current) {
         connection.invoke(req.methodName, ...req.args).then(req.resolve).catch(req.reject);
       }
@@ -452,6 +455,16 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
         // Request initial presence snapshot on mount
         connection.invoke("RequestPresenceSnapshot").catch(console.error);
+
+        // H2 FIX: Periodic presence re-sync (30s) to catch any missed events
+        const presenceInterval = setInterval(() => {
+          if (connection.state === signalR.HubConnectionState.Connected) {
+            connection.invoke("RequestPresenceSnapshot").catch(console.error);
+          }
+        }, 30_000);
+        
+        // Store for cleanup
+        (connection as any).__presenceInterval = presenceInterval;
       })
       .catch((err) => {
         console.error("[SignalR] Connection failed:", err);
@@ -462,6 +475,8 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     return () => {
       clearDegradeTimer();
+      const interval = (connection as any).__presenceInterval;
+      if (interval) clearInterval(interval);
       connection.stop();
       connectionRef.current = null;
       setState(signalR.HubConnectionState.Disconnected);
