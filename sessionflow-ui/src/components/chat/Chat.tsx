@@ -335,8 +335,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage,
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = el;
-      // Show button if more than 300px away from bottom
-      const isAwayFromBottom = scrollHeight - scrollTop - clientHeight > 300;
+      // Show button if more than 200px away from bottom
+      const isAwayFromBottom = scrollHeight - scrollTop - clientHeight > 200;
       setShowScrollButton(isAwayFromBottom);
     };
 
@@ -467,38 +467,40 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage,
         }
       }} className="hidden" />
 
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-6 space-y-1 custom-scrollbar relative">
-        {/* Top Loading Indicator (Non-blocking) */}
-        <AnimatePresence>
-          {isLoading && (
-            <motion.div 
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className={cn(
-                "absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/80 backdrop-blur-md border border-white/10 px-4 py-1.5 rounded-full flex items-center gap-2 shadow-2xl",
-                messages.length === 0 && "top-1/2 -translate-y-1/2" // center if completely empty
-              )}
-            >
-              <Loader2 className="w-3 h-3 text-brand-500 animate-spin" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Syncing Messages...</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+      <div className="flex-1 min-h-0 relative">
+        <div ref={scrollRef} className="absolute inset-0 overflow-y-auto p-6 space-y-1 custom-scrollbar">
+          {/* Top Loading Indicator (Non-blocking) */}
+          <AnimatePresence>
+            {isLoading && (
+              <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className={cn(
+                  "absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/80 backdrop-blur-md border border-white/10 px-4 py-1.5 rounded-full flex items-center gap-2 shadow-2xl",
+                  messages.length === 0 && "top-1/2 -translate-y-1/2" // center if completely empty
+                )}
+              >
+                <Loader2 className="w-3 h-3 text-brand-500 animate-spin" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Syncing Messages...</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-        {!isLoading && messages.length === 0 ? (
-          <EmptyState 
-            icon={() => <AnimatedChatIcon size={48} state="idle" />} 
-            title="ENCRYPTED CHANNEL" 
-            description="Direct link established. You can now start communicating." 
-          />
-        ) : (
-          messages.map((msg, i) => {
-            const prevMsg = messages[i-1];
-            const showSender = i === 0 || prevMsg?.senderId !== msg.senderId;
-            return <MessageBubble key={msg.id} message={msg} isMe={msg.senderId === user?.id} showSender={showSender} />;
-          })
-        )}
+          {!isLoading && messages.length === 0 ? (
+            <EmptyState 
+              icon={() => <AnimatedChatIcon size={48} state="idle" />} 
+              title="ENCRYPTED CHANNEL" 
+              description="Direct link established. You can now start communicating." 
+            />
+          ) : (
+            messages.map((msg, i) => {
+              const prevMsg = messages[i-1];
+              const showSender = i === 0 || prevMsg?.senderId !== msg.senderId;
+              return <MessageBubble key={msg.id} message={msg} isMe={msg.senderId === user?.id} showSender={showSender} />;
+            })
+          )}
+        </div>
 
         {/* Floating Scroll to Bottom Button */}
         <AnimatePresence>
@@ -508,10 +510,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage,
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.8 }}
               onClick={scrollToBottom}
-              className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-[0_8px_25px_rgba(37,99,235,0.4)] hover:bg-blue-500 hover:scale-110 active:scale-95 transition-all"
+              className="absolute bottom-6 right-8 z-40 w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-[0_12px_35px_rgba(37,99,235,0.4)] border border-white/10 hover:bg-blue-500 hover:scale-110 active:scale-95 transition-all group"
               title="Jump to latest"
             >
-              <ChevronDown className="w-5 h-5" />
+              <ChevronDown className="w-6 h-6 group-hover:translate-y-0.5 transition-transform" />
             </motion.button>
           )}
         </AnimatePresence>
