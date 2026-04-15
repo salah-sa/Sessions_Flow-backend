@@ -49,7 +49,8 @@ public class StorageService
         if (MongoDB.Bson.ObjectId.TryParse(id, out var objectId))
         {
             var filter = Builders<GridFSFileInfo>.Filter.Eq(x => x.Id, objectId);
-            var fileInfo = await _bucket.FindAsync(filter).Result.FirstOrDefaultAsync();
+            var cursor = await _bucket.FindAsync(filter);
+            var fileInfo = await cursor.FirstOrDefaultAsync();
             if (fileInfo != null && fileInfo.Metadata.Contains("contentType"))
             {
                 return fileInfo.Metadata["contentType"].AsString;

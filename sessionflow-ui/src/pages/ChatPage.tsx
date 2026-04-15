@@ -10,7 +10,7 @@ import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { useGroups, useGroup } from "../queries/useGroupQueries";
 import { useInfiniteStudents } from "../queries/useStudentQueries";
-import { useChatMessages, useSendMessage } from "../queries/useChatQueries";
+import { useInfiniteChatMessages, useSendMessage } from "../queries/useChatQueries";
 import { queryKeys } from "../queries/keys";
 import { sounds } from "../lib/sounds";
 import { useAuthStore, useChatStore, useAppStore } from "../store/stores";
@@ -72,11 +72,43 @@ const ChatPage: React.FC = () => {
   }, [rawGroup, studentsInGroup]);
 
   const { 
-    data: messages = [], 
+    data: messagesData, 
     isLoading: messagesLoading,
-    isInitialLoading: messagesInitialLoading 
-  } = useChatMessages(activeGroupId || undefined);
+    isInitialLoading: messagesInitialLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
+  } = useInfiniteChatMessages(activeGroupId || undefined);
+
+  const messages = React.useMemo(() => {
+    if (!messagesData) return [];
+    // Pages are in descending order (latest page first), and each page is descending.
+    // We want a flat array in ASCENDING order for the UI.
+    const flat = messagesData.pages
+      .slice()
+      .reverse()
+      .flatMap(page => page.slice().reverse());
+    
+    // Final dedupe by ID just in case
+    const seen = new Set();
+    return flat.filter(m => {
+      if (seen.has(m.id)) return false;
+      seen.add(m.id);
+      return true;
+    });
+  }, [messagesData]);
   const sendMessageMutation = useSendMessage();
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredActive = React.useMemo(() => 
+    activeGroups.filter(g => g.name.toLowerCase().includes(searchTerm.toLowerCase())),
+    [activeGroups, searchTerm]
+  );
+
+  const filteredArchived = React.useMemo(() => 
+    archivedGroups.filter(g => g.name.toLowerCase().includes(searchTerm.toLowerCase())),
+    [archivedGroups, searchTerm]
+  );
 
   // user is already destructured at line 37 for isStudent check
   const toggleMute = useMuteStore((s) => s.toggleMute);
@@ -100,7 +132,6 @@ const ChatPage: React.FC = () => {
   // Handle SignalR Group Subscriptions
   // NOTE: Users are auto-joined to all their chat groups via OnConnectedAsync.
   // We only call JoinChat here as a safety re-join (e.g., after reconnection).
-  // We do NOT call LeaveChat — leaving a group kills global message delivery.
   useEffect(() => {
     if (!activeGroupId) return;
 
@@ -109,54 +140,6 @@ const ChatPage: React.FC = () => {
     // Mark messages as read when entering this group
     invoke("MarkMessagesAsRead", activeGroupId).catch(console.error);
   }, [activeGroupId, invoke, clearUnread]);
-
-  const handleNewMessage = React.useCallback((msg: ChatMessage) => {
-    // Deduplicate and process incoming messages
-    queryClient.setQueryData(
-      queryKeys.chat.messages(msg.groupId),
-      (old: ChatMessage[] | undefined) => {
-        if (!old) return [msg];
-
-        // 1. Direct ID match (most efficient)
-        const idIndex = old.findIndex(m => m.id === msg.id);
-        if (idIndex !== -1) {
-          const updated = [...old];
-          updated[idIndex] = { ...updated[idIndex], ...msg, status: "sent" };
-          return updated;
-        }
-
-        // 2. Pending Message Fallback - Match by content/sender to avoid "ghosting"
-        // This handles cases where client-side UUID != server-side MongoDB ID
-        if (msg.senderId === user?.id) {
-          const pendingIndex = old.findIndex(m => 
-            m.status === "pending" && 
-            m.senderId === msg.senderId && 
-            (m.text === msg.text || (m.fileName && m.fileName === msg.fileName))
-          );
-          
-          if (pendingIndex !== -1) {
-            const updated = [...old];
-            // Replace the pending optimistic UI with the final server message
-            updated[pendingIndex] = { ...msg, status: "sent" };
-            return updated;
-          }
-        }
-
-        return [...old, msg];
-      }
-    );
-
-    setLastMessage(msg.groupId, msg);
-  }, [queryClient, user?.id, setLastMessage]);
-
-  useEffect(() => {
-    // Event bus sends an envelope: { groupId, message } via Events.MESSAGE_RECEIVE
-    const unsub = on("message:receive", (data: any) => {
-      const msg = data?.message as ChatMessage;
-      if (msg) handleNewMessage(msg);
-    });
-    return () => unsub();
-  }, [on, handleNewMessage]);
 
   const handleSendMessage = async (text: string, file?: File, mentions?: MessageMention[], blocks?: any[]) => {
     if (!activeGroupId || !user) return;
@@ -272,6 +255,8 @@ const ChatPage: React.FC = () => {
             <Search className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 transition-colors group-focus-within:text-brand-500" />
             <Input
               placeholder={t("chat.search_placeholder")}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="ps-12 h-12 rounded-2xl border-white/5 bg-slate-950/60 text-[10px] font-black uppercase tracking-widest focus:ring-2 focus:ring-brand-500/20 transition-all border-glow"
             />
           </div>
@@ -282,10 +267,10 @@ const ChatPage: React.FC = () => {
             [1, 2, 3].map(i => <Skeleton key={i} className="h-20 rounded-2xl mb-2 bg-slate-900/50" />)
           ) : (
             <>
-              {activeGroups.length > 0 && (
+              {filteredActive.length > 0 && (
                 <div className="space-y-3">
                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ps-4 py-2">Active Channels</p>
-                  {activeGroups.map((group) => {
+                  {filteredActive.map((group) => {
                     const lastMsg = lastMessages[group.id];
                     const unread = unreadCounts[group.id] || 0;
                     const isSelected = activeGroupId === group.id;
@@ -323,12 +308,12 @@ const ChatPage: React.FC = () => {
                 </div>
               )}
 
-              {archivedGroups.length > 0 && (
+              {filteredArchived.length > 0 && (
                 <div className="space-y-3 pt-6">
                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ps-4 py-2 flex items-center gap-2">
                     <Clock className="w-3 h-3" /> Archive
                   </p>
-                  {archivedGroups.map((group) => {
+                  {filteredArchived.map((group) => {
                     const isSelected = activeGroupId === group.id;
 
                     return (
@@ -402,8 +387,12 @@ const ChatPage: React.FC = () => {
                 <ChatWindow
                   messages={messages}
                   onSendMessage={handleSendMessage}
-                  isLoading={messagesLoading}
-                  group={currentGroup}
+                  isLoading={messagesInitialLoading}
+                  activeGroupId={activeGroupId}
+                  currentGroup={currentGroup}
+                  fetchNextPage={fetchNextPage}
+                  hasNextPage={hasNextPage}
+                  isFetchingNextPage={isFetchingNextPage}
                 />
               </div>
 

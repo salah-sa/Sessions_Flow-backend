@@ -36,8 +36,8 @@ public static class ChatEndpoints
             }
         }).AllowAnonymous(); // Depending on auth requirement, leaving open for image rendering
 
-        // GET /api/chat/{groupId}/messages — last 100 messages
-        group.MapGet("/{groupIdStr}/messages", async (string groupIdStr, MongoService db, HttpContext ctx, AuthService auth) =>
+        // GET /api/chat/{groupId}/messages — Supports cursor-based pagination
+        group.MapGet("/{groupIdStr}/messages", async (string groupIdStr, DateTime? before, int? limit, MongoService db, HttpContext ctx, AuthService auth) =>
         {
             if (!Guid.TryParse(groupIdStr, out var groupId)) return Results.BadRequest("Invalid Group ID");
             
@@ -60,10 +60,17 @@ public static class ChatEndpoints
                 if (studentInfos == null || !studentInfos.Any(s => s.GroupId == groupId)) return Results.Forbid();
             }
 
+            var queryLimit = limit ?? 100;
+            var filter = Builders<ChatMessage>.Filter.Eq(m => m.GroupId, groupId);
+            if (before.HasValue)
+            {
+                filter &= Builders<ChatMessage>.Filter.Lt(m => m.SentAt, before.Value);
+            }
+
             var messages = await db.ChatMessages
-                .Find(m => m.GroupId == groupId)
+                .Find(filter)
                 .SortByDescending(m => m.SentAt)
-                .Limit(100)
+                .Limit(queryLimit)
                 .ToListAsync();
 
             var senderIds = messages.Select(m => m.SenderId).Distinct().ToList();
@@ -208,17 +215,16 @@ public static class ChatEndpoints
                 sentAt = message.SentAt
             };
 
-            // Non-blocking fire-and-forget EventBus publish for <300ms chat latency
-            _ = Task.Run(async () => {
-                try 
-                {
-                    await eventBus.PublishAsync(Services.EventBus.Events.MessageReceive, Services.EventBus.EventTargetType.Group, $"chat_{groupId}", new { groupId = groupId.ToString(), message = msgData });
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[EventBus Error] {ex.Message}");
-                }
-            });
+            // Standard publish (reliable delivery)
+            try 
+            {
+                await eventBus.PublishAsync(Services.EventBus.Events.MessageReceive, Services.EventBus.EventTargetType.Group, $"chat_{groupId}", new { groupId = groupId.ToString(), message = msgData });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[EventBus Error] {ex.Message}");
+                // We still return Created because it's in DB, but logs help debug infrastructure issues
+            }
 
             return Results.Created($"/api/chat/{groupId}/messages", msgData);
         }).DisableAntiforgery(); // Disable default antiforgery check for multipart API submission

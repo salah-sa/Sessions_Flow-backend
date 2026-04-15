@@ -76,7 +76,13 @@ export const timetableApi = {
 
 // Chat Module
 export const chatApi = {
-  getMessages: (groupId: string) => fetchWithAuth<ChatMessage[]>(`/chat/${groupId}/messages`),
+  getMessages: (groupId: string, before?: string, limit?: number) => {
+    const p = new URLSearchParams();
+    if (before) p.set("before", before);
+    if (limit) p.set("limit", String(limit));
+    const query = p.toString();
+    return fetchWithAuth<ChatMessage[]>(`/chat/${groupId}/messages${query ? `?${query}` : ""}`);
+  },
   sendMessage: (groupId: string, text: string, blocks?: any[], mentions?: MessageMention[], id?: string) =>
     fetchWithAuth<ChatMessage>(`/chat/${groupId}/messages`, {
       method: "POST",
