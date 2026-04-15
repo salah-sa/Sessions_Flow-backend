@@ -71,13 +71,14 @@ public class EventDispatcher : BackgroundService
 
     private async Task DispatchToSignalR(EventEnvelope envelope)
     {
-        // Deserialize payload so SignalR serializes it as an object graph to clients rather than a raw JSON string.
+        // Deserialize payload using JsonNode so SignalR serializes it as an object graph to clients rather than a raw JSON string.
+        // JsonNode uses its custom converter that naturally translates to correct JSON structure, avoiding the JsonElement empty-object trap.
         object? payload = null;
         if (!string.IsNullOrEmpty(envelope.Payload))
         {
             try
             {
-                payload = JsonSerializer.Deserialize<JsonElement>(envelope.Payload);
+                payload = System.Text.Json.Nodes.JsonNode.Parse(envelope.Payload);
             }
             catch
             {
