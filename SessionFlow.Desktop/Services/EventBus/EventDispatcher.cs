@@ -24,6 +24,7 @@ public class EventDispatcher : BackgroundService
     private readonly ILogger<EventDispatcher> _logger;
     private IDisposable? _subscription;
     private readonly Channel<EventEnvelope> _queue = Channel.CreateUnbounded<EventEnvelope>();
+    private readonly SemaphoreSlim _concurrencyLimiter = new SemaphoreSlim(100); // Max 100 concurrent dispatches
 
     public EventDispatcher(
         IEventBus eventBus,
@@ -45,23 +46,32 @@ public class EventDispatcher : BackgroundService
 
         _logger.LogInformation("EventDispatcher started — routing events from EventBus to SignalR");
 
-        // Process events with proper async/await (no fire-and-forget)
+        // Process events concurrently preventing a single-lane queue bottleneck
         await foreach (var envelope in _queue.Reader.ReadAllAsync(stoppingToken))
         {
-            try
+            await _concurrencyLimiter.WaitAsync(stoppingToken);
+
+            _ = Task.Run(async () =>
             {
-                await DispatchToSignalR(envelope);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to dispatch event {Event} to SignalR", envelope.EventName);
-            }
+                try
+                {
+                    await DispatchToSignalR(envelope);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to dispatch event {Event} to SignalR", envelope.EventName);
+                }
+                finally
+                {
+                    _concurrencyLimiter.Release();
+                }
+            }, stoppingToken);
         }
     }
 
     private async Task DispatchToSignalR(EventEnvelope envelope)
     {
-        // Deserialize payload to pass through as object
+        // Deserialize payload so SignalR serializes it as an object graph to clients rather than a raw JSON string.
         object? payload = null;
         if (!string.IsNullOrEmpty(envelope.Payload))
         {
@@ -71,7 +81,7 @@ public class EventDispatcher : BackgroundService
             }
             catch
             {
-                payload = envelope.Payload; // Pass as raw string if deserialization fails
+                payload = envelope.Payload; // Fallback to raw string if not JSON
             }
         }
 
