@@ -270,6 +270,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage,
   const [showMentions, setShowMentions] = useState(false);
   const [mentionIndex, setMentionIndex] = useState(0);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [activeMentions, setActiveMentions] = useState<MessageMention[]>([]);
   
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -324,9 +325,19 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage,
       
       if (isNearBottom) {
         scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        // If we auto-scrolled to bottom, hide the jump button
+        setShowScrollButton(false);
       }
     }
   }, [messages]);
+
+  // Handle initialization delay to prevent "jump" button on start
+  useEffect(() => {
+    if (!isLoading && messages.length > 0) {
+      const timer = setTimeout(() => setIsInitialized(true), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, messages.length]);
 
   // Handle manual scroll events for the "Scroll to Bottom" button
   useEffect(() => {
@@ -334,6 +345,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage,
     if (!el) return;
 
     const handleScroll = () => {
+      if (isLoading || !isInitialized) return;
       const { scrollTop, scrollHeight, clientHeight } = el;
       // Show button if more than 200px away from bottom
       const isAwayFromBottom = scrollHeight - scrollTop - clientHeight > 200;
@@ -342,7 +354,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage,
 
     el.addEventListener("scroll", handleScroll);
     return () => el.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [isLoading, isInitialized]); // Re-bind when loading or initialization state changes
 
   const scrollToBottom = () => {
     if (scrollRef.current) {
