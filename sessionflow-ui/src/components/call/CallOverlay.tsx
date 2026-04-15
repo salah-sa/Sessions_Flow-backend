@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Phone, PhoneOff, PhoneMissed, User as UserIcon, Mic, MicOff } from "lucide-react";
+import { Phone, PhoneOff, PhoneMissed, Mic, MicOff, Volume2 } from "lucide-react";
 import { useCallStore } from "../../store/callStore";
 import { useSignalR } from "../../providers/SignalRProvider";
 import { useWebRTC } from "../../hooks/useWebRTC";
@@ -30,6 +30,7 @@ const CallOverlay: React.FC = () => {
   // Timer for active call duration
   useEffect(() => {
     if (status !== "active" || !callStartedAt) return;
+    setElapsed(0);
     const interval = setInterval(() => {
       setElapsed(Date.now() - callStartedAt);
     }, 1000);
@@ -76,87 +77,164 @@ const CallOverlay: React.FC = () => {
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
           className="fixed inset-0 z-[200] flex items-center justify-center"
         >
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-2xl" />
+          <div className="absolute inset-0 bg-black/85 backdrop-blur-2xl" />
 
-          {/* Ambient glow */}
+          {/* Animated ambient glow */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div className={cn(
-              "absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full blur-[200px] transition-colors duration-1000",
-              status === "ringing" ? "bg-emerald-500/20 animate-pulse" :
-              status === "calling" ? "bg-blue-500/20 animate-pulse" :
-              status === "active" ? "bg-emerald-500/10" :
-              "bg-red-500/20"
-            )} />
+            <motion.div
+              animate={{
+                scale: status === "active" ? [1, 1.1, 1] : [1, 1.2, 1],
+                opacity: status === "active" ? [0.15, 0.25, 0.15] : [0.2, 0.35, 0.2],
+              }}
+              transition={{ repeat: Infinity, duration: status === "active" ? 4 : 2, ease: "easeInOut" }}
+              className={cn(
+                "absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full blur-[180px]",
+                status === "ringing" ? "bg-emerald-500/30" :
+                status === "calling" ? "bg-blue-500/25" :
+                status === "active" ? "bg-emerald-500/15" :
+                "bg-red-500/25"
+              )}
+            />
           </div>
 
           {/* Content */}
-          <div className="relative z-10 flex flex-col items-center gap-8 max-w-sm w-full px-6">
+          <motion.div
+            initial={{ scale: 0.9, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.9, y: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="relative z-10 flex flex-col items-center gap-6 max-w-sm w-full px-6"
+          >
             {/* Status label */}
-            <motion.p
+            <motion.div
               key={status}
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={cn(
+              className="flex items-center gap-2"
+            >
+              {status === "active" && (
+                <motion.div
+                  animate={{ scale: [1, 1.3, 1] }}
+                  transition={{ repeat: Infinity, duration: 1.5 }}
+                  className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"
+                />
+              )}
+              <span className={cn(
                 "text-[10px] font-black uppercase tracking-[0.3em]",
                 status === "ringing" ? "text-emerald-400" :
                 status === "calling" ? "text-blue-400" :
                 status === "active" ? "text-emerald-500" :
                 "text-red-400"
-              )}
-            >
-              {status === "ringing" ? "Incoming Call" :
-               status === "calling" ? "Calling..." :
-               status === "active" ? "Call Active" :
-               "Call Ended"}
-            </motion.p>
+              )}>
+                {status === "ringing" ? "Incoming Call" :
+                 status === "calling" ? "Connecting..." :
+                 status === "active" ? "Call Connected" :
+                 "Call Ended"}
+              </span>
+            </motion.div>
 
             {/* Avatar */}
-            <motion.div
-              animate={status === "ringing" || status === "calling" ? { scale: [1, 1.05, 1] } : {}}
-              transition={{ repeat: Infinity, duration: 2 }}
-              className="relative"
-            >
-              {/* Pulse rings */}
+            <div className="relative">
+              {/* Pulse rings for ringing/calling */}
               {(status === "ringing" || status === "calling") && (
                 <>
-                  <div className="absolute inset-0 rounded-full border-2 border-emerald-500/20 animate-ping" style={{ animationDuration: "2s" }} />
-                  <div className="absolute -inset-3 rounded-full border border-emerald-500/10 animate-ping" style={{ animationDuration: "3s" }} />
+                  <motion.div
+                    animate={{ scale: [1, 1.6], opacity: [0.4, 0] }}
+                    transition={{ repeat: Infinity, duration: 1.5, ease: "easeOut" }}
+                    className={cn(
+                      "absolute inset-0 rounded-full border-2",
+                      status === "ringing" ? "border-emerald-500/40" : "border-blue-500/40"
+                    )}
+                  />
+                  <motion.div
+                    animate={{ scale: [1, 1.8], opacity: [0.3, 0] }}
+                    transition={{ repeat: Infinity, duration: 2, ease: "easeOut", delay: 0.3 }}
+                    className={cn(
+                      "absolute inset-0 rounded-full border",
+                      status === "ringing" ? "border-emerald-500/20" : "border-blue-500/20"
+                    )}
+                  />
                 </>
               )}
 
-              <div className={cn(
-                "w-28 h-28 rounded-full flex items-center justify-center overflow-hidden border-3 transition-all duration-500",
-                status === "active" ? "border-emerald-500 shadow-[0_0_40px_rgba(16,185,129,0.3)]" :
-                status === "ringing" ? "border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.2)]" :
-                "border-white/10"
-              )}>
-                {remoteAvatar ? (
-                  <img src={remoteAvatar} alt={remoteName || ""} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
-                    <span className="text-3xl font-black text-white/60">{initial}</span>
-                  </div>
-                )}
-              </div>
-            </motion.div>
+              {/* Active call audio wave indicator */}
+              {status === "active" && (
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 flex items-end gap-0.5">
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <motion.div
+                      key={i}
+                      animate={{ height: [3, 8 + Math.random() * 8, 3] }}
+                      transition={{ repeat: Infinity, duration: 0.8 + Math.random() * 0.4, delay: i * 0.1 }}
+                      className="w-1 rounded-full bg-emerald-500/60"
+                    />
+                  ))}
+                </div>
+              )}
 
-            {/* Name */}
-            <div className="text-center space-y-1">
+              <motion.div
+                animate={status === "ringing" ? { scale: [1, 1.03, 1] } : {}}
+                transition={{ repeat: Infinity, duration: 1.5 }}
+              >
+                <div className={cn(
+                  "w-32 h-32 rounded-full flex items-center justify-center overflow-hidden transition-all duration-500",
+                  status === "active" ? "ring-4 ring-emerald-500/50 shadow-[0_0_50px_rgba(16,185,129,0.3)]" :
+                  status === "ringing" ? "ring-4 ring-emerald-500/30 shadow-[0_0_40px_rgba(16,185,129,0.2)]" :
+                  status === "calling" ? "ring-4 ring-blue-500/30 shadow-[0_0_40px_rgba(59,130,246,0.2)]" :
+                  "ring-2 ring-white/10"
+                )}>
+                  {remoteAvatar ? (
+                    <img src={remoteAvatar} alt={remoteName || ""} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
+                      <span className="text-4xl font-black text-white/50">{initial}</span>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Name + Duration */}
+            <div className="text-center space-y-2">
               <h2 className="text-2xl font-sora font-black text-white tracking-tight">{remoteName || "Unknown"}</h2>
               {status === "active" && callStartedAt && (
-                <p className="text-sm font-mono font-bold text-emerald-400 tabular-nums">{formatDuration(elapsed)}</p>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-lg font-mono font-bold text-emerald-400 tabular-nums"
+                >
+                  {formatDuration(elapsed)}
+                </motion.p>
+              )}
+              {status === "calling" && (
+                <motion.div
+                  animate={{ opacity: [0.4, 1, 0.4] }}
+                  transition={{ repeat: Infinity, duration: 1.5 }}
+                  className="text-xs font-bold text-blue-400/80 uppercase tracking-widest"
+                >
+                  Waiting for answer...
+                </motion.div>
+              )}
+              {status === "ringing" && (
+                <motion.div
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ repeat: Infinity, duration: 1.2 }}
+                  className="text-xs font-bold text-emerald-400/80 uppercase tracking-widest flex items-center gap-2 justify-center"
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                  Ringing...
+                </motion.div>
               )}
             </div>
 
             {/* Action buttons */}
-            <div className="flex gap-6 mt-4">
+            <div className="flex items-center gap-5 mt-4">
               {status === "ringing" && (
                 <>
                   {/* Reject */}
@@ -174,9 +252,14 @@ const CallOverlay: React.FC = () => {
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={handleAccept}
-                    className="w-16 h-16 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:shadow-[0_0_50px_rgba(16,185,129,0.6)] transition-shadow animate-pulse"
+                    className="w-16 h-16 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:shadow-[0_0_50px_rgba(16,185,129,0.6)] transition-shadow relative overflow-hidden"
                   >
-                    <Phone className="w-7 h-7" />
+                    <motion.div
+                      animate={{ scale: [1, 2], opacity: [0.3, 0] }}
+                      transition={{ repeat: Infinity, duration: 1.5 }}
+                      className="absolute inset-0 rounded-full bg-emerald-400"
+                    />
+                    <Phone className="w-7 h-7 relative z-10" />
                   </motion.button>
                 </>
               )}
@@ -202,9 +285,10 @@ const CallOverlay: React.FC = () => {
                     className={cn(
                       "w-14 h-14 rounded-full flex items-center justify-center border-2 transition-all duration-300",
                       isMuted 
-                        ? "bg-red-500/20 border-red-500 text-red-500" 
-                        : "bg-white/5 border-white/20 text-white hover:bg-white/10"
+                        ? "bg-red-500/20 border-red-500/60 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.2)]" 
+                        : "bg-white/5 border-white/20 text-white/80 hover:bg-white/10 hover:border-white/30"
                     )}
+                    title={isMuted ? "Unmute" : "Mute"}
                   >
                     {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
                   </motion.button>
@@ -223,15 +307,31 @@ const CallOverlay: React.FC = () => {
 
               {status === "ended" && (
                 <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="w-16 h-16 rounded-full bg-slate-800 text-red-400 flex items-center justify-center"
+                  initial={{ scale: 0, rotate: -30 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: "spring", damping: 15 }}
+                  className="w-16 h-16 rounded-full bg-slate-800/80 text-red-400 flex items-center justify-center ring-2 ring-red-500/20"
                 >
                   <PhoneMissed className="w-7 h-7" />
                 </motion.div>
               )}
             </div>
-          </div>
+
+            {/* Mute indicator label */}
+            <AnimatePresence>
+              {status === "active" && isMuted && (
+                <motion.div
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 5 }}
+                  className="text-[9px] font-black uppercase tracking-[0.2em] text-red-400/80 flex items-center gap-1.5"
+                >
+                  <MicOff className="w-3 h-3" />
+                  Microphone Muted
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
