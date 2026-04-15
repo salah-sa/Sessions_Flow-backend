@@ -69,7 +69,7 @@ public static class ChatEndpoints
                         avatarUrl = AuthEndpoints.ResolveAvatarUrl(sender.AvatarUrl, ctx.Request)
                     } : null,
                     text = m.Text,
-                    fileUrl = m.FileUrl,
+                    fileUrl = AuthEndpoints.ResolveAvatarUrl(m.FileUrl, ctx.Request),
                     fileName = m.FileName,
                     fileType = m.FileType,
                     sentAt = m.SentAt
@@ -187,7 +187,7 @@ public static class ChatEndpoints
                     avatarUrl = AuthEndpoints.ResolveAvatarUrl(sender.AvatarUrl, req)
                 } : null,
                 text = message.Text,
-                fileUrl = message.FileUrl,
+                fileUrl = AuthEndpoints.ResolveAvatarUrl(message.FileUrl, req),
                 fileName = message.FileName,
                 fileType = message.FileType,
                 sentAt = message.SentAt
