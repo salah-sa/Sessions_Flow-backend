@@ -9,6 +9,7 @@ import { sounds } from "../lib/sounds";
 import { Events } from "../lib/eventContracts";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../queries/keys";
+import { ChatMessage } from "../types";
 
 interface SignalRContextValue {
   on: (eventName: string, callback: (...args: any[]) => void) => () => void;
@@ -68,10 +69,40 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       }
       if (groupId) {
-        // Anti-delay: Direct cache update is handled by ChatPage.handleNewMessage.
-        // Only invalidate summary queries that don't have direct real-time injection.
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.summary });
         queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.data });
+
+        // ═══════════════════════════════════════════════
+        // GLOBAL CACHE INJECTION (RC-1)
+        // Ensures messages arrive regardless of page viewing.
+        // ═══════════════════════════════════════════════
+        if (msg) {
+          const { user } = useAuthStore.getState();
+          queryClient.setQueryData(
+            queryKeys.chat.messages(groupId),
+            (old: ChatMessage[] | undefined) => {
+              if (!old) return [msg];
+              // ID dedup
+              if (old.some(m => m.id === msg.id)) {
+                return old.map(m => m.id === msg.id ? { ...m, ...msg, status: "sent" as const } : m);
+              }
+              // Pending match (sender only)
+              if (user && msg.senderId === user.id) {
+                const pendingIdx = old.findIndex(m =>
+                  m.status === "pending" &&
+                  m.senderId === msg.senderId &&
+                  (m.text === msg.text || (m.fileName && m.fileName === msg.fileName))
+                );
+                if (pendingIdx !== -1) {
+                  const updated = [...old];
+                  updated[pendingIdx] = { ...msg, status: "sent" as const };
+                  return updated;
+                }
+              }
+              return [...old, msg];
+            }
+          );
+        }
       }
 
       if (msg) {
@@ -372,6 +403,12 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       // M4: Refetch chat messages missed during disconnect window
       queryClient.invalidateQueries({ queryKey: queryKeys.chat.all });
+
+      // RC-3: Flush any listeners that were registered while disconnected
+      for (const { event, cb } of pendingListeners.current) {
+        connection.on(event, cb);
+      }
+      pendingListeners.current = [];
 
       for (const req of pendingInvokes.current) {
         connection.invoke(req.methodName, ...req.args).then(req.resolve).catch(req.reject);
