@@ -180,7 +180,7 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
   // Source 1
   serverOnline: new Set<string>(),
   serverAway: new Set<string>(),
-  serverHealthy: false,
+  serverHealthy: true, // Assume healthy until proven otherwise
   lastServerEvent: 0,
 
   // Source 2
@@ -232,14 +232,17 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
       const lsm = new Map(s.lastSeenMap).set(userId, now);
       return { serverOnline: nextOnline, serverAway: nextAway, lastServerEvent: now, serverHealthy: true, lastSeenMap: lsm };
     }),
-
   setBulkServerOnline: (userIds) =>
     set((s) => {
-      const lsm = new Map(s.lastSeenMap);
       const now = Date.now();
-      for (const uid of userIds) lsm.set(uid, now);
+      const nextOnline = new Set(s.serverOnline);
+      const lsm = new Map(s.lastSeenMap);
+      for (const uid of userIds) {
+        nextOnline.add(uid);
+        lsm.set(uid, now);
+      }
       return {
-        serverOnline: new Set(userIds),
+        serverOnline: nextOnline,
         lastServerEvent: now,
         serverHealthy: true,
         lastSeenMap: lsm,

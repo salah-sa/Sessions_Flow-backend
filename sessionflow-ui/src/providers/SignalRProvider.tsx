@@ -68,8 +68,9 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       }
       if (groupId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.chat.messages(groupId) });
-        queryClient.invalidateQueries({ queryKey: ["dashboard", "summary"] });
+        // Anti-delay: Direct cache update is handled by ChatPage.handleNewMessage.
+        // Only invalidate summary queries that don't have direct real-time injection.
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.summary });
         queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.data });
       }
 
