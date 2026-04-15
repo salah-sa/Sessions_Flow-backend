@@ -50,10 +50,18 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const processedMessageIds = new Set<string>();
     const MESSAGE_DEDUP_MAX = 100;
 
+    const parsePayload = (raw: any) => {
+      if (typeof raw === "string") {
+        try { return JSON.parse(raw); } catch { return raw; }
+      }
+      return raw;
+    };
+
     // ═══════════════════════════════════════════════
     // 1. Chat Messages
     // ═══════════════════════════════════════════════
-    connection.on(Events.MESSAGE_RECEIVE, (data: any) => {
+    connection.on(Events.MESSAGE_RECEIVE, (raw: any) => {
+      const data = parsePayload(raw);
       const groupId = data?.groupId;
       const msg = data?.message;
 
@@ -135,7 +143,8 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     });
 
-    connection.on(Events.MESSAGE_READ, (data: any) => {
+    connection.on(Events.MESSAGE_READ, (raw: any) => {
+      const data = parsePayload(raw);
       const groupId = data?.groupId;
       if (groupId) {
         queryClient.invalidateQueries({ queryKey: queryKeys.chat.messages(groupId) });
@@ -155,7 +164,8 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
     });
 
-    connection.on(Events.ATTENDANCE_UPDATED, (data: any) => {
+    connection.on(Events.ATTENDANCE_UPDATED, (raw: any) => {
+      const data = parsePayload(raw);
       const sessionId = data?.sessionId;
       if (sessionId) {
         queryClient.invalidateQueries({ queryKey: queryKeys.sessions.byId(sessionId) });
@@ -173,7 +183,8 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // ═══════════════════════════════════════════════
     // 3. Groups
     // ═══════════════════════════════════════════════
-    connection.on(Events.GROUP_STATUS_CHANGED, (data: any) => {
+    connection.on(Events.GROUP_STATUS_CHANGED, (raw: any) => {
+      const data = parsePayload(raw);
       const groupId = data?.groupId;
       if (groupId) {
         queryClient.invalidateQueries({ queryKey: queryKeys.groups.byId(groupId) });
@@ -187,7 +198,8 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       queryClient.invalidateQueries({ queryKey: ["chat"] });
     });
 
-    connection.on(Events.GROUP_DELETED, (data: any) => {
+    connection.on(Events.GROUP_DELETED, (raw: any) => {
+      const data = parsePayload(raw);
       const groupId = data?.groupId;
       if (groupId) {
         queryClient.removeQueries({ queryKey: queryKeys.groups.byId(groupId) });
@@ -200,7 +212,8 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
     });
 
-    connection.on(Events.GROUP_COMPLETED, (data: any) => {
+    connection.on(Events.GROUP_COMPLETED, (raw: any) => {
+      const data = parsePayload(raw);
       const groupId = data?.groupId;
       if (groupId) {
         queryClient.invalidateQueries({ queryKey: queryKeys.groups.byId(groupId) });
@@ -211,7 +224,8 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
     });
 
-    connection.on(Events.GROUP_DESCRIPTION_UPDATED, (data: any) => {
+    connection.on(Events.GROUP_DESCRIPTION_UPDATED, (raw: any) => {
+      const data = parsePayload(raw);
       const groupId = data?.groupId;
       if (groupId) {
         queryClient.invalidateQueries({ queryKey: queryKeys.groups.byId(groupId) });
@@ -222,24 +236,28 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // ═══════════════════════════════════════════════
     // 4. Real-Time Presence Events
     // ═══════════════════════════════════════════════
-    connection.on(Events.PRESENCE_ONLINE, (data: any) => {
+    connection.on(Events.PRESENCE_ONLINE, (raw: any) => {
+      const data = parsePayload(raw);
       const userId = data?.userId;
       if (userId) usePresenceStore.getState().setServerOnline(userId);
     });
 
-    connection.on(Events.PRESENCE_OFFLINE, (data: any) => {
+    connection.on(Events.PRESENCE_OFFLINE, (raw: any) => {
+      const data = parsePayload(raw);
       const userId = data?.userId;
       if (userId) usePresenceStore.getState().setServerOffline(userId);
     });
 
-    connection.on(Events.PRESENCE_AWAY, (data: any) => {
+    connection.on(Events.PRESENCE_AWAY, (raw: any) => {
+      const data = parsePayload(raw);
       const userId = data?.userId;
       if (userId) {
         usePresenceStore.getState().setServerAway(userId);
       }
     });
 
-    connection.on(Events.PRESENCE_SNAPSHOT, (snapshot: any[]) => {
+    connection.on(Events.PRESENCE_SNAPSHOT, (raw: any) => {
+      const snapshot = parsePayload(raw);
       if (Array.isArray(snapshot)) {
         const onlineUserIds = snapshot
           .filter((u: any) => u.isOnline)
