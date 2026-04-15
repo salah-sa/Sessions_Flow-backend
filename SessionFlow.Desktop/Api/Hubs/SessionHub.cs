@@ -233,7 +233,9 @@ public class SessionHub : Hub
         if (!string.IsNullOrEmpty(role))
             await Groups.AddToGroupAsync(Context.ConnectionId, $"role_{role}");
 
-        await UpdatePresence(true);
+        // H1 FIX: Don't re-broadcast PresenceOnline on reconnect — user is already marked online.
+        // Just refresh the heartbeat timestamp to prevent stale-presence detection.
+        _presence.RecordHeartbeat(userId);
     }
 
     /// <summary>
@@ -242,10 +244,13 @@ public class SessionHub : Hub
     /// </summary>
     private async Task BroadcastPresenceUpdate(string userId, string eventName)
     {
-        // Simple safety to prevent re-entrant broadcasts from same connection
-        var broadcastKey = $"presence_msg_{eventName}";
-        if (Context.Items.ContainsKey(broadcastKey)) return;
-        Context.Items[broadcastKey] = true;
+        // Cooldown: debounce rapid-fire duplicate broadcasts per event type (2s window)
+        var broadcastKey = $"presence_ts_{eventName}";
+        if (Context.Items.TryGetValue(broadcastKey, out var lastTs) && lastTs is DateTimeOffset dt)
+        {
+            if ((DateTimeOffset.UtcNow - dt).TotalSeconds < 2) return;
+        }
+        Context.Items[broadcastKey] = DateTimeOffset.UtcNow;
 
         var role = Context.User?.FindFirst(ClaimTypes.Role)?.Value;
         var payload = new { userId };

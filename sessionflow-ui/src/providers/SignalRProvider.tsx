@@ -90,7 +90,7 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 useNotificationPopupStore.getState().notify(
                   msg.groupId,
                   msg.senderName ?? "Unknown",
-                  msg.text,
+                  msg.text || (msg.fileName ? `📎 ${msg.fileName}` : "Sent an attachment"),
                   msg.sender?.avatarUrl ?? undefined
                 );
               } else {
@@ -369,6 +369,9 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       // Re-join all chat groups (lost on reconnect)
       connection.invoke("RejoinGroups").catch(console.error);
+
+      // M4: Refetch chat messages missed during disconnect window
+      queryClient.invalidateQueries({ queryKey: queryKeys.chat.all });
 
       for (const req of pendingInvokes.current) {
         connection.invoke(req.methodName, ...req.args).then(req.resolve).catch(req.reject);

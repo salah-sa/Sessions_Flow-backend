@@ -181,7 +181,7 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
   serverOnline: new Set<string>(),
   serverAway: new Set<string>(),
   serverHealthy: true, // Assume healthy until proven otherwise
-  lastServerEvent: 0,
+  lastServerEvent: Date.now(), // Initialize to "now" so first snapshot is trusted (not stale)
 
   // Source 2
   clientOnline: new Set<string>(),

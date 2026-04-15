@@ -428,7 +428,18 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage,
   return (
     <div className="flex flex-col h-full bg-slate-950/40 backdrop-blur-3xl rounded-[2rem] border border-white/5 overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] relative">
       <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent pointer-events-none" />
-      <input type="file" ref={fileInputRef} onChange={(e) => { if (e.target.files && e.target.files[0]) setSelectedFile(e.target.files[0]); }} className="hidden" />
+      <input type="file" ref={fileInputRef} onChange={(e) => {
+        if (e.target.files && e.target.files[0]) {
+          const file = e.target.files[0];
+          const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB — mirrors server limit
+          if (file.size > MAX_FILE_SIZE) {
+            toast.error("File too large. Maximum 10MB allowed.");
+            e.target.value = ""; // reset input
+            return;
+          }
+          setSelectedFile(file);
+        }
+      }} className="hidden" />
 
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-6 space-y-1 custom-scrollbar relative">
         {/* Top Loading Indicator (Non-blocking) */}
