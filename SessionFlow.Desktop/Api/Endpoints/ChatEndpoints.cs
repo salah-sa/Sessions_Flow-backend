@@ -17,6 +17,25 @@ public static class ChatEndpoints
     {
         var group = app.MapGroup("/api/chat").RequireAuthorization();
 
+        app.MapGet("/api/media/{id}", async (string id, StorageService storage, HttpContext ctx) =>
+        {
+            try
+            {
+                var contentType = await storage.GetContentTypeAsync(id);
+                ctx.Response.Headers.CacheControl = "public, max-age=31536000";
+                
+                var stream = new MemoryStream();
+                await storage.DownloadFileAsync(id, stream);
+                stream.Position = 0;
+                
+                return Results.Stream(stream, contentType);
+            }
+            catch
+            {
+                return Results.NotFound();
+            }
+        }).AllowAnonymous(); // Depending on auth requirement, leaving open for image rendering
+
         // GET /api/chat/{groupId}/messages — last 100 messages
         group.MapGet("/{groupIdStr}/messages", async (string groupIdStr, MongoService db, HttpContext ctx, AuthService auth) =>
         {
@@ -80,7 +99,7 @@ public static class ChatEndpoints
         });
 
         group.MapPost("/{groupIdStr}/messages", async (string groupIdStr, HttpRequest req,
-            MongoService db, HttpContext ctx, Services.EventBus.IEventBus eventBus, Microsoft.AspNetCore.Hosting.IWebHostEnvironment env, AuthService auth) =>
+            MongoService db, HttpContext ctx, Services.EventBus.IEventBus eventBus, Microsoft.AspNetCore.Hosting.IWebHostEnvironment env, AuthService auth, StorageService storage) =>
         {
             if (!Guid.TryParse(groupIdStr, out var groupId)) return Results.BadRequest("Invalid Group ID");
             var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -131,22 +150,17 @@ public static class ChatEndpoints
                     if (!allowedTypes.Contains(file.ContentType?.ToLowerInvariant() ?? ""))
                         return Results.BadRequest(new { error = "File type not allowed." });
 
-                    // For the desktop application, store in wwwroot/uploads securely
-                    string webRoot = env.WebRootPath ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot");
-                    var uploadsFolder = Path.Combine(webRoot, "uploads");
-                    Directory.CreateDirectory(uploadsFolder);
-                    
-                    var safeFileName = Path.GetFileName(file.FileName);
-                    var uniqueFileName = $"{Guid.NewGuid()}_{safeFileName}";
-                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-                    
-                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    // Use purely GridFS storage instead of local disk to prevent Docker volume wipes
+                    using (var readStream = file.OpenReadStream()) 
                     {
-                        await file.CopyToAsync(stream);
+                        var gridFsId = await storage.UploadFileAsync(readStream, file.FileName, file.ContentType);
+                        
+                        var host = ctx.Request.Headers["X-Forwarded-Host"].FirstOrDefault() ?? ctx.Request.Host.Value;
+                        var proto = ctx.Request.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? ctx.Request.Scheme;
+                        fileUrl = $"{proto}://{host}/api/media/{gridFsId}";
                     }
                     
-                    fileUrl = $"/uploads/{uniqueFileName}";
-                    fileName = safeFileName;
+                    fileName = file.FileName;
                     fileType = file.ContentType;
                 }
             }
@@ -194,7 +208,17 @@ public static class ChatEndpoints
                 sentAt = message.SentAt
             };
 
-            await eventBus.PublishAsync(Services.EventBus.Events.MessageReceive, Services.EventBus.EventTargetType.Group, $"chat_{groupId}", new { groupId = groupId.ToString(), message = msgData });
+            // Non-blocking fire-and-forget EventBus publish for <300ms chat latency
+            _ = Task.Run(async () => {
+                try 
+                {
+                    await eventBus.PublishAsync(Services.EventBus.Events.MessageReceive, Services.EventBus.EventTargetType.Group, $"chat_{groupId}", new { groupId = groupId.ToString(), message = msgData });
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[EventBus Error] {ex.Message}");
+                }
+            });
 
             return Results.Created($"/api/chat/{groupId}/messages", msgData);
         }).DisableAntiforgery(); // Disable default antiforgery check for multipart API submission

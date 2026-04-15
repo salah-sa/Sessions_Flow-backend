@@ -86,7 +86,7 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
               if (old.some(m => m.id === msg.id)) {
                 return old.map(m => m.id === msg.id ? { ...m, ...msg, status: "sent" as const } : m);
               }
-              // Pending match (sender only)
+              // Pending match (sender only) - Ensures cross-device sync works for optimistic updates
               if (user && msg.senderId === user.id) {
                 const pendingIdx = old.findIndex(m =>
                   m.status === "pending" &&
@@ -99,7 +99,8 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
                   return updated;
                 }
               }
-              return [...old, msg];
+              // If it's technically our own message but we didn't have it pending (e.g. from our other device)
+              return [...old, { ...msg, status: "sent" as const }];
             }
           );
         }
