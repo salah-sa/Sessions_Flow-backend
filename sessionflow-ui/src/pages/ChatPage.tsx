@@ -131,7 +131,7 @@ const ChatPage: React.FC = () => {
           const pendingIndex = old.findIndex(m => 
             m.status === "pending" && 
             m.senderId === msg.senderId && 
-            m.text === msg.text
+            (m.text === msg.text || (m.fileName && m.fileName === msg.fileName))
           );
           
           if (pendingIndex !== -1) {

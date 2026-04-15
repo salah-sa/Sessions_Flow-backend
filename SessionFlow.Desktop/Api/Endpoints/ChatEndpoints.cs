@@ -126,7 +126,8 @@ public static class ChatEndpoints
                     var allowedTypes = new HashSet<string> { "image/jpeg", "image/png", "image/gif", "image/webp",
                         "application/pdf", "application/msword",
                         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                        "audio/mpeg", "audio/ogg", "audio/wav", "video/mp4" };
+                        "audio/mpeg", "audio/ogg", "audio/wav",
+                        "video/mp4", "video/webm", "video/quicktime" };
                     if (!allowedTypes.Contains(file.ContentType?.ToLowerInvariant() ?? ""))
                         return Results.BadRequest(new { error = "File type not allowed." });
 
