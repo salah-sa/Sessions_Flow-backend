@@ -1,3 +1,4 @@
+using System.Threading.Channels;
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Hosting;
@@ -22,6 +23,7 @@ public class EventDispatcher : BackgroundService
     private readonly IHubContext<SessionHub> _hubContext;
     private readonly ILogger<EventDispatcher> _logger;
     private IDisposable? _subscription;
+    private readonly Channel<EventEnvelope> _queue = Channel.CreateUnbounded<EventEnvelope>();
 
     public EventDispatcher(
         IEventBus eventBus,
@@ -33,9 +35,18 @@ public class EventDispatcher : BackgroundService
         _logger = logger;
     }
 
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _subscription = _eventBus.Subscribe(async (envelope) =>
+        _subscription = _eventBus.Subscribe((envelope) =>
+        {
+            // Non-blocking enqueue — safe for synchronous Action<T> signature
+            _queue.Writer.TryWrite(envelope);
+        });
+
+        _logger.LogInformation("EventDispatcher started — routing events from EventBus to SignalR");
+
+        // Process events with proper async/await (no fire-and-forget)
+        await foreach (var envelope in _queue.Reader.ReadAllAsync(stoppingToken))
         {
             try
             {
@@ -45,12 +56,7 @@ public class EventDispatcher : BackgroundService
             {
                 _logger.LogError(ex, "Failed to dispatch event {Event} to SignalR", envelope.EventName);
             }
-        });
-
-        _logger.LogInformation("EventDispatcher started — routing events from EventBus to SignalR");
-
-        // Keep running until cancelled
-        return Task.Delay(Timeout.Infinite, stoppingToken);
+        }
     }
 
     private async Task DispatchToSignalR(EventEnvelope envelope)
