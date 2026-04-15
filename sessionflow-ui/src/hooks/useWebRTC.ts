@@ -2,160 +2,277 @@ import { useEffect, useRef, useCallback } from "react";
 import { useCallStore } from "../store/callStore";
 import { useSignalR } from "../providers/SignalRProvider";
 
-/**
- * useWebRTC — The media engine hook for SessionFlow Voice Calls.
- * Manages RTCPeerConnection, MediaStreams, and signaling handshake.
- */
+// ═══════════════════════════════════════════════════════════
+// useWebRTC — WebRTC Voice Call Media Engine
+// ═══════════════════════════════════════════════════════════
+// Owns the RTCPeerConnection lifecycle.
+// Reacts to callStore state transitions to:
+//  1. Create PeerConnection + acquire mic   (status → active)
+//  2. Exchange SDP offer/answer             (remoteSdp changes)
+//  3. Trickle ICE candidates                (iceCandidates changes)
+//  4. Tear down everything                  (status → ended/idle)
+//
+// IMPORTANT: All store reads inside async/event callbacks use
+// useCallStore.getState() to avoid stale closures.
+// ═══════════════════════════════════════════════════════════
+
+const ICE_SERVERS: RTCConfiguration = {
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" },
+  ],
+};
+
 export const useWebRTC = () => {
-  const { 
-    status, 
-    remoteUserId, 
-    remoteSdp, 
-    remoteSdpType, 
-    pendingIceCandidates,
-    setLocalStream,
-    clearPendingIceCandidates
-  } = useCallStore();
-  
   const { invoke } = useSignalR();
-  
+
   const pcRef = useRef<RTCPeerConnection | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  const isNegotiatingRef = useRef(false);
 
-  // 1. Initialize PeerConnection
-  const initPC = useCallback(async () => {
-    if (pcRef.current) return;
+  // ─── Helpers ──────────────────────────────────────────────
 
-    const configuration = {
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" },
-      ],
-    };
-
-    const pc = new RTCPeerConnection(configuration);
-    pcRef.current = pc;
-
-    // ICE Candidate handling
-    pc.onicecandidate = (event) => {
-      if (event.candidate && remoteUserId) {
-        invoke("SendIceCandidate", remoteUserId, JSON.stringify(event.candidate))
-          .catch(console.error);
-      }
-    };
-
-    // Remote Track handling
-    pc.ontrack = (event) => {
-      console.log("[WebRTC] Remote track received", event.streams[0]);
-      if (!remoteAudioRef.current) {
-        const audio = document.createElement("audio");
-        audio.autoplay = true;
-        audio.style.display = "none";
-        document.body.appendChild(audio);
-        remoteAudioRef.current = audio;
-      }
-      remoteAudioRef.current.srcObject = event.streams[0];
-    };
-
-    // PC State Logging
-    pc.onconnectionstatechange = () => {
-      console.log("[WebRTC] Connection state:", pc.connectionState);
-      if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
-        // Handle failure if needed, although endCall/reset usually handles this.
-      }
-    };
-
-    // 2. Local Media
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setLocalStream(stream);
-      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-    } catch (err) {
-      console.error("[WebRTC] Failed to get user media:", err);
-      // Fallback: continue without local audio if user denies (one-way call)
+  /** Ensure a hidden <audio> element exists for remote playback */
+  const ensureAudioElement = useCallback((): HTMLAudioElement => {
+    if (!remoteAudioRef.current) {
+      const audio = document.createElement("audio");
+      audio.autoplay = true;
+      audio.setAttribute("playsinline", "");
+      audio.style.display = "none";
+      document.body.appendChild(audio);
+      remoteAudioRef.current = audio;
     }
+    return remoteAudioRef.current;
+  }, []);
 
-    return pc;
-  }, [remoteUserId, invoke, setLocalStream]);
-
-  // 3. Cleanup logic
+  /** Full cleanup — close PC, stop tracks, remove audio element */
   const cleanup = useCallback(() => {
+    console.log("[WebRTC] Cleanup");
     if (pcRef.current) {
+      pcRef.current.onicecandidate = null;
+      pcRef.current.ontrack = null;
+      pcRef.current.onconnectionstatechange = null;
+      pcRef.current.oniceconnectionstatechange = null;
       pcRef.current.close();
       pcRef.current = null;
     }
     if (remoteAudioRef.current) {
+      remoteAudioRef.current.pause();
       remoteAudioRef.current.srcObject = null;
       remoteAudioRef.current.remove();
       remoteAudioRef.current = null;
     }
+    isNegotiatingRef.current = false;
   }, []);
 
-  // 4. Lifecycle Management
+  // ─── Create PeerConnection ───────────────────────────────
+
+  const createPeerConnection = useCallback((): RTCPeerConnection => {
+    // If one already exists, close it first to avoid leaks
+    if (pcRef.current) {
+      pcRef.current.close();
+      pcRef.current = null;
+    }
+
+    const pc = new RTCPeerConnection(ICE_SERVERS);
+    pcRef.current = pc;
+
+    // ICE candidates → send to remote peer
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        const { remoteUserId } = useCallStore.getState();
+        if (remoteUserId) {
+          invoke("SendIceCandidate", remoteUserId, JSON.stringify(event.candidate))
+            .catch((err) => console.error("[WebRTC] ICE send error:", err));
+        }
+      }
+    };
+
+    // Remote track → attach to audio element
+    pc.ontrack = (event) => {
+      console.log("[WebRTC] Remote track received:", event.track.kind);
+      const audio = ensureAudioElement();
+      audio.srcObject = event.streams[0];
+      // Force play (some browsers need explicit call after user gesture)
+      audio.play().catch((err) => console.warn("[WebRTC] Audio play blocked:", err));
+    };
+
+    // Connection state monitoring
+    pc.onconnectionstatechange = () => {
+      console.log("[WebRTC] Connection state:", pc.connectionState);
+      if (pc.connectionState === "failed") {
+        console.error("[WebRTC] Connection failed — ending call");
+        useCallStore.getState().ended();
+      }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      console.log("[WebRTC] ICE state:", pc.iceConnectionState);
+    };
+
+    return pc;
+  }, [invoke, ensureAudioElement]);
+
+  // ─── 1. Lifecycle: status → active ────────────────────────
+
+  const status = useCallStore((s) => s.status);
+
   useEffect(() => {
-    if (status === "active") {
-      initPC().then(async (pc) => {
-        if (!pc || !remoteUserId) return;
+    if (status !== "active") return;
 
-        const { isOutgoing } = useCallStore.getState();
+    let cancelled = false;
 
-        if (isOutgoing) {
-          // Caller Flow: Create Offer
+    const startMedia = async () => {
+      try {
+        const pc = createPeerConnection();
+
+        // Acquire microphone
+        let localStream: MediaStream;
+        try {
+          localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (err) {
+          console.error("[WebRTC] Mic access denied:", err);
+          return;
+        }
+
+        if (cancelled) {
+          localStream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+
+        useCallStore.getState().setLocalStream(localStream);
+        localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
+
+        // Caller creates the offer
+        const { isOutgoing, remoteUserId } = useCallStore.getState();
+        if (isOutgoing && remoteUserId) {
+          console.log("[WebRTC] Creating offer (caller)");
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
           await invoke("SendOffer", remoteUserId, JSON.stringify(offer));
+          console.log("[WebRTC] Offer sent");
         }
-      });
-    }
+        // Receiver waits for the offer to arrive via store
+      } catch (err) {
+        console.error("[WebRTC] startMedia error:", err);
+      }
+    };
 
-    if (status === "ended" || status === "idle") {
-      cleanup();
-    }
+    startMedia();
 
     return () => {
-      if (status === "ended") cleanup();
+      cancelled = true;
     };
-  }, [status, remoteUserId, initPC, cleanup, invoke]);
+  }, [status, createPeerConnection, invoke]);
 
-  // 5. Handle Incoming SDP (Offers/Answers)
+  // ─── 2. Handle incoming SDP (offer from caller / answer from receiver) ──
+
+  const remoteSdp = useCallStore((s) => s.remoteSdp);
+  const remoteSdpType = useCallStore((s) => s.remoteSdpType);
+
   useEffect(() => {
+    if (!remoteSdp || !remoteSdpType) return;
+    if (isNegotiatingRef.current) return;
+
+    const pc = pcRef.current;
+    if (!pc) {
+      console.warn("[WebRTC] SDP arrived but no PeerConnection exists");
+      return;
+    }
+
+    isNegotiatingRef.current = true;
+
     const handleSDP = async () => {
-      if (!pcRef.current || !remoteSdp || !remoteSdpType || !remoteUserId) return;
+      try {
+        const sdp = JSON.parse(remoteSdp);
 
-      const pc = pcRef.current;
-      const sdp = JSON.parse(remoteSdp);
+        if (remoteSdpType === "offer") {
+          // Receiver path
+          console.log("[WebRTC] Setting remote offer");
+          await pc.setRemoteDescription(new RTCSessionDescription(sdp));
 
-      if (remoteSdpType === "offer") {
-        console.log("[WebRTC] Received Offer");
-        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        await invoke("SendAnswer", remoteUserId, JSON.stringify(answer));
-      } else if (remoteSdpType === "answer") {
-        console.log("[WebRTC] Received Answer");
-        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+          // Drain any buffered ICE candidates that arrived before remote description was set
+          const { pendingIceCandidates } = useCallStore.getState();
+          for (const candStr of pendingIceCandidates) {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(JSON.parse(candStr)));
+            } catch (e) {
+              console.warn("[WebRTC] Buffered ICE add error:", e);
+            }
+          }
+          useCallStore.getState().clearPendingIceCandidates();
+
+          console.log("[WebRTC] Creating answer (receiver)");
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+
+          const { remoteUserId } = useCallStore.getState();
+          if (remoteUserId) {
+            await invoke("SendAnswer", remoteUserId, JSON.stringify(answer));
+            console.log("[WebRTC] Answer sent");
+          }
+
+        } else if (remoteSdpType === "answer") {
+          // Caller path
+          console.log("[WebRTC] Setting remote answer");
+          await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+
+          // Drain buffered ICE
+          const { pendingIceCandidates } = useCallStore.getState();
+          for (const candStr of pendingIceCandidates) {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(JSON.parse(candStr)));
+            } catch (e) {
+              console.warn("[WebRTC] Buffered ICE add error:", e);
+            }
+          }
+          useCallStore.getState().clearPendingIceCandidates();
+        }
+      } catch (err) {
+        console.error("[WebRTC] SDP handling error:", err);
+      } finally {
+        isNegotiatingRef.current = false;
       }
     };
 
     handleSDP();
-  }, [remoteSdp, remoteSdpType, remoteUserId, invoke]);
+  }, [remoteSdp, remoteSdpType, invoke]);
 
-  // 6. Handle Buffered ICE Candidates
+  // ─── 3. Handle new ICE candidates (after remote description is set) ───
+
+  const pendingIceCandidates = useCallStore((s) => s.pendingIceCandidates);
+
   useEffect(() => {
-    if (!pcRef.current || pendingIceCandidates.length === 0 || !pcRef.current.remoteDescription) return;
-
     const pc = pcRef.current;
-    pendingIceCandidates.forEach(async (candStr) => {
-      try {
-        const candidate = new RTCIceCandidate(JSON.parse(candStr));
-        await pc.addIceCandidate(candidate);
-      } catch (e) {
-        console.error("[WebRTC] Error adding ICE candidate", e);
+    if (!pc || !pc.remoteDescription || pendingIceCandidates.length === 0) return;
+
+    const drainCandidates = async () => {
+      for (const candStr of pendingIceCandidates) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(JSON.parse(candStr)));
+        } catch (e) {
+          console.warn("[WebRTC] ICE candidate add error:", e);
+        }
       }
-    });
-    clearPendingIceCandidates();
-  }, [pendingIceCandidates, clearPendingIceCandidates]);
+      useCallStore.getState().clearPendingIceCandidates();
+    };
+
+    drainCandidates();
+  }, [pendingIceCandidates]);
+
+  // ─── 4. Cleanup on call end ──────────────────────────────
+
+  useEffect(() => {
+    if (status === "ended" || status === "idle") {
+      cleanup();
+    }
+  }, [status, cleanup]);
+
+  // ─── 5. Unmount safety ──────────────────────────────────
+
+  useEffect(() => {
+    return () => cleanup();
+  }, [cleanup]);
 
   return null;
 };
