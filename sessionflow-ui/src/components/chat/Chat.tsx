@@ -444,12 +444,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage,
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-6 space-y-1 custom-scrollbar relative">
         {/* Top Loading Indicator (Non-blocking) */}
         <AnimatePresence>
-          {isLoading && messages.length > 0 && (
+          {isLoading && (
             <motion.div 
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/80 backdrop-blur-md border border-white/10 px-4 py-1.5 rounded-full flex items-center gap-2 shadow-2xl"
+              className={cn(
+                "absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/80 backdrop-blur-md border border-white/10 px-4 py-1.5 rounded-full flex items-center gap-2 shadow-2xl",
+                messages.length === 0 && "top-1/2 -translate-y-1/2" // center if completely empty
+              )}
             >
               <Loader2 className="w-3 h-3 text-brand-500 animate-spin" />
               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Syncing Messages...</span>
@@ -457,16 +460,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage,
           )}
         </AnimatePresence>
 
-        {isLoading && messages.length === 0 ? (
-          <div className="space-y-4 p-4">
-            {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className={cn("flex flex-col gap-2", i % 2 === 0 ? "items-end" : "items-start")}>
-                <Skeleton className="h-4 w-24 bg-slate-800/20 rounded-full" />
-                <Skeleton className="h-16 w-[70%] bg-slate-800/50 rounded-[2rem]" />
-              </div>
-            ))}
-          </div>
-        ) : messages.length === 0 ? (
+        {!isLoading && messages.length === 0 ? (
           <EmptyState 
             icon={() => <AnimatedChatIcon size={48} state="idle" />} 
             title="ENCRYPTED CHANNEL" 

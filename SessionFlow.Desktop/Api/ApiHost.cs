@@ -91,6 +91,7 @@ public static class ApiHost
         });
 
         builder.Services.AddSingleton<MongoService>();
+        builder.Services.AddSingleton<StorageService>();
         
         // ── Redis Infrastructure (Graceful Fallback) ──────────────────
         Console.WriteLine(">>> [STG 4] Initializing Redis Connection...");

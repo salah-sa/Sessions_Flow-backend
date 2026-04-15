@@ -549,15 +549,12 @@ public class AuthService
             if (imageBytes.Length > 2 * 1024 * 1024)
                 throw new ArgumentException("Avatar too large. Maximum 2MB allowed.");
 
-            var uploadsDir = Path.Combine(webRootPath, "uploads", "avatars");
-            Directory.CreateDirectory(uploadsDir);
-
-            // Deterministic filename per user — overwrites old avatar
-            var fileName = $"{userId}.webp";
-            var filePath = Path.Combine(uploadsDir, fileName);
-            await File.WriteAllBytesAsync(filePath, imageBytes);
-
-            avatarUrl = $"/uploads/avatars/{fileName}?v={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+            var storage = _serviceProvider.GetRequiredService<StorageService>();
+            using (var stream = new MemoryStream(imageBytes))
+            {
+                var gridFsId = await storage.UploadFileAsync(stream, $"{userId}.webp", "image/webp");
+                avatarUrl = $"/api/media/{gridFsId}";
+            }
         }
         else
         {
