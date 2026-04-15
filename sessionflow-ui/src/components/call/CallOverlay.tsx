@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Phone, PhoneOff, PhoneMissed, User as UserIcon } from "lucide-react";
+import { Phone, PhoneOff, PhoneMissed, User as UserIcon, Mic, MicOff } from "lucide-react";
 import { useCallStore } from "../../store/callStore";
 import { useSignalR } from "../../providers/SignalRProvider";
+import { useWebRTC } from "../../hooks/useWebRTC";
 import { sounds } from "../../lib/sounds";
 import { cn } from "../../lib/utils";
 
@@ -19,9 +20,12 @@ const formatDuration = (ms: number): string => {
 };
 
 const CallOverlay: React.FC = () => {
-  const { status, remoteName, remoteAvatar, isOutgoing, callStartedAt, remoteUserId, reset } = useCallStore();
+  const { status, remoteName, remoteAvatar, isOutgoing, callStartedAt, remoteUserId, reset, isMuted, toggleMute } = useCallStore();
   const { invoke } = useSignalR();
   const [elapsed, setElapsed] = useState(0);
+
+  // Mount the WebRTC engine
+  useWebRTC();
 
   // Timer for active call duration
   useEffect(() => {
@@ -189,14 +193,32 @@ const CallOverlay: React.FC = () => {
               )}
 
               {status === "active" && (
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={handleEnd}
-                  className="w-16 h-16 rounded-full bg-red-500 text-white flex items-center justify-center shadow-[0_0_30px_rgba(239,68,68,0.4)] hover:shadow-[0_0_50px_rgba(239,68,68,0.6)] transition-shadow"
-                >
-                  <PhoneOff className="w-7 h-7" />
-                </motion.button>
+                <>
+                  {/* Mute toggle */}
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={toggleMute}
+                    className={cn(
+                      "w-14 h-14 rounded-full flex items-center justify-center border-2 transition-all duration-300",
+                      isMuted 
+                        ? "bg-red-500/20 border-red-500 text-red-500" 
+                        : "bg-white/5 border-white/20 text-white hover:bg-white/10"
+                    )}
+                  >
+                    {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+                  </motion.button>
+
+                  {/* End call */}
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={handleEnd}
+                    className="w-16 h-16 rounded-full bg-red-500 text-white flex items-center justify-center shadow-[0_0_30px_rgba(239,68,68,0.4)] hover:shadow-[0_0_30px_rgba(239,68,68,0.6)] transition-shadow"
+                  >
+                    <PhoneOff className="w-7 h-7" />
+                  </motion.button>
+                </>
               )}
 
               {status === "ended" && (

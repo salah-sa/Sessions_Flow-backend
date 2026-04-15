@@ -277,38 +277,45 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // ═══════════════════════════════════════════════
     // 6. Call Signaling Events
     // ═══════════════════════════════════════════════
-    connection.on(Events.CALL_INCOMING, (data: any) => {
+    connection.on(Events.CALL_INCOMING, (raw: any) => {
+      const data = parsePayload(raw);
       useCallStore.getState().receiveCall(data?.callerId, data?.callerName, data?.callerAvatar);
       sounds.playRingtone();
     });
 
-    connection.on(Events.CALL_ACCEPTED, () => {
+    connection.on(Events.CALL_ACCEPTED, (raw: any) => {
+      const data = parsePayload(raw); // just in case payload exists
       useCallStore.getState().accepted();
       sounds.stopRingtone();
     });
 
-    connection.on(Events.CALL_REJECTED, () => {
+    connection.on(Events.CALL_REJECTED, (raw: any) => {
+      const data = parsePayload(raw);
       useCallStore.getState().rejected();
       sounds.stopRingtone();
       sounds.playCallEnd();
     });
 
-    connection.on(Events.CALL_ENDED, () => {
+    connection.on(Events.CALL_ENDED, (raw: any) => {
+      const data = parsePayload(raw);
       useCallStore.getState().ended();
       sounds.stopRingtone();
       sounds.playCallEnd();
     });
 
     // WebRTC signaling passthrough
-    connection.on(Events.CALL_OFFER, (data: any) => {
+    connection.on(Events.CALL_OFFER, (raw: any) => {
+      const data = parsePayload(raw);
       useCallStore.getState().setRemoteSdp(data?.sdp, "offer");
     });
 
-    connection.on(Events.CALL_ANSWER, (data: any) => {
+    connection.on(Events.CALL_ANSWER, (raw: any) => {
+      const data = parsePayload(raw);
       useCallStore.getState().setRemoteSdp(data?.sdp, "answer");
     });
 
-    connection.on(Events.CALL_ICE, (data: any) => {
+    connection.on(Events.CALL_ICE, (raw: any) => {
+      const data = parsePayload(raw);
       useCallStore.getState().addIceCandidate(data?.candidate);
     });
 
