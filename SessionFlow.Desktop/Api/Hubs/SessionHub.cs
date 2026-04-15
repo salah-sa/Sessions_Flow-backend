@@ -35,7 +35,8 @@ public class SessionHub : Hub
 
         if (role == "Admin")
         {
-            return new List<Guid>(); // Admins use global dashboard, not scoped chat presence
+            // Admins join all active chat groups to monitor presence across the entire system
+            return await _db.Groups.Find(g => !g.IsDeleted).Project(g => g.Id).ToListAsync();
         }
         if (role == "Engineer")
         {

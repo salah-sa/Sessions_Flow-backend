@@ -38,37 +38,12 @@ export const useRealtimeNotifications = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
     });
 
-    const unsub3 = on(Events.MESSAGE_RECEIVE, (data: any) => {
-      const groupId = data?.groupId;
-      const senderName = data?.message?.senderName;
-      const text = data?.message?.text;
-      if (!groupId || !senderName) return;
-
-      // Mute filter — check if this group is muted before showing toast
-      const isMuted = useMuteStore.getState().isMuted(groupId);
-      if (isMuted) return; // Silent — badge update handled elsewhere
-
-      toast(`${senderName} in group chat:`, {
-        description: text,
-        action: {
-          label: "View",
-          onClick: () => {
-            import("../store/stores").then(({ useChatStore }) => {
-              useChatStore.getState().setActiveGroup(groupId);
-              window.location.href = "/chat";
-            });
-          },
-        },
-      });
-    });
-
     // Note: Presence events (UserOnline, UserOffline, PresenceSnapshot)
     // are now handled globally in SignalRProvider — no need to duplicate here.
 
     return () => {
       unsub1();
       unsub2();
-      unsub3();
     };
   }, [on, queryClient]);
 };
