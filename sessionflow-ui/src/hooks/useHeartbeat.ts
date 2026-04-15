@@ -61,6 +61,10 @@ export function useHeartbeat() {
     });
 
     heartbeatTimerRef.current = setInterval(() => {
+      // Visibility Guard: Skip intensive heartbeats if tab is hidden
+      // The server already knows we are away via the visibilitychange event
+      if (document.hidden) return;
+
       invoke("Heartbeat")
         .then(() => {
           setServerHealth(true);

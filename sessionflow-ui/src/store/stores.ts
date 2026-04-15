@@ -130,6 +130,7 @@ interface ChatState {
   /** Offline mutation queue — messages that failed to send and await reconnection */
   pendingMessages: ChatMessage[];
   activeGroupId: string | null;
+  typingUsers: Record<string, Record<string, { name: string; timeout: number }>>; // groupId -> { userId -> { name, timeout } }
   incrementUnread: (groupId: string) => void;
   clearUnread: (groupId: string) => void;
   setLastMessage: (groupId: string, msg: ChatMessage) => void;
@@ -137,6 +138,7 @@ interface ChatState {
   queueMessage: (msg: ChatMessage) => void;
   removeFromQueue: (msgId: string) => void;
   flushQueue: () => ChatMessage[];
+  setTyping: (groupId: string, userId: string, userName: string) => void;
 }
 
 export const useChatStore = create<ChatState>()(
@@ -146,6 +148,7 @@ export const useChatStore = create<ChatState>()(
       lastMessages: {},
       pendingMessages: [],
       activeGroupId: null,
+      typingUsers: {},
       incrementUnread: (groupId) =>
         set((state) => ({
           unreadCounts: {
@@ -186,6 +189,34 @@ export const useChatStore = create<ChatState>()(
         const msgs = get().pendingMessages;
         set({ pendingMessages: [] });
         return msgs;
+      },
+      setTyping: (groupId, userId, userName) => {
+        // Clear previous timeout if exists
+        const current = get().typingUsers[groupId]?.[userId];
+        if (current?.timeout) {
+          window.clearTimeout(current.timeout);
+        }
+
+        const timeout = window.setTimeout(() => {
+          set((state) => {
+            const next = { ...state.typingUsers };
+            if (next[groupId]) {
+              const groupTyping = { ...next[groupId] };
+              delete groupTyping[userId];
+              next[groupId] = groupTyping;
+            }
+            return { typingUsers: next };
+          });
+        }, 3000);
+
+        set((state) => {
+          const next = { ...state.typingUsers };
+          next[groupId] = {
+            ...(next[groupId] || {}),
+            [userId]: { name: userName, timeout: Number(timeout) }
+          };
+          return { typingUsers: next };
+        });
       },
     }),
     { name: "sf-chat-storage" }

@@ -26,17 +26,11 @@ public class PresenceService : IPresenceService
         RecordHeartbeat(userId);
         _statusMap[userId] = "online";
 
-        _onlineUsers.AddOrUpdate(
-            userId,
-            _ => new HashSet<string> { connectionId },
-            (_, connections) =>
-            {
-                lock (connections)
-                {
-                    connections.Add(connectionId);
-                }
-                return connections;
-            });
+        var connections = _onlineUsers.GetOrAdd(userId, _ => new HashSet<string>());
+        lock (connections)
+        {
+            connections.Add(connectionId);
+        }
     }
 
     public Task<bool> UserDisconnectedAsync(string connectionId)

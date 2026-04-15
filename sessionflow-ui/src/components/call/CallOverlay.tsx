@@ -5,6 +5,7 @@ import { useCallStore } from "../../store/callStore";
 import { useSignalR } from "../../providers/SignalRProvider";
 import { useWebRTC } from "../../hooks/useWebRTC";
 import { sounds } from "../../lib/sounds";
+import { toast } from "sonner";
 import { cn } from "../../lib/utils";
 
 // ═══════════════════════════════════════════════════════════════
@@ -26,24 +27,6 @@ const CallOverlay: React.FC = () => {
 
   // Mount the WebRTC engine
   useWebRTC();
-
-  // Timer for active call duration
-  useEffect(() => {
-    if (status !== "active" || !callStartedAt) return;
-    setElapsed(0);
-    const interval = setInterval(() => {
-      setElapsed(Date.now() - callStartedAt);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [status, callStartedAt]);
-
-  // Auto-dismiss "ended" state after 2s
-  useEffect(() => {
-    if (status === "ended") {
-      const timer = setTimeout(() => reset(), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [status, reset]);
 
   const handleAccept = useCallback(() => {
     if (remoteUserId) {
@@ -69,6 +52,36 @@ const CallOverlay: React.FC = () => {
       sounds.playCallEnd();
     }
   }, [invoke, remoteUserId]);
+
+  // Timer for active call duration
+  useEffect(() => {
+    if (status !== "active" || !callStartedAt) return;
+    setElapsed(0);
+    const interval = setInterval(() => {
+      setElapsed(Date.now() - callStartedAt);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [status, callStartedAt]);
+
+  // Auto-dismiss "ended" state after 2s
+  useEffect(() => {
+    if (status === "ended") {
+      const timer = setTimeout(() => reset(), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [status, reset]);
+
+  // Outgoing call timeout (60s)
+  useEffect(() => {
+    if (status === "calling") {
+      const timer = setTimeout(() => {
+        handleEnd();
+        toast.error("Call timed out: User did not answer.");
+      }, 60_000);
+      return () => clearTimeout(timer);
+    }
+  }, [status, handleEnd]);
+
 
   const isVisible = status !== "idle";
   const initial = remoteName?.charAt(0).toUpperCase() || "?";

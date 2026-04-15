@@ -88,27 +88,36 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const { user } = useAuthStore.getState();
           queryClient.setQueryData(
             queryKeys.chat.messages(groupId),
-            (old: ChatMessage[] | undefined) => {
-              if (!old) return [msg];
-              // ID dedup
-              if (old.some(m => m.id === msg.id)) {
-                return old.map(m => m.id === msg.id ? { ...m, ...msg, status: "sent" as const } : m);
-              }
-              // Pending match (sender only) - Ensures cross-device sync works for optimistic updates
-              if (user && msg.senderId === user.id) {
-                const pendingIdx = old.findIndex(m =>
-                  m.status === "pending" &&
-                  m.senderId === msg.senderId &&
-                  (m.text === msg.text || (m.fileName && m.fileName === msg.fileName))
-                );
-                if (pendingIdx !== -1) {
-                  const updated = [...old];
-                  updated[pendingIdx] = { ...msg, status: "sent" as const };
-                  return updated;
+            (old: any) => {
+              if (!old) return { pages: [[msg]], pageParams: [undefined] };
+              
+              const newPages = old.pages.map((page: ChatMessage[], index: number) => {
+                // Incoming messages always belong in the FIRST page (most recent)
+                if (index === 0) {
+                  // ID dedup
+                  if (page.some(m => m.id === msg.id)) {
+                    return page.map(m => m.id === msg.id ? { ...m, ...msg, status: "sent" as const } : m);
+                  }
+                  // Pending match (sender only) - Ensures cross-device sync works for optimistic updates
+                  if (user && msg.senderId === user.id) {
+                    const pendingIdx = page.findIndex(m =>
+                      m.status === "pending" &&
+                      m.senderId === msg.senderId &&
+                      (m.text === msg.text || (m.fileName && m.fileName === msg.fileName))
+                    );
+                    if (pendingIdx !== -1) {
+                      const updated = [...page];
+                      updated[pendingIdx] = { ...msg, status: "sent" as const };
+                      return updated;
+                    }
+                  }
+                  // If it's technically our own message but we didn't have it pending (e.g. from our other device)
+                  return [{ ...msg, status: "sent" as const }, ...page];
                 }
-              }
-              // If it's technically our own message but we didn't have it pending (e.g. from our other device)
-              return [...old, { ...msg, status: "sent" as const }];
+                return page;
+              });
+
+              return { ...old, pages: newPages };
             }
           );
         }
@@ -148,6 +157,12 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const groupId = data?.groupId;
       if (groupId) {
         queryClient.invalidateQueries({ queryKey: queryKeys.chat.messages(groupId) });
+      }
+    });
+
+    connection.on(Events.MESSAGE_TYPING, (data: any) => {
+      if (data?.groupId && data?.userId && data?.userName) {
+        useChatStore.getState().setTyping(data.groupId, data.userId, data.userName);
       }
     });
 

@@ -44,7 +44,16 @@ export const useCallStore = create<CallState>((set) => ({
   localStream: null,
   isMuted: false,
 
-  startCall: (targetUserId, targetName, targetAvatar) =>
+  startCall: (targetUserId, targetName, targetAvatar) => {
+    if (useCallStore.getState().status !== "idle") return;
+    
+    // Clear any pending reset from previous call
+    const win = (window as any);
+    if (win.__callResetTimeout) {
+      clearTimeout(win.__callResetTimeout);
+      win.__callResetTimeout = null;
+    }
+
     set({
       status: "calling",
       remoteUserId: targetUserId,
@@ -57,9 +66,19 @@ export const useCallStore = create<CallState>((set) => ({
       iceCandidates: [],
       pendingIceCandidates: [],
       isMuted: false,
-    }),
+    });
+  },
 
-  receiveCall: (callerId, callerName, callerAvatar) =>
+  receiveCall: (callerId, callerName, callerAvatar) => {
+    if (useCallStore.getState().status !== "idle") return;
+
+    // Clear any pending reset from previous call
+    const win = (window as any);
+    if (win.__callResetTimeout) {
+      clearTimeout(win.__callResetTimeout);
+      win.__callResetTimeout = null;
+    }
+
     set({
       status: "ringing",
       remoteUserId: callerId,
@@ -72,19 +91,30 @@ export const useCallStore = create<CallState>((set) => ({
       iceCandidates: [],
       pendingIceCandidates: [],
       isMuted: false,
-    }),
+    });
+  },
 
   accepted: () =>
     set({ status: "active", callStartedAt: Date.now() }),
 
   rejected: () => {
     set({ status: "ended" });
-    setTimeout(() => useCallStore.getState().reset(), 3000);
+    const win = (window as any);
+    if (win.__callResetTimeout) clearTimeout(win.__callResetTimeout);
+    win.__callResetTimeout = setTimeout(() => useCallStore.getState().reset(), 3000);
   },
   
   ended: () => {
+    // Immediate track cleanup
+    const { localStream } = useCallStore.getState();
+    if (localStream) {
+      localStream.getTracks().forEach(t => t.stop());
+    }
+
     set({ status: "ended" });
-    setTimeout(() => useCallStore.getState().reset(), 3000);
+    const win = (window as any);
+    if (win.__callResetTimeout) clearTimeout(win.__callResetTimeout);
+    win.__callResetTimeout = setTimeout(() => useCallStore.getState().reset(), 3000);
   },
 
   reset: () => {
@@ -92,6 +122,10 @@ export const useCallStore = create<CallState>((set) => ({
     if (localStream) {
       localStream.getTracks().forEach(t => t.stop());
     }
+    
+    const win = (window as any);
+    win.__callResetTimeout = null;
+
     set({
       status: "idle",
       remoteUserId: null,

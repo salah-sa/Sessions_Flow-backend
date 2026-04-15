@@ -8,6 +8,7 @@ export const Events = {
   // Messages
   MESSAGE_RECEIVE: "message:receive",
   MESSAGE_READ: "message:read",
+  MESSAGE_TYPING: "message:typing",
 
   // Presence
   PRESENCE_ONLINE: "presence:online",

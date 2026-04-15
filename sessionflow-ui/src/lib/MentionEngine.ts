@@ -17,33 +17,8 @@ export class MentionEngine {
   private members: MentionableMember[] = [];
   private index: Map<string, number[]> = new Map(); // Prefix -> Indices in members array
 
-  constructor(students: Student[] = [], engineer?: User) {
-    this.initialize(students, engineer);
-  }
-
-  private initialize(students: Student[], engineer?: User) {
-    const list: MentionableMember[] = [];
-
-    if (engineer) {
-      list.push({
-        id: engineer.id,
-        userId: engineer.id,
-        name: engineer.name,
-        role: "Engineer",
-        avatarUrl: engineer.avatarUrl
-      });
-    }
-
-    students.forEach(s => {
-      list.push({
-        id: s.id,
-        userId: s.userId,
-        name: s.name,
-        role: "Student"
-      });
-    });
-
-    this.members = list;
+  constructor(members: MentionableMember[] = []) {
+    this.members = members;
     this.buildIndex();
   }
 
@@ -138,6 +113,6 @@ export class MentionEngine {
 }
 
 // Factory for component use
-export const createMentionEngine = (students: Student[], engineer?: User) => {
-  return new MentionEngine(students, engineer);
+export const createMentionEngine = (members: MentionableMember[]) => {
+  return new MentionEngine(members);
 };

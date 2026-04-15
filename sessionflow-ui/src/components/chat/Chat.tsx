@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../../lib/utils";
 import { Card, Button, Input, EmptyState, Skeleton, Badge } from "../ui";
 import { ChatMessage, MessageMention } from "../../types";
-import { useAuthStore } from "../../store/stores";
+import { useAuthStore, useChatStore } from "../../store/stores";
+import { useSignalR } from "../../providers/SignalRProvider";
 import { toast } from "sonner";
 import { AudioPlayer } from "./AudioPlayer";
 import { ImageViewer } from "./ImageViewer";
@@ -229,18 +230,18 @@ export const MessageBubble = React.memo<MessageBubbleProps>(({ message, isMe, sh
             </div>
           </div>
           
-          <div className={cn("flex items-center gap-2 px-1 opacity-0 group-hover:opacity-100 transition-opacity", isMe && "justify-end")}>
-            <span className="text-[9px] font-bold text-slate-600 uppercase tabular-nums">
+          <div className={cn("flex items-center gap-2 px-1 transition-opacity", isMe && "justify-end")}>
+            <span className="text-[9px] font-bold text-slate-700 uppercase tabular-nums">
               {formatMessageTime(message.sentAt)}
             </span>
             {isMe && (
-              <div className="flex items-center">
+              <div className="flex items-center ml-0.5">
                 {message.status === "pending" ? (
-                  <Clock className="w-2.5 h-2.5 text-slate-700" />
+                  <Clock className="w-2.5 h-2.5 text-slate-700 animate-pulse" />
                 ) : message.status === "read" ? (
                   <CheckCheck className="w-2.5 h-2.5 text-blue-400" />
                 ) : (
-                  <Check className="w-2.5 h-2.5 text-slate-600" />
+                  <Check className="w-2.5 h-2.5 text-slate-700" />
                 )}
               </div>
             )}
@@ -252,14 +253,27 @@ export const MessageBubble = React.memo<MessageBubbleProps>(({ message, isMe, sh
 });
 
 // ChatWindow
-interface ChatWindowProps {
+interface ChatProps {
   messages: ChatMessage[];
+  isLoading: boolean;
   onSendMessage: (text: string, file?: File, mentions?: MessageMention[], blocks?: any[]) => void;
-  isLoading?: boolean;
-  group?: Group | null;
+  activeGroupId: string | null;
+  currentGroup: Group | null;
+  fetchNextPage?: () => void;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
 }
 
-export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage, isLoading, group }) => {
+export const ChatWindow: React.FC<ChatProps> = ({ 
+  messages, 
+  isLoading, 
+  onSendMessage, 
+  activeGroupId,
+  currentGroup,
+  fetchNextPage,
+  hasNextPage,
+  isFetchingNextPage
+}) => {
   const [text, setText] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedFileUrl, setSelectedFileUrl] = useState<string | null>(null);
@@ -273,23 +287,30 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage,
   const [isInitialized, setIsInitialized] = useState(false);
   const [activeMentions, setActiveMentions] = useState<MessageMention[]>([]);
   
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const lastTypingEvent = React.useRef<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  const { invoke } = useSignalR();
   const { user } = useAuthStore();
 
-  const isArchived = group?.status === "Completed" || group?.status === "Archived";
+  const isArchived = currentGroup?.status === "Completed" || currentGroup?.status === "Archived";
 
-  const engine = useMemo(() => {
-    if (!group) return null;
-    return createMentionEngine(group.students || [], group.engineer);
-  }, [group]);
+  const mentionEngine = useMemo(() => {
+    if (!currentGroup) return createMentionEngine([]);
+    const members: MentionableMember[] = [
+      ...(currentGroup.students || []).map(s => ({ id: s.id, name: s.name, role: "Student" as const })),
+      ...(currentGroup.engineerId ? [{ id: currentGroup.engineerId, name: currentGroup.engineerName || "Engineer", role: "Engineer" as const }] : [])
+    ];
+    return createMentionEngine(members);
+  }, [currentGroup]);
 
   const filteredMembers = useMemo(() => {
-    if (!engine) return [];
-    return engine.search(mentionSearch);
-  }, [engine, mentionSearch]);
+    if (!mentionEngine) return [];
+    return mentionEngine.search(mentionSearch);
+  }, [mentionEngine, mentionSearch]);
 
   useEffect(() => {
     if (showMentions && filteredMembers.length === 0) {
@@ -366,7 +387,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage,
   };
 
   const handleInputChange = (val: string) => {
-    
     const cursorPosition = inputRef.current?.selectionStart || 0;
     const textBeforeCursor = val.substring(0, cursorPosition);
     const mentionMatch = textBeforeCursor.match(/@([\w\s]*)$/);
@@ -384,6 +404,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage,
     } else {
       setShowMentions(false);
     }
+
+    // Typing Emitter (throttled to 2s)
+    if (activeGroupId && Date.now() - lastTypingEvent.current > 2000 && val.length > 0) {
+      lastTypingEvent.current = Date.now();
+      invoke("SendTyping", activeGroupId).catch(() => {});
+    }
+
     setText(val);
   };
 
@@ -484,20 +511,31 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage,
           {/* Top Loading Indicator (Non-blocking) */}
           <AnimatePresence>
             {isLoading && (
-              <motion.div 
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className={cn(
-                  "absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/80 backdrop-blur-md border border-white/10 px-4 py-1.5 rounded-full flex items-center gap-2 shadow-2xl",
-                  messages.length === 0 && "top-1/2 -translate-y-1/2" // center if completely empty
-                )}
-              >
-                <Loader2 className="w-3 h-3 text-brand-500 animate-spin" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Syncing Messages...</span>
-              </motion.div>
+              <div className="flex flex-col items-center justify-center py-20 animate-pulse">
+                <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Encrypting stream...</p>
+              </div>
             )}
           </AnimatePresence>
+
+          {hasNextPage && (
+            <div className="flex justify-center py-4">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => fetchNextPage?.()}
+                disabled={isFetchingNextPage}
+                className="text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-widest bg-white/5 hover:bg-white/10 rounded-full px-6 border border-white/5"
+              >
+                {isFetchingNextPage ? (
+                  <Loader2 className="w-3 h-3 animate-spin mr-2" />
+                ) : (
+                  <Clock className="w-3 h-3 mr-2" />
+                )}
+                {isFetchingNextPage ? "Decrypting History..." : "Load Older Messages"}
+              </Button>
+            </div>
+          )}
 
           {!isLoading && messages.length === 0 ? (
             <EmptyState 
@@ -532,6 +570,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage,
       </div>
 
       <div className="p-4 bg-slate-950/50 border-t border-slate-800 backdrop-blur-xl flex flex-col gap-2 shrink-0 relative">
+        {/* Typing Indicator */}
+        <TypingIndicator activeGroupId={activeGroupId} />
+
         {/* Mentions Suggestions */}
         <AnimatePresence>
           {showMentions && filteredMembers.length > 0 && (
@@ -613,5 +654,37 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage,
         </div>
       </div>
     </div>
+  );
+};
+
+const TypingIndicator: React.FC<{ activeGroupId: string | null }> = ({ activeGroupId }) => {
+  const typingUsers = useChatStore(s => s.typingUsers[activeGroupId || ""] || {});
+  const { user } = useAuthStore();
+  
+  // Filter out self and extract names
+  const typingNames = Object.entries(typingUsers)
+    .filter(([userId]) => userId !== user?.id)
+    .map(([_, data]) => data.name);
+
+  if (typingNames.length === 0) return null;
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 5 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 5 }}
+      className="absolute bottom-full left-4 mb-2 flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/5 shadow-lg pointer-events-none"
+    >
+      <div className="flex gap-1 items-center">
+        <span className="w-1 h-1 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+        <span className="w-1 h-1 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+        <span className="w-1 h-1 bg-emerald-500 rounded-full animate-bounce" />
+      </div>
+      <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest whitespace-nowrap">
+        {typingNames.length === 1 
+          ? `${typingNames[0]} typing` 
+          : `${typingNames.length} people typing`}
+      </span>
+    </motion.div>
   );
 };
