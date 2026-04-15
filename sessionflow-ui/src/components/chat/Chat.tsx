@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Send, User as UserIcon, Smile, Paperclip, X, MessageSquare, Loader2, Clock, Check, CheckCheck, Lock } from "lucide-react";
+import { Send, User as UserIcon, Smile, Paperclip, X, MessageSquare, Loader2, Clock, Check, CheckCheck, Lock, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../../lib/utils";
 import { Card, Button, Input, EmptyState, Skeleton, Badge } from "../ui";
@@ -269,6 +269,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage,
   const [mentionSearch, setMentionSearch] = useState("");
   const [showMentions, setShowMentions] = useState(false);
   const [mentionIndex, setMentionIndex] = useState(0);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const [activeMentions, setActiveMentions] = useState<MessageMention[]>([]);
   
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -326,6 +327,31 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage,
       }
     }
   }, [messages]);
+
+  // Handle manual scroll events for the "Scroll to Bottom" button
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = el;
+      // Show button if more than 300px away from bottom
+      const isAwayFromBottom = scrollHeight - scrollTop - clientHeight > 300;
+      setShowScrollButton(isAwayFromBottom);
+    };
+
+    el.addEventListener("scroll", handleScroll);
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToBottom = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: "smooth"
+      });
+    }
+  };
 
   const handleInputChange = (val: string) => {
     
@@ -469,10 +495,26 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage,
         ) : (
           messages.map((msg, i) => {
             const prevMsg = messages[i-1];
-            const showSender = i === 0 || prevMsg.senderId !== msg.senderId;
+            const showSender = i === 0 || prevMsg?.senderId !== msg.senderId;
             return <MessageBubble key={msg.id} message={msg} isMe={msg.senderId === user?.id} showSender={showSender} />;
           })
         )}
+
+        {/* Floating Scroll to Bottom Button */}
+        <AnimatePresence>
+          {showScrollButton && (
+            <motion.button
+              initial={{ opacity: 0, y: 10, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.8 }}
+              onClick={scrollToBottom}
+              className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-[0_8px_25px_rgba(37,99,235,0.4)] hover:bg-blue-500 hover:scale-110 active:scale-95 transition-all"
+              title="Jump to latest"
+            >
+              <ChevronDown className="w-5 h-5" />
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="p-4 bg-slate-950/50 border-t border-slate-800 backdrop-blur-xl flex flex-col gap-2 shrink-0 relative">
