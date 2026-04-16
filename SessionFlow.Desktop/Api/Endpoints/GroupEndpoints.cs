@@ -261,13 +261,20 @@ public static class GroupEndpoints
             if (req.Schedules == null || req.Schedules.Count == 0 || req.Schedules.Count > 3)
                 return Results.BadRequest(new { error = "Strict Rule: Must define exactly 1, 2, or 3 sessions per week." });
 
-            var schedules = req.Schedules.Select(sched => new GroupSchedule
+            var schedules = new List<GroupSchedule>();
+            foreach (var sched in req.Schedules)
             {
-                GroupId = newGroup.Id,
-                DayOfWeek = sched.DayOfWeek,
-                StartTime = TimeSpan.Parse(sched.StartTime),
-                DurationMinutes = sched.DurationMinutes > 0 ? sched.DurationMinutes : 60
-            }).ToList();
+                if (string.IsNullOrWhiteSpace(sched.StartTime) || !TimeSpan.TryParse(sched.StartTime, out var parsedTime))
+                    return Results.BadRequest(new { error = $"Invalid StartTime format provided: {sched.StartTime}" });
+
+                schedules.Add(new GroupSchedule
+                {
+                    GroupId = newGroup.Id,
+                    DayOfWeek = sched.DayOfWeek,
+                    StartTime = parsedTime,
+                    DurationMinutes = sched.DurationMinutes > 0 ? sched.DurationMinutes : 60
+                });
+            }
             await db.GroupSchedules.InsertManyAsync(schedules);
 
             await sessionService.AutoGenerateSessionsAsync(newGroup);
@@ -357,13 +364,20 @@ public static class GroupEndpoints
                     if (req.Schedules != null)
                     {
                         await db.GroupSchedules.DeleteManyAsync(s => s.GroupId == id);
-                        var newSchedules = req.Schedules.Select(sched => new GroupSchedule
+                        var newSchedules = new List<GroupSchedule>();
+                        foreach (var sched in req.Schedules)
                         {
-                            GroupId = id,
-                            DayOfWeek = sched.DayOfWeek,
-                            StartTime = TimeSpan.Parse(sched.StartTime),
-                            DurationMinutes = sched.DurationMinutes > 0 ? sched.DurationMinutes : 60
-                        }).ToList();
+                            if (string.IsNullOrWhiteSpace(sched.StartTime) || !TimeSpan.TryParse(sched.StartTime, out var parsedTime))
+                                return Results.BadRequest(new { error = $"Invalid StartTime format provided: {sched.StartTime}" });
+
+                            newSchedules.Add(new GroupSchedule
+                            {
+                                GroupId = id,
+                                DayOfWeek = sched.DayOfWeek,
+                                StartTime = parsedTime,
+                                DurationMinutes = sched.DurationMinutes > 0 ? sched.DurationMinutes : 60
+                            });
+                        }
                         await db.GroupSchedules.InsertManyAsync(newSchedules);
                     }
 
@@ -371,7 +385,18 @@ public static class GroupEndpoints
                 }
             }
 
-            return Results.Ok(new { id = id, name = req.Name ?? g.Name });
+            var updated = await db.Groups.Find(x => x.Id == id).FirstOrDefaultAsync();
+            return Results.Ok(new
+            {
+                id = updated!.Id,
+                name = updated.Name,
+                description = updated.Description,
+                level = updated.Level,
+                frequency = updated.Frequency,
+                numberOfStudents = updated.NumberOfStudents,
+                colorTag = updated.ColorTag,
+                status = updated.Status.ToString()
+            });
         });
 
         // POST /api/groups/{id}/regenerate-sessions — manual trigger

@@ -1,58 +1,103 @@
 import requests
+import uuid
 
 BASE_URL = "http://localhost:5180"
-LOGIN_URL = f"{BASE_URL}/api/auth/login"
-GROUPS_URL = f"{BASE_URL}/api/groups"
-
 ADMIN_EMAIL = "admin@sessionflow.local"
 ADMIN_PASSWORD = "Admin1234!"
 TIMEOUT = 30
 
-def test_get_api_groups_with_authorized_token():
-    # Authenticate and get Bearer token
-    auth_payload = {
+def admin_login():
+    url = f"{BASE_URL}/api/auth/login"
+    payload = {
         "email": ADMIN_EMAIL,
         "password": ADMIN_PASSWORD
     }
-    login_resp = requests.post(LOGIN_URL, json=auth_payload, timeout=TIMEOUT)
-    assert login_resp.status_code == 200, f"Login failed: {login_resp.text}"
-    token = login_resp.json().get("token")
-    assert token, "No token found in login response"
+    try:
+        resp = requests.post(url, json=payload, timeout=TIMEOUT)
+        resp.raise_for_status()
+        data = resp.json()
+        assert data.get("token"), "Login did not return a token"
+        token = data.get("token")
+        return token
+    except Exception as e:
+        raise RuntimeError(f"Admin login failed: {e}")
 
+def create_group(token):
+    url = f"{BASE_URL}/api/groups"
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
     }
 
-    created_group_id = None
-    group_payload = {
-        "name": "Test Group TC005",
-        "description": "Group created for test case TC005",
-        "level": 1,
-        "frequency": 1
+    # Payload conforms to PRD Groups API requirements with schedule slots for frequency=2
+    payload = {
+        "name": f"Test Group {uuid.uuid4()}",
+        "level": 2,
+        "frequency": 2,
+        "tags": ["test", "sessionflow"],
+        "activeEngineerIds": [],
+        "schedule": [
+            {"day": "Monday", "start": "09:00", "end": "10:00"},
+            {"day": "Wednesday", "start": "09:00", "end": "10:00"}
+        ]
     }
 
+    resp = requests.post(url, json=payload, headers=headers, timeout=TIMEOUT)
+    if resp.status_code != 201:
+        raise RuntimeError(f"Failed to create group. Status: {resp.status_code}, Response: {resp.text}")
+    data = resp.json()
+    group_id = data.get("id") or data.get("groupId")
+    if not group_id:
+        keys = list(data.keys())
+        if keys:
+            group_id = data[keys[0]]
+    assert group_id, "Created group id not found in response"
+    return group_id, payload
+
+def delete_group(token, group_id):
+    url = f"{BASE_URL}/api/groups/{group_id}"
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
     try:
-        # Create a new group to verify it is included in the GET response
-        create_resp = requests.post(GROUPS_URL, headers=headers, json=group_payload, timeout=TIMEOUT)
-        assert create_resp.status_code == 201, f"Group creation failed: {create_resp.text}"
-        created_group_id = create_resp.json().get("id")
-        assert created_group_id, "No group id returned on creation"
+        resp = requests.delete(url, headers=headers, timeout=TIMEOUT)
+        if resp.status_code not in [200, 204, 404]:
+            raise RuntimeError(f"Failed to delete group ID {group_id}. Status: {resp.status_code}, Response: {resp.text}")
+    except Exception as e:
+        print(f"Warning: Exception occurred during group cleanup: {e}")
 
-        # Get groups list with authorized token
-        get_resp = requests.get(GROUPS_URL, headers=headers, timeout=TIMEOUT)
-        assert get_resp.status_code == 200, f"GET /api/groups failed: {get_resp.text}"
+def test_get_api_groups_with_authorized_token():
+    token = admin_login()
+    group_id = None
+    group_payload = None
+    try:
+        group_id, group_payload = create_group(token)
 
-        groups = get_resp.json()
-        assert isinstance(groups, list), f"Groups response is not a list: {groups}"
+        url = f"{BASE_URL}/api/groups"
+        headers = {
+            "Authorization": f"Bearer {token}"
+        }
+        resp = requests.get(url, headers=headers, timeout=TIMEOUT)
+        assert resp.status_code == 200, f"Expected 200 OK, got {resp.status_code}"
 
-        # Check that the newly created group is in the list
-        matched_groups = [g for g in groups if g.get("id") == created_group_id]
-        assert len(matched_groups) == 1, "Newly created group not found in GET /api/groups response"
+        data = resp.json()
+
+        if isinstance(data, dict) and "status" in data:
+            assert data["status"].lower() in ("success", "ok"), f"Unexpected status value: {data['status']}"
+
+        groups_list = None
+        if isinstance(data, dict) and "groups" in data:
+            groups_list = data["groups"]
+        elif isinstance(data, list):
+            groups_list = data
+        else:
+            raise AssertionError("Response format of /api/groups unknown or missing groups list")
+
+        assert any((str(g.get("id") or g.get("groupId")) == str(group_id) for g in groups_list)), "Created group not found in the groups list"
+        assert any((g.get("name") == group_payload["name"] for g in groups_list)), "Created group name not found in the groups list"
 
     finally:
-        # Cleanup: delete created group if possible
-        if created_group_id:
-            requests.delete(f"{GROUPS_URL}/{created_group_id}", headers=headers, timeout=TIMEOUT)
+        if group_id:
+            delete_group(token, group_id)
 
 test_get_api_groups_with_authorized_token()

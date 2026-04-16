@@ -1,26 +1,21 @@
 {
-  "status": "init",
-  "scope": "codebase",
+  "status": "commited",
   "type": "backend",
-  "localEndpoint": "http://localhost:5180/",
-  "serverPort": 19725,
-  "auth": {
-    "type": "basic",
-    "username": "admin@sessionflow.local",
-    "password": "Admin1234!"
-  },
-  "docs": {
-    "prd": "../SessionFlow_TestSprite_PRD.md"
-  },
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:5180",
+  "backendAuthType": "basic token",
+  "backendUsername": "admin@sessionflow.local",
+  "backendPassword": "Admin1234!",
   "executionArgs": {
     "projectName": "SessionFlow",
     "projectPath": "d:\\Work\\assets outer\\test\\SessionFlow",
     "testIds": [],
-    "additionalInstruction": "CRITICAL: You MUST use the credentials admin@sessionflow.local and password Admin1234! for all authentication/login payloads in the tests. Do not hallucinate fake emails like testuser@example.com.",
-    "serverMode": "production",
+    "additionalInstruction": "CRITICAL AUTHENTICATION: Always use {\"Identifier\": \"admin@sessionflow.local\", \"Password\": \"Admin1234!\"} for login. The field is \"Identifier\" NOT \"email\". CRITICAL GROUP CREATION: POST /api/groups requires: Level (1-4), Frequency (1-3), NumberOfStudents MUST be 4 or less for Levels 1-3 and 2 or less for Level 4. Schedules array length MUST equal Frequency. Each schedule: {\"DayOfWeek\": int 0-6, \"StartTime\": \"HH:mm:ss\", \"DurationMinutes\": int}. CRITICAL REGISTRATION: POST /api/auth/register returns status \"Pending\" — do NOT attempt login with newly registered credentials. CRITICAL SESSION LIFECYCLE: Sessions start in \"Scheduled\" state. You MUST call POST /api/sessions/{id}/start BEFORE updating attendance. CRITICAL GROUP UPDATE: PUT /api/groups/{id} now returns full object with id, name, description, level, frequency, numberOfStudents.",
+    "serverMode": "development",
     "envs": {
       "API_KEY": "sk-user-MrD9UhVredz3a39vb-6mUJzL-A3cyLRLEuSsyZFnziZxYKjFXnRKDHfSEoQwpXmDpMx2Fm0RNKUQJvIwbZ1PJKKZ4wlJQWqgJg7jI55GzelyNORAUtNweasS1x5hIVH7YMc"
     }
   },
-  "proxy": "http://5571b23d-0f61-4dd5-9e0a-b76936357c26:rSxB61DKe3LEzREcWstkxse5GBm4JQ4b@tun.testsprite.com:8080"
+  "serverPort": 23682,
+  "proxy": "http://5f9adebb-823c-4868-a87c-434e7d6d359b:kZcV1g3LuQ1pwnk2NxchRTFgBB4K6oLX@tun.testsprite.com:8080"
 }

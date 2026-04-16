@@ -1,39 +1,34 @@
 import requests
 
+BASE_URL = "http://localhost:5180"
+LOGIN_URL = f"{BASE_URL}/api/auth/login"
+ENGINEERS_URL = f"{BASE_URL}/api/engineers"
+TIMEOUT = 30
+
 def test_get_api_engineers_with_admin_authorization():
-    base_url = "http://localhost:5180"
-    login_url = f"{base_url}/api/auth/login"
-    engineers_url = f"{base_url}/api/engineers"
+    # Login with admin credentials to get JWT token containing Admin claim
     login_payload = {
         "email": "admin@sessionflow.local",
         "password": "Admin1234!"
     }
-    headers = {
-        "Content-Type": "application/json"
-    }
-    timeout = 30
-
-    # Authenticate to get JWT token with Admin claim
     try:
-        login_response = requests.post(login_url, json=login_payload, headers=headers, timeout=timeout)
-        assert login_response.status_code == 200, f"Login failed with status code {login_response.status_code}"
-        login_data = login_response.json()
-        token = login_data.get("token")
-        assert token is not None and isinstance(token, str) and len(token) > 0, "JWT token missing in login response"
-    except requests.RequestException as e:
-        assert False, f"Login request failed: {e}"
+        login_resp = requests.post(LOGIN_URL, json=login_payload, timeout=TIMEOUT)
+        assert login_resp.status_code == 200, f"Login failed with status {login_resp.status_code}"
+        login_data = login_resp.json()
+        assert "token" in login_data, "JWT token not found in login response"
+        token = login_data["token"]
+    except (requests.RequestException, AssertionError) as e:
+        raise AssertionError(f"Authentication failed: {str(e)}")
 
-    auth_headers = {
+    headers = {
         "Authorization": f"Bearer {token}"
     }
-
-    # Call GET /api/engineers with Admin Authorization
     try:
-        response = requests.get(engineers_url, headers=auth_headers, timeout=timeout)
-        assert response.status_code == 200, f"Expected 200 OK but got {response.status_code}"
-        engineers_list = response.json()
-        assert isinstance(engineers_list, list), f"Response JSON is not a list: {engineers_list}"
-    except requests.RequestException as e:
-        assert False, f"GET /api/engineers request failed: {e}"
+        resp = requests.get(ENGINEERS_URL, headers=headers, timeout=TIMEOUT)
+        assert resp.status_code == 200, f"Expected 200 OK, got {resp.status_code}"
+        engineers_list = resp.json()
+        assert isinstance(engineers_list, list), "Expected list of engineers"
+    except (requests.RequestException, AssertionError) as e:
+        raise AssertionError(f"Fetching engineers failed: {str(e)}")
 
 test_get_api_engineers_with_admin_authorization()

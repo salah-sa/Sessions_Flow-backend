@@ -2,80 +2,192 @@ version: "2"
 type: backend
 tech_stack:
   - C#
-  - ASP.NET Core
-  - SQLite/MongoDB
+  - ASP.NET Core 9
+  - MongoDB
+  - Redis
   - SignalR
+  - JWT Authentication
+  - BCrypt
 features:
-  - name: Authentication API
-    description: User authentication and token management
+  - name: Authentication
+    description: User login, engineer registration, and session management with JWT tokens
     files:
       - SessionFlow.Desktop/Api/Endpoints/AuthEndpoints.cs
+      - SessionFlow.Desktop/Services/AuthService.cs
     endpoints:
       - method: POST
         path: /api/auth/login
-        description: Authenticate user and return JWT
+        description: Authenticate user with email and password, returns JWT token
         auth_required: false
+        request_schema:
+          body:
+            Identifier: string
+            Password: string
+        response_schema:
+          "200": "{ token: string, user: object }"
+          "401": "Invalid credentials"
       - method: POST
         path: /api/auth/register
-        description: Register a new engineer using access code
+        description: Register a new engineer (returns pending status awaiting admin approval)
         auth_required: false
+        request_schema:
+          body:
+            Name: string
+            Email: string
+            Password: string
+        response_schema:
+          "201": "{ message: string, engineer: { id: string }, status: string }"
+          "400": "Validation error"
       - method: GET
         path: /api/auth/me
-        description: Retrieve current user identity
+        description: Get current authenticated user profile
         auth_required: true
+        response_schema:
+          "200": "User object"
+          "401": "Unauthorized"
+    depends_on: []
 
-  - name: Groups API
-    description: CRUD operations for student groups
+  - name: Group Management
+    description: CRUD operations for student groups with strict schedule validation
     files:
       - SessionFlow.Desktop/Api/Endpoints/GroupEndpoints.cs
     endpoints:
-      - method: GET
-        path: /api/groups
-        description: Retrieve all groups
-        auth_required: true
       - method: POST
         path: /api/groups
-        description: Create a new group
+        description: Create a new group with schedules. Frequency must be 1-3, Level must be 1-4, Schedules array count must exactly match Frequency.
         auth_required: true
+        request_schema:
+          body:
+            Name: string
+            Description: string
+            Level: "int (1-4)"
+            Frequency: "int (1-3)"
+            NumberOfStudents: int
+            StartingSessionNumber: int
+            TotalSessions: int
+            Schedules:
+              - DayOfWeek: "int (0=Sunday, 1=Monday, ..., 6=Saturday)"
+                StartTime: "string (HH:mm:ss format, e.g. '14:30:00')"
+                DurationMinutes: "int (positive, defaults to 60)"
+        response_schema:
+          "201": "{ id: string, name: string }"
+          "400": "Validation error (e.g. schedule count mismatch)"
+      - method: GET
+        path: /api/groups
+        description: List all groups for the authenticated engineer
+        auth_required: true
+        response_schema:
+          "200": "Group[]"
       - method: PUT
         path: /api/groups/{id}
-        description: Update group details
+        description: Update an existing group
         auth_required: true
+        request_schema:
+          body:
+            Name: string
+            Description: string
+            Level: "int (1-4)"
+        response_schema:
+          "200": "Updated group"
+          "404": "Group not found"
+      - method: DELETE
+        path: /api/groups/{id}
+        description: Soft-delete a group
+        auth_required: true
+        response_schema:
+          "200": "{ message: string }"
+          "404": "Group not found"
+    depends_on:
+      - Authentication
 
-  - name: Sessions API
-    description: Core session management and lifecycle operations
+  - name: Session Management
+    description: Create, start, end, and cancel teaching sessions tied to groups
     files:
       - SessionFlow.Desktop/Api/Endpoints/SessionEndpoints.cs
     endpoints:
-      - method: GET
-        path: /api/sessions
-        description: List teaching sessions
-        auth_required: true
       - method: POST
         path: /api/sessions
-        description: Create a new session
+        description: Create a new session for a group
         auth_required: true
+        request_schema:
+          body:
+            GroupId: string
+            ScheduledAt: "string (ISO 8601 UTC datetime)"
+        response_schema:
+          "201": "{ id: string }"
+          "400": "Validation error"
       - method: PUT
         path: /api/sessions/{id}/attendance
-        description: Mark attendance records for session
+        description: Update attendance for a session
         auth_required: true
+        request_schema:
+          body:
+            - StudentId: string
+              Status: "string (Present, Absent, Late)"
+        response_schema:
+          "200": "Updated attendance"
+          "404": "Session not found"
+      - method: GET
+        path: /api/sessions
+        description: List sessions for the authenticated engineer
+        auth_required: true
+        response_schema:
+          "200": "Session[]"
+    depends_on:
+      - Authentication
+      - Group Management
 
-  - name: Admin Console
-    description: Administrator endpoints for platform management
+  - name: Student Management
+    description: Add and manage students within groups
     files:
-      - SessionFlow.Desktop/Api/Endpoints/EngineerEndpoints.cs
+      - SessionFlow.Desktop/Api/Endpoints/StudentEndpoints.cs
+    endpoints:
+      - method: POST
+        path: /api/groups/{id}/students
+        description: Add a student to a group
+        auth_required: true
+        request_schema:
+          body:
+            Name: string
+        response_schema:
+          "201": "{ id: string, name: string, uniqueStudentCode: string }"
+          "400": "Group is full"
+      - method: GET
+        path: /api/students
+        description: List all students
+        auth_required: true
+        response_schema:
+          "200": "Student[]"
+    depends_on:
+      - Authentication
+      - Group Management
+
+  - name: Admin Operations
+    description: Admin-only endpoints for engineer approval, settings, and codes
+    files:
+      - SessionFlow.Desktop/Api/Endpoints/AuthEndpoints.cs
     endpoints:
       - method: GET
         path: /api/engineers
-        description: View list of engineers
+        description: List all engineers (Admin only)
         auth_required: true
-      - method: PUT
-        path: /api/pending/{id}/approve
-        description: Approve pending engineer access
+        response_schema:
+          "200": "Engineer[]"
+          "403": "Forbidden"
+      - method: GET
+        path: /api/settings
+        description: Get platform settings (Admin only)
         auth_required: true
-      - method: POST
-        path: /api/engineer-codes
-        description: Create registration access code
-        auth_required: true
+        response_schema:
+          "200": "Settings object"
+          "403": "Forbidden"
+    depends_on:
+      - Authentication
 
-known_limitations: []
+known_limitations:
+  - issue: Registration creates a PendingEngineer requiring admin approval before login is possible
+    location: SessionFlow.Desktop/Api/Endpoints/AuthEndpoints.cs
+    impact: Newly registered engineers cannot authenticate until approved by admin
+  - issue: Group creation strictly enforces Schedules array count must match Frequency value
+    location: SessionFlow.Desktop/Api/Endpoints/GroupEndpoints.cs
+    impact: Automated tests must provide mathematically correct schedule arrays

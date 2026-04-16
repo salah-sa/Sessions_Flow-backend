@@ -2,59 +2,60 @@ import requests
 import uuid
 
 BASE_URL = "http://localhost:5180"
-LOGIN_URL = f"{BASE_URL}/api/auth/login"
-REGISTER_URL = f"{BASE_URL}/api/auth/register"
+TIMEOUT = 30
 
 ADMIN_EMAIL = "admin@sessionflow.local"
 ADMIN_PASSWORD = "Admin1234!"
 
 
-def test_postapiauthregisterwithvalidaccesscode():
-    # First, login as admin to get token (required only if we needed admin token, not needed here for register)
-    login_payload = {
+def login_admin():
+    url = f"{BASE_URL}/api/auth/login"
+    payload = {
         "email": ADMIN_EMAIL,
         "password": ADMIN_PASSWORD
     }
-    login_resp = requests.post(LOGIN_URL, json=login_payload, timeout=30)
-    assert login_resp.status_code == 200, f"Admin login failed with status_code={login_resp.status_code}"
-    admin_token = login_resp.json().get("token") or login_resp.json().get("jwt") or login_resp.json().get("accessToken")
-    # The test case does not require admin token for register, so we do not use this token.
+    response = requests.post(url, json=payload, timeout=TIMEOUT)
+    response.raise_for_status()
+    data = response.json()
+    token = data.get("token")
+    assert token and isinstance(token, str)
+    return token
 
-    # Prepare unique registration data per run to avoid conflicts
-    unique_id = str(uuid.uuid4())[:8]
-    register_payload = {
-        "name": f"TestEngineer{unique_id}",
-        "email": f"admin+{unique_id}@sessionflow.local",
-        "password": "Password123!",
+
+def test_post_api_auth_register_with_valid_access_code():
+    register_url = f"{BASE_URL}/api/auth/register"
+    login_url = f"{BASE_URL}/api/auth/login"
+
+    # Generate unique email to avoid conflicts
+    unique_email = f"user_{uuid.uuid4().hex[:8]}@example.com"
+    registration_payload = {
+        "name": "Test User",
+        "email": unique_email,
+        "password": "ValidPass123!",
         "accessCode": "ENG1"
     }
 
-    headers = {"Content-Type": "application/json"}
+    # Register user with valid access code
+    register_response = requests.post(register_url, json=registration_payload, timeout=TIMEOUT)
+    assert register_response.status_code == 201, f"Expected 201 Created but got {register_response.status_code}"
+    reg_data = register_response.json()
+    # Check for status field in response is "Pending"
+    assert reg_data.get("status") == "Pending", f"Expected status 'Pending' but got {reg_data.get('status')}"
 
-    try:
-        # POST /api/auth/register with valid details
-        register_resp = requests.post(REGISTER_URL, json=register_payload, headers=headers, timeout=30)
-        assert register_resp.status_code == 201, f"Expected 201 Created, got {register_resp.status_code}"
-        data = register_resp.json()
-        # Extract registration status from response under 'engineer.status' as per PRD
-        assert "engineer" in data and data["engineer"] is not None, "Response missing 'engineer' object"
-        status = data["engineer"].get("status")
-        assert status in ("pending", "active"), f"Unexpected registration status: {status}"
+    # Attempt login with newly registered pending user - expect 400 Bad Request
+    login_payload = {
+        "email": unique_email,
+        "password": "ValidPass123!"
+    }
+    login_response = requests.post(login_url, json=login_payload, timeout=TIMEOUT)
+    assert login_response.status_code == 400, f"Login should fail with 400 but got {login_response.status_code}"
+    login_data = login_response.json()
+    # Confirm error message presence in login failure
+    assert "error" in login_data or "message" in login_data
 
-        # Then login with the new credentials
-        new_login_payload = {
-            "email": register_payload["email"],
-            "password": register_payload["password"]
-        }
-        new_login_resp = requests.post(LOGIN_URL, json=new_login_payload, headers=headers, timeout=30)
-        assert new_login_resp.status_code == 200, f"New user login failed with status {new_login_resp.status_code}"
-        token = new_login_resp.json().get("token") or new_login_resp.json().get("jwt") or new_login_resp.json().get("accessToken")
-        assert token and isinstance(token, str) and len(token) > 10, "JWT token missing or invalid"
-
-    finally:
-        # Cleanup: No direct delete endpoint exposed for engineers in PRD,
-        # so no delete performed here. If needed, admin endpoints would be required.
-        pass
+    # Finally, ensure Admin user can still login (force original admin login)
+    admin_token = login_admin()
+    assert admin_token
 
 
-test_postapiauthregisterwithvalidaccesscode()
+test_post_api_auth_register_with_valid_access_code()
