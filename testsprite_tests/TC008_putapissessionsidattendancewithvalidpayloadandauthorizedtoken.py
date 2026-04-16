@@ -2,74 +2,107 @@ import requests
 
 BASE_URL = "http://localhost:5180"
 
-# Test user credentials for login (should exist in the system for this test)
-TEST_USER_EMAIL = "engineer1@example.com"
-TEST_USER_PASSWORD = "TestPass123!"
+ADMIN_EMAIL = "admin@sessionflow.local"
+ADMIN_PASSWORD = "Admin1234!"
+TIMEOUT = 30
+
+
+def authenticate(email, password):
+    url = f"{BASE_URL}/api/auth/login"
+    payload = {"email": email, "password": password}
+    resp = requests.post(url, json=payload, timeout=TIMEOUT)
+    resp.raise_for_status()
+    token = resp.json().get("token")
+    if not token:
+        raise Exception("Authentication failed: No token received")
+    return token
+
+
+def create_group(token):
+    url = f"{BASE_URL}/api/groups"
+    payload = {"name": "Test Group", "tags": [], "level": "beginner", "active": True}
+    headers = {"Authorization": f"Bearer {token}"}
+    resp = requests.post(url, json=payload, headers=headers, timeout=TIMEOUT)
+    resp.raise_for_status()
+    group_id = resp.json().get("id")
+    if not group_id:
+        raise Exception("Failed to create group for session")
+    return group_id
+
+
+def delete_group(token, group_id):
+    # No explicit DELETE endpoint given in PRD, so skipping cleanup for group.
+    # If implemented, add here.
+    pass
+
+
+def create_session(token, group_id, engineer_id):
+    url = f"{BASE_URL}/api/sessions"
+    import datetime
+    start = (datetime.datetime.utcnow() + datetime.timedelta(minutes=5)).isoformat() + "Z"
+    end = (datetime.datetime.utcnow() + datetime.timedelta(minutes=65)).isoformat() + "Z"
+    payload = {
+        "groupId": group_id,
+        "start": start,
+        "end": end,
+        "engineerId": engineer_id,
+    }
+    headers = {"Authorization": f"Bearer {token}"}
+    resp = requests.post(url, json=payload, headers=headers, timeout=TIMEOUT)
+    resp.raise_for_status()
+    session_id = resp.json().get("id")
+    if not session_id:
+        raise Exception("Failed to create session")
+    return session_id
+
+
+def delete_session(token, session_id):
+    # No explicit DELETE endpoint for sessions given; skipping cleanup.
+    pass
+
+
+def get_current_user_id(token):
+    url = f"{BASE_URL}/api/auth/me"
+    headers = {"Authorization": f"Bearer {token}"}
+    resp = requests.get(url, headers=headers, timeout=TIMEOUT)
+    resp.raise_for_status()
+    user_info = resp.json()
+    user_id = user_info.get("id")
+    if not user_id:
+        raise Exception("Failed to get current user ID")
+    return user_id
+
+
+def put_session_attendance(token, session_id, attendance_payload):
+    url = f"{BASE_URL}/api/sessions/{session_id}/attendance"
+    headers = {"Authorization": f"Bearer {token}"}
+    resp = requests.put(url, json=attendance_payload, headers=headers, timeout=TIMEOUT)
+    return resp
+
 
 def test_put_api_sessions_id_attendance_with_valid_payload_and_authorized_token():
-    # Login to get JWT token
-    login_url = f"{BASE_URL}/api/auth/login"
-    login_payload = {
-        "email": TEST_USER_EMAIL,
-        "password": TEST_USER_PASSWORD
-    }
-    login_response = requests.post(login_url, json=login_payload, timeout=30)
-    assert login_response.status_code == 200, f"Login failed: {login_response.text}"
-    token = login_response.json().get("token") or login_response.json().get("accessToken")
-    assert token, "No JWT token received from login"
+    token = authenticate(ADMIN_EMAIL, ADMIN_PASSWORD)
 
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    engineer_id = get_current_user_id(token)
+    assert engineer_id is not None, "Engineer ID must not be None"
 
-    # Create required group to schedule a session
-    group_payload = {"name": "Attendance Test Group", "description": "Group for attendance test"}
-    group_response = requests.post(f"{BASE_URL}/api/groups", json=group_payload, headers=headers, timeout=30)
-    assert group_response.status_code == 201, f"Group creation failed: {group_response.text}"
-    group_id = group_response.json().get("id") or group_response.json().get("groupId")
-    assert group_id, "No group ID returned"
+    group_id = create_group(token)
 
-    # Get current user profile to obtain engineerId
-    me_response = requests.get(f"{BASE_URL}/api/auth/me", headers=headers, timeout=30)
-    assert me_response.status_code == 200, f"Failed to get user profile: {me_response.text}"
-    engineer_id = me_response.json().get("id")
-    assert engineer_id, "No engineer ID found in user profile"
-
-    # Create a new teaching session
-    from datetime import datetime, timedelta
-    start_iso = (datetime.utcnow() + timedelta(minutes=5)).isoformat() + "Z"
-    end_iso = (datetime.utcnow() + timedelta(hours=1)).isoformat() + "Z"
-    session_payload = {
-        "groupId": group_id,
-        "start": start_iso,
-        "end": end_iso,
-        "engineerId": engineer_id
-    }
-    session_response = requests.post(f"{BASE_URL}/api/sessions", json=session_payload, headers=headers, timeout=30)
-    assert session_response.status_code == 201, f"Session creation failed: {session_response.text}"
-    session_id = session_response.json().get("id") or session_response.json().get("sessionId")
-    assert session_id, "No session ID returned"
+    session_id = create_session(token, group_id, engineer_id)
 
     try:
-        # Prepare attendance payload - example attendance records
         attendance_payload = [
-            {
-                "engineerId": engineer_id,
-                "status": "Present"
-            }
+            {"engineerId": engineer_id, "status": "Present"}
         ]
 
-        attendance_url = f"{BASE_URL}/api/sessions/{session_id}/attendance"
-        attendance_response = requests.put(attendance_url, json=attendance_payload, headers=headers, timeout=30)
-        assert attendance_response.status_code == 200, f"Attendance update failed: {attendance_response.text}"
-
-        json_response = attendance_response.json()
-        # Expect the response to confirm that attendance records were stored
-        assert isinstance(json_response, dict) or isinstance(json_response, list), "Invalid response format for attendance"
-        # Additional validation can be done here if API returns detailed confirmation
-
+        resp = put_session_attendance(token, session_id, attendance_payload)
+        assert resp.status_code == 200, f"Expected 200 OK, got {resp.status_code}"
+        resp_json = resp.json()
+        assert isinstance(resp_json, dict), "Response should be a JSON object"
+        assert "attendance" in resp_json or "message" in resp_json, "Response confirmation missing"
     finally:
-        # Clean up created session
-        requests.delete(f"{BASE_URL}/api/sessions/{session_id}", headers=headers, timeout=30)
-        # Clean up created group
-        requests.delete(f"{BASE_URL}/api/groups/{group_id}", headers=headers, timeout=30)
+        delete_session(token, session_id)
+        delete_group(token, group_id)
+
 
 test_put_api_sessions_id_attendance_with_valid_payload_and_authorized_token()

@@ -3,7 +3,7 @@
   "scope": "codebase",
   "type": "backend",
   "localEndpoint": "http://localhost:5180/",
-  "serverPort": 58193,
+  "serverPort": 19725,
   "auth": {
     "type": "basic",
     "username": "admin@sessionflow.local",
@@ -16,11 +16,11 @@
     "projectName": "SessionFlow",
     "projectPath": "d:\\Work\\assets outer\\test\\SessionFlow",
     "testIds": [],
-    "additionalInstruction": "",
+    "additionalInstruction": "CRITICAL: You MUST use the credentials admin@sessionflow.local and password Admin1234! for all authentication/login payloads in the tests. Do not hallucinate fake emails like testuser@example.com.",
     "serverMode": "production",
     "envs": {
       "API_KEY": "sk-user-MrD9UhVredz3a39vb-6mUJzL-A3cyLRLEuSsyZFnziZxYKjFXnRKDHfSEoQwpXmDpMx2Fm0RNKUQJvIwbZ1PJKKZ4wlJQWqgJg7jI55GzelyNORAUtNweasS1x5hIVH7YMc"
     }
   },
-  "proxy": "http://47a6c822-27cc-407c-a4cb-831e55627cac:EFvzCqRQObGQ6UlrHGvwpDx4XDHtFTAG@tun.testsprite.com:8080"
+  "proxy": "http://5571b23d-0f61-4dd5-9e0a-b76936357c26:rSxB61DKe3LEzREcWstkxse5GBm4JQ4b@tun.testsprite.com:8080"
 }
