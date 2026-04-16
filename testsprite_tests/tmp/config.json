@@ -9,15 +9,13 @@
   "executionArgs": {
     "projectName": "SessionFlow",
     "projectPath": "d:\\Work\\assets outer\\test\\SessionFlow",
-    "testIds": [
-      "TC009"
-    ],
-    "additionalInstruction": "CRITICAL: To test attendance updates (TC009), you MUST perform these exact steps in order:\n1. Create a group.\n2. Add a student to the group.\n3. Create a session. Set ScheduledAt to current UTC time.\n4. YOU MUST CALL POST /api/sessions/{session_id}/start to start the session. THIS IS MANDATORY limit. If you skip this, step 5 will fail with 'Can only update attendance for active or ended sessions'.\n5. Now you can call PUT /api/sessions/{session_id}/attendance.",
+    "testIds": [],
+    "additionalInstruction": "DO NOT regenerate test scripts. The existing scripts in testsprite_tests/ have been manually fixed and verified locally. Execute them as-is.",
     "serverMode": "development",
     "envs": {
       "API_KEY": "sk-user-MrD9UhVredz3a39vb-6mUJzL-A3cyLRLEuSsyZFnziZxYKjFXnRKDHfSEoQwpXmDpMx2Fm0RNKUQJvIwbZ1PJKKZ4wlJQWqgJg7jI55GzelyNORAUtNweasS1x5hIVH7YMc"
     }
   },
-  "serverPort": 60660,
-  "proxy": "http://77955da8-2d63-44ac-a2d3-7a012b54d7f7:vewcLaNIjNCegIviCf6pwvgNRABai3XM@tun.testsprite.com:8080"
+  "serverPort": 59626,
+  "proxy": "http://3a30562f-699f-4676-910e-de7b19ef731b:trlq7iaqbGzu5TOOAkukdESfWY3GhHLc@tun.testsprite.com:8080"
 }

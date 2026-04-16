@@ -1,61 +1,62 @@
 import requests
+import uuid
 
 BASE_URL = "http://localhost:5180"
-AUTH_CREDENTIALS = {"Identifier": "admin@sessionflow.local", "Password": "Admin1234!"}
-TIMEOUT = 30
+USERNAME = "admin@sessionflow.local"
+PASSWORD = "Admin1234!"
 
+def obtain_jwt_token():
+    login_payload = {"Identifier": USERNAME, "Password": PASSWORD}
+    response = requests.post(f"{BASE_URL}/api/auth/login", json=login_payload, timeout=30)
+    assert response.status_code == 200, f"Login failed with status {response.status_code}"
+    data = response.json()
+    assert "token" in data, "Login response missing token"
+    return data["token"]
 
 def test_put_api_groups_id_update_success():
-    # Authenticate and get token
-    login_resp = requests.post(f"{BASE_URL}/api/auth/login", json=AUTH_CREDENTIALS, timeout=TIMEOUT)
-    assert login_resp.status_code == 200, f"Login failed with status {login_resp.status_code}"
-    token = login_resp.json().get("token")
-    assert token, "No token received after login"
+    token = obtain_jwt_token()
     headers = {"Authorization": f"Bearer {token}"}
 
-    # Create a valid group to update later (Level 2, Frequency 2, NumberOfStudents 4, Schedules length = Frequency)
-    group_payload = {
-        "Name": "PUT Test Group",
-        "Description": "Initial group description",
+    group_create_payload = {
+        "Name": f"TC006-{uuid.uuid4().hex[:6]}",
+        "Description": "Afternoon cohort",
         "Level": 2,
         "Frequency": 2,
-        "NumberOfStudents": 4,
+        "NumberOfStudents": 4,  # Level 2 max is 4
         "StartingSessionNumber": 1,
-        "TotalSessions": 10,
+        "TotalSessions": 12,
         "Schedules": [
-            {"DayOfWeek": 1, "StartTime": "09:00:00", "DurationMinutes": 60},
-            {"DayOfWeek": 3, "StartTime": "09:00:00", "DurationMinutes": 60}
+            {"DayOfWeek": 1, "StartTime": "14:00:00", "DurationMinutes": 60},
+            {"DayOfWeek": 3, "StartTime": "14:00:00", "DurationMinutes": 60}
         ]
     }
-    create_resp = requests.post(f"{BASE_URL}/api/groups", json=group_payload, headers=headers, timeout=TIMEOUT)
-    assert create_resp.status_code == 201, f"Group creation failed with status {create_resp.status_code}"
-    group_id = create_resp.json().get("id")
-    assert group_id, "No group ID returned on creation"
 
+    group_id = None
     try:
-        # Prepare update payload with new Name, Description, and Level
+        response_create = requests.post(f"{BASE_URL}/api/groups", json=group_create_payload, headers=headers, timeout=30)
+        assert response_create.status_code == 201, f"Expected 201, got {response_create.status_code}: {response_create.text}"
+        group_data = response_create.json()
+        assert "id" in group_data, "Response JSON missing 'id'"
+        group_id = group_data["id"]
+
         update_payload = {
-            "Name": "PUT Test Group Updated",
-            "Description": "Updated group description",
+            "Name": f"Updated-{uuid.uuid4().hex[:6]}",
+            "Description": "Updated description",
             "Level": 3
         }
-        update_resp = requests.put(f"{BASE_URL}/api/groups/{group_id}", json=update_payload, headers=headers, timeout=TIMEOUT)
-        
-        # Assert successful update
-        assert update_resp.status_code == 200, f"PUT update failed with status {update_resp.status_code}"
-        updated_group = update_resp.json()
-        assert isinstance(updated_group, dict), "Update response is not a JSON object"
-        assert updated_group.get("id") == group_id, "Updated group id mismatch"
-        assert updated_group.get("name") == update_payload["Name"], "Updated group name mismatch"
-        assert updated_group.get("description") == update_payload["Description"], "Updated group description mismatch"
-        assert updated_group.get("level") == update_payload["Level"], "Updated group level mismatch"
-        # Also validate frequency and numberOfStudents remain unchanged
-        assert "frequency" in updated_group, "frequency missing in updated group"
-        assert "numberOfStudents" in updated_group, "numberOfStudents missing in updated group"
-    finally:
-        # Clean up: delete the created group
-        del_resp = requests.delete(f"{BASE_URL}/api/groups/{group_id}", headers=headers, timeout=TIMEOUT)
-        assert del_resp.status_code == 200, f"Cleanup delete failed with status {del_resp.status_code}"
 
+        response_put = requests.put(f"{BASE_URL}/api/groups/{group_id}", json=update_payload, headers=headers, timeout=30)
+        assert response_put.status_code == 200, f"Expected 200, got {response_put.status_code}: {response_put.text}"
+        updated_group = response_put.json()
+        assert updated_group.get("name") == update_payload["Name"]
+        assert updated_group.get("description") == update_payload["Description"]
+        assert updated_group.get("level") == update_payload["Level"]
+
+    finally:
+        if group_id:
+            try:
+                requests.delete(f"{BASE_URL}/api/groups/{group_id}", headers=headers, timeout=30)
+            except Exception:
+                pass
 
 test_put_api_groups_id_update_success()

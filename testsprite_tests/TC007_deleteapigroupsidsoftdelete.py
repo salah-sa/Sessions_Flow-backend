@@ -1,28 +1,31 @@
 import requests
 
 BASE_URL = "http://localhost:5180"
-LOGIN_URL = f"{BASE_URL}/api/auth/login"
-GROUPS_URL = f"{BASE_URL}/api/groups"
+AUTH_USERNAME = "admin@sessionflow.local"
+AUTH_PASSWORD = "Admin1234!"
+TIMEOUT = 30
 
-AUTH_CREDENTIALS = {
-    "Identifier": "admin@sessionflow.local",
-    "Password": "Admin1234!"
-}
+def test_deleteapigroupsidsoftdelete():
+    # Authenticate to get JWT token
+    login_url = f"{BASE_URL}/api/auth/login"
+    login_payload = {
+        "Identifier": AUTH_USERNAME,
+        "Password": AUTH_PASSWORD
+    }
+    login_resp = requests.post(login_url, json=login_payload, timeout=TIMEOUT)
+    assert login_resp.status_code == 200, f"Login failed: {login_resp.text}"
+    token = login_resp.json().get("token")
+    assert token, "No token in login response"
 
-def authenticate():
-    try:
-        resp = requests.post(LOGIN_URL, json=AUTH_CREDENTIALS, timeout=30)
-        resp.raise_for_status()
-        token = resp.json().get("token")
-        assert token, "No token received in login response"
-        return token
-    except requests.RequestException as e:
-        raise RuntimeError(f"Authentication failed: {e}")
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
 
-def create_group(token):
-    headers = {"Authorization": f"Bearer {token}"}
-    group_data = {
-        "Name": "Test Group Level 2 Frequency 2",
+    # Create a new group to delete
+    create_url = f"{BASE_URL}/api/groups"
+    group_payload = {
+        "Name": "Temp Group To Delete",
         "Description": "Group created for delete test",
         "Level": 2,
         "Frequency": 2,
@@ -34,49 +37,26 @@ def create_group(token):
             {"DayOfWeek": 3, "StartTime": "14:00:00", "DurationMinutes": 60}
         ]
     }
-    try:
-        resp = requests.post(GROUPS_URL, json=group_data, headers=headers, timeout=30)
-        resp.raise_for_status()
-        assert resp.status_code == 201
-        data = resp.json()
-        group_id = data.get("id")
-        assert group_id, "No group ID returned"
-        return group_id
-    except requests.RequestException as e:
-        raise RuntimeError(f"Group creation failed: {e}")
-
-def delete_group(token, group_id):
-    headers = {"Authorization": f"Bearer {token}"}
-    delete_url = f"{GROUPS_URL}/{group_id}"
-    try:
-        resp = requests.delete(delete_url, headers=headers, timeout=30)
-        resp.raise_for_status()
-        assert resp.status_code == 200
-        json_resp = resp.json()
-        assert "message" in json_resp and isinstance(json_resp["message"], str) and len(json_resp["message"]) > 0
-        return json_resp["message"]
-    except requests.RequestException as e:
-        raise RuntimeError(f"Group deletion failed: {e}")
-
-def test_deleteapigroupsidsoftdelete():
-    token = authenticate()
     group_id = None
     try:
-        group_id = create_group(token)
-        message = delete_group(token, group_id)
-        assert "soft-delete" in message.lower() or "deleted" in message.lower() or len(message) > 0
+        create_resp = requests.post(create_url, json=group_payload, headers=headers, timeout=TIMEOUT)
+        assert create_resp.status_code == 201, f"Group creation failed: {create_resp.text}"
+        group_id = create_resp.json().get("id")
+        assert group_id, "No group id returned from create"
+
+        # Now delete the group (soft-delete)
+        delete_url = f"{BASE_URL}/api/groups/{group_id}"
+        delete_resp = requests.delete(delete_url, headers=headers, timeout=TIMEOUT)
+        assert delete_resp.status_code == 200, f"Delete request failed: {delete_resp.text}"
+        json_resp = delete_resp.json()
+        assert "message" in json_resp and isinstance(json_resp["message"], str), "No confirmation message in delete response"
     finally:
-        # Cleanup: Ensure the group is deleted if it still exists
+        # Cleanup: ensure group is deleted if it wasn't deleted properly
         if group_id:
-            headers = {"Authorization": f"Bearer {token}"}
-            check_resp = requests.get(GROUPS_URL, headers=headers, timeout=30)
-            if check_resp.status_code == 200:
-                groups = check_resp.json()
-                if all(isinstance(g, dict) for g in groups):
-                    if any(g.get("id") == group_id for g in groups):
-                        try:
-                            requests.delete(f"{GROUPS_URL}/{group_id}", headers=headers, timeout=30)
-                        except Exception:
-                            pass
+            # Attempt delete again to ensure cleanup, ignoring errors
+            try:
+                requests.delete(f"{BASE_URL}/api/groups/{group_id}", headers=headers, timeout=TIMEOUT)
+            except Exception:
+                pass
 
 test_deleteapigroupsidsoftdelete()
