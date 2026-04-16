@@ -1,138 +1,109 @@
 import requests
-from datetime import datetime, timedelta
-import random
-import string
+import datetime
 
 BASE_URL = "http://localhost:5180"
-
-AUTH_CREDENTIALS = {
-    "Identifier": "admin@sessionflow.local",
-    "Password": "Admin1234!"
-}
-
+AUTH_CREDENTIALS = {"Identifier": "admin@sessionflow.local", "Password": "Admin1234!"}
 TIMEOUT = 30
 
-
-def get_token():
-    login_url = f"{BASE_URL}/api/auth/login"
-    resp = requests.post(login_url, json=AUTH_CREDENTIALS, timeout=TIMEOUT)
-    resp.raise_for_status()
-    token = resp.json().get("token")
-    assert token, "Login response missing token"
-    return token
-
-
-def create_group(token):
-    # create a group with valid attributes respecting constraints:
-    # Level (1-4), Frequency (1-3)
-    # NumberOfStudents must be 4 or less if Level 1-3; 2 or less if Level 4
-    # Schedules array length equals Frequency
-    level = 2
-    frequency = 2
-    number_of_students = 4  # Level 2 => max 4
-    schedules = [
-        {"DayOfWeek": 1, "StartTime": "14:00:00", "DurationMinutes": 60},
-        {"DayOfWeek": 3, "StartTime": "14:00:00", "DurationMinutes": 60},
-    ]
-    group_data = {
-        "Name": "Test Group for Attendance",
-        "Description": "Auto created group for test",
-        "Level": level,
-        "Frequency": frequency,
-        "NumberOfStudents": number_of_students,
-        "StartingSessionNumber": 1,
-        "TotalSessions": 10,
-        "Schedules": schedules,
-    }
-    headers = {"Authorization": f"Bearer {token}"}
-    resp = requests.post(f"{BASE_URL}/api/groups", json=group_data, headers=headers, timeout=TIMEOUT)
-    resp.raise_for_status()
-    resp_body = resp.json()
-    group_id = resp_body.get("id")
-    assert group_id, "Group creation response missing id"
-    return group_id
-
-
-def delete_group(token, group_id):
-    headers = {"Authorization": f"Bearer {token}"}
-    resp = requests.delete(f"{BASE_URL}/api/groups/{group_id}", headers=headers, timeout=TIMEOUT)
-    resp.raise_for_status()
-
-
-def add_student(token, group_id, name):
-    headers = {"Authorization": f"Bearer {token}"}
-    student_data = {"Name": name}
-    resp = requests.post(f"{BASE_URL}/api/groups/{group_id}/students", json=student_data, headers=headers, timeout=TIMEOUT)
-    resp.raise_for_status()
-    body = resp.json()
-    student_id = body.get("id")
-    assert student_id, "Add student response missing id"
-    return student_id
-
-
-def create_session(token, group_id):
-    headers = {"Authorization": f"Bearer {token}"}
-    # Schedule session one day from now, UTC ISO 8601 format
-    scheduled_time = (datetime.utcnow() + timedelta(days=1)).replace(microsecond=0).isoformat() + "Z"
-    session_data = {"GroupId": group_id, "ScheduledAt": scheduled_time}
-    resp = requests.post(f"{BASE_URL}/api/sessions", json=session_data, headers=headers, timeout=TIMEOUT)
-    resp.raise_for_status()
-    body = resp.json()
-    session_id = body.get("id")
-    assert session_id, "Create session response missing id"
-    return session_id
-
-
-def update_attendance(token, session_id, attendance_payload):
-    headers = {"Authorization": f"Bearer {token}"}
-    resp = requests.put(f"{BASE_URL}/api/sessions/{session_id}/attendance", json=attendance_payload, headers=headers, timeout=TIMEOUT)
-    return resp
-
-
-def list_students(token):
-    headers = {"Authorization": f"Bearer {token}"}
-    resp = requests.get(f"{BASE_URL}/api/students", headers=headers, timeout=TIMEOUT)
-    resp.raise_for_status()
-    return resp.json()
-
-
-def putapisessionsidattendanceupdatesuccess():
-    token = get_token()
-    headers = {"Authorization": f"Bearer {token}"}
+def test_put_api_sessions_id_attendance_update_success():
+    token = None
     group_id = None
+    student_id = None
     session_id = None
+
+    headers = {"Content-Type": "application/json"}
+
     try:
-        group_id = create_group(token)
+        # 1. Authenticate & get JWT token
+        resp = requests.post(
+            f"{BASE_URL}/api/auth/login",
+            json=AUTH_CREDENTIALS,
+            timeout=TIMEOUT,
+            headers=headers,
+        )
+        resp.raise_for_status()
+        token = resp.json().get("token")
+        assert token, "Missing auth token"
+        auth_headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
-        # Add two students to this group (up to the NumberOfStudents limit)
-        student1_id = add_student(token, group_id, "Test Student 1")
-        student2_id = add_student(token, group_id, "Test Student 2")
+        # 2. Create a group
+        now = datetime.datetime.now(datetime.UTC)
+        day_of_week = (now.weekday() + 1) % 7 # Map python 0=Mon to C# 0=Sun
+        # We set the schedule EXACtLY to now, so Session 1 is scheduled for today right now.
+        # This bypasses the 30-minute timing restriction on /start.
+        group_payload = {
+            "Name": "Test Group TC009 Fixed",
+            "Description": "Test group for TC009",
+            "Level": 2,
+            "Frequency": 1,
+            "NumberOfStudents": 4, # Level 2 max is 4
+            "StartingSessionNumber": 1,
+            "TotalSessions": 12,
+            "Schedules": [
+                {"DayOfWeek": day_of_week, "StartTime": now.strftime("%H:%M:%S"), "DurationMinutes": 60},
+            ],
+        }
+        resp = requests.post(f"{BASE_URL}/api/groups", json=group_payload, headers=auth_headers, timeout=TIMEOUT)
+        resp.raise_for_status()
+        assert resp.status_code == 201
+        group_id = resp.json().get("id")
+        assert group_id, "Group creation failed to return id"
 
-        # Create session for the group
-        session_id = create_session(token, group_id)
+        # 3. Add a student to the group
+        student_payload = {"Name": "Test Student TC009 Auto"}
+        resp = requests.post(f"{BASE_URL}/api/groups/{group_id}/students", json=student_payload, headers=auth_headers, timeout=TIMEOUT)
+        resp.raise_for_status()
+        assert resp.status_code == 201
+        student_id = resp.json().get("id")
+        assert student_id, "Student creation failed to return id"
 
-        # Removed start_session call because /start is not in PRD and causes 400 error
+        # 4. Fetch the auto-generated Session 1
+        resp = requests.get(f"{BASE_URL}/api/sessions?groupId={group_id}", headers=auth_headers, timeout=TIMEOUT)
+        resp.raise_for_status()
+        sessions = resp.json().get("items", [])
+        
+        # Sort or find Session 1 (since it auto-generates 1 to 12)
+        print("SESSIONS API RESPONSE:", sessions)
+        session_1 = next((s for s in sessions if s.get("sessionNumber") == 1), None)
+        assert session_1 is not None, "Failed to find auto-generated Session 1"
+        session_id = session_1.get("id")
+        assert session_id, "Session 1 has no ID"
 
-        # Prepare attendance payload for the session
-        attendance_payload = [
-            {"StudentId": student1_id, "Status": "Present"},
-            {"StudentId": student2_id, "Status": "Late"}
-        ]
+        # 4.5 Start session
+        resp = requests.post(f"{BASE_URL}/api/sessions/{session_id}/start", headers=auth_headers, timeout=TIMEOUT)
+        if resp.status_code != 200:
+            print("Start Session Failed:", resp.text)
+        resp.raise_for_status()
+        assert resp.status_code == 200
 
-        # Update attendance using PUT /api/sessions/{id}/attendance
-        resp = update_attendance(token, session_id, attendance_payload)
-        assert resp.status_code == 200, f"Expected 200 on attendance update, got {resp.status_code}"
-        # Optionally check response content for confirmation
-        try:
-            json_resp = resp.json()
-            assert json_resp is not None
-        except Exception:
-            assert False, "Response to attendance update is not JSON"
+        # 5. Update attendance via PUT /api/sessions/{id}/attendance
+        attendance_payload = [{"StudentId": student_id, "Status": "Present"}]
+        resp = requests.put(f"{BASE_URL}/api/sessions/{session_id}/attendance", json=attendance_payload, headers=auth_headers, timeout=TIMEOUT)
+        resp.raise_for_status()
+        assert resp.status_code == 200
 
     finally:
-        # Cleanup: delete session not supported by spec, so just delete group (cascade delete not specified)
+        # Cleanup: delete session if possible
+        if session_id:
+            try:
+                requests.delete(
+                    f"{BASE_URL}/api/sessions/{session_id}",
+                    headers=auth_headers,
+                    timeout=TIMEOUT,
+                )
+            except Exception:
+                pass
+
+        # Cleanup: delete group also deletes students presumably, else delete student first
         if group_id:
-            delete_group(token, group_id)
+            try:
+                requests.delete(
+                    f"{BASE_URL}/api/groups/{group_id}",
+                    headers=auth_headers,
+                    timeout=TIMEOUT,
+                )
+            except Exception:
+                pass
 
 
-putapisessionsidattendanceupdatesuccess()
+test_put_api_sessions_id_attendance_update_success()

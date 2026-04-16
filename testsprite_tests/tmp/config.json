@@ -9,13 +9,15 @@
   "executionArgs": {
     "projectName": "SessionFlow",
     "projectPath": "d:\\Work\\assets outer\\test\\SessionFlow",
-    "testIds": [],
-    "additionalInstruction": "CRITICAL AUTHENTICATION: Always use {\"Identifier\": \"admin@sessionflow.local\", \"Password\": \"Admin1234!\"} for login. The field is \"Identifier\" NOT \"email\". CRITICAL GROUP CREATION: POST /api/groups requires: Level (1-4), Frequency (1-3), NumberOfStudents MUST be 4 or less for Levels 1-3 and 2 or less for Level 4. Schedules array length MUST equal Frequency. Each schedule: {\"DayOfWeek\": int 0-6, \"StartTime\": \"HH:mm:ss\", \"DurationMinutes\": int}. CRITICAL REGISTRATION: POST /api/auth/register returns status \"Pending\" — do NOT attempt login with newly registered credentials. CRITICAL SESSION LIFECYCLE: Sessions start in \"Scheduled\" state. You MUST call POST /api/sessions/{id}/start BEFORE updating attendance. CRITICAL GROUP UPDATE: PUT /api/groups/{id} now returns full object with id, name, description, level, frequency, numberOfStudents.",
+    "testIds": [
+      "TC009"
+    ],
+    "additionalInstruction": "CRITICAL: To test attendance updates (TC009), you MUST perform these exact steps in order:\n1. Create a group.\n2. Add a student to the group.\n3. Create a session. Set ScheduledAt to current UTC time.\n4. YOU MUST CALL POST /api/sessions/{session_id}/start to start the session. THIS IS MANDATORY limit. If you skip this, step 5 will fail with 'Can only update attendance for active or ended sessions'.\n5. Now you can call PUT /api/sessions/{session_id}/attendance.",
     "serverMode": "development",
     "envs": {
       "API_KEY": "sk-user-MrD9UhVredz3a39vb-6mUJzL-A3cyLRLEuSsyZFnziZxYKjFXnRKDHfSEoQwpXmDpMx2Fm0RNKUQJvIwbZ1PJKKZ4wlJQWqgJg7jI55GzelyNORAUtNweasS1x5hIVH7YMc"
     }
   },
-  "serverPort": 23682,
-  "proxy": "http://5f9adebb-823c-4868-a87c-434e7d6d359b:kZcV1g3LuQ1pwnk2NxchRTFgBB4K6oLX@tun.testsprite.com:8080"
+  "serverPort": 60660,
+  "proxy": "http://77955da8-2d63-44ac-a2d3-7a012b54d7f7:vewcLaNIjNCegIviCf6pwvgNRABai3XM@tun.testsprite.com:8080"
 }
