@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Phone, PhoneOff, PhoneMissed, Mic, MicOff, Volume2 } from "lucide-react";
 import { useCallStore } from "../../store/callStore";
+import { useShallow } from "zustand/shallow";
 import { useSignalR } from "../../providers/SignalRProvider";
 import { useWebRTC } from "../../hooks/useWebRTC";
 import { sounds } from "../../lib/sounds";
@@ -21,7 +22,11 @@ const formatDuration = (ms: number): string => {
 };
 
 const CallOverlay: React.FC = () => {
-  const { status, remoteName, remoteAvatar, isOutgoing, callStartedAt, remoteUserId, reset, isMuted, toggleMute } = useCallStore();
+  const { status, remoteName, remoteAvatar, isOutgoing, callStartedAt, remoteUserId, reset, isMuted, toggleMute } = useCallStore(useShallow((s) => ({
+    status: s.status, remoteName: s.remoteName, remoteAvatar: s.remoteAvatar,
+    isOutgoing: s.isOutgoing, callStartedAt: s.callStartedAt, remoteUserId: s.remoteUserId,
+    reset: s.reset, isMuted: s.isMuted, toggleMute: s.toggleMute,
+  })));
   const { invoke } = useSignalR();
   const [elapsed, setElapsed] = useState(0);
 

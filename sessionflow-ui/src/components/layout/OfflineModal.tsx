@@ -2,10 +2,14 @@ import React, { useEffect, useState } from "react";
 import { WifiOff, Loader2, Play } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore } from "../../store/stores";
+import { useShallow } from "zustand/shallow";
 import { Button } from "../ui";
 
 const OfflineModal: React.FC = () => {
-  const { isOnline, connectionMode, userDismissedOffline, dismissOfflineModal } = useAppStore();
+  const { isOnline, connectionMode, userDismissedOffline, dismissOfflineModal } = useAppStore(useShallow((s) => ({
+    isOnline: s.isOnline, connectionMode: s.connectionMode,
+    userDismissedOffline: s.userDismissedOffline, dismissOfflineModal: s.dismissOfflineModal,
+  })));
   const [retrySpin, setRetrySpin] = useState(false);
 
   // Show if: (Offline OR in Degraded mode) AND the user hasn't explicitly dismissed it for this downtime event.

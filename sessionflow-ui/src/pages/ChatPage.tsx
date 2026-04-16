@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useShallow } from "zustand/shallow";
 import { MessageSquare, Users, Search, Hash, Star, User as UserIcon, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { Card, Button, Input, Badge, Skeleton } from "../components/ui";
@@ -30,7 +31,13 @@ const ChatPage: React.FC = () => {
   const {
     activeGroupId, setActiveGroup, clearUnread, unreadCounts,
     lastMessages, setLastMessage, queueMessage, flushQueue, incrementUnread
-  } = useChatStore();
+  } = useChatStore(useShallow((s) => ({
+    activeGroupId: s.activeGroupId, setActiveGroup: s.setActiveGroup,
+    clearUnread: s.clearUnread, unreadCounts: s.unreadCounts,
+    lastMessages: s.lastMessages, setLastMessage: s.setLastMessage,
+    queueMessage: s.queueMessage, flushQueue: s.flushQueue,
+    incrementUnread: s.incrementUnread,
+  })));
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [membersOpen, setMembersOpen] = useState(false);
   const [descriptionModalOpen, setDescriptionModalOpen] = useState(false);

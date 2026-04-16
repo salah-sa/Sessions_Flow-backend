@@ -8,7 +8,8 @@ import { SignalRProvider } from "./providers/SignalRProvider";
 import { validateSession } from "./api/authService";
 
 const App: React.FC = () => {
-  const { language, theme } = useUIStore();
+  const language = useUIStore((s) => s.language);
+  const theme = useUIStore((s) => s.theme);
   const [showSplash, setShowSplash] = useState(true);
   const token = useAuthStore((s) => s.token);
 

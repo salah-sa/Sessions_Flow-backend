@@ -1,6 +1,7 @@
 import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNotificationPopupStore } from "../../store/notificationStore";
+import { useShallow } from "zustand/shallow";
 import { MessageSquare, X } from "lucide-react";
 import { useChatStore } from "../../store/stores";
 import { useNavigate } from "react-router-dom";
@@ -13,7 +14,8 @@ import { cn } from "../../lib/utils";
 // ═══════════════════════════════════════════════════════════════
 
 const NotificationPopup: React.FC = () => {
-  const { notifications, dismiss } = useNotificationPopupStore();
+  const notifications = useNotificationPopupStore((s) => s.notifications);
+  const dismiss = useNotificationPopupStore((s) => s.dismiss);
   const setActiveGroup = useChatStore(s => s.setActiveGroup);
   const navigate = useNavigate();
 

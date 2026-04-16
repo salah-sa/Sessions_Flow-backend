@@ -28,7 +28,7 @@ const persister = createSyncStoragePersister({
 
 const persistOptions = {
   persister,
-  buster: "v2-infinite-query",
+  buster: "v3-fix-key-collision",
   dehydrateOptions: {
     shouldDehydrateQuery: (query: any) => {
       // Never persist chat messages — they use useInfiniteQuery

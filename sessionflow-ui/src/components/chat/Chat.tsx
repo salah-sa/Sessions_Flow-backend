@@ -125,7 +125,7 @@ const ProfileImage: React.FC<{
 
 export const MessageBubble = React.memo<MessageBubbleProps>(({ message, isMe, showSender }) => {
   const [isViewerOpen, setIsViewerOpen] = React.useState(false);
-  const { user: currentUser } = useAuthStore();
+  const currentUser = useAuthStore((s) => s.user);
 
   // FIX-5: Use enriched sender object from API for other users' avatars
   // Self-messages use current user data (always fresh from Zustand)
@@ -294,7 +294,7 @@ export const ChatWindow: React.FC<ChatProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   
   const { invoke } = useSignalR();
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
 
   const isArchived = currentGroup?.status === "Completed" || currentGroup?.status === "Archived";
 
@@ -659,7 +659,7 @@ export const ChatWindow: React.FC<ChatProps> = ({
 
 const TypingIndicator: React.FC<{ activeGroupId: string | null }> = ({ activeGroupId }) => {
   const typingUsers = useChatStore(s => s.typingUsers[activeGroupId || ""] || {});
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   
   // Filter out self and extract names
   const typingNames = Object.entries(typingUsers)

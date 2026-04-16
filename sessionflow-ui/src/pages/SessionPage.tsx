@@ -43,7 +43,8 @@ const SessionPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { setAttendanceRecords, updateAttendanceRecord } = useSessionStore();
+  const setAttendanceRecords = useSessionStore((s) => s.setAttendanceRecords);
+  const updateAttendanceRecord = useSessionStore((s) => s.updateAttendanceRecord);
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
   const { on, invoke } = useSignalR();
 
