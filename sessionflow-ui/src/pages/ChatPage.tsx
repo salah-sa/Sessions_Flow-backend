@@ -57,8 +57,8 @@ const ChatPage: React.FC = () => {
   const { data: activeGroupsData, isLoading: loadingActive } = useGroups(activeFilters);
   const { data: archivedGroupsData, isLoading: loadingArchived } = useGroups(archivedFilters);
 
-  const activeGroups = activeGroupsData?.items || [];
-  const archivedGroups = archivedGroupsData?.items || [];
+  const activeGroups = React.useMemo(() => activeGroupsData?.items || [], [activeGroupsData?.items]);
+  const archivedGroups = React.useMemo(() => archivedGroupsData?.items || [], [archivedGroupsData?.items]);
 
   // ── Fetch Full Group Details (Includes Students) ─────
   const { data: fullSelectedGroup } = useGroup(activeGroupId || "");

@@ -5,6 +5,7 @@ import { cn } from "../../lib/utils";
 import { Card, Button, Input, EmptyState, Skeleton, Badge } from "../ui";
 import { ChatMessage, MessageMention } from "../../types";
 import { useAuthStore, useChatStore } from "../../store/stores";
+import { useShallow } from "zustand/shallow";
 import { useSignalR } from "../../providers/SignalRProvider";
 import { toast } from "sonner";
 import { AudioPlayer } from "./AudioPlayer";
@@ -658,7 +659,7 @@ export const ChatWindow: React.FC<ChatProps> = ({
 };
 
 const TypingIndicator: React.FC<{ activeGroupId: string | null }> = ({ activeGroupId }) => {
-  const typingUsers = useChatStore(s => s.typingUsers[activeGroupId || ""] || {});
+  const typingUsers = useChatStore(useShallow(s => s.typingUsers[activeGroupId || ""] || {}));
   const user = useAuthStore((s) => s.user);
   
   // Filter out self and extract names
