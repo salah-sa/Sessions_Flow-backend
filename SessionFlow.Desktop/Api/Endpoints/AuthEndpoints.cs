@@ -21,10 +21,11 @@ public static class AuthEndpoints
 
         group.MapPost("/login", async (LoginRequest req, AuthService auth, HttpContext ctx) =>
         {
-            if (string.IsNullOrWhiteSpace(req.Identifier) || string.IsNullOrWhiteSpace(req.Password))
+            var ident = req.GetIdentifier();
+            if (string.IsNullOrWhiteSpace(ident) || string.IsNullOrWhiteSpace(req.Password))
                 return Results.BadRequest(new { error = "Identifier and password are required." });
 
-            var (user, token, error) = await auth.LoginAsync(req.Identifier.Trim(), req.Password, req.Portal, req.StudentId?.Trim(), req.EngineerCode?.Trim());
+            var (user, token, error) = await auth.LoginAsync(ident.Trim(), req.Password, req.Portal, req.StudentId?.Trim(), req.EngineerCode?.Trim());
             if (error != null)
                 return Results.BadRequest(new { error });
 
@@ -290,7 +291,18 @@ public static class AuthEndpoints
     public record UpdateAvatarRequest(string AvatarUrl);
 
     public enum LoginPortal { Admin, Student }
-    public record LoginRequest(string Identifier, string Password, LoginPortal Portal = LoginPortal.Admin, string? StudentId = null, string? EngineerCode = null);
+    public class LoginRequest
+    {
+        public string? Email { get; set; }
+        public string? Username { get; set; }
+        public string? Identifier { get; set; }
+        public string Password { get; set; } = "";
+        public LoginPortal Portal { get; set; } = LoginPortal.Admin;
+        public string? StudentId { get; set; }
+        public string? EngineerCode { get; set; }
+
+        public string? GetIdentifier() => Email ?? Username ?? Identifier;
+    }
     public record RegisterRequest(string Name, string Email, string Password, string? AccessCode = null);
     public record RegisterStudentRequest(string Name, string Username, string Password, string StudentId, string EngineerCode);
     public record RegisterStudentQueueRequest(string Name, string Username, string Email, string Password, string GroupName);

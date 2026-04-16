@@ -1,0 +1,52 @@
+[
+  {
+    "id": "TC001",
+    "title": "postapiauthloginwithvalidcredentials",
+    "description": "Test POST /api/auth/login with valid email and password to receive 200 OK and a JWT token."
+  },
+  {
+    "id": "TC002",
+    "title": "postapiauthregisterwithvalidaccesscode",
+    "description": "Test POST /api/auth/register with valid name, email, password, and accessCode to receive 201 Created and verify engineer registration status."
+  },
+  {
+    "id": "TC003",
+    "title": "getapiauthmewithvalidtoken",
+    "description": "Test GET /api/auth/me with valid Authorization Bearer token to receive 200 OK and current user profile."
+  },
+  {
+    "id": "TC004",
+    "title": "postapigroupswithvalidpayloadandauthorizedtoken",
+    "description": "Test POST /api/groups with valid group data and Authorization Bearer token to receive 201 Created with new group id."
+  },
+  {
+    "id": "TC005",
+    "title": "getapigroupswithauthorizedtoken",
+    "description": "Test GET /api/groups with valid Authorization Bearer token to receive 200 OK and list of groups including newly created group."
+  },
+  {
+    "id": "TC006",
+    "title": "putapigroupsidwithvalididandpayload",
+    "description": "Test PUT /api/groups/{id} with valid group id, updated fields, and Authorization Bearer token to receive 200 OK with updated group details."
+  },
+  {
+    "id": "TC007",
+    "title": "postapissessionswithvalidpayloadandauthorizedtoken",
+    "description": "Test POST /api/sessions with valid session payload and Authorization Bearer token to receive 201 Created with session id."
+  },
+  {
+    "id": "TC008",
+    "title": "putapissessionsidattendancewithvalidpayloadandauthorizedtoken",
+    "description": "Test PUT /api/sessions/{id}/attendance with valid attendance payload and Authorization Bearer token to receive 200 OK confirming attendance records stored."
+  },
+  {
+    "id": "TC009",
+    "title": "getapiengineerswithadminauthorization",
+    "description": "Test GET /api/engineers with Authorization Bearer token containing Admin claim to receive 200 OK and list of engineers."
+  },
+  {
+    "id": "TC010",
+    "title": "putapipendingidapprovewithadminauthorization",
+    "description": "Test PUT /api/pending/{id}/approve with valid pending engineer id and Admin Authorization Bearer token to receive 200 OK confirming approval."
+  }
+]

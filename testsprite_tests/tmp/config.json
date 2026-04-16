@@ -1,0 +1,26 @@
+{
+  "status": "init",
+  "scope": "codebase",
+  "type": "backend",
+  "localEndpoint": "http://localhost:5180/",
+  "serverPort": 58193,
+  "auth": {
+    "type": "basic",
+    "username": "admin@sessionflow.local",
+    "password": "Admin1234!"
+  },
+  "docs": {
+    "prd": "../SessionFlow_TestSprite_PRD.md"
+  },
+  "executionArgs": {
+    "projectName": "SessionFlow",
+    "projectPath": "d:\\Work\\assets outer\\test\\SessionFlow",
+    "testIds": [],
+    "additionalInstruction": "",
+    "serverMode": "production",
+    "envs": {
+      "API_KEY": "sk-user-MrD9UhVredz3a39vb-6mUJzL-A3cyLRLEuSsyZFnziZxYKjFXnRKDHfSEoQwpXmDpMx2Fm0RNKUQJvIwbZ1PJKKZ4wlJQWqgJg7jI55GzelyNORAUtNweasS1x5hIVH7YMc"
+    }
+  },
+  "proxy": "http://47a6c822-27cc-407c-a4cb-831e55627cac:EFvzCqRQObGQ6UlrHGvwpDx4XDHtFTAG@tun.testsprite.com:8080"
+}
