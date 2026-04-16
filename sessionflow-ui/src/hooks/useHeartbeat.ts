@@ -19,7 +19,7 @@ const IDLE_TIMEOUT = 90_000; // 90 seconds of no interaction → "away"
 
 export function useHeartbeat() {
   const { invoke, state: hubState } = useSignalR();
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const setSelfStatus = usePresenceStore((s) => s.setSelfStatus);
   const setClientOnline = usePresenceStore((s) => s.setClientOnline);
   const setClientOffline = usePresenceStore((s) => s.setClientOffline);

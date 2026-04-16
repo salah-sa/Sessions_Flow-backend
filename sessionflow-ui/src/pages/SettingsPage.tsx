@@ -22,8 +22,9 @@ import { useQueryClient } from "@tanstack/react-query";
 
 const SettingsPage: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { theme, setTheme } = useUIStore();
-  const { user: currentUser } = useAuthStore();
+  const theme = useUIStore((s) => s.theme);
+  const setTheme = useUIStore((s) => s.setTheme);
+  const currentUser = useAuthStore((s) => s.user);
   const isAdmin = currentUser?.role === "Admin";
   const language = i18n.language;
   

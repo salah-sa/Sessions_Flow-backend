@@ -96,7 +96,7 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
   membersOpen,
 }) => {
   const { t } = useTranslation();
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const isOnline = usePresenceStore((s) => s.isOnline);
   const isArchived = group.status === "Completed" || group.status === "Archived";
   const canEdit = user?.role === "Admin" || user?.role === "Engineer";

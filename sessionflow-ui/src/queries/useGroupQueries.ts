@@ -12,7 +12,7 @@ export const useGroups = (filters: { search?: string; status?: string; pageSize?
 
 export const useInfiniteGroups = (filters: { search?: string; status?: string; pageSize?: number } = {}) => {
   return useInfiniteQuery({
-    queryKey: queryKeys.groups.list(filters),
+    queryKey: queryKeys.groups.infiniteList(filters),
     queryFn: ({ pageParam = 1 }) => 
       groupsApi.getAll({ ...filters, page: pageParam, pageSize: filters.pageSize || 20 }),
     initialPageParam: 1,

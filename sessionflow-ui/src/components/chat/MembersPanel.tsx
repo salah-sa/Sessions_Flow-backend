@@ -91,7 +91,7 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
   const status = usePresenceStore((s) => s.getPresence(member.userId).status);
   const confidence = usePresenceStore((s) => s.getPresence(member.userId).confidence);
   const source = usePresenceStore((s) => s.getPresence(member.userId).source);
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const isMe = member.userId === user?.id;
   const { invoke } = useSignalR();
 

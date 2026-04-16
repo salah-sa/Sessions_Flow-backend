@@ -3,6 +3,7 @@ import { User, Mail, Shield, Calendar, Clock, Activity, Lock, Save, Loader2, Key
 import { toast } from "sonner";
 import { Card, Button, Input, Badge, Skeleton } from "../components/ui";
 import { useAuthStore } from "../store/stores";
+import { useShallow } from "zustand/shallow";
 import { useAuditLogs } from "../queries/useSystemQueries";
 import { useDashboardSummary } from "../queries/useDashboardQueries";
 import { useAuthMutations } from "../queries/useAuthQueries";
@@ -12,7 +13,8 @@ import { useTranslation } from "react-i18next";
 
 const ProfilePage: React.FC = () => {
   const { t } = useTranslation();
-  const { user, setAuth } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const setAuth = useAuthStore((s) => s.setAuth);
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");

@@ -10,6 +10,7 @@ export const queryKeys = {
   groups: {
     all: ["groups"] as const,
     list: (filters: any) => ["groups", "list", filters] as const,
+    infiniteList: (filters: any) => ["groups", "infiniteList", filters] as const,
     byId: (id: string) => ["groups", "detail", id] as const,
   },
   sessions: {
