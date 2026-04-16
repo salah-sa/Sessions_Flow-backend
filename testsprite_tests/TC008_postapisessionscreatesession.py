@@ -1,66 +1,64 @@
 import requests
-from datetime import datetime, timedelta
+import datetime
 import uuid
 
 BASE_URL = "http://localhost:5180"
-AUTH_CREDENTIALS = {"Identifier": "admin@sessionflow.local", "Password": "Admin1234!"}
+AUTH_CREDENTIALS = {
+    "Identifier": "admin@sessionflow.local",
+    "Password": "Admin1234!"
+}
 TIMEOUT = 30
 
-
 def test_postapisessionscreatesession():
-    session = requests.Session()
+    # Authenticate
+    login_resp = requests.post(f"{BASE_URL}/api/auth/login", json=AUTH_CREDENTIALS, timeout=TIMEOUT)
+    assert login_resp.status_code == 200, f"Login failed: {login_resp.text}"
+    token = login_resp.json().get("token")
+    assert token, "Token missing"
+    headers = {"Authorization": f"Bearer {token}"}
+
+    group_id = None
+    session_id = None
+
     try:
-        # Login to get JWT token
-        login_resp = session.post(
-            f"{BASE_URL}/api/auth/login",
-            json=AUTH_CREDENTIALS,
-            timeout=TIMEOUT,
-        )
-        assert login_resp.status_code == 200, f"Login failed: {login_resp.text}"
-        token = login_resp.json().get("token")
-        assert token, "JWT token missing in login response"
-
-        headers = {"Authorization": f"Bearer {token}"}
-
-        # Create a valid group following the constraints
-        # Level 2 (1-4), Frequency 2 (1-3), NumberOfStudents 4 or less for Levels 1-3
-        group_payload = {
-            "Name": f"Test Group {uuid.uuid4()}",
-            "Description": "Test group for session creation",
-            "Level": 2,
-            "Frequency": 2,
+        # Create a group with unique name
+        create_group_payload = {
+            "Name": f"TC008-{uuid.uuid4().hex[:6]}",
+            "Description": "Created for session creation test",
+            "Level": 1,
+            "Frequency": 1,
             "NumberOfStudents": 4,
             "StartingSessionNumber": 1,
-            "TotalSessions": 10,
+            "TotalSessions": 5,
             "Schedules": [
-                {"DayOfWeek": 1, "StartTime": "09:00:00", "DurationMinutes": 60},
-                {"DayOfWeek": 3, "StartTime": "09:00:00", "DurationMinutes": 60},
-            ],
+                {"DayOfWeek": 1, "StartTime": "14:00:00", "DurationMinutes": 60}
+            ]
         }
-        group_resp = session.post(
-            f"{BASE_URL}/api/groups", json=group_payload, headers=headers, timeout=TIMEOUT
-        )
+        group_resp = requests.post(f"{BASE_URL}/api/groups", headers=headers, json=create_group_payload, timeout=TIMEOUT)
         assert group_resp.status_code == 201, f"Group creation failed: {group_resp.text}"
-        group_data = group_resp.json()
-        group_id = group_data.get("id")
-        assert group_id, "Group ID missing in response"
+        group_id = group_resp.json().get("id")
+        assert group_id, "Group ID missing"
 
-        # Create a session with valid GroupId and ScheduledAt
-        scheduled_at = (datetime.utcnow() + timedelta(days=1)).replace(microsecond=0).isoformat() + "Z"
-        session_payload = {"GroupId": group_id, "ScheduledAt": scheduled_at}
-        session_resp = session.post(
-            f"{BASE_URL}/api/sessions", json=session_payload, headers=headers, timeout=TIMEOUT
-        )
+        # Create session — use strftime to produce clean ISO string
+        now_utc = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        create_session_payload = {"GroupId": group_id, "ScheduledAt": now_utc}
+        session_resp = requests.post(f"{BASE_URL}/api/sessions", headers=headers, json=create_session_payload, timeout=TIMEOUT)
         assert session_resp.status_code == 201, f"Session creation failed: {session_resp.text}"
         session_id = session_resp.json().get("id")
-        assert session_id, "Session ID missing in response"
+        assert session_id, "Session ID missing"
+
+        # Verify: GET /api/sessions?groupId={id} returns paginated envelope with our session
+        get_resp = requests.get(f"{BASE_URL}/api/sessions?groupId={group_id}", headers=headers, timeout=TIMEOUT)
+        assert get_resp.status_code == 200, f"Get sessions failed: {get_resp.text}"
+        envelope = get_resp.json()
+        items = envelope.get("items", [])
+        assert any(s.get("id") == session_id for s in items), "Created session not found in sessions list"
 
     finally:
-        # Cleanup: delete group
-        if 'group_id' in locals():
-            del_resp = session.delete(
-                f"{BASE_URL}/api/groups/{group_id}", headers=headers, timeout=TIMEOUT
-            )
-            # We do not assert on delete failure to not mask original failures
+        if group_id:
+            try:
+                requests.delete(f"{BASE_URL}/api/groups/{group_id}", headers=headers, timeout=TIMEOUT)
+            except Exception:
+                pass
 
 test_postapisessionscreatesession()

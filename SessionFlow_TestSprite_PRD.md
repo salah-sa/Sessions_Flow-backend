@@ -53,14 +53,18 @@ Use the following inputs when configuring the test in the TestSprite dashboard:
 
 ### 4.2. Core Entities (`/api/groups`, `/api/sessions`, `/api/students`)
 *   Full CRUD capabilities supported. All data mutations heavily rely on Authorization boundaries. Engineers manage their own sessions, Admins own global config.
+*   **CRITICAL Pagination Envelope:** ALL list endpoints (`GET /api/groups`, `GET /api/sessions`) return a **paginated envelope object**, NOT a raw array. The response structure is: `{"items": [...], "totalCount": int, "page": int, "pageSize": int, "hasMore": bool}`. Always access the `items` key to get the list data.
+*   **CRITICAL Pending Account Login:** When a newly registered engineer (status=Pending) attempts to login, the backend returns **400 Bad Request** (NOT 401). The response contains `{"error": "..."}` with a message about pending approval.
 *   **Groups Payload Rules:** When invoking `POST /api/groups`, you MUST provide a strict struct: `{"Name": string, "Description": string, "Level": int (1-4), "Frequency": int (1-3), "NumberOfStudents": int, "StartingSessionNumber": int, "Schedules": array}`. 
     *   **CRITICAL CONSTRAINT:** The length of the `Schedules` array MUST EXACTLY match the number provided in `Frequency`. 
     *   **Schedule Object:** Each array element MUST explicitly contain: `{"DayOfWeek": int (0-6), "StartTime": string (e.g. "14:30:00"), "DurationMinutes": int}`.
     *   **Level Constraint:** Must be between 1 and 4.
     *   **CRITICAL NumberOfStudents Constraint:** `NumberOfStudents` MUST NOT exceed the curriculum maximum: Level 1-3 allows max **4** students, Level 4 allows max **2** students. Sending values above these limits will return a 400 error. Always use `NumberOfStudents: 4` for Levels 1-3 and `NumberOfStudents: 2` for Level 4.
 *   **Sessions Payload Rules:** When invoking `POST /api/sessions`, payload MUST strictly be: `{"GroupId": string, "ScheduledAt": string (ISO 8601 UTC)}`. Groups automatically mandate session limits based on `Level` (Level 2 limits 12, Level 1 limits 13).
+    *   **CRITICAL ScheduledAt Format:** The `ScheduledAt` value MUST be a clean UTC ISO string like `"2026-04-16T14:30:00Z"`. Do NOT use timezone offset format like `+00:00Z` — this will cause a 400 model binding error with an empty response body.
     *   **CRITICAL ScheduledAt Constraint:** To test session state transitions, `ScheduledAt` MUST be set to current UTC time (or within 30 minutes in the future). Sessions scheduled further ahead will trigger a `400` security restriction when calling the `/start` endpoint.
 *   **CRITICAL Session Lifecycle:** Sessions are created in `Scheduled` state. To update attendance, the session MUST first be transitioned to `Started` state by calling `POST /api/sessions/{id}/start`. Attendance updates (`PUT /api/sessions/{id}/attendance`) will be **rejected** for sessions still in `Scheduled` state.
+*   **CRITICAL Auto-Generated Sessions:** When a group is created, the backend auto-generates sessions based on the group's schedule. To test attendance, instead of creating a manual session, fetch the auto-generated Session 1 via `GET /api/sessions?groupId={id}` and find the item where `sessionNumber == 1`. This avoids sequential validation errors.
 *   **Groups PUT Response:** The `PUT /api/groups/{id}` endpoint returns the updated group object with fields: `id`, `name`, `description`, `level`, `frequency`, `numberOfStudents`.
 
 ### 4.3. Admin & Configuration (`/api/engineers`, `/api/settings`)

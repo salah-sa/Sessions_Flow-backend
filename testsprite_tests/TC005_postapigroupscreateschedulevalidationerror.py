@@ -1,50 +1,42 @@
 import requests
 
-BASE_URL = "http://localhost:5180"
-LOGIN_URL = f"{BASE_URL}/api/auth/login"
-GROUPS_URL = f"{BASE_URL}/api/groups"
-
-AUTH_CREDENTIALS = {"Identifier": "admin@sessionflow.local", "Password": "Admin1234!"}
-TIMEOUT = 30
-
-
 def test_postapigroupscreateschedulevalidationerror():
-    # Authenticate to get JWT token
-    try:
-        login_resp = requests.post(LOGIN_URL, json=AUTH_CREDENTIALS, timeout=TIMEOUT)
-        assert login_resp.status_code == 200, f"Login failed with status {login_resp.status_code}"
-        token = login_resp.json().get("token")
-        assert token, "No token returned in login response"
-    except Exception as e:
-        assert False, f"Authentication failed: {e}"
+    base_url = "http://localhost:5180"
+    login_url = f"{base_url}/api/auth/login"
+    groups_url = f"{base_url}/api/groups"
+    auth = ("admin@sessionflow.local", "Admin1234!")
+    timeout = 30
 
-    headers = {"Authorization": f"Bearer {token}"}
+    # Login to get JWT token
+    login_payload = {
+        "Identifier": "admin@sessionflow.local",
+        "Password": "Admin1234!"
+    }
+    login_response = requests.post(login_url, json=login_payload, timeout=timeout)
+    assert login_response.status_code == 200, f"Login failed with status {login_response.status_code}"
+    token = login_response.json().get("token")
+    assert token, "Token not found in login response"
 
-    # Prepare group data with Frequency=2 but only 1 schedule to trigger validation error
-    group_data = {
-        "Name": "Test Group with Schedule Mismatch",
-        "Description": "Should fail due to schedule count mismatch",
-        "Level": 2,
-        "Frequency": 2,  # Frequency is 2
-        "NumberOfStudents": 4,
-        "StartingSessionNumber": 1,
-        "TotalSessions": 10,
-        "Schedules": [  # Only 1 schedule provided instead of 2
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+
+    # Prepare payload with schedules count not matching frequency to trigger 400 validation error
+    invalid_group_payload = {
+        "Name": "Invalid schedule",
+        "Level": 1,
+        "Frequency": 2,
+        "Schedules": [
             {
-                "DayOfWeek": 1,
+                "DayOfWeek": 2,
                 "StartTime": "10:00:00",
                 "DurationMinutes": 60
             }
         ]
     }
 
-    try:
-        resp = requests.post(GROUPS_URL, json=group_data, headers=headers, timeout=TIMEOUT)
-    except Exception as e:
-        assert False, f"Request to create group failed: {e}"
-
-    # Verification: status code must be 400 for validation error
-    assert resp.status_code == 400, f"Expected 400 validation error but got {resp.status_code}"
-
+    response = requests.post(groups_url, json=invalid_group_payload, headers=headers, timeout=timeout)
+    assert response.status_code == 400, f"Expected 400 but got {response.status_code}"
 
 test_postapigroupscreateschedulevalidationerror()
