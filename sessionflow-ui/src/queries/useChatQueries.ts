@@ -1,16 +1,7 @@
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { chatApi } from "../api/resources_extra";
 import { queryKeys } from "./keys";
 import { ChatMessage, MessageMention } from "../types";
-
-export const useChatMessages = (groupId: string | undefined) => {
-  return useQuery({
-    queryKey: queryKeys.chat.messages(groupId!),
-    queryFn: () => chatApi.getMessages(groupId!),
-    enabled: !!groupId,
-    refetchInterval: false, // We rely on SignalR for real-time
-  });
-};
 
 export const useInfiniteChatMessages = (groupId: string | undefined) => {
   return useInfiniteQuery<ChatMessage[], Error, { pages: ChatMessage[][]; pageParams: (string | undefined)[] }>({
