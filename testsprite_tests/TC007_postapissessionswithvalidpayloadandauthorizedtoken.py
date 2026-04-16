@@ -1,74 +1,131 @@
 import requests
-from datetime import datetime, timedelta
+import datetime
 
 BASE_URL = "http://localhost:5180"
-LOGIN_URL = f"{BASE_URL}/api/auth/login"
-SESSIONS_URL = f"{BASE_URL}/api/sessions"
-GROUPS_URL = f"{BASE_URL}/api/groups"
+TIMEOUT = 30
+
+ADMIN_EMAIL = "admin@sessionflow.local"
+ADMIN_PASSWORD = "Admin1234!"
 
 
-def test_post_api_sessions_with_valid_payload_and_authorized_token():
+def get_admin_token():
+    url = f"{BASE_URL}/api/auth/login"
+    payload = {
+        "email": ADMIN_EMAIL,
+        "password": ADMIN_PASSWORD
+    }
+    resp = requests.post(url, json=payload, timeout=TIMEOUT)
+    resp.raise_for_status()
+    data = resp.json()
+    assert resp.status_code == 200
+    assert "token" in data, "Token not found in login response"
+    return data["token"]
+
+
+def create_group(token):
+    url = f"{BASE_URL}/api/groups"
+
+    group_payload = {
+        "name": "Test Group TC007",
+        "level": 2,  # level between 1 and 4
+        "frequency": 2,  # between 1 and 3
+        "tags": [],
+        "schedules": [
+            {
+                "dayOfWeek": 1,  # Monday as integer
+                "startTime": "09:00:00",
+                "endTime": "10:00:00"
+            },
+            {
+                "dayOfWeek": 3,  # Wednesday as integer
+                "startTime": "09:00:00",
+                "endTime": "10:00:00"
+            }
+        ]
+    }
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+    resp = requests.post(url, json=group_payload, headers=headers, timeout=TIMEOUT)
+    resp.raise_for_status()
+    assert resp.status_code == 201
+    data = resp.json()
+    assert "id" in data, "Group creation response missing id"
+    return data["id"]
+
+
+def get_engineers(token):
+    url = f"{BASE_URL}/api/engineers"
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+    resp = requests.get(url, headers=headers, timeout=TIMEOUT)
+    resp.raise_for_status()
+    data = resp.json()
+    assert isinstance(data, list), "Engineers list should be a list"
+    return data
+
+
+def post_session_with_valid_payload_and_authorized_token():
+    admin_token = get_admin_token()
+    headers = {
+        "Authorization": f"Bearer {admin_token}",
+        "Content-Type": "application/json"
+    }
+
+    group_id = None
+    session_id = None
     try:
-        # Authenticate and get JWT token
-        auth_payload = {
-            "email": "admin@sessionflow.local",
-            "password": "Admin1234!"
-        }
-        auth_resp = requests.post(LOGIN_URL, json=auth_payload, timeout=30)
-        assert auth_resp.status_code == 200, f"Auth failed with status {auth_resp.status_code}"
-        token = auth_resp.json().get("token")
-        assert token, "JWT token not found in auth response"
-        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        group_id = create_group(admin_token)
 
-        # Create a new group to use groupId for session
-        group_payload = {
-            "name": "Test Group",
-            "cohorts": [],
-            "tags": [],
-            "level": "Beginner",
-            "activeEngineerIDs": []
-        }
-        create_group_resp = requests.post(GROUPS_URL, headers=headers, json=group_payload, timeout=30)
-        assert create_group_resp.status_code == 201, f"Group creation failed with status {create_group_resp.status_code}"
-        group_id = create_group_resp.json().get("id")
-        assert group_id, "Group id not returned after creation"
+        engineers = get_engineers(admin_token)
+        assert len(engineers) > 0, "No engineers found to assign session"
+        engineer_id = None
 
-        # Get current user's profile to obtain engineerId
-        me_resp = requests.get(f"{BASE_URL}/api/auth/me", headers=headers, timeout=30)
-        assert me_resp.status_code == 200, f"Get current user failed with status {me_resp.status_code}"
-        engineer_id = me_resp.json().get("id")
-        assert engineer_id, "EngineerId not found in user profile"
+        for eng in engineers:
+            if "id" in eng:
+                engineer_id = eng["id"]
+                break
+        assert engineer_id is not None, "Engineer id not found"
 
-        # Prepare payload for session creation
-        start_time = datetime.utcnow() + timedelta(minutes=5)
-        end_time = start_time + timedelta(hours=1)
-        session_payload = {
+        now = datetime.datetime.utcnow()
+        start = now.replace(minute=0, second=0, microsecond=0) + datetime.timedelta(hours=1)
+        end = start + datetime.timedelta(hours=1)
+
+        payload = {
             "groupId": group_id,
-            "engineerId": engineer_id,
-            "start": start_time.isoformat() + "Z",
-            "end": end_time.isoformat() + "Z"
+            "start": start.isoformat() + "Z",
+            "end": end.isoformat() + "Z",
+            "engineerId": engineer_id
         }
 
-        # Create a new session
-        session_resp = requests.post(SESSIONS_URL, json=session_payload, headers=headers, timeout=30)
-        assert session_resp.status_code == 201, f"Session creation failed with status {session_resp.status_code}"
-        session_data = session_resp.json()
-        session_id = session_data.get("id")
-        assert session_id, "Session id not returned after creation"
+        url = f"{BASE_URL}/api/sessions"
+        resp = requests.post(url, json=payload, headers=headers, timeout=TIMEOUT)
+        if resp.status_code >= 400:
+            try:
+                error_data = resp.json()
+            except Exception:
+                error_data = resp.text
+            resp.raise_for_status()
+        assert resp.status_code == 201, f"Expected 201 Created but got {resp.status_code}"
+
+        resp_data = resp.json()
+        assert "id" in resp_data, "Response missing session id"
+        session_id = resp_data["id"]
 
     finally:
-        # Cleanup: Delete the created session if exists
-        if 'session_id' in locals():
+        if session_id:
+            url_del_session = f"{BASE_URL}/api/sessions/{session_id}"
             try:
-                requests.delete(f"{SESSIONS_URL}/{session_id}", headers=headers, timeout=30)
+                requests.delete(url_del_session, headers={"Authorization": f"Bearer {admin_token}"}, timeout=TIMEOUT)
             except Exception:
                 pass
-        # Cleanup: Delete the created group if exists
-        if 'group_id' in locals():
+        if group_id:
+            url_del_group = f"{BASE_URL}/api/groups/{group_id}"
             try:
-                requests.delete(f"{GROUPS_URL}/{group_id}", headers=headers, timeout=30)
+                requests.delete(url_del_group, headers={"Authorization": f"Bearer {admin_token}"}, timeout=TIMEOUT)
             except Exception:
                 pass
 
 
-test_post_api_sessions_with_valid_payload_and_authorized_token()
+post_session_with_valid_payload_and_authorized_token()

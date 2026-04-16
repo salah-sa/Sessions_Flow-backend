@@ -70,7 +70,8 @@ public static class AuthEndpoints
             return Results.Created($"/api/pending/{pending!.Id}", new
             {
                 message = "Registration submitted. Awaiting admin approval.",
-                engineer = new { id = pending.Id }
+                engineer = new { id = pending.Id },
+                status = pending.Status.ToString()
             });
         });
 

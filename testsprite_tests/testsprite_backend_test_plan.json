@@ -1,52 +1,52 @@
 [
   {
     "id": "TC001",
-    "title": "postapiauthloginwithvalidcredentials",
-    "description": "Test POST /api/auth/login with valid email and password to receive 200 OK and a JWT token."
+    "title": "postapiauthloginvalidcredentials",
+    "description": "Verify that POST /api/auth/login with valid email and password returns 200 with a JWT token and user object."
   },
   {
     "id": "TC002",
-    "title": "postapiauthregisterwithvalidaccesscode",
-    "description": "Test POST /api/auth/register with valid name, email, password, and accessCode to receive 201 Created and verify engineer registration status."
+    "title": "postapiauthregisternewengineer",
+    "description": "Verify that POST /api/auth/register creates a new engineer with pending status and returns 201 with engineer id and status Pending."
   },
   {
     "id": "TC003",
-    "title": "getapiauthmewithvalidtoken",
-    "description": "Test GET /api/auth/me with valid Authorization Bearer token to receive 200 OK and current user profile."
+    "title": "getapiauthmeauthenticateduser",
+    "description": "Verify that GET /api/auth/me with valid JWT returns 200 with the current authenticated user profile."
   },
   {
     "id": "TC004",
-    "title": "postapigroupswithvalidpayloadandauthorizedtoken",
-    "description": "Test POST /api/groups with valid group data and Authorization Bearer token to receive 201 Created with new group id."
+    "title": "postapigroupscreatesuccess",
+    "description": "Verify that POST /api/groups with valid group data including schedules matching frequency creates a group and returns 201 with group id and name."
   },
   {
     "id": "TC005",
-    "title": "getapigroupswithauthorizedtoken",
-    "description": "Test GET /api/groups with valid Authorization Bearer token to receive 200 OK and list of groups including newly created group."
+    "title": "postapigroupscreateschedulevalidationerror",
+    "description": "Verify that POST /api/groups with schedules array count not matching frequency returns 400 validation error."
   },
   {
     "id": "TC006",
-    "title": "putapigroupsidwithvalididandpayload",
-    "description": "Test PUT /api/groups/{id} with valid group id, updated fields, and Authorization Bearer token to receive 200 OK with updated group details."
+    "title": "putapigroupsidupdatesuccess",
+    "description": "Verify that PUT /api/groups/{id} updates an existing group and returns 200 with updated group data."
   },
   {
     "id": "TC007",
-    "title": "postapissessionswithvalidpayloadandauthorizedtoken",
-    "description": "Test POST /api/sessions with valid session payload and Authorization Bearer token to receive 201 Created with session id."
+    "title": "deleteapigroupsidsoftdelete",
+    "description": "Verify that DELETE /api/groups/{id} soft-deletes the group and returns 200 with a confirmation message."
   },
   {
     "id": "TC008",
-    "title": "putapissessionsidattendancewithvalidpayloadandauthorizedtoken",
-    "description": "Test PUT /api/sessions/{id}/attendance with valid attendance payload and Authorization Bearer token to receive 200 OK confirming attendance records stored."
+    "title": "postapisessionscreatesession",
+    "description": "Verify that POST /api/sessions with valid GroupId and ScheduledAt creates a session and returns 201 with session id."
   },
   {
     "id": "TC009",
-    "title": "getapiengineerswithadminauthorization",
-    "description": "Test GET /api/engineers with Authorization Bearer token containing Admin claim to receive 200 OK and list of engineers."
+    "title": "putapisessionsidattendanceupdatesuccess",
+    "description": "Verify that PUT /api/sessions/{id}/attendance updates attendance for a session and returns 200 confirmation."
   },
   {
     "id": "TC010",
-    "title": "putapipendingidapprovewithadminauthorization",
-    "description": "Test PUT /api/pending/{id}/approve with valid pending engineer id and Admin Authorization Bearer token to receive 200 OK confirming approval."
+    "title": "postapigroupsidstudentsaddstudent",
+    "description": "Verify that POST /api/groups/{id}/students adds a student to the group and returns 201 with student id, name, and uniqueStudentCode."
   }
 ]

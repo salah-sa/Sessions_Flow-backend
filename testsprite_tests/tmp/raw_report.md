@@ -12,132 +12,87 @@
 
 ## 2️⃣ Requirement Validation Summary
 
-#### Test TC001 postapiauthloginwithvalidcredentials
-- **Test Code:** [TC001_postapiauthloginwithvalidcredentials.py](./TC001_postapiauthloginwithvalidcredentials.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/7902594e-b504-4c87-9802-a5f4146a36d0/fe934d8f-c3a9-4663-8e40-6d4bb9e4e9e2
+#### Test TC001 postapiauthloginvalidcredentials
+- **Test Code:** [TC001_postapiauthloginvalidcredentials.py](./TC001_postapiauthloginvalidcredentials.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/5edd740f-1164-4dc3-9e92-cc297b22ae58/0fd9fa22-d0e6-42f2-a3a1-b4c55d0da08b
 - **Status:** ✅ Passed
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---
 
-#### Test TC002 postapiauthregisterwithvalidaccesscode
-- **Test Code:** [TC002_postapiauthregisterwithvalidaccesscode.py](./TC002_postapiauthregisterwithvalidaccesscode.py)
-- **Test Error:** Traceback (most recent call last):
-  File "/var/task/handler.py", line 258, in run_with_retry
-    exec(code, exec_env)
-  File "<string>", line 60, in <module>
-  File "<string>", line 40, in test_postapiauthregisterwithvalidaccesscode
-AssertionError: Response missing 'engineer' object
-
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/7902594e-b504-4c87-9802-a5f4146a36d0/8781ca58-6ba4-456f-b3c2-84c8b3d9c9b6
-- **Status:** ❌ Failed
-- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
----
-
-#### Test TC003 getapiauthmewithvalidtoken
-- **Test Code:** [TC003_getapiauthmewithvalidtoken.py](./TC003_getapiauthmewithvalidtoken.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/7902594e-b504-4c87-9802-a5f4146a36d0/16988219-4dd7-4d92-8d0b-0afc5109b834
+#### Test TC002 postapiauthregisternewengineer
+- **Test Code:** [TC002_postapiauthregisternewengineer.py](./TC002_postapiauthregisternewengineer.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/5edd740f-1164-4dc3-9e92-cc297b22ae58/a1d961ca-a901-4273-8848-35be1a10ac53
 - **Status:** ✅ Passed
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---
 
-#### Test TC004 postapigroupswithvalidpayloadandauthorizedtoken
-- **Test Code:** [TC004_postapigroupswithvalidpayloadandauthorizedtoken.py](./TC004_postapigroupswithvalidpayloadandauthorizedtoken.py)
-- **Test Error:** Traceback (most recent call last):
-  File "/var/task/handler.py", line 258, in run_with_retry
-    exec(code, exec_env)
-  File "<string>", line 54, in <module>
-  File "<string>", line 39, in test_post_api_groups_with_valid_payload_and_authorized_token
-AssertionError: Expected 201 Created, got 400
-
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/7902594e-b504-4c87-9802-a5f4146a36d0/a72de95a-7719-4660-9845-adf143670efc
-- **Status:** ❌ Failed
-- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
----
-
-#### Test TC005 getapigroupswithauthorizedtoken
-- **Test Code:** [TC005_getapigroupswithauthorizedtoken.py](./TC005_getapigroupswithauthorizedtoken.py)
-- **Test Error:** Traceback (most recent call last):
-  File "/var/task/handler.py", line 258, in run_with_retry
-    exec(code, exec_env)
-  File "<string>", line 58, in <module>
-  File "<string>", line 38, in test_get_api_groups_with_authorized_token
-AssertionError: Group creation failed: {"error":"Strict Rule: Must define exactly 1 schedule slot(s) for Frequency=1."}
-
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/7902594e-b504-4c87-9802-a5f4146a36d0/04c69488-de70-40cc-8932-3cb862fe3dc1
-- **Status:** ❌ Failed
-- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
----
-
-#### Test TC006 putapigroupsidwithvalididandpayload
-- **Test Code:** [TC006_putapigroupsidwithvalididandpayload.py](./TC006_putapigroupsidwithvalididandpayload.py)
-- **Test Error:** Traceback (most recent call last):
-  File "/var/task/handler.py", line 258, in run_with_retry
-    exec(code, exec_env)
-  File "<string>", line 78, in <module>
-  File "<string>", line 39, in test_put_api_groups_id_with_valid_id_and_payload
-AssertionError: Group creation failed: {"error":"Level must be between 1 and 4."}
-
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/7902594e-b504-4c87-9802-a5f4146a36d0/77edd7a5-81bd-45f4-a2f1-5654365d5653
-- **Status:** ❌ Failed
-- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
----
-
-#### Test TC007 postapissessionswithvalidpayloadandauthorizedtoken
-- **Test Code:** [TC007_postapissessionswithvalidpayloadandauthorizedtoken.py](./TC007_postapissessionswithvalidpayloadandauthorizedtoken.py)
-- **Test Error:** Traceback (most recent call last):
-  File "/var/task/handler.py", line 258, in run_with_retry
-    exec(code, exec_env)
-  File "<string>", line 74, in <module>
-  File "<string>", line 32, in test_post_api_sessions_with_valid_payload_and_authorized_token
-AssertionError: Group creation failed with status 400
-
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/7902594e-b504-4c87-9802-a5f4146a36d0/0c0d1fdc-990d-40fd-911a-cc9d8b8b886c
-- **Status:** ❌ Failed
-- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
----
-
-#### Test TC008 putapissessionsidattendancewithvalidpayloadandauthorizedtoken
-- **Test Code:** [TC008_putapissessionsidattendancewithvalidpayloadandauthorizedtoken.py](./TC008_putapissessionsidattendancewithvalidpayloadandauthorizedtoken.py)
-- **Test Error:** Traceback (most recent call last):
-  File "/var/task/handler.py", line 258, in run_with_retry
-    exec(code, exec_env)
-  File "<string>", line 108, in <module>
-  File "<string>", line 89, in test_put_api_sessions_id_attendance_with_valid_payload_and_authorized_token
-  File "<string>", line 26, in create_group
-  File "/var/lang/lib/python3.12/site-packages/requests/models.py", line 1024, in raise_for_status
-    raise HTTPError(http_error_msg, response=self)
-requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: http://localhost:5180/api/groups
-
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/7902594e-b504-4c87-9802-a5f4146a36d0/da1497ba-1ffa-4c35-9838-3a20f148ed9f
-- **Status:** ❌ Failed
-- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
----
-
-#### Test TC009 getapiengineerswithadminauthorization
-- **Test Code:** [TC009_getapiengineerswithadminauthorization.py](./TC009_getapiengineerswithadminauthorization.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/7902594e-b504-4c87-9802-a5f4146a36d0/c64256fd-6d01-4db8-af90-a95c138afe8f
+#### Test TC003 getapiauthmeauthenticateduser
+- **Test Code:** [TC003_getapiauthmeauthenticateduser.py](./TC003_getapiauthmeauthenticateduser.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/5edd740f-1164-4dc3-9e92-cc297b22ae58/95248062-34a4-4aec-8304-5203c51cc0e4
 - **Status:** ✅ Passed
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---
 
-#### Test TC010 putapipendingidapprovewithadminauthorization
-- **Test Code:** [TC010_putapipendingidapprovewithadminauthorization.py](./TC010_putapipendingidapprovewithadminauthorization.py)
+#### Test TC004 postapigroupscreatesuccess
+- **Test Code:** [TC004_postapigroupscreatesuccess.py](./TC004_postapigroupscreatesuccess.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/5edd740f-1164-4dc3-9e92-cc297b22ae58/f679c187-03e2-4d10-b742-1d7efb1804e8
+- **Status:** ✅ Passed
+- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
+---
+
+#### Test TC005 postapigroupscreateschedulevalidationerror
+- **Test Code:** [TC005_postapigroupscreateschedulevalidationerror.py](./TC005_postapigroupscreateschedulevalidationerror.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/5edd740f-1164-4dc3-9e92-cc297b22ae58/46241152-07a5-4bbd-b7b4-04ec40d4151d
+- **Status:** ✅ Passed
+- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
+---
+
+#### Test TC006 putapigroupsidupdatesuccess
+- **Test Code:** [TC006_putapigroupsidupdatesuccess.py](./TC006_putapigroupsidupdatesuccess.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/5edd740f-1164-4dc3-9e92-cc297b22ae58/0682c631-caa1-4772-a969-167197d85921
+- **Status:** ✅ Passed
+- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
+---
+
+#### Test TC007 deleteapigroupsidsoftdelete
+- **Test Code:** [TC007_deleteapigroupsidsoftdelete.py](./TC007_deleteapigroupsidsoftdelete.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/5edd740f-1164-4dc3-9e92-cc297b22ae58/22740406-1276-4d26-a4b8-ff8c2ce40748
+- **Status:** ✅ Passed
+- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
+---
+
+#### Test TC008 postapisessionscreatesession
+- **Test Code:** [TC008_postapisessionscreatesession.py](./TC008_postapisessionscreatesession.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/5edd740f-1164-4dc3-9e92-cc297b22ae58/2f97e3e3-bdb4-4a4f-bbfa-8853419f499c
+- **Status:** ✅ Passed
+- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
+---
+
+#### Test TC009 putapisessionsidattendanceupdatesuccess
+- **Test Code:** [TC009_putapisessionsidattendanceupdatesuccess.py](./TC009_putapisessionsidattendanceupdatesuccess.py)
 - **Test Error:** Traceback (most recent call last):
   File "/var/task/handler.py", line 258, in run_with_retry
     exec(code, exec_env)
-  File "<string>", line 54, in <module>
-  File "<string>", line 39, in test_putapipendingidapprovewithadminauthorization
-AssertionError: No pending engineer found to approve
+  File "<string>", line 138, in <module>
+  File "<string>", line 124, in putapisessionsidattendanceupdatesuccess
+AssertionError: Expected 200 on attendance update, got 400
 
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/7902594e-b504-4c87-9802-a5f4146a36d0/e94cf7fc-0e51-4db0-875c-a827683325cd
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/5edd740f-1164-4dc3-9e92-cc297b22ae58/cf02948d-f041-4e17-9f50-fff1c34893d8
 - **Status:** ❌ Failed
+- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
+---
+
+#### Test TC010 postapigroupsidstudentsaddstudent
+- **Test Code:** [TC010_postapigroupsidstudentsaddstudent.py](./TC010_postapigroupsidstudentsaddstudent.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/5edd740f-1164-4dc3-9e92-cc297b22ae58/862effa3-6a04-49fe-8120-3d4f8dd0a137
+- **Status:** ✅ Passed
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---
 
 
 ## 3️⃣ Coverage & Matching Metrics
 
-- **30.00** of tests passed
+- **90.00** of tests passed
 
 | Requirement        | Total Tests | ✅ Passed | ❌ Failed  |
 |--------------------|-------------|-----------|------------|

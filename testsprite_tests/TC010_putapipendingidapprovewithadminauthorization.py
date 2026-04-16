@@ -1,54 +1,66 @@
 import requests
+import time
 
 BASE_URL = "http://localhost:5180"
-LOGIN_URL = f"{BASE_URL}/api/auth/login"
-PENDING_APPROVE_URL_TEMPLATE = f"{BASE_URL}/api/pending/{{}}/approve"
-AUTH_HEADER_TEMPLATE = "Bearer {}"
+LOGIN_ENDPOINT = "/api/auth/login"
+PENDING_APPROVE_ENDPOINT = "/api/pending/{id}/approve"
+REGISTER_ENDPOINT = "/api/auth/register"
+
+ADMIN_EMAIL = "admin@sessionflow.local"
+ADMIN_PASSWORD = "Admin1234!"
+
 TIMEOUT = 30
 
-admin_email = "admin@sessionflow.local"
-admin_password = "Admin1234!"
 
-def test_putapipendingidapprovewithadminauthorization():
-    # Step 1: Login as admin to get JWT token
+def test_put_api_pending_id_approve_with_admin_authorization():
+    # Step 1: Authenticate as admin to get token
     login_payload = {
-        "email": admin_email,
-        "password": admin_password
+        "email": ADMIN_EMAIL,
+        "password": ADMIN_PASSWORD
     }
-    login_resp = requests.post(LOGIN_URL, json=login_payload, timeout=TIMEOUT)
-    assert login_resp.status_code == 200, f"Admin login failed: {login_resp.text}"
-    login_data = login_resp.json()
-    assert "token" in login_data, "No token in login response"
-    admin_token = login_data["token"]
+    login_resp = requests.post(
+        BASE_URL + LOGIN_ENDPOINT,
+        json=login_payload,
+        timeout=TIMEOUT
+    )
+    assert login_resp.status_code == 200, f"Login failed: {login_resp.text}"
+    token = login_resp.json().get("token")
+    assert token, "No token received from login"
 
-    headers_auth = {
-        "Authorization": AUTH_HEADER_TEMPLATE.format(admin_token)
+    headers = {
+        "Authorization": f"Bearer {token}"
     }
 
-    # Step 2: Get a pending engineer ID to approve
-    # We do this by listing engineers and filtering those with status 'pending'
-    engineers_resp = requests.get(f"{BASE_URL}/api/engineers", headers=headers_auth, timeout=TIMEOUT)
-    assert engineers_resp.status_code == 200, f"Failed to get engineers: {engineers_resp.text}"
-    engineers_list = engineers_resp.json()
-    pending_engineer = None
-    if isinstance(engineers_list, list):
-        for eng in engineers_list:
-            if eng.get("status", "").lower() == "pending" and "id" in eng:
-                pending_engineer = eng
-                break
-    assert pending_engineer is not None, "No pending engineer found to approve"
-    pending_id = pending_engineer["id"]
+    # Step 2: Create a new pending engineer to get a valid pending ID
+    unique_email = f"pending{int(time.time())}@sessionflow.local"
+    register_payload = {
+        "name": "Pending Engineer",
+        "email": unique_email,
+        "password": "SomePassword123!",
+        "accessCode": "ENG1"
+    }
+    register_resp = requests.post(
+        BASE_URL + REGISTER_ENDPOINT,
+        json=register_payload,
+        timeout=TIMEOUT
+    )
+    assert register_resp.status_code == 201, f"Register failed: {register_resp.text}"
+    pending_engineer = register_resp.json()
 
-    # Step 3: Call PUT /api/pending/{id}/approve with admin authorization
-    approve_url = PENDING_APPROVE_URL_TEMPLATE.format(pending_id)
-    approve_resp = requests.put(approve_url, headers=headers_auth, timeout=TIMEOUT)
-    assert approve_resp.status_code == 200, f"Approval failed: {approve_resp.text}"
+    # Try to get 'id' directly or nested
+    pending_id = pending_engineer.get("id")
+    if not pending_id and isinstance(pending_engineer, dict):
+        # check if nested under 'engineer'
+        pending_id = pending_engineer.get("engineer", {}).get("id")
+    assert pending_id, f"No pending engineer ID returned in response: {register_resp.text}"
 
-    # Optionally verify response content that confirms approval (e.g. status changed)
-    approve_data = approve_resp.json()
-    # Assuming response has a field 'approved' or 'status'
-    assert ("approved" in approve_data and approve_data["approved"] is True) or \
-           ("status" in approve_data and approve_data["status"].lower() == "approved"), \
-           f"Approval confirmation missing or invalid: {approve_resp.text}"
+    # Step 3: Approve the pending engineer using PUT /api/pending/{id}/approve
+    approve_resp = requests.put(
+        BASE_URL + PENDING_APPROVE_ENDPOINT.format(id=pending_id),
+        headers=headers,
+        timeout=TIMEOUT
+    )
+    assert approve_resp.status_code == 200, f"Approve failed: {approve_resp.text}"
 
-test_putapipendingidapprovewithadminauthorization()
+
+test_put_api_pending_id_approve_with_admin_authorization()

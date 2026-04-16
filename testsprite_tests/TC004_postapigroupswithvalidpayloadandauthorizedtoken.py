@@ -1,54 +1,44 @@
 import requests
 
 BASE_URL = "http://localhost:5180"
-LOGIN_URL = f"{BASE_URL}/api/auth/login"
-GROUPS_URL = f"{BASE_URL}/api/groups"
+ADMIN_EMAIL = "admin@sessionflow.local"
+ADMIN_PASSWORD = "Admin1234!"
 TIMEOUT = 30
 
 def test_post_api_groups_with_valid_payload_and_authorized_token():
-    # Step 1: Authenticate to get a valid JWT token using provided admin credentials
-    auth_payload = {
-        "email": "admin@sessionflow.local",
-        "password": "Admin1234!"
-    }
-    try:
-        login_resp = requests.post(LOGIN_URL, json=auth_payload, timeout=TIMEOUT)
-        assert login_resp.status_code == 200, f"Login failed with status {login_resp.status_code}"
-        login_data = login_resp.json()
-        token = login_data.get("token") or login_data.get("jwt") or login_data.get("accessToken")
-        assert token, "JWT token not found in login response"
-    except requests.RequestException as e:
-        assert False, f"Login request error: {e}"
+    # Authenticate as admin to get Bearer token
+    login_url = f"{BASE_URL}/api/auth/login"
+    login_payload = {"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD}
+    login_resp = requests.post(login_url, json=login_payload, timeout=TIMEOUT)
+    assert login_resp.status_code == 200, f"Admin login failed: {login_resp.text}"
+    token = login_resp.json().get("token")
+    assert token, "Bearer token missing in login response"
 
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
-    # Step 2: Prepare valid group payload
     group_payload = {
         "name": "Test Group TC004",
-        "tags": [],
-        "cohort": None
+        "level": 2,
+        "tags": []
     }
 
-    group_id = None
+    create_group_url = f"{BASE_URL}/api/groups"
+    resp = requests.post(create_group_url, headers=headers, json=group_payload, timeout=TIMEOUT)
+
+    assert resp.status_code == 201, f"Expected 201 Created, got {resp.status_code}: {resp.text}"
+
+    resp_json = resp.json()
+    group_id = resp_json.get("id")
+    assert group_id is not None, f"Response JSON missing group id: {resp.text}"
+
+    if "status" in resp_json:
+        assert resp_json["status"].lower() in ("created", "success"), f"Unexpected status value: {resp_json['status']}"
+
     try:
-        # Step 3: POST /api/groups with Authorization header and valid payload
-        resp = requests.post(GROUPS_URL, json=group_payload, headers=headers, timeout=TIMEOUT)
-        assert resp.status_code == 201, f"Expected 201 Created, got {resp.status_code}"
-        resp_data = resp.json()
-        assert "id" in resp_data, "Response does not contain new group id"
-        group_id = resp_data["id"]
-    except requests.RequestException as e:
-        assert False, f"POST /api/groups request error: {e}"
+        pass
     finally:
-        # Cleanup: DELETE the created group to maintain test environment (if API supports DELETE)
-        # If DELETE not supported or endpoint unknown, omit or implement alternative cleanup.
-        if group_id:
-            try:
-                requests.delete(f"{GROUPS_URL}/{group_id}", headers=headers, timeout=TIMEOUT)
-            except requests.RequestException:
-                pass
+        delete_url = f"{BASE_URL}/api/groups/{group_id}"
+        delete_resp = requests.delete(delete_url, headers=headers, timeout=TIMEOUT)
+        assert delete_resp.status_code in (200, 204), f"Failed to delete created group: {delete_resp.text}"
 
 test_post_api_groups_with_valid_payload_and_authorized_token()
