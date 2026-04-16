@@ -1,83 +1,54 @@
 import requests
-import uuid
 
 BASE_URL = "http://localhost:5180"
+LOGIN_URL = f"{BASE_URL}/api/auth/login"
+PENDING_APPROVE_URL_TEMPLATE = f"{BASE_URL}/api/pending/{{}}/approve"
+AUTH_HEADER_TEMPLATE = "Bearer {}"
 TIMEOUT = 30
 
-ADMIN_EMAIL = "admin@example.com"
-ADMIN_PASSWORD = "AdminPassword123!"
-
-
-def login(email: str, password: str) -> str:
-    url = f"{BASE_URL}/api/auth/login"
-    payload = {"email": email, "password": password}
-    r = requests.post(url, json=payload, timeout=TIMEOUT)
-    assert r.status_code == 200, f"Login failed with status {r.status_code} and message {r.text}"
-    data = r.json()
-    assert "token" in data, "JWT token missing in login response"
-    return data["token"]
-
-
-def register_pending_engineer(admin_token: str) -> dict:
-    # Generates a unique email and registers a new pending engineer using a valid access code "ENG1"
-    url = f"{BASE_URL}/api/auth/register"
-    unique_email = f"pending-{uuid.uuid4().hex}@example.com"
-    payload = {
-        "name": "Pending Engineer",
-        "email": unique_email,
-        "password": "PendingEngPass123!",
-        "accessCode": "ENG1"
-    }
-    # Removed headers, registration does not require auth
-    r = requests.post(url, json=payload, timeout=TIMEOUT)
-    assert r.status_code == 201, f"Expected 201 Created, got {r.status_code}"
-    data = r.json()
-    # Response must include at least the id and status (pending)
-    assert "id" in data, "No id in register response"
-    assert "status" in data, "No status in register response"
-    assert data["status"].lower() == "pending", "Engineer status is not pending"
-    return data
-
-
-def delete_engineer(admin_token: str, engineer_id: str):
-    # There is no documented DELETE for engineer; assuming no delete available
-    # Skipping actual delete, since PRD does not mention engineer delete endpoint
-    pass
-
+admin_email = "admin@sessionflow.local"
+admin_password = "Admin1234!"
 
 def test_putapipendingidapprovewithadminauthorization():
-    # Step 1: Login as admin to get token
-    admin_token = login(ADMIN_EMAIL, ADMIN_PASSWORD)
-    headers = {"Authorization": f"Bearer {admin_token}"}
+    # Step 1: Login as admin to get JWT token
+    login_payload = {
+        "email": admin_email,
+        "password": admin_password
+    }
+    login_resp = requests.post(LOGIN_URL, json=login_payload, timeout=TIMEOUT)
+    assert login_resp.status_code == 200, f"Admin login failed: {login_resp.text}"
+    login_data = login_resp.json()
+    assert "token" in login_data, "No token in login response"
+    admin_token = login_data["token"]
 
-    # Step 2: Create a new pending engineer to approve
+    headers_auth = {
+        "Authorization": AUTH_HEADER_TEMPLATE.format(admin_token)
+    }
+
+    # Step 2: Get a pending engineer ID to approve
+    # We do this by listing engineers and filtering those with status 'pending'
+    engineers_resp = requests.get(f"{BASE_URL}/api/engineers", headers=headers_auth, timeout=TIMEOUT)
+    assert engineers_resp.status_code == 200, f"Failed to get engineers: {engineers_resp.text}"
+    engineers_list = engineers_resp.json()
     pending_engineer = None
-    try:
-        pending_engineer = register_pending_engineer(admin_token)
-        pending_id = pending_engineer["id"]
+    if isinstance(engineers_list, list):
+        for eng in engineers_list:
+            if eng.get("status", "").lower() == "pending" and "id" in eng:
+                pending_engineer = eng
+                break
+    assert pending_engineer is not None, "No pending engineer found to approve"
+    pending_id = pending_engineer["id"]
 
-        # Step 3: Approve pending engineer
-        url = f"{BASE_URL}/api/pending/{pending_id}/approve"
-        r = requests.put(url, headers=headers, timeout=TIMEOUT)
+    # Step 3: Call PUT /api/pending/{id}/approve with admin authorization
+    approve_url = PENDING_APPROVE_URL_TEMPLATE.format(pending_id)
+    approve_resp = requests.put(approve_url, headers=headers_auth, timeout=TIMEOUT)
+    assert approve_resp.status_code == 200, f"Approval failed: {approve_resp.text}"
 
-        # Validate response is 200 OK confirming approval
-        assert r.status_code == 200, f"Expected 200 OK, got {r.status_code}"
+    # Optionally verify response content that confirms approval (e.g. status changed)
+    approve_data = approve_resp.json()
+    # Assuming response has a field 'approved' or 'status'
+    assert ("approved" in approve_data and approve_data["approved"] is True) or \
+           ("status" in approve_data and approve_data["status"].lower() == "approved"), \
+           f"Approval confirmation missing or invalid: {approve_resp.text}"
 
-        # Response body might confirm approval, check json includes confirmation or updated status
-        try:
-            data = r.json()
-            # If status is returned, ensure it's not pending anymore
-            if "status" in data:
-                assert data["status"].lower() != "pending", "Engineer status still pending after approval"
-        except ValueError:
-            # If no JSON body, that's acceptable if status code is 200
-            pass
-
-    finally:
-        # No documented method to delete engineer, so no cleanup possible
-        # If there was a delete endpoint, perform it here
-        pass
-
-
-# Execute the test function
 test_putapipendingidapprovewithadminauthorization()

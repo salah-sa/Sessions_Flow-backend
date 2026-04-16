@@ -2,42 +2,59 @@ import requests
 import uuid
 
 BASE_URL = "http://localhost:5180"
-TIMEOUT = 30
+LOGIN_URL = f"{BASE_URL}/api/auth/login"
+REGISTER_URL = f"{BASE_URL}/api/auth/register"
+
+ADMIN_EMAIL = "admin@sessionflow.local"
+ADMIN_PASSWORD = "Admin1234!"
 
 
-def test_post_api_auth_register_with_valid_access_code():
-    url = f"{BASE_URL}/api/auth/register"
-    unique_email = f"testuser_{uuid.uuid4().hex[:8]}@example.com"
-    payload = {
-        "name": "Test User",
-        "email": unique_email,
-        "password": "StrongP@ssw0rd!",
+def test_postapiauthregisterwithvalidaccesscode():
+    # First, login as admin to get token (required only if we needed admin token, not needed here for register)
+    login_payload = {
+        "email": ADMIN_EMAIL,
+        "password": ADMIN_PASSWORD
+    }
+    login_resp = requests.post(LOGIN_URL, json=login_payload, timeout=30)
+    assert login_resp.status_code == 200, f"Admin login failed with status_code={login_resp.status_code}"
+    admin_token = login_resp.json().get("token") or login_resp.json().get("jwt") or login_resp.json().get("accessToken")
+    # The test case does not require admin token for register, so we do not use this token.
+
+    # Prepare unique registration data per run to avoid conflicts
+    unique_id = str(uuid.uuid4())[:8]
+    register_payload = {
+        "name": f"TestEngineer{unique_id}",
+        "email": f"admin+{unique_id}@sessionflow.local",
+        "password": "Password123!",
         "accessCode": "ENG1"
     }
-    headers = {
-        "Content-Type": "application/json"
-    }
+
+    headers = {"Content-Type": "application/json"}
 
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=TIMEOUT)
-    except requests.RequestException as e:
-        assert False, f"Request to {url} failed with exception: {e}"
+        # POST /api/auth/register with valid details
+        register_resp = requests.post(REGISTER_URL, json=register_payload, headers=headers, timeout=30)
+        assert register_resp.status_code == 201, f"Expected 201 Created, got {register_resp.status_code}"
+        data = register_resp.json()
+        # Extract registration status from response under 'engineer.status' as per PRD
+        assert "engineer" in data and data["engineer"] is not None, "Response missing 'engineer' object"
+        status = data["engineer"].get("status")
+        assert status in ("pending", "active"), f"Unexpected registration status: {status}"
 
-    # Assert status code 201 Created
-    assert response.status_code == 201, f"Expected status code 201, got {response.status_code}"
-    
-    try:
-        data = response.json()
-    except ValueError:
-        assert False, "Response is not a valid JSON"
+        # Then login with the new credentials
+        new_login_payload = {
+            "email": register_payload["email"],
+            "password": register_payload["password"]
+        }
+        new_login_resp = requests.post(LOGIN_URL, json=new_login_payload, headers=headers, timeout=30)
+        assert new_login_resp.status_code == 200, f"New user login failed with status {new_login_resp.status_code}"
+        token = new_login_resp.json().get("token") or new_login_resp.json().get("jwt") or new_login_resp.json().get("accessToken")
+        assert token and isinstance(token, str) and len(token) > 10, "JWT token missing or invalid"
 
-    # Verify the engineer registration status presence
-    assert "status" in data, "Response JSON does not contain 'status' field"
-    assert data["status"].lower() in ("pending", "active"), f"Engineer registration status expected to be 'pending' or 'active', got '{data['status']}'"
-
-    # Optionally verify other fields such as name and email match
-    assert data.get("email") == unique_email, f"Response email does not match registration email"
-    assert data.get("name") == payload["name"], f"Response name does not match registration name"
+    finally:
+        # Cleanup: No direct delete endpoint exposed for engineers in PRD,
+        # so no delete performed here. If needed, admin endpoints would be required.
+        pass
 
 
-test_post_api_auth_register_with_valid_access_code()
+test_postapiauthregisterwithvalidaccesscode()
