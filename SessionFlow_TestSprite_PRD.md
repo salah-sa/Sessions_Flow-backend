@@ -59,6 +59,7 @@ Use the following inputs when configuring the test in the TestSprite dashboard:
     *   **Level Constraint:** Must be between 1 and 4.
     *   **CRITICAL NumberOfStudents Constraint:** `NumberOfStudents` MUST NOT exceed the curriculum maximum: Level 1-3 allows max **4** students, Level 4 allows max **2** students. Sending values above these limits will return a 400 error. Always use `NumberOfStudents: 4` for Levels 1-3 and `NumberOfStudents: 2` for Level 4.
 *   **Sessions Payload Rules:** When invoking `POST /api/sessions`, payload MUST strictly be: `{"GroupId": string, "ScheduledAt": string (ISO 8601 UTC)}`. Groups automatically mandate session limits based on `Level` (Level 2 limits 12, Level 1 limits 13).
+    *   **CRITICAL ScheduledAt Constraint:** To test session state transitions, `ScheduledAt` MUST be set to current UTC time (or within 30 minutes in the future). Sessions scheduled further ahead will trigger a `400` security restriction when calling the `/start` endpoint.
 *   **CRITICAL Session Lifecycle:** Sessions are created in `Scheduled` state. To update attendance, the session MUST first be transitioned to `Started` state by calling `POST /api/sessions/{id}/start`. Attendance updates (`PUT /api/sessions/{id}/attendance`) will be **rejected** for sessions still in `Scheduled` state.
 *   **Groups PUT Response:** The `PUT /api/groups/{id}` endpoint returns the updated group object with fields: `id`, `name`, `description`, `level`, `frequency`, `numberOfStudents`.
 
