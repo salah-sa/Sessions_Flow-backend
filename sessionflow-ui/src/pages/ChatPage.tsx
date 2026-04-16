@@ -167,7 +167,13 @@ const ChatPage: React.FC = () => {
 
     queryClient.setQueryData(
       queryKeys.chat.messages(activeGroupId),
-      (old: ChatMessage[] | undefined) => [...(old || []), pendingMsg]
+      (old: any) => {
+        if (!old) return { pages: [[pendingMsg]], pageParams: [undefined] };
+        const newPages = old.pages.map((page: ChatMessage[], index: number) =>
+          index === 0 ? [pendingMsg, ...page] : page
+        );
+        return { ...old, pages: newPages };
+      }
     );
 
     try {
@@ -186,8 +192,13 @@ const ChatPage: React.FC = () => {
         // Keep message in cache as "queued", store in offline queue
         queryClient.setQueryData(
           queryKeys.chat.messages(activeGroupId),
-          (old: ChatMessage[] | undefined) =>
-            old?.map(m => m.id === messageId ? { ...m, status: "queued" as any } : m)
+          (old: any) => {
+            if (!old) return old;
+            const newPages = old.pages.map((page: ChatMessage[]) =>
+              page.map(m => m.id === messageId ? { ...m, status: "queued" as any } : m)
+            );
+            return { ...old, pages: newPages };
+          }
         );
         queueMessage(pendingMsg);
         toast.info(t("chat.message_queued", "Message queued — will send when reconnected"));
@@ -195,7 +206,13 @@ const ChatPage: React.FC = () => {
         toast.error(t("chat.error_send"));
         queryClient.setQueryData(
           queryKeys.chat.messages(activeGroupId),
-          (old: ChatMessage[] | undefined) => old?.filter(m => m.id !== messageId)
+          (old: any) => {
+            if (!old) return old;
+            const newPages = old.pages.map((page: ChatMessage[]) =>
+              page.filter(m => m.id !== messageId)
+            );
+            return { ...old, pages: newPages };
+          }
         );
       }
     }
@@ -220,8 +237,13 @@ const ChatPage: React.FC = () => {
         // Update status in cache from "queued" to "sent"
         queryClient.setQueryData(
           queryKeys.chat.messages(msg.groupId),
-          (old: ChatMessage[] | undefined) =>
-            old?.map(m => m.id === msg.id ? { ...m, status: "sent" } : m)
+          (old: any) => {
+            if (!old) return old;
+            const newPages = old.pages.map((page: ChatMessage[]) =>
+              page.map(m => m.id === msg.id ? { ...m, status: "sent" } : m)
+            );
+            return { ...old, pages: newPages };
+          }
         );
       } catch {
         // Re-queue if still failing
