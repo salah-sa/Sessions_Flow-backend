@@ -1,0 +1,81 @@
+version: "2"
+type: backend
+tech_stack:
+  - C#
+  - ASP.NET Core
+  - SQLite/MongoDB
+  - SignalR
+features:
+  - name: Authentication API
+    description: User authentication and token management
+    files:
+      - SessionFlow.Desktop/Api/Endpoints/AuthEndpoints.cs
+    endpoints:
+      - method: POST
+        path: /api/auth/login
+        description: Authenticate user and return JWT
+        auth_required: false
+      - method: POST
+        path: /api/auth/register
+        description: Register a new engineer using access code
+        auth_required: false
+      - method: GET
+        path: /api/auth/me
+        description: Retrieve current user identity
+        auth_required: true
+
+  - name: Groups API
+    description: CRUD operations for student groups
+    files:
+      - SessionFlow.Desktop/Api/Endpoints/GroupEndpoints.cs
+    endpoints:
+      - method: GET
+        path: /api/groups
+        description: Retrieve all groups
+        auth_required: true
+      - method: POST
+        path: /api/groups
+        description: Create a new group
+        auth_required: true
+      - method: PUT
+        path: /api/groups/{id}
+        description: Update group details
+        auth_required: true
+
+  - name: Sessions API
+    description: Core session management and lifecycle operations
+    files:
+      - SessionFlow.Desktop/Api/Endpoints/SessionEndpoints.cs
+    endpoints:
+      - method: GET
+        path: /api/sessions
+        description: List teaching sessions
+        auth_required: true
+      - method: POST
+        path: /api/sessions
+        description: Create a new session
+        auth_required: true
+      - method: PUT
+        path: /api/sessions/{id}/attendance
+        description: Mark attendance records for session
+        auth_required: true
+
+  - name: Admin Console
+    description: Administrator endpoints for platform management
+    files:
+      - SessionFlow.Desktop/Api/Endpoints/EngineerEndpoints.cs
+    endpoints:
+      - method: GET
+        path: /api/engineers
+        description: View list of engineers
+        auth_required: true
+      - method: PUT
+        path: /api/pending/{id}/approve
+        description: Approve pending engineer access
+        auth_required: true
+      - method: POST
+        path: /api/engineer-codes
+        description: Create registration access code
+        auth_required: true
+
+known_limitations: []
