@@ -26,25 +26,27 @@ const persister = createSyncStoragePersister({
   key: "sf_query_cache",
 });
 
+const persistOptions = {
+  persister,
+  buster: "v2-infinite-query",
+  dehydrateOptions: {
+    shouldDehydrateQuery: (query: any) => {
+      // Never persist chat messages — they use useInfiniteQuery
+      // and must always be fetched fresh from the server.
+      const key = query.queryKey;
+      if (Array.isArray(key) && key[0] === "chat" && key[1] === "messages") {
+        return false;
+      }
+      return query.state.status === "success";
+    },
+  },
+};
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <PersistQueryClientProvider
       client={queryClient}
-      persistOptions={{
-        persister,
-        buster: "v2-infinite-query",
-        dehydrateOptions: {
-          shouldDehydrateQuery: (query) => {
-            // Never persist chat messages — they use useInfiniteQuery
-            // and must always be fetched fresh from the server.
-            const key = query.queryKey;
-            if (Array.isArray(key) && key[0] === "chat" && key[1] === "messages") {
-              return false;
-            }
-            return query.state.status === "success";
-          },
-        },
-      }}
+      persistOptions={persistOptions}
     >
       <App />
       <Toaster position="bottom-right" richColors closeButton />
