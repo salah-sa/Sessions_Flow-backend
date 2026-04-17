@@ -251,8 +251,9 @@ const AdminPage: React.FC = () => {
                {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20 rounded-2xl" />)}
             </div>
          ) : activeTab === "pending" ? (
-            <div className="p-8 animate-fade-in">
-               <table className="w-full text-start border-collapse card-base bg-slate-900/20 border-white/5 p-0 overflow-hidden">
+            <div className="p-4 lg:p-8 animate-fade-in">
+               <div className="overflow-x-auto custom-scrollbar card-base bg-slate-900/20 border-white/5 p-0">
+               <table className="w-full text-start border-collapse min-w-[800px]">
                   <thead>
                      <tr className="bg-slate-950 border-b border-white/5 text-slate-500 text-[10px] uppercase font-black tracking-widest">
                         <th className="px-8 py-5 text-start">{t("admin.table.registrant")}</th>
@@ -312,10 +313,12 @@ const AdminPage: React.FC = () => {
                      ))}
                   </tbody>
                </table>
+               </div>
             </div>
          ) : activeTab === "students" ? (
-             <div className="p-8 animate-fade-in">
-                <table className="w-full text-start border-collapse card-base bg-slate-900/20 border-white/5 p-0 overflow-hidden">
+             <div className="p-4 lg:p-8 animate-fade-in">
+                <div className="overflow-x-auto custom-scrollbar card-base bg-slate-900/20 border-white/5 p-0">
+                <table className="w-full text-start border-collapse min-w-[800px]">
                    <thead>
                       <tr className="bg-slate-950 border-b border-white/5 text-slate-500 text-[10px] uppercase font-black tracking-widest">
                          <th className="px-8 py-5 text-start">Student Identity</th>
@@ -375,6 +378,7 @@ const AdminPage: React.FC = () => {
                       ))}
                    </tbody>
                 </table>
+                </div>
              </div>
           ) : activeTab === "codes" ? (
             <div className="p-8 space-y-8 animate-fade-in text-start">
@@ -430,8 +434,9 @@ const AdminPage: React.FC = () => {
                      />
                   </div>
                </div>
-               <div className="p-8 flex-1 overflow-y-auto">
-                  <table className="w-full text-start border-collapse card-base bg-slate-900/20 border-white/5 p-0 overflow-hidden">
+               <div className="p-4 lg:p-8 flex-1 overflow-y-auto">
+                  <div className="overflow-x-auto custom-scrollbar card-base bg-slate-900/20 border-white/5 p-0">
+                  <table className="w-full text-start border-collapse min-w-[800px]">
                      <thead>
                         <tr className="bg-slate-950 border-b border-white/5 text-slate-500 text-[10px] uppercase font-black tracking-widest">
                            <th className="px-8 py-5 text-start">{t("admin.table.node_engineer")}</th>
@@ -478,11 +483,13 @@ const AdminPage: React.FC = () => {
                         ))}
                      </tbody>
                   </table>
+                  </div>
                </div>
             </div>
          ) : (
-            <div className="p-8 animate-fade-in">
-               <table className="w-full text-start border-collapse card-base bg-slate-900/20 border-white/5 p-0 overflow-hidden">
+            <div className="p-4 lg:p-8 animate-fade-in">
+               <div className="overflow-x-auto custom-scrollbar card-base bg-slate-900/20 border-white/5 p-0">
+               <table className="w-full text-start border-collapse min-w-[800px]">
                   <thead>
                      <tr className="bg-slate-950 border-b border-white/5 text-slate-500 text-[10px] uppercase font-black tracking-widest">
                         <th className="px-8 py-5 text-start">{t("admin.table.activity")}</th>
@@ -512,6 +519,7 @@ const AdminPage: React.FC = () => {
                      ))}
                   </tbody>
                </table>
+               </div>
             </div>
          )}
       </div>

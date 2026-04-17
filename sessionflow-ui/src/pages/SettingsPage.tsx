@@ -180,16 +180,16 @@ const SettingsPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
          {/* Hexagonal Command Hive Nav */}
-         <div className="w-[340px] border-e border-white/5 bg-slate-900/40 p-10 flex flex-col shrink-0 relative z-10 before:absolute before:inset-0 before:bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PHBhdGggZD0ibTEyIDBsMTAuMzkgNnYxMmwtMTAuMzkgNi0xMC4zOS02di0xMnoiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjAyKSIvPjwvc3ZnPg==')] before:opacity-50">
+         <div className="w-full md:w-[340px] border-b md:border-b-0 md:border-e border-white/5 bg-slate-900/40 p-6 md:p-10 flex flex-col shrink-0 relative z-10 before:absolute before:inset-0 before:bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PHBhdGggZD0ibTEyIDBsMTAuMzkgNnYxMmwtMTAuMzkgNi0xMC4zOS02di0xMnoiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjAyKSIvPjwvc3ZnPg==')] before:opacity-50">
             <div className="relative z-10">
-              <p className="mb-8 text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] flex items-center gap-3">
+              <p className="mb-4 md:mb-8 text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] flex items-center gap-3">
                 <span className="w-2 h-2 rounded-full bg-brand-500 shadow-glow" />
                 Command Hive
               </p>
               
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-row md:flex-col gap-4 md:gap-6 overflow-x-auto hide-scrollbar md:overflow-visible pb-2 md:pb-0">
                 {[ 
                   { id: "system", name: t("settings.tabs.system_config"), icon: Terminal, color: "brand" },
                   { id: "codes", name: t("settings.tabs.engineer_access"), icon: Key, color: "emerald", hidden: !isAdmin },
@@ -201,12 +201,12 @@ const SettingsPage: React.FC = () => {
                     key={item.id}
                     onClick={() => setActiveTab(item.id as any)}
                     className={cn(
-                      "group flex items-center gap-6 transition-all duration-500 w-full hover:translate-x-2",
-                      activeTab === item.id ? "translate-x-2" : "opacity-60 hover:opacity-100"
+                      "group flex items-center gap-3 md:gap-6 transition-all duration-500 min-w-max md:w-full hover:translate-x-0 md:hover:translate-x-2 shrink-0 md:shrink",
+                      activeTab === item.id ? "translate-x-0 md:translate-x-2" : "opacity-60 hover:opacity-100"
                     )}
                   >
                     {/* Hexagon Icon Container */}
-                    <div className="relative w-16 h-16 flex-shrink-0 flex items-center justify-center filter drop-shadow-xl">
+                    <div className="relative w-10 h-10 md:w-16 md:h-16 flex-shrink-0 flex items-center justify-center filter drop-shadow-xl">
                       <div 
                         className={cn(
                           "absolute inset-0 transition-colors duration-500",
@@ -221,13 +221,13 @@ const SettingsPage: React.FC = () => {
                         style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
                       />
                       <item.icon className={cn(
-                        "w-6 h-6 relative z-10 transition-colors duration-500",
+                        "w-4 h-4 md:w-6 md:h-6 relative z-10 transition-colors duration-500",
                         activeTab === item.id ? "text-white" : `text-${item.color}-500`
                       )} />
                     </div>
                     
                     {/* Label */}
-                    <div className="flex flex-col items-start gap-1">
+                    <div className="flex flex-col items-start gap-0.5 md:gap-1">
                       <span className={cn(
                         "text-[11px] font-black uppercase tracking-[0.2em] transition-colors duration-500 text-start",
                         activeTab === item.id ? "text-white drop-shadow-md" : "text-slate-400"
@@ -240,7 +240,7 @@ const SettingsPage: React.FC = () => {
                 ))}
               </div>
               
-              <div className="mt-16 p-5 bg-slate-950/80 backdrop-blur-md border border-white/5 space-y-4 shadow-xl" style={{ clipPath: 'polygon(10% 0, 100% 0, 90% 100%, 0 100%)' }}>
+              <div className="hidden md:block mt-16 p-5 bg-slate-950/80 backdrop-blur-md border border-white/5 space-y-4 shadow-xl" style={{ clipPath: 'polygon(10% 0, 100% 0, 90% 100%, 0 100%)' }}>
                   <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest text-center">{t("settings.env_info")}</p>
                   <div className="space-y-3 px-4">
                      <div className="flex justify-between items-center text-[9px] font-black uppercase">
@@ -276,7 +276,7 @@ const SettingsPage: React.FC = () => {
                            </h2>
                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] ps-5">{t("settings.display_desc")}</p>
                         </div>
-                        <div className="card-base p-8 bg-slate-900/50 border-white/5 flex items-center justify-between group hover:bg-slate-900 transition-all">
+                        <div className="card-base flex items-center justify-between group hover:bg-slate-900 transition-all">
                            <div className="flex items-center gap-6">
                               <div className="w-16 h-16 bg-slate-950 rounded-2xl border border-white/5 flex items-center justify-center text-brand-500 group-hover:scale-110 transition-transform shadow-inner">
                                  {theme === "dark" ? <Moon className="w-7 h-7" /> : <Sun className="w-7 h-7 text-amber-500" />}
@@ -305,7 +305,7 @@ const SettingsPage: React.FC = () => {
                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] ps-5">{t("settings.general_ops_desc")}</p>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                           <div className="card-base p-6 bg-slate-900/50 border-white/5 space-y-4">
+                           <div className="card-base space-y-4">
                               <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{t("settings.app_id")}</label>
                               <div className="relative">
                                  <Terminal className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-500" />
@@ -317,7 +317,7 @@ const SettingsPage: React.FC = () => {
                               </div>
                            </div>
 
-                           <div className="card-base p-6 bg-slate-900/50 border-white/5 space-y-4">
+                           <div className="card-base space-y-4">
                               <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{t("settings.system_language")}</label>
                               <button 
                                 onClick={() => {
@@ -353,7 +353,7 @@ const SettingsPage: React.FC = () => {
                              { label: "Lvl 3", value: priceL3, setter: setPriceL3, color: "text-amber-500" },
                              { label: "Lvl 4", value: priceL4, setter: setPriceL4, color: "text-rose-500" },
                            ].map((item) => (
-                             <div key={item.label} className="card-base p-6 bg-slate-900/50 border-white/5 space-y-4 hover:border-white/10 transition-all">
+                             <div key={item.label} className="card-base space-y-4 hover:border-white/10 transition-all">
                                 <p className={cn("text-[9px] font-black uppercase tracking-widest", item.color)}>{item.label} Rate</p>
                                 <div className="relative">
                                    <input 
@@ -618,7 +618,7 @@ const SettingsPage: React.FC = () => {
                            </h2>
                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] ps-5">{t("settings.relay_desc")}</p>
                         </div>
-                        <div className="card-base p-8 bg-slate-900/50 border-white/5 space-y-8">
+                        <div className="card-base space-y-8">
                            {/* Gmail SMTP Direct Config */}
                            <div className="flex items-center gap-6">
                               <div className={cn(

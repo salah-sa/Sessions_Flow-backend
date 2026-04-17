@@ -1,0 +1,1381 @@
+[
+  {
+    "id": "TC001",
+    "title": "Log in as Admin and reach the dashboard",
+    "description": "Verifies an Admin can log in through the Admin portal mode and is redirected to the dashboard on success.",
+    "category": "User Login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the Admin portal mode"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email/identifier field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user lands on the dashboard"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC002",
+    "title": "Protected route redirects unauthenticated users to login",
+    "description": "Verifies an unauthenticated user attempting to access the dashboard is redirected to the login page.",
+    "category": "User Login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is on the login page"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC003",
+    "title": "Start a session, mark attendance, and save",
+    "description": "An engineer can open a session, start it, record attendance statuses, save, and see the updated attendance summary.",
+    "category": "Session Attendance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open the sessions list"
+      },
+      {
+        "type": "action",
+        "description": "Select a session from the sessions list"
+      },
+      {
+        "type": "action",
+        "description": "Start the session"
+      },
+      {
+        "type": "action",
+        "description": "Mark at least one student as Present"
+      },
+      {
+        "type": "action",
+        "description": "Mark at least one student as Absent or Late"
+      },
+      {
+        "type": "action",
+        "description": "Save the attendance records"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an updated attendance summary is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC004",
+    "title": "Admin control tower route is protected and requires authentication",
+    "description": "A logged-out user attempting to access the admin control tower is redirected to login and cannot view pending registrations.",
+    "category": "Admin Control Tower",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /control-tower/admin"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user lands on the login page"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC005",
+    "title": "Remember-me persists the signed-in session across reload",
+    "description": "Verifies that enabling remember me keeps the user signed in after reloading the page and they still land on the dashboard.",
+    "category": "User Login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the Admin portal mode"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email/identifier field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Toggle remember me on"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Reload the page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user still lands on the dashboard"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC006",
+    "title": "Timetable route is protected and requires authentication",
+    "description": "A logged-out user attempting to access the timetable is redirected to login and cannot view the timetable grid.",
+    "category": "Timetable View",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /timetable"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user lands on the login page"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC007",
+    "title": "Reject invalid credentials with an error toast",
+    "description": "Verifies that submitting invalid login credentials shows an error toast and does not sign the user in.",
+    "category": "User Login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the Admin portal mode"
+      },
+      {
+        "type": "action",
+        "description": "Fill invalid-user@example.com into the email/identifier field"
+      },
+      {
+        "type": "action",
+        "description": "Fill wrong-password into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an error toast message is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC008",
+    "title": "Settings route is protected and requires authentication",
+    "description": "A logged-out user attempting to access settings is redirected to login and cannot view system configuration.",
+    "category": "Admin Control Tower",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /settings"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user lands on the login page"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC009",
+    "title": "Create a group with schedules and roster",
+    "description": "An engineer can create a new group with weekly schedules and students and see it appear in the group list.",
+    "category": "Group Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open group management"
+      },
+      {
+        "type": "action",
+        "description": "Start creating a new group"
+      },
+      {
+        "type": "action",
+        "description": "Fill a unique group name into the group name field"
+      },
+      {
+        "type": "action",
+        "description": "Select a level for the group"
+      },
+      {
+        "type": "action",
+        "description": "Select a frequency for the group"
+      },
+      {
+        "type": "action",
+        "description": "Add a weekly schedule with a valid day, start time, and duration"
+      },
+      {
+        "type": "action",
+        "description": "Add at least one student to the group roster"
+      },
+      {
+        "type": "action",
+        "description": "Submit the group creation form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the newly created group is listed in the groups list"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC010",
+    "title": "View dashboard stats and upcoming sessions",
+    "description": "Verifies a signed-in user can see dashboard statistics and an upcoming sessions list.",
+    "category": "Dashboard Overview",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the Admin portal mode"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email/identifier field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify dashboard statistics are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify upcoming sessions are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC011",
+    "title": "Admin can process a pending engineer by approving or denying",
+    "description": "An administrator can approve or deny a pending engineer and the processed entry is removed from the pending list.",
+    "category": "Admin Control Tower",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the admin portal mode"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to the admin control tower"
+      },
+      {
+        "type": "action",
+        "description": "Process a pending engineer by choosing either approve or deny on one list entry"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the processed pending engineer is no longer shown in the pending list"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC012",
+    "title": "Navigate timetable weeks and open a session from the grid",
+    "description": "An engineer can switch between timetable weeks and open a session from a timetable block to reach the session details page.",
+    "category": "Timetable View",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to the timetable"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the next week in the timetable"
+      },
+      {
+        "type": "action",
+        "description": "Select a session block in the timetable grid"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the session detail view is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC013",
+    "title": "View session details from the sessions list",
+    "description": "An engineer can open a session from the sessions list and see the session’s core details displayed.",
+    "category": "Session Attendance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open the sessions list"
+      },
+      {
+        "type": "action",
+        "description": "Select a session from the sessions list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify session details such as group, date, and status are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC014",
+    "title": "Open a session from the dashboard upcoming list",
+    "description": "Verifies a signed-in user can open a session from the dashboard upcoming sessions list and reach the session detail page.",
+    "category": "Dashboard Overview",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the Admin portal mode"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email/identifier field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click a session card from the upcoming sessions list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the session detail view is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC015",
+    "title": "Prevent group creation when frequency conflicts with schedules",
+    "description": "An engineer cannot create a group when the selected frequency does not match the configured schedules and is shown a validation error.",
+    "category": "Group Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open group management"
+      },
+      {
+        "type": "action",
+        "description": "Start creating a new group"
+      },
+      {
+        "type": "action",
+        "description": "Fill a unique group name into the group name field"
+      },
+      {
+        "type": "action",
+        "description": "Select a frequency that will not match the number of weekly schedules you will configure"
+      },
+      {
+        "type": "action",
+        "description": "Add a different number of weekly schedules than the selected frequency using valid day, time, and duration values"
+      },
+      {
+        "type": "action",
+        "description": "Submit the group creation form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a schedule or frequency validation error is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC016",
+    "title": "Timetable displays a weekly schedule grid after login",
+    "description": "An engineer can access the timetable and see the weekly schedule grid load for the current week.",
+    "category": "Timetable View",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to the timetable"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the weekly schedule grid is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC017",
+    "title": "Edit an existing group’s details",
+    "description": "An engineer can edit a group and see the updated details reflected in the groups list.",
+    "category": "Group Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open group management"
+      },
+      {
+        "type": "action",
+        "description": "Start creating a new group"
+      },
+      {
+        "type": "action",
+        "description": "Fill a unique group name into the group name field"
+      },
+      {
+        "type": "action",
+        "description": "Select a level for the group"
+      },
+      {
+        "type": "action",
+        "description": "Select a frequency for the group"
+      },
+      {
+        "type": "action",
+        "description": "Add a weekly schedule with a valid day, start time, and duration"
+      },
+      {
+        "type": "action",
+        "description": "Submit the group creation form"
+      },
+      {
+        "type": "action",
+        "description": "Open the created group for editing"
+      },
+      {
+        "type": "action",
+        "description": "Update the group name to a new unique name"
+      },
+      {
+        "type": "action",
+        "description": "Submit the group update form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the groups list reflects the updated group information"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC018",
+    "title": "Switching portal modes changes required identifier inputs",
+    "description": "Verifies that switching between Admin and Student portal modes updates the login form inputs appropriately.",
+    "category": "User Login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the Student portal mode"
+      },
+      {
+        "type": "action",
+        "description": "Fill a plausible student identifier into the studentId field"
+      },
+      {
+        "type": "action",
+        "description": "Fill a plausible engineer code into the engineerCode field"
+      },
+      {
+        "type": "action",
+        "description": "Select the Admin portal mode"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the email/identifier field for Admin mode is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC019",
+    "title": "Admin can view the pending engineer registrations list",
+    "description": "An administrator can open the admin control tower and see the pending registrations list area render.",
+    "category": "Admin Control Tower",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the admin portal mode"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to the admin control tower"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the pending engineer registrations list is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC020",
+    "title": "Change attendance statuses before saving",
+    "description": "An engineer can change a student’s attendance selection prior to saving and the final summary reflects the saved statuses.",
+    "category": "Session Attendance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open the sessions list"
+      },
+      {
+        "type": "action",
+        "description": "Select a session from the sessions list"
+      },
+      {
+        "type": "action",
+        "description": "Start the session"
+      },
+      {
+        "type": "action",
+        "description": "Mark a student as Present"
+      },
+      {
+        "type": "action",
+        "description": "Change the same student’s attendance to Late"
+      },
+      {
+        "type": "action",
+        "description": "Save the attendance records"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the attendance summary reflects the final saved selections"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC021",
+    "title": "Archive or delete a group from the list",
+    "description": "An engineer can archive or delete a group and it is removed from the active groups list.",
+    "category": "Group Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open group management"
+      },
+      {
+        "type": "action",
+        "description": "Start creating a new group"
+      },
+      {
+        "type": "action",
+        "description": "Fill a unique group name into the group name field"
+      },
+      {
+        "type": "action",
+        "description": "Select a level for the group"
+      },
+      {
+        "type": "action",
+        "description": "Select a frequency for the group"
+      },
+      {
+        "type": "action",
+        "description": "Add a weekly schedule with a valid day, start time, and duration"
+      },
+      {
+        "type": "action",
+        "description": "Submit the group creation form"
+      },
+      {
+        "type": "action",
+        "description": "Archive or delete the created group"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the archived or deleted group no longer appears in the active groups list"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC022",
+    "title": "Timetable session selection shows consistent session details",
+    "description": "Selecting a timetable session block shows a session detail view that includes session context such as date/time and group association.",
+    "category": "Timetable View",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to the timetable"
+      },
+      {
+        "type": "action",
+        "description": "Select a session block in the timetable grid"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the session detail view shows session context information (date/time and group)"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC023",
+    "title": "Register a new engineer and return to login",
+    "description": "Verifies a new engineer can register with valid details and is redirected to the login page after success.",
+    "category": "Engineer Registration",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /register"
+      },
+      {
+        "type": "action",
+        "description": "Fill Test Engineer into the name field"
+      },
+      {
+        "type": "action",
+        "description": "Fill test.engineer+1@example.com into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill a valid password into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the registration form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is redirected to the login page"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC024",
+    "title": "Search and filter the groups list",
+    "description": "An engineer can search the groups list and see results update to match the search criteria.",
+    "category": "Group Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open group management"
+      },
+      {
+        "type": "action",
+        "description": "Start creating a new group"
+      },
+      {
+        "type": "action",
+        "description": "Fill a unique group name into the group name field"
+      },
+      {
+        "type": "action",
+        "description": "Select a level for the group"
+      },
+      {
+        "type": "action",
+        "description": "Select a frequency for the group"
+      },
+      {
+        "type": "action",
+        "description": "Add a weekly schedule with a valid day, start time, and duration"
+      },
+      {
+        "type": "action",
+        "description": "Submit the group creation form"
+      },
+      {
+        "type": "action",
+        "description": "Fill a distinctive substring of the created group name into the group search field"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the groups list shows the matching group and excludes non-matching groups"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC025",
+    "title": "Admin can navigate from control tower to settings",
+    "description": "An administrator can access system configuration by navigating from the admin control tower to the settings page.",
+    "category": "Admin Control Tower",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the admin portal mode"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to the admin control tower"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to settings"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the settings page is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC026",
+    "title": "Send a chat message to a group",
+    "description": "An engineer can select a group chat, send a message, and see it appended to the conversation history.",
+    "category": "Real-time Chat",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open chat"
+      },
+      {
+        "type": "action",
+        "description": "Select a chat group from the chat sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Fill a unique message into the message input field"
+      },
+      {
+        "type": "action",
+        "description": "Send the message"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the sent message appears at the end of the chat history"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC027",
+    "title": "Registration form blocks missing required fields",
+    "description": "Verifies the registration form shows validation errors and prevents submission when required fields are missing.",
+    "category": "Engineer Registration",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /register"
+      },
+      {
+        "type": "action",
+        "description": "Fill test.engineer+2@example.com into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the registration form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a form validation error is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC028",
+    "title": "Block group creation when required fields are missing",
+    "description": "An engineer cannot submit group creation with missing required fields and sees form validation errors.",
+    "category": "Group Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open group management"
+      },
+      {
+        "type": "action",
+        "description": "Start creating a new group"
+      },
+      {
+        "type": "action",
+        "description": "Submit the group creation form without filling required fields"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify required-field validation errors are visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC029",
+    "title": "Timetable week navigation returns to the original week",
+    "description": "An engineer can move forward a week and then back to return to the original timetable view without losing access to session blocks.",
+    "category": "Timetable View",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to the timetable"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the next week in the timetable"
+      },
+      {
+        "type": "action",
+        "description": "Navigate back to the previous week in the timetable"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the weekly schedule grid is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC030",
+    "title": "Chat history loads when switching groups",
+    "description": "An engineer can switch between chat groups and see the message history update for the selected group.",
+    "category": "Real-time Chat",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open chat"
+      },
+      {
+        "type": "action",
+        "description": "Select a first chat group from the chat sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Select a second chat group from the chat sidebar"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the conversation history updates to reflect the newly selected group"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC031",
+    "title": "Admin sees a stable empty state when there are no pending engineers",
+    "description": "If there are no pending engineer registrations, the admin control tower shows an empty state instead of a broken list UI.",
+    "category": "Admin Control Tower",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Select the admin portal mode"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to the admin control tower"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an empty state is displayed for pending registrations"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC032",
+    "title": "Presence indicators are shown in chat",
+    "description": "An engineer can view participant presence indicators in a selected chat group.",
+    "category": "Real-time Chat",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open chat"
+      },
+      {
+        "type": "action",
+        "description": "Select a chat group from the chat sidebar"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify presence indicators for chat participants are displayed"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC033",
+    "title": "Timetable handles an empty week state",
+    "description": "If the selected week has no sessions, the timetable shows an empty state instead of a broken or blank UI.",
+    "category": "Timetable View",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to the timetable"
+      },
+      {
+        "type": "action",
+        "description": "Navigate between weeks until a week with no session blocks is shown"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an empty state is displayed for the week"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC034",
+    "title": "Scroll through chat message history",
+    "description": "An engineer can scroll the chat history and continue to see messages without losing the current conversation context.",
+    "category": "Real-time Chat",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open chat"
+      },
+      {
+        "type": "action",
+        "description": "Select a chat group from the chat sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Scroll upward within the chat history panel"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify older messages in the conversation are visible"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC035",
+    "title": "Prevent sending an empty chat message",
+    "description": "An engineer cannot send an empty chat message and no new message is appended to the history.",
+    "category": "Real-time Chat",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open chat"
+      },
+      {
+        "type": "action",
+        "description": "Select a chat group from the chat sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to send the message without entering any text"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no new message appears in the chat history"
+      }
+    ],
+    "priority": "Low"
+  }
+]

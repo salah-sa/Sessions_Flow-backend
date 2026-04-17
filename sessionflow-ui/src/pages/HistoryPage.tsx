@@ -278,9 +278,9 @@ const HistoryPage: React.FC = () => {
       </div>
 
       {/* Main Matrix Surface */}
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
         {/* Left Column: Filter & Summary */}
-        <div className="w-80 border-e border-white/5 bg-slate-900/20 backdrop-blur-2xl p-8 space-y-8 flex flex-col shrink-0">
+        <div className="w-full lg:w-80 border-b lg:border-b-0 lg:border-e border-white/5 bg-slate-900/20 backdrop-blur-2xl p-4 lg:p-8 space-y-8 flex flex-col shrink-0 overflow-y-auto custom-scrollbar max-h-[40vh] lg:max-h-full">
            <div className="space-y-6">
               <div className="space-y-2">
                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ps-1">{t("history.search_placeholder")}</p>

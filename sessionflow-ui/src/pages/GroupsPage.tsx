@@ -315,7 +315,7 @@ const GroupsPage: React.FC = () => {
   const filteredGroups = groups;
 
   return (
-    <div className="p-6 w-full space-y-8 animate-fade-in custom-scrollbar h-full overflow-y-auto pb-20">
+    <div className="w-full h-full p-4 lg:p-8 space-y-8 animate-fade-in custom-scrollbar overflow-y-auto pb-20">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2">
         <div className="space-y-1">
@@ -530,8 +530,8 @@ const GroupsPage: React.FC = () => {
         </div>
       ) : (
         <div className="card-base overflow-hidden border-white/5 bg-white/[0.02] p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-start border-collapse">
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-start border-collapse min-w-[800px]">
               <thead>
                 <tr className="bg-slate-900/60 border-b border-slate-800 text-slate-500 text-[9px] uppercase font-black tracking-[0.2em]">
                   <th className="px-6 py-5 text-start">{t("groups.wizard.step1.name")}</th>

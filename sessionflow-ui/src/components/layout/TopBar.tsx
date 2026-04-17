@@ -62,6 +62,7 @@ const TopBar: React.FC = () => {
         {/* Mobile Hamburger Menu */}
         <button 
           onClick={toggleSidebar}
+          aria-label="Toggle sidebar menu"
           className="lg:hidden p-2 -ms-2 text-slate-400 hover:text-white transition-colors app-no-drag"
         >
           <Menu className="w-5 h-5" />
@@ -128,12 +129,13 @@ const TopBar: React.FC = () => {
            <NotificationCenter />
            
            {/* Help Button (from mockup) */}
-           <button className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-500 hover:text-emerald-400 hover:bg-white/5 transition-all">
+           <button aria-label="Help" className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-500 hover:text-emerald-400 hover:bg-white/5 transition-all">
              <HelpCircle className="w-4.5 h-4.5" />
            </button>
 
            <button 
              onClick={() => navigate("/profile")}
+             aria-label="User profile"
              className="flex items-center gap-3 ms-2 p-1.5 hover:bg-white/5 rounded-2xl transition-all border border-transparent hover:border-emerald-500/20 group/profile"
            >
               <div className="text-end hidden lg:block">

@@ -117,11 +117,11 @@ const ProfilePage: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-10">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-12">
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-4 lg:p-10">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
            {/* Primary Identity Card */}
            <div className="lg:col-span-1 space-y-8">
-              <div className="card-base p-10 bg-slate-900/40 border-white/5 relative overflow-hidden group">
+              <div className="card-base relative overflow-hidden group">
                  <div className="absolute top-0 right-0 w-32 h-32 bg-brand-500/10 blur-3xl rounded-full" />
                  <div className="flex flex-col items-center text-center relative z-10">
                     <div 
@@ -153,11 +153,11 @@ const ProfilePage: React.FC = () => {
                             {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-slate-600 group-hover/code:text-brand-500 transition-colors" />}
                           </div>
                        </div>
-                       <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-widest px-1">
+                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] font-black uppercase tracking-widest px-1">
                           <span className="text-slate-500">{t("profile.email_relay")}</span>
-                          <span className="text-slate-300 truncate max-w-[150px]">{user?.email}</span>
+                          <span className="text-slate-300 truncate w-full sm:max-w-[150px] sm:text-right">{user?.email}</span>
                        </div>
-                       <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-widest px-1">
+                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] font-black uppercase tracking-widest px-1">
                           <span className="text-slate-500">{t("profile.node_id")}</span>
                           <span className="text-white font-mono text-xs">SF-{user?.id?.substring(0,8).toUpperCase()}</span>
                        </div>
@@ -221,7 +221,7 @@ const ProfilePage: React.FC = () => {
                       { label: t("profile.stats.sessions_today"), value: stats?.todaySessions ?? "-", icon: Clock, color: "text-emerald-500" },
                       { label: t("profile.stats.total_sessions"), value: stats?.activeSessions ?? "-", icon: TrendingUp, color: "text-amber-500" }
                     ].map((metric, i) => (
-                      <div key={i} className="card-base p-6 bg-slate-900/40 border-white/5 flex items-center justify-between group hover:bg-slate-900 transition-all">
+                      <div key={i} className="card-base flex items-center justify-between group hover:bg-slate-900 transition-all">
                           <div className="space-y-1">
                             <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{metric.label}</p>
                             <p className="text-xl font-sora font-black text-white tabular-nums">{metric.value}</p>

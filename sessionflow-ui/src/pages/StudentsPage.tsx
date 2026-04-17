@@ -293,7 +293,7 @@ const StudentsPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
+      <div className="flex-1 w-full h-full p-4 lg:p-8 space-y-8 animate-fade-in custom-scrollbar overflow-y-auto">
          {loading ? (
            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
              {[1,2,3,4,5,6,7,8].map(i => <Skeleton key={i} className="h-64 rounded-3xl" />)}
@@ -390,8 +390,8 @@ const StudentsPage: React.FC = () => {
               )})}
            </div>
          ) : (
-           <div className="card-base overflow-hidden border-white/5 bg-slate-900/20 p-0">
-              <table className="w-full text-start">
+           <div className="card-base overflow-x-auto overflow-y-hidden border-white/5 bg-slate-900/20 p-0 custom-scrollbar">
+              <table className="w-full text-start min-w-[800px]">
                  <thead>
                     <tr className="bg-slate-950 border-b border-white/5 text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">
                         <th className="w-12 px-8 py-5 text-start">

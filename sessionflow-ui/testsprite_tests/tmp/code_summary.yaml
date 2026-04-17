@@ -1,0 +1,231 @@
+version: "2"
+type: frontend
+tech_stack:
+  - TypeScript
+  - React 18
+  - Vite 6
+  - TailwindCSS 4
+  - React Router v6
+  - Zustand (state management)
+  - React Hook Form + Zod (form validation)
+  - i18next (internationalization)
+  - Framer Motion + GSAP (animations)
+  - SignalR (real-time WebSocket)
+  - Axios (HTTP client)
+  - Sonner (toast notifications)
+routes:
+  - path: /login
+    file: src/pages/LoginPage.tsx
+    auth_required: false
+    description: User login page with email/password, admin and student portal modes
+  - path: /register
+    file: src/pages/RegisterPage.tsx
+    auth_required: false
+    description: Engineer registration page with access code validation
+  - path: /dashboard
+    file: src/pages/DashboardPage.tsx
+    auth_required: true
+    description: Main dashboard with session stats, upcoming sessions, and quick actions
+  - path: /groups
+    file: src/pages/GroupsPage.tsx
+    auth_required: true
+    description: Group management - create, edit, delete groups with schedules and students
+  - path: /groups/:groupId/sessions
+    file: src/pages/GroupSessionsPage.tsx
+    auth_required: true
+    description: View all sessions for a specific group
+  - path: /sessions
+    file: src/pages/SessionsListPage.tsx
+    auth_required: true
+    description: List all sessions across groups with filtering
+  - path: /sessions/:id
+    file: src/pages/SessionPage.tsx
+    auth_required: true
+    description: Session detail view with attendance tracking
+  - path: /timetable
+    file: src/pages/TimetablePage.tsx
+    auth_required: true
+    description: Weekly timetable view with drag-and-drop scheduling
+  - path: /students
+    file: src/pages/StudentsPage.tsx
+    auth_required: true
+    description: Student management and attendance history
+  - path: /history
+    file: src/pages/HistoryPage.tsx
+    auth_required: true
+    description: Historical session and attendance records
+  - path: /chat
+    file: src/pages/ChatPage.tsx
+    auth_required: true
+    description: Real-time group chat with SignalR WebSocket messaging
+  - path: /control-tower/admin
+    file: src/pages/AdminPage.tsx
+    auth_required: true
+    description: Admin control panel for engineer approvals and system settings
+  - path: /control-tower/engineer
+    file: src/pages/EngineerControlTowerPage.tsx
+    auth_required: true
+    description: Engineer dashboard with assigned groups and session overview
+  - path: /settings
+    file: src/pages/SettingsPage.tsx
+    auth_required: true
+    description: Platform settings (SMTP, system config) - admin only
+  - path: /profile
+    file: src/pages/ProfilePage.tsx
+    auth_required: true
+    description: User profile view and edit
+  - path: /archive
+    file: src/pages/ArchivePage.tsx
+    auth_required: true
+    description: Archived/deleted groups and sessions
+features:
+  - name: User Login
+    description: Login with email and password credentials, supports Admin and Student portal modes
+    files:
+      - src/pages/LoginPage.tsx
+      - src/api/authService.ts
+      - src/components/auth/AuthLayout.tsx
+      - src/components/auth/styles/StyleGradientAnimated.tsx
+    entry_route: /login
+    user_interactions:
+      - Fill email/identifier input field
+      - Fill password input field
+      - Toggle remember me checkbox
+      - Switch between Admin and Student login modes
+      - Click Login button to submit
+      - See error toast message on invalid credentials
+      - Redirect to /dashboard on success
+    api_calls:
+      - method: POST
+        endpoint: /api/auth/login
+    auth_required: false
+  - name: Engineer Registration
+    description: Register as a new engineer with name, email, password
+    files:
+      - src/pages/RegisterPage.tsx
+      - src/api/authService.ts
+    entry_route: /register
+    user_interactions:
+      - Fill name input field
+      - Fill email input field
+      - Fill password input field
+      - Click Register button
+      - See success toast and redirect to login
+      - See error toast on validation failure
+    api_calls:
+      - method: POST
+        endpoint: /api/auth/register
+    auth_required: false
+  - name: Dashboard Overview
+    description: View session statistics, upcoming sessions, and quick action cards
+    files:
+      - src/pages/DashboardPage.tsx
+    entry_route: /dashboard
+    user_interactions:
+      - View total sessions count
+      - View upcoming sessions list
+      - Click on session card to navigate to session detail
+      - View attendance summary statistics
+    api_calls:
+      - method: GET
+        endpoint: /api/dashboard/stats
+    auth_required: true
+  - name: Group Management
+    description: Create, edit, and delete teaching groups with schedule configuration
+    files:
+      - src/pages/GroupsPage.tsx
+      - src/api/resources.ts
+    entry_route: /groups
+    user_interactions:
+      - Click create group button
+      - Fill group name, description, level, frequency
+      - Configure weekly schedules (day, time, duration)
+      - Add students to group
+      - Edit existing group details
+      - Delete/archive group
+      - View group list with search and filter
+    api_calls:
+      - method: GET
+        endpoint: /api/groups
+      - method: POST
+        endpoint: /api/groups
+      - method: PUT
+        endpoint: /api/groups/{id}
+      - method: DELETE
+        endpoint: /api/groups/{id}
+    auth_required: true
+  - name: Session Attendance
+    description: Start sessions and mark student attendance (Present/Absent/Late)
+    files:
+      - src/pages/SessionPage.tsx
+      - src/api/resources.ts
+    entry_route: /sessions/:id
+    user_interactions:
+      - View session details (group, date, status)
+      - Click Start Session button
+      - Mark each student as Present, Absent, or Late
+      - Save attendance records
+      - View attendance summary
+    api_calls:
+      - method: GET
+        endpoint: /api/sessions/{id}
+      - method: POST
+        endpoint: /api/sessions/{id}/start
+      - method: PUT
+        endpoint: /api/sessions/{id}/attendance
+    auth_required: true
+  - name: Real-time Chat
+    description: Group messaging with real-time delivery via SignalR
+    files:
+      - src/pages/ChatPage.tsx
+      - src/store/presenceStore.ts
+    entry_route: /chat
+    user_interactions:
+      - Select a chat group from sidebar
+      - Type message in input field
+      - Send message with Enter or send button
+      - View real-time incoming messages
+      - See online/offline presence indicators
+      - Scroll through message history
+    api_calls:
+      - method: GET
+        endpoint: /api/chat/messages
+      - method: POST
+        endpoint: /api/chat/messages
+    auth_required: true
+  - name: Timetable View
+    description: Weekly calendar view showing all scheduled sessions
+    files:
+      - src/pages/TimetablePage.tsx
+    entry_route: /timetable
+    user_interactions:
+      - View weekly schedule grid
+      - Navigate between weeks
+      - Click on session block for details
+    api_calls:
+      - method: GET
+        endpoint: /api/sessions
+    auth_required: true
+  - name: Admin Control Tower
+    description: Approve/deny pending engineer registrations, manage system settings
+    files:
+      - src/pages/AdminPage.tsx
+      - src/pages/SettingsPage.tsx
+    entry_route: /control-tower/admin
+    user_interactions:
+      - View list of pending engineer registrations
+      - Click Approve or Deny button for each pending engineer
+      - Navigate to settings page
+    api_calls:
+      - method: GET
+        endpoint: /api/pending
+      - method: PUT
+        endpoint: /api/pending/{id}/approve
+    auth_required: true
+known_limitations:
+  - issue: Frontend proxies API to remote Railway backend, not localhost
+    location: vite.config.ts
+    impact: Tests that modify data will affect the production database
+  - issue: Student login requires studentId and engineerCode fields
+    location: src/pages/LoginPage.tsx
+    impact: Student portal login requires additional setup data

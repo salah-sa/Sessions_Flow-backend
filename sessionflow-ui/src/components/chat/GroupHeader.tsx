@@ -1,9 +1,9 @@
 import React, { useMemo } from "react";
-import { Users, Volume2, VolumeX, ChevronDown, Shield, Pencil } from "lucide-react";
+import { Users, Volume2, VolumeX, ChevronDown, Shield, Pencil, ChevronLeft } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Group, User } from "../../types";
 import { usePresenceStore } from "../../store/presenceStore";
-import { useAuthStore } from "../../store/stores";
+import { useAuthStore, useChatStore } from "../../store/stores";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 
@@ -172,6 +172,14 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
       <div className={cn("absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r opacity-60", gradient)} />
 
       <div className="flex items-center justify-between gap-4">
+        {/* Mobile Back Button */}
+        <button
+          onClick={() => useChatStore.getState().setActiveGroup(null)}
+          className="md:hidden p-2 -ms-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all shrink-0"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+
         {/* Left: Group Info */}
         <div className="flex items-center gap-4 min-w-0 flex-1">
           {/* Group Icon */}
