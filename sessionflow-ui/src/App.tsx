@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { RouterProvider } from "react-router-dom";
 import { router } from "./router";
 import { useUIStore, useAuthStore } from "./store/stores";
+import { UIStyleManager, UIStyleConfig } from "./styles/UIStyleManager";
 import SplashScreen from "./components/SplashScreen";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { SignalRProvider } from "./providers/SignalRProvider";
@@ -21,6 +22,11 @@ const App: React.FC = () => {
       document.documentElement.classList.remove("font-arabic");
     }
   }, [language]);
+
+  // Initialize UI Style System
+  useEffect(() => {
+    UIStyleManager.apply(UIStyleConfig.current);
+  }, []);
 
   useEffect(() => {
     if (theme === "light") {

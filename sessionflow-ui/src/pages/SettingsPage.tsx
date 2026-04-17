@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Settings, Mail, Sun, Moon, Info, Bell, Shield, Save, RotateCcw, Terminal, DollarSign, Key, Plus, Trash2, Copy, CheckCircle2, User as UserIcon, Calendar, Download, Globe, Loader2, AlertCircle, CheckCircle, Users, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
-import { Card, Button, Input, Badge, Skeleton, ConfirmDialog } from "../components/ui";
+import { Card, Button, Input, Skeleton, ConfirmDialog } from "../components/ui";
 import { useSettings, useSettingsMutations } from "../queries/useSettingsQueries";
 import { useEngineerCodes, useEngineerMutations, usePurgeMutation } from "../queries/useAdminQueries";
 import { useImportMutations, useGmailStatus } from "../queries/useImportQueries";
 import { Setting, EngineerCode } from "../types";
 import { useUIStore, useAuthStore } from "../store/stores";
+import { UIStyleManager, UIStyleConfig, useActiveUIStyle } from "../styles/UIStyleManager";
+import { Badge } from "../components/ui/badge";
 import { cn } from "../lib/utils";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
@@ -321,7 +323,47 @@ const SettingsPage: React.FC = () => {
                            </div>
                         </div>
 
+                        {/* Global UI Style System Selection */}
+                        <div className="space-y-6 pt-12">
+                           <div className="flex items-center gap-4">
+                              <div className="h-px flex-1 bg-white/10" />
+                              <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">Global UI Protocol Selection</p>
+                              <div className="h-px flex-1 bg-white/10" />
+                           </div>
 
+                           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                              {UIStyleConfig.available.map((styleName) => (
+                                <button
+                                  key={styleName}
+                                  onClick={() => {
+                                    UIStyleManager.apply(styleName);
+                                    toast.success(`UI Protocol: ${styleName} Applied Successfully`);
+                                  }}
+                                  className={cn(
+                                    "relative group px-6 py-8 rounded-2xl border transition-all duration-300 text-start overflow-hidden",
+                                    UIStyleManager.getCurrentStyleName() === styleName 
+                                      ? "border-brand-500 bg-brand-500/5 ring-1 ring-brand-500/20 shadow-lg shadow-brand-500/10"
+                                      : "border-white/5 bg-slate-950/40 hover:border-white/20"
+                                  )}
+                                >
+                                   {/* Style-specific micro-preview pattern */}
+                                   <div className="absolute -right-4 -top-4 w-20 h-20 bg-brand-500/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
+                                   
+                                   <div className="relative z-10 flex flex-col gap-2">
+                                      <div className="flex items-center justify-between">
+                                         <p className="text-xs font-black text-white uppercase tracking-widest">{styleName}</p>
+                                         {UIStyleManager.getCurrentStyleName() === styleName && (
+                                           <CheckCircle2 className="w-4 h-4 text-brand-500" />
+                                         )}
+                                      </div>
+                                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest opacity-60 group-hover:opacity-100 transition-opacity">
+                                         {styleName === "Glassmorphic" ? "Standard Default" : "Experimental Identity"}
+                                      </p>
+                                   </div>
+                                </button>
+                              ))}
+                           </div>
+                        </div>
                      </section>
 
                      {/* General Configuration */}
