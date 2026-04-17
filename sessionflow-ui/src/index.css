@@ -3,36 +3,60 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-sora: "Sora", sans-serif;
+  --font-sora: var(--token-font-display, "Sora", sans-serif);
   --font-cairo: "Cairo", sans-serif;
-  --font-brand: "Orbitron", sans-serif;
+  --font-brand: var(--token-font-accent, "Orbitron", sans-serif);
 
-  /* Standardized Aero Palette */
-  --color-brand-50: oklch(0.97 0.01 240);
-  --color-brand-100: oklch(0.91 0.03 240);
-  --color-brand-200: oklch(0.82 0.07 240);
-  --color-brand-300: oklch(0.7 0.12 240);
-  --color-brand-400: oklch(0.6 0.18 240);
-  --color-brand-500: oklch(0.5 0.22 240); /* Main Electric Blue */
-  --color-brand-600: oklch(0.4 0.2 240);
-  --color-brand-700: oklch(0.3 0.15 240);
-  --color-brand-800: oklch(0.2 0.1 240);
-  --color-brand-900: oklch(0.1 0.05 240);
+  /* Dynamic Token Hand-off */
+  --color-brand-50: var(--token-brand-50);
+  --color-brand-100: var(--token-brand-100);
+  --color-brand-200: var(--token-brand-200);
+  --color-brand-300: var(--token-brand-300);
+  --color-brand-400: var(--token-brand-400);
+  --color-brand-500: var(--token-brand-500);
+  --color-brand-600: var(--token-brand-600);
+  --color-brand-700: var(--token-brand-700);
+  --color-brand-800: var(--token-brand-800);
+  --color-brand-900: var(--token-brand-900);
 
-  /* Semantic UI Tokens */
-  --color-ui-bg: #020617;
-  --color-ui-surface: rgba(15, 23, 42, 0.75);
-  --color-ui-border: rgba(255, 255, 255, 0.05);
-  --color-ui-accent: oklch(0.7 0.2 160); /* Emerald */
-  --color-ui-accent-cyan: oklch(0.7 0.2 190);
+  --color-ui-bg: var(--token-ui-bg, #020617);
+  --color-ui-surface: var(--token-ui-surface, rgba(15, 23, 42, 0.75));
+  --color-ui-border: var(--token-ui-border, rgba(255, 255, 255, 0.05));
+  --color-ui-accent: var(--token-ui-accent, oklch(0.7 0.2 160));
+  --color-ui-accent-cyan: var(--token-ui-accent-cyan, oklch(0.7 0.2 190));
 
-  --radius-xl: 1rem;
-  --radius-2xl: 1.5rem;
-  --radius-3xl: 2.5rem;
-  
-  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.5);
+  --radius-xl: var(--token-radius-xl, 1rem);
+  --radius-2xl: var(--token-radius-2xl, 1.5rem);
+  --radius-3xl: var(--token-radius-3xl, 2.5rem);
+
+  --shadow-glow: var(--token-shadow-glow, 0 0 20px rgba(59, 130, 246, 0.5));
   --shadow-glow-emerald: 0 0 20px rgba(16, 185, 129, 0.5);
   --shadow-glow-cyan: 0 0 20px rgba(6, 214, 160, 0.5);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.4);
+
+  /* Fallback for standard border utility */
+  --color-border: var(--token-ui-border, rgba(255, 255, 255, 0.05));
+  --color-ui-bg-aero: rgba(15, 23, 42, 0.75);
+}
+
+/* ============================================================
+   CORE DESIGN SYSTEM AESTHETICS (Aero Noir Default)
+   ============================================================ */
+
+body {
+  --token-brand-50: oklch(0.97 0.01 240);
+  --token-brand-100: oklch(0.91 0.03 240);
+  --token-brand-200: oklch(0.82 0.07 240);
+  --token-brand-300: oklch(0.7 0.12 240);
+  --token-brand-400: oklch(0.6 0.18 240);
+  --token-brand-500: oklch(0.5 0.22 240);
+  --token-brand-600: oklch(0.4 0.2 240);
+  --token-brand-700: oklch(0.3 0.15 240);
+  --token-brand-800: oklch(0.2 0.1 240);
+  --token-brand-900: oklch(0.1 0.05 240);
+  --token-ui-bg: #020617;
+  --token-ui-surface: rgba(15, 23, 42, 0.75);
+  --token-ui-border: rgba(255, 255, 255, 0.05);
 }
 
 @layer base {
@@ -41,16 +65,48 @@
     --emerald-rgb: 16, 185, 129;
     --neon-glow: 0 0 15px rgba(var(--brand-rgb), 0.4);
     --glass-border: rgba(255, 255, 255, 0.05);
-    
+
     /* Typography scale */
     --text-xs: 0.7rem;
     --text-sm: 0.8rem;
-    --text-base: 0.95rem;
-    --text-lg: 1.1rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
     --text-xl: 1.25rem;
     --text-2xl: 1.5rem;
-    --text-3xl: 2.2rem;
-    --text-4xl: 2.8rem;
+    --text-3xl: 1.875rem;
+    --text-4xl: 2.25rem;
+    --text-5xl: 3rem;
+  }
+
+  * {
+    @apply border-ui-border;
+  }
+
+  html,
+  body {
+    @apply h-full w-full select-none;
+    background-color: var(--color-ui-bg);
+  }
+
+  body {
+    @apply bg-ui-bg font-sans antialiased selection:bg-brand-500/30 transition-colors duration-500;
+    color: #f8fafc;
+    overflow: hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-sora font-bold tracking-tight;
+  }
+}
+
+@layer components {
+  .card-base {
+    @apply bg-ui-surface backdrop-blur-2xl border border-ui-border rounded-2xl p-6 transition-all duration-300 shadow-glow;
   }
 
   .theme-light {
@@ -97,7 +153,7 @@
   .theme-light .card-aero {
     background-color: rgba(255, 255, 255, 0.65) !important;
     border-color: rgba(16, 185, 129, 0.15) !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 1px rgba(16, 185, 129, 0.2) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 0 1px rgba(16, 185, 129, 0.2) !important;
   }
 
   .theme-light .input-base,
@@ -117,7 +173,7 @@
   }
 
   * {
-    @apply border-slate-800;
+    border-color: var(--token-ui-border);
   }
 
   html[dir='rtl'] {
@@ -129,33 +185,48 @@
     overflow: hidden;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-sora font-bold tracking-tight;
   }
 }
 
 @layer components {
   .card-base {
-    @apply bg-slate-950/60 backdrop-blur-2xl border border-white/10 rounded-[1.5rem] p-6 transition-all duration-300 shadow-[0_8px_32px_rgba(0,0,0,0.4)];
+    @apply bg-ui-surface backdrop-blur-2xl border border-ui-border rounded-2xl p-6 transition-all duration-300 shadow-card;
   }
 
   /* Senior UI: Scan Sweep Animation */
   @keyframes scan-sweep {
-    0% { left: -100%; opacity: 0; }
-    50% { opacity: 0.5; }
-    100% { left: 100%; opacity: 0; }
+    0% {
+      left: -100%;
+      opacity: 0;
+    }
+
+    50% {
+      opacity: 0.5;
+    }
+
+    100% {
+      left: 100%;
+      opacity: 0;
+    }
   }
 
   .animate-scan {
     animation: scan-sweep 3s infinite linear;
   }
-  
+
   .card-aero {
-    @apply bg-[rgba(15,23,42,0.75)] backdrop-blur-2xl border border-emerald-500/25 rounded-2xl p-6 transition-all duration-500 relative overflow-hidden;
-    box-shadow: 
+    @apply bg-ui-bg-aero backdrop-blur-2xl border border-emerald-500/25 rounded-2xl p-6 transition-all duration-500 relative overflow-hidden;
+    box-shadow:
       0 0 1px rgba(16, 185, 129, 0.4),
       0 0 20px rgba(16, 185, 129, 0.07),
-      0 8px 32px rgba(0,0,0,0.5);
+      0 8px 32px rgba(0, 0, 0, 0.5);
   }
 
   .card-aero::before {
@@ -167,15 +238,16 @@
     pointer-events: none;
     mix-blend-mode: overlay;
   }
+
   .card-aero:hover {
     border-color: rgba(16, 185, 129, 0.4);
-    box-shadow: 
+    box-shadow:
       0 0 1px rgba(16, 185, 129, 0.5),
       0 0 25px rgba(16, 185, 129, 0.1),
-      0 12px 40px rgba(0,0,0,0.5);
+      0 12px 40px rgba(0, 0, 0, 0.5);
     transform: translateY(-2px);
   }
-  
+
   .card-hover {
     @apply hover:bg-slate-900/80 hover:border-brand-500/30 hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand-500/20;
   }
@@ -212,14 +284,15 @@
   .page-header-title {
     @apply text-3xl font-sora font-black text-white tracking-tight uppercase leading-none;
   }
+
   .page-header-subtitle {
     @apply text-slate-500 font-bold uppercase tracking-[0.2em] text-[11px];
   }
-  
+
   .app-drag-region {
     -webkit-app-region: drag;
   }
-  
+
   .app-no-drag {
     -webkit-app-region: no-drag;
   }
@@ -229,13 +302,15 @@
   .neon-text {
     text-shadow: 0 0 10px rgba(var(--brand-rgb), 0.5);
   }
+
   .neon-border {
     box-shadow: 0 0 15px rgba(var(--brand-rgb), 0.3);
   }
+
   .rtl-flip {
     @apply rtl:-scale-x-100;
   }
-  
+
   .custom-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: var(--color-slate-800) transparent;
@@ -260,28 +335,67 @@
    ANIMATIONS — Core
    ============================================================ */
 @keyframes fade-in {
-  from { opacity: 0; transform: scale(0.98); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes slide-up {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes slide-left {
-  from { transform: translateX(30px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from {
+    transform: translateX(30px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 @keyframes pulse-glow {
-  0%, 100% { opacity: 0.5; box-shadow: 0 0 10px rgba(var(--brand-rgb), 0.2); }
-  50% { opacity: 1; box-shadow: 0 0 20px rgba(var(--brand-rgb), 0.4); }
+
+  0%,
+  100% {
+    opacity: 0.5;
+    box-shadow: 0 0 10px rgba(var(--brand-rgb), 0.2);
+  }
+
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(var(--brand-rgb), 0.4);
+  }
 }
 
 @keyframes breathe {
-  0%, 100% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.05); }
+
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(1.05);
+  }
 }
 
 .animate-fade-in {
@@ -308,8 +422,17 @@
    ANIMATIONS — Emerald Accent System
    ============================================================ */
 @keyframes emerald-pulse {
-  0%, 100% { opacity: 0.6; box-shadow: 0 0 10px rgba(16, 185, 129, 0.2); }
-  50% { opacity: 1; box-shadow: 0 0 25px rgba(16, 185, 129, 0.5); }
+
+  0%,
+  100% {
+    opacity: 0.6;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+  }
+
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.5);
+  }
 }
 
 .animate-emerald-pulse {
@@ -317,8 +440,13 @@
 }
 
 @keyframes sparkline-draw {
-  from { stroke-dashoffset: 200; }
-  to { stroke-dashoffset: 0; }
+  from {
+    stroke-dashoffset: 200;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 .animate-sparkline {
@@ -327,9 +455,20 @@
 
 /* Live pulse indicator */
 @keyframes live-ping {
-  0% { transform: scale(1); opacity: 1; }
-  75% { transform: scale(2.5); opacity: 0; }
-  100% { transform: scale(2.5); opacity: 0; }
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  75% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
 }
 
 .animate-live-ping {
@@ -340,87 +479,305 @@
    ANIMATIONS — Cinematic (Legacy support for any remaining refs)
    ============================================================ */
 @keyframes scannerSweep {
-  0% { opacity: 0; transform: translateY(-30vh) scaleX(0.2); }
-  20% { opacity: 1; transform: translateY(-15vh) scaleX(1); }
-  80% { opacity: 0.8; transform: translateY(15vh) scaleX(1); }
-  100% { opacity: 0; transform: translateY(30vh) scaleX(0.2); }
+  0% {
+    opacity: 0;
+    transform: translateY(-30vh) scaleX(0.2);
+  }
+
+  20% {
+    opacity: 1;
+    transform: translateY(-15vh) scaleX(1);
+  }
+
+  80% {
+    opacity: 0.8;
+    transform: translateY(15vh) scaleX(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(30vh) scaleX(0.2);
+  }
 }
 
 @keyframes textWipe {
-  0% { width: 0%; border-right-color: #08d9d6; }
-  99% { width: 100%; border-right-color: #08d9d6; }
-  100% { width: 100%; border-right-color: transparent; }
+  0% {
+    width: 0%;
+    border-right-color: #08d9d6;
+  }
+
+  99% {
+    width: 100%;
+    border-right-color: #08d9d6;
+  }
+
+  100% {
+    width: 100%;
+    border-right-color: transparent;
+  }
 }
 
 @keyframes clip1Flow {
-  0% { opacity: 1; }
-  80% { opacity: 1; }
-  100% { opacity: 0; visibility: hidden; }
+  0% {
+    opacity: 1;
+  }
+
+  80% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
 }
 
 @keyframes clip2Flow {
-  0% { opacity: 0; transform: scale(0.9) translateZ(-200px); }
-  10% { opacity: 1; transform: scale(1) translateZ(0); }
-  80% { opacity: 1; transform: scale(1.05) translateZ(50px); filter: blur(0px); }
-  100% { opacity: 0; transform: scale(1.2) translateZ(200px); filter: blur(20px); visibility: hidden;}
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateZ(-200px);
+  }
+
+  10% {
+    opacity: 1;
+    transform: scale(1) translateZ(0);
+  }
+
+  80% {
+    opacity: 1;
+    transform: scale(1.05) translateZ(50px);
+    filter: blur(0px);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.2) translateZ(200px);
+    filter: blur(20px);
+    visibility: hidden;
+  }
 }
 
 @keyframes clip3Flow {
-  0% { opacity: 0; transform: scale(1.1) translateZ(100px); }
-  100% { opacity: 1; transform: scale(1) translateZ(0); }
+  0% {
+    opacity: 0;
+    transform: scale(1.1) translateZ(100px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) translateZ(0);
+  }
 }
 
 @keyframes staggerUp {
-  to { opacity: 1; transform: translateY(0); }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ============================================================
    ANIMATIONS — Auth / Login Mascot
    ============================================================ */
 @keyframes float-slow {
-  0%, 100% { transform: translateY(0) scale(1); opacity: 0.4; }
-  50% { transform: translateY(-8px) scale(1.2); opacity: 0.7; }
+
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.4;
+  }
+
+  50% {
+    transform: translateY(-8px) scale(1.2);
+    opacity: 0.7;
+  }
 }
+
 @keyframes float-medium {
-  0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
-  50% { transform: translateY(-6px) translateX(4px); opacity: 0.6; }
+
+  0%,
+  100% {
+    transform: translateY(0) translateX(0);
+    opacity: 0.3;
+  }
+
+  50% {
+    transform: translateY(-6px) translateX(4px);
+    opacity: 0.6;
+  }
 }
+
 @keyframes float-fast {
-  0%, 100% { transform: translateY(0); opacity: 0.5; }
-  50% { transform: translateY(-4px); opacity: 0.8; }
+
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: translateY(-4px);
+    opacity: 0.8;
+  }
 }
+
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
-  20%, 40%, 60%, 80% { transform: translateX(4px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-4px);
+  }
+
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(4px);
+  }
 }
+
 @keyframes scale-in {
-  from { opacity: 0; transform: scale(0.9); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out forwards;
+}
+
+.animate-slide-left {
+  animation: slide-left 0.5s ease-out forwards;
+}
+
+.animate-stagger-up {
+  opacity: 0;
+  animation: slide-up 0.5s ease-out forwards;
 }
 
 /* Mesh gradient animation for login background */
 @keyframes mesh-shift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
-.animate-float-slow { animation: float-slow 3s ease-in-out infinite; }
-.animate-float-medium { animation: float-medium 2.5s ease-in-out infinite 0.3s; }
-.animate-float-fast { animation: float-fast 2s ease-in-out infinite 0.6s; }
-.animate-shake { animation: shake 0.6s ease-in-out; }
-.animate-scale-in { animation: scale-in 0.3s ease-out forwards; }
-.animate-mesh { animation: mesh-shift 8s ease infinite; background-size: 200% 200%; }
+.animate-float-slow {
+  animation: float-slow 3s ease-in-out infinite;
+}
+
+.animate-float-medium {
+  animation: float-medium 2.5s ease-in-out infinite 0.3s;
+}
+
+.animate-float-fast {
+  animation: float-fast 2s ease-in-out infinite 0.6s;
+}
+
+.animate-shake {
+  animation: shake 0.6s ease-in-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out forwards;
+}
+
+.animate-mesh {
+  animation: mesh-shift 8s ease infinite;
+  background-size: 200% 200%;
+}
 
 @keyframes bell-ring {
-  0%, 100% { transform: rotate(0); }
-  10%, 30%, 50%, 70%, 90% { transform: rotate(-10deg); }
-  20%, 40%, 60%, 80% { transform: rotate(10deg); }
+
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: rotate(-10deg);
+  }
+
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: rotate(10deg);
+  }
 }
 
 @keyframes bounce-subtle {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-3px);
+  }
 }
 
 .animate-bell-ring {
@@ -433,17 +790,32 @@
 }
 
 /* Stagger delays for form fields */
-.stagger-1 { animation-delay: 0ms; }
-.stagger-2 { animation-delay: 80ms; }
-.stagger-3 { animation-delay: 160ms; }
-.stagger-4 { animation-delay: 240ms; }
-.stagger-5 { animation-delay: 320ms; }
+.stagger-1 {
+  animation-delay: 0ms;
+}
+
+.stagger-2 {
+  animation-delay: 80ms;
+}
+
+.stagger-3 {
+  animation-delay: 160ms;
+}
+
+.stagger-4 {
+  animation-delay: 240ms;
+}
+
+.stagger-5 {
+  animation-delay: 320ms;
+}
 
 /* ============================================================
    ACCESSIBILITY — Reduced Motion
    Respects OS-level "Reduce motion" for vestibular disorders.
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -453,19 +825,25 @@
     scroll-behavior: auto !important;
   }
 
-  .animate-pulse,
-  .animate-bounce,
-  .animate-spin,
   .animate-fade-in,
   .animate-slide-up,
   .animate-slide-left,
+  .animate-scale-in,
+  .animate-stagger-up {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .animate-pulse,
+  .animate-bounce,
+  .animate-spin,
   .animate-pulse-glow,
   .animate-emerald-pulse,
   .animate-float-slow,
   .animate-float-medium,
   .animate-float-fast,
   .animate-shake,
-  .animate-scale-in,
   .animate-mesh,
   .animate-bell-ring,
   .animate-bounce-subtle,
