@@ -7,6 +7,7 @@ import { useEngineerCodes, useEngineerMutations, usePurgeMutation } from "../que
 import { useImportMutations, useGmailStatus } from "../queries/useImportQueries";
 import { Setting, EngineerCode } from "../types";
 import { useUIStore, useAuthStore } from "../store/stores";
+import { UIStyleManager, UIStyleConfig, useActiveUIStyle } from "../styles/UIStyleManager";
 import { cn } from "../lib/utils";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
@@ -27,6 +28,7 @@ const SettingsPage: React.FC = () => {
   const currentUser = useAuthStore((s) => s.user);
   const isAdmin = currentUser?.role === "Admin";
   const language = i18n.language;
+  const activeStyle = useActiveUIStyle();
   
   const { data: settingsData, isLoading: settingsLoading } = useSettings();
   const { data: codesData, isLoading: codesLoading } = useEngineerCodes();
@@ -318,6 +320,52 @@ const SettingsPage: React.FC = () => {
                               >
                                 {language === 'ar' ? 'SWITCH TO ENGLISH' : 'تبديل للعربية'}
                               </button>
+                           </div>
+                        </div>
+
+                        {/* UI Protocol Switcher */}
+                        <div className="space-y-6">
+                           <div className="flex flex-col gap-1.5 ps-5">
+                              <p className="text-xs font-black text-white uppercase tracking-widest">{t("settings.ui_protocol")}</p>
+                              <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em]">{t("settings.ui_protocol_desc")}</p>
+                           </div>
+
+                           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                              {UIStyleConfig.available.map((styleName) => (
+                                 <button
+                                    key={styleName}
+                                    onClick={() => UIStyleManager.apply(styleName)}
+                                    className={cn(
+                                       "flex flex-col items-start p-5 card-base text-left group transition-all duration-500",
+                                       activeStyle === styleName 
+                                          ? "border-brand-500 ring-4 ring-brand-500/10 bg-brand-500/5 translate-y-[-2px]" 
+                                          : "hover:border-white/10 hover:bg-slate-900/40"
+                                    )}
+                                 >
+                                    <div className="flex items-center justify-between w-full mb-3">
+                                       <span className={cn(
+                                          "text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-500",
+                                          activeStyle === styleName ? "text-brand-500" : "text-slate-500"
+                                       )}>
+                                          {styleName}
+                                       </span>
+                                       {activeStyle === styleName && (
+                                          <div className="w-5 h-5 rounded-full bg-brand-500 flex items-center justify-center animate-pulse-slow">
+                                             <CheckCircle2 className="w-3 h-3 text-white" />
+                                          </div>
+                                       )}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                       <div className={cn(
+                                          "w-2.5 h-2.5 rounded-sm rotate-45 transition-all duration-500",
+                                          activeStyle === styleName ? "bg-brand-500 shadow-glow" : "bg-slate-800"
+                                       )} />
+                                       <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em]">
+                                          {styleName === "Glassmorphism" ? "Standard Default" : "Experimental Identity"}
+                                       </span>
+                                    </div>
+                                 </button>
+                              ))}
                            </div>
                         </div>
 
