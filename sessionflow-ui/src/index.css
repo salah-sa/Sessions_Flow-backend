@@ -2,62 +2,40 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-sora: var(--token-font-display, "Sora", sans-serif);
+  --font-sans: var(--ui-font-main, "Inter", sans-serif);
+  --font-sora: var(--ui-font-display, "Sora", sans-serif);
   --font-cairo: "Cairo", sans-serif;
-  --font-brand: var(--token-font-accent, "Orbitron", sans-serif);
+  --font-brand: var(--ui-font-display, "Orbitron", sans-serif);
 
   /* Dynamic Token Hand-off */
-  --color-brand-50: var(--token-brand-50);
-  --color-brand-100: var(--token-brand-100);
-  --color-brand-200: var(--token-brand-200);
-  --color-brand-300: var(--token-brand-300);
-  --color-brand-400: var(--token-brand-400);
-  --color-brand-500: var(--token-brand-500);
-  --color-brand-600: var(--token-brand-600);
-  --color-brand-700: var(--token-brand-700);
-  --color-brand-800: var(--token-brand-800);
-  --color-brand-900: var(--token-brand-900);
+  --color-brand-500: var(--ui-accent, #3b82f6);
+  
+  --color-ui-bg: var(--ui-bg, #020617);
+  --color-ui-surface: var(--ui-surface, rgba(15, 23, 42, 0.75));
+  --color-ui-border: var(--ui-border-color, rgba(255, 255, 255, 0.05));
+  --color-ui-accent: var(--ui-accent, #3b82f6);
 
-  --color-ui-bg: var(--token-ui-bg, #020617);
-  --color-ui-surface: var(--token-ui-surface, rgba(15, 23, 42, 0.75));
-  --color-ui-border: var(--token-ui-border, rgba(255, 255, 255, 0.05));
-  --color-ui-accent: var(--token-ui-accent, oklch(0.7 0.2 160));
-  --color-ui-accent-cyan: var(--token-ui-accent-cyan, oklch(0.7 0.2 190));
+  --radius-xl: var(--ui-radius-btn, 1rem);
+  --radius-2xl: var(--ui-radius-card, 1.5rem);
+  --radius-3xl: var(--ui-radius-card, 2.5rem);
 
-  --radius-xl: var(--token-radius-xl, 1rem);
-  --radius-2xl: var(--token-radius-2xl, 1.5rem);
-  --radius-3xl: var(--token-radius-3xl, 2.5rem);
-
-  --shadow-glow: var(--token-shadow-glow, 0 0 20px rgba(59, 130, 246, 0.5));
-  --shadow-glow-emerald: 0 0 20px rgba(16, 185, 129, 0.5);
-  --shadow-glow-cyan: 0 0 20px rgba(6, 214, 160, 0.5);
-  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-glow: var(--ui-shadow-card, 0 8px 32px rgba(0, 0, 0, 0.4));
+  --shadow-card: var(--ui-shadow-card, 0 8px 32px rgba(0, 0, 0, 0.4));
 
   /* Fallback for standard border utility */
-  --color-border: var(--token-ui-border, rgba(255, 255, 255, 0.05));
-  --color-ui-bg-aero: rgba(15, 23, 42, 0.75);
+  --color-border: var(--ui-border-color, rgba(255, 255, 255, 0.05));
 }
 
 /* ============================================================
-   CORE DESIGN SYSTEM AESTHETICS (Aero Noir Default)
+   CORE DESIGN SYSTEM ROOT
    ============================================================ */
-
 body {
-  --token-brand-50: oklch(0.97 0.01 240);
-  --token-brand-100: oklch(0.91 0.03 240);
-  --token-brand-200: oklch(0.82 0.07 240);
-  --token-brand-300: oklch(0.7 0.12 240);
-  --token-brand-400: oklch(0.6 0.18 240);
-  --token-brand-500: oklch(0.5 0.22 240);
-  --token-brand-600: oklch(0.4 0.2 240);
-  --token-brand-700: oklch(0.3 0.15 240);
-  --token-brand-800: oklch(0.2 0.1 240);
-  --token-brand-900: oklch(0.1 0.05 240);
-  --token-ui-bg: #020617;
-  --token-ui-surface: rgba(15, 23, 42, 0.75);
-  --token-ui-border: rgba(255, 255, 255, 0.05);
+  /* Design Tokens enforced by UIStyleManager */
+  --ui-border-width: 1px;
+  --ui-glass-blur: 8px;
+  letter-spacing: var(--ui-letter-spacing, normal);
 }
+
 
 @layer base {
   :root {
@@ -221,63 +199,51 @@ body {
     animation: scan-sweep 3s infinite linear;
   }
 
-  .card-aero {
-    @apply bg-ui-bg-aero backdrop-blur-2xl border border-emerald-500/25 rounded-2xl p-6 transition-all duration-500 relative overflow-hidden;
-    box-shadow:
-      0 0 1px rgba(16, 185, 129, 0.4),
-      0 0 20px rgba(16, 185, 129, 0.07),
-      0 8px 32px rgba(0, 0, 0, 0.5);
+  .card-base {
+    @apply transition-all duration-300 relative overflow-hidden;
+    background-color: var(--ui-surface);
+    border: var(--ui-border-width) solid var(--ui-border-color);
+    border-radius: var(--ui-radius-card);
+    box-shadow: var(--ui-shadow-card);
+    backdrop-filter: blur(var(--ui-glass-blur));
+    padding: var(--ui-padding-card, 1.5rem);
   }
 
-  .card-aero::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-    opacity: 0.02;
-    pointer-events: none;
-    mix-blend-mode: overlay;
-  }
-
-  .card-aero:hover {
-    border-color: rgba(16, 185, 129, 0.4);
-    box-shadow:
-      0 0 1px rgba(16, 185, 129, 0.5),
-      0 0 25px rgba(16, 185, 129, 0.1),
-      0 12px 40px rgba(0, 0, 0, 0.5);
-    transform: translateY(-2px);
-  }
-
-  .card-hover {
-    @apply hover:bg-slate-900/80 hover:border-brand-500/30 hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand-500/20;
+  .card-base:hover {
+    background-color: var(--ui-surface-hover);
   }
 
   .btn-primary {
-    @apply bg-brand-500 hover:bg-brand-400 text-white font-black uppercase tracking-widest text-[11px] py-3 px-6 rounded-xl shadow-lg shadow-brand-500/30 active:scale-95 transition-all;
+    @apply text-white font-black uppercase tracking-widest text-[11px] py-3 px-6 active:scale-95 transition-all;
+    background-color: var(--ui-accent);
+    border-radius: var(--ui-radius-btn);
+    box-shadow: var(--ui-shadow-card);
+    border: var(--ui-border-width) solid var(--ui-border-color);
   }
 
   .btn-ghost {
-    @apply hover:bg-white/5 text-slate-400 hover:text-white font-bold uppercase tracking-widest text-[11px] py-2 px-4 rounded-xl transition-all;
+    @apply text-slate-400 hover:text-white font-bold uppercase tracking-widest text-[11px] py-2 px-4 transition-all;
+    border-radius: var(--ui-radius-btn);
   }
 
   .input-base {
-    @apply w-full bg-slate-950 border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500/50 transition-all;
-  }
-
-  /* Auth-specific input — normal casing for readability */
-  .input-auth {
-    @apply w-full bg-slate-950/60 border border-white/5 rounded-xl px-5 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 transition-all;
-    text-transform: none !important;
-    letter-spacing: normal !important;
-    font-weight: 500 !important;
+    @apply w-full px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none transition-all;
+    background-color: var(--ui-bg);
+    border: var(--ui-border-width) solid var(--ui-border-color);
+    border-radius: var(--ui-radius-btn);
   }
 
   .badge-base {
     @apply text-[10px] font-black uppercase tracking-tighter px-2.5 py-1 rounded-full;
+    background-color: var(--ui-accent);
+    opacity: 0.8;
   }
 
   .glass {
-    @apply bg-slate-900/40 backdrop-blur-md border border-slate-800/50;
+    @apply backdrop-blur-md;
+    background-color: var(--ui-surface);
+    border: var(--ui-border-width) solid var(--ui-border-color);
+    border-radius: var(--ui-radius-card);
   }
 
   /* Page header utility for consistent page titles */
