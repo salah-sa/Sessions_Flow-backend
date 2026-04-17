@@ -30,6 +30,8 @@ const App: React.FC = () => {
     }
   }, [theme]);
 
+
+
   // Validate stored token on app load — refresh user data or force logout
   useEffect(() => {
     if (token) {

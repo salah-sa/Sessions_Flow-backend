@@ -96,11 +96,13 @@ const GroupsPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("Active");
+
   const groupFilters = React.useMemo(() => ({ 
     search: debouncedSearch || undefined,
-    status: "Active",
+    status: statusFilter === "All" ? undefined : statusFilter,
     pageSize: 20
-  }), [debouncedSearch]);
+  }), [debouncedSearch, statusFilter]);
 
   const { 
     data, 
@@ -111,7 +113,10 @@ const GroupsPage: React.FC = () => {
     refetch 
   } = useInfiniteGroups(groupFilters);
 
-  const groups = data?.pages.flatMap(page => page.items) || [];
+  const groups = React.useMemo(() => {
+    if (!data) return [];
+    return data.pages.flatMap((p: any) => p.items || p.data || (Array.isArray(p) ? p : []));
+  }, [data]);
   const { createMutation, updateMutation, deleteMutation, enrollStudentMutation } = useGroupMutations();
   const submitting = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending || enrollStudentMutation.isPending;
 
@@ -343,6 +348,25 @@ const GroupsPage: React.FC = () => {
             className="ps-10 h-10 w-full bg-transparent border-none focus:outline-none text-sm text-slate-200"
           />
         </div>
+
+        <div className="h-6 w-px bg-slate-800 hidden md:block" />
+
+        <div className="flex bg-slate-900/50 p-1 rounded-xl border border-white/5">
+          {["All", "Active", "Completed", "Archived"].map((status) => (
+            <button
+              key={status}
+              onClick={() => setStatusFilter(status)}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all",
+                statusFilter === status 
+                  ? "bg-brand-500 text-white shadow-glow-sm" 
+                  : "text-slate-500 hover:text-slate-300"
+              )}
+            >
+              {t(`groups.status.${status.toLowerCase()}`, status)}
+            </button>
+          ))}
+        </div>
         <div className="h-6 w-px bg-slate-800" />
         <div className="flex gap-1">
           <button 
@@ -378,8 +402,12 @@ const GroupsPage: React.FC = () => {
         </div>
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 p-2 pt-8">
-          {filteredGroups.map((group) => (
-            <div key={group.id} className="relative group/deck w-full h-[380px]">
+          {filteredGroups.map((group, index) => (
+            <div 
+              key={group.id} 
+              className="relative group/deck w-full h-[380px] animate-slide-up opacity-0"
+              style={{ animationDelay: `${index * 80}ms`, animationFillMode: 'forwards' }}
+            >
                {/* Deck Stack Backgrounds */}
                <div className={cn(
                  "absolute inset-x-6 top-8 bottom-0 rounded-[2rem] border border-white/5 backdrop-blur-sm transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover/deck:rotate-[10deg] group-hover/deck:translate-x-12 group-hover/deck:translate-y-6 group-hover/deck:scale-95 shadow-2xl opacity-50",
@@ -542,8 +570,12 @@ const GroupsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="text-sm">
-                {filteredGroups.map((group) => (
-                  <tr key={group.id} className="border-b border-white/5 hover:bg-slate-900/40 transition-colors group">
+                {filteredGroups.map((group, index) => (
+                  <tr 
+                    key={group.id} 
+                    className="border-b border-white/5 hover:bg-slate-900/40 transition-colors group animate-fade-in opacity-0"
+                    style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'forwards' }}
+                  >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className={cn(

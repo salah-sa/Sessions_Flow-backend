@@ -23,7 +23,10 @@ const NotificationCenter: React.FC = () => {
   const { data: pendingRequestsData } = usePendingStudentRequests();
   const pendingRequests = user?.role === "Engineer" || user?.role === "Admin" ? (pendingRequestsData || []) : [];
   
-  const unreadCount = baseUnreadCount + pendingRequests.length;
+  // Unread count for the main Bell badge (Telemtry alerts only)
+  const unreadCount = baseUnreadCount;
+  // Total pending tasks (Requests only)
+  const pendingCount = pendingRequests.length;
   
   const { markAsReadMutation, markAllAsReadMutation } = useNotificationMutations();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -39,16 +42,16 @@ const NotificationCenter: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Auto-mark actual notifications as read when panel opens
-  // Debounced to give user 3s to see what's new before clearing badge
+  // Auto-mark telemetry alerts as read when panel is opened
+  // Using a 2-second delay to ensure user actually "acknowledges" the view
   useEffect(() => {
     if (isOpen && baseUnreadCount > 0) {
       const timer = setTimeout(() => {
         markAllAsReadMutation.mutate();
-      }, 3000);
+      }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [isOpen, baseUnreadCount]);
+  }, [isOpen, baseUnreadCount, markAllAsReadMutation]);
 
   const handleMarkAsRead = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -113,7 +116,7 @@ const NotificationCenter: React.FC = () => {
                   <div className="px-6 py-2 flex items-center justify-between">
                     <h4 className="text-[10px] font-black text-brand-400 uppercase tracking-widest flex items-center gap-2">
                       <Users className="w-3 h-3" />
-                      Join Requests
+                      Join Requests {pendingCount > 0 && <span className="ms-1 text-slate-500">({pendingCount})</span>}
                     </h4>
                     <Badge variant="success" className="text-[8px] animate-pulse">Action Required</Badge>
                   </div>

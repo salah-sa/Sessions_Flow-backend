@@ -267,7 +267,7 @@ const SettingsPage: React.FC = () => {
                   </div>
                ) : activeTab === "system" ? (
                   <div className="space-y-12 animate-fade-in text-start">
-                     {/* Appearance */}
+                     {/* Appearance & Skins */}
                      <section className="space-y-8">
                         <div className="flex flex-col gap-2">
                            <h2 className="text-lg font-sora font-black text-white uppercase tracking-tight flex items-center gap-3">
@@ -276,23 +276,52 @@ const SettingsPage: React.FC = () => {
                            </h2>
                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] ps-5">{t("settings.display_desc")}</p>
                         </div>
-                        <div className="card-base flex items-center justify-between group hover:bg-slate-900 transition-all">
-                           <div className="flex items-center gap-6">
-                              <div className="w-16 h-16 bg-slate-950 rounded-2xl border border-white/5 flex items-center justify-center text-brand-500 group-hover:scale-110 transition-transform shadow-inner">
-                                 {theme === "dark" ? <Moon className="w-7 h-7" /> : <Sun className="w-7 h-7 text-amber-500" />}
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                           {/* Binary Theme Toggle */}
+                           <div className="card-base flex items-center justify-between group hover:bg-slate-900 transition-all">
+                              <div className="flex items-center gap-6">
+                                 <div className="w-16 h-16 bg-slate-950 rounded-2xl border border-white/5 flex items-center justify-center text-brand-500 group-hover:scale-110 transition-transform shadow-inner">
+                                    {theme === "dark" ? <Moon className="w-7 h-7" /> : <Sun className="w-7 h-7 text-amber-500" />}
+                                 </div>
+                                 <div className="space-y-1">
+                                    <p className="text-sm font-black text-white uppercase tracking-tighter">{t("settings.theme_synthesis")}</p>
+                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{t("settings.system.current_mode", { mode: theme.toUpperCase() })} {t("settings.protocol_active")}</p>
+                                 </div>
                               </div>
-                              <div className="space-y-1">
-                                 <p className="text-sm font-black text-white uppercase tracking-tighter">{t("settings.theme_synthesis")}</p>
-                                 <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{t("settings.system.current_mode", { mode: theme.toUpperCase() })} {t("settings.protocol_active")}</p>
-                              </div>
+                              <button 
+                                onClick={handleToggleTheme} 
+                                className="h-12 px-8 bg-white/5 border border-white/5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white hover:bg-white/10 transition-all"
+                              >
+                                 {t("settings.switch_mode")}
+                              </button>
                            </div>
-                           <button 
-                             onClick={handleToggleTheme} 
-                             className="h-12 px-8 bg-white/5 border border-white/5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white hover:bg-white/10 transition-all"
-                           >
-                              {t("settings.switch_mode")}
-                           </button>
+
+                           {/* Language Toggle */}
+                           <div className="card-base flex items-center justify-between group hover:bg-slate-900 transition-all">
+                              <div className="flex items-center gap-6">
+                                 <div className="w-16 h-16 bg-slate-950 rounded-2xl border border-white/5 flex items-center justify-center text-brand-500 group-hover:scale-110 transition-transform shadow-inner">
+                                    <Globe className="w-7 h-7" />
+                                 </div>
+                                 <div className="space-y-1">
+                                    <p className="text-sm font-black text-white uppercase tracking-tighter">Current Locale</p>
+                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{language === 'ar' ? 'العربية' : 'English (US)'} Active</p>
+                                 </div>
+                              </div>
+                              <button 
+                                onClick={() => {
+                                  const newLang = language === "ar" ? "en" : "ar";
+                                  i18n.changeLanguage(newLang);
+                                  useUIStore.getState().setLanguage(newLang);
+                                }}
+                                className="h-12 px-8 bg-white/5 border border-white/5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white hover:bg-white/10 transition-all"
+                              >
+                                {language === 'ar' ? 'SWITCH TO ENGLISH' : 'تبديل للعربية'}
+                              </button>
+                           </div>
                         </div>
+
+
                      </section>
 
                      {/* General Configuration */}
