@@ -5,6 +5,7 @@ import { useUIStore, useAuthStore } from "./store/stores";
 import SplashScreen from "./components/SplashScreen";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { SignalRProvider } from "./providers/SignalRProvider";
+import { UIStyleManager, UIStyleConfig } from "./styles/UIStyleManager";
 import { validateSession } from "./api/authService";
 
 const App: React.FC = () => {
@@ -13,14 +14,10 @@ const App: React.FC = () => {
   const [showSplash, setShowSplash] = useState(true);
   const token = useAuthStore((s) => s.token);
 
+  // Initialize UI Style System
   useEffect(() => {
-    document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
-    if (language === "ar") {
-      document.documentElement.classList.add("font-arabic");
-    } else {
-      document.documentElement.classList.remove("font-arabic");
-    }
-  }, [language]);
+    UIStyleManager.apply(UIStyleConfig.current);
+  }, []);
 
   useEffect(() => {
     if (theme === "light") {
