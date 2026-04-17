@@ -302,8 +302,8 @@ const TimetablePage: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-           <div ref={controlsRef} className="flex bg-slate-900 border border-white/5 rounded-2xl p-1.5 shadow-2xl">
+        <div className="flex flex-wrap items-center gap-4 mt-6 md:mt-0">
+           <div ref={controlsRef} className="flex bg-slate-900 border border-white/5 rounded-2xl p-1.5 shadow-2xl overflow-x-auto hide-scrollbar max-w-full">
              <button onClick={handlePrevWeek} onMouseEnter={playHover} className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 transition-all">
                <ChevronLeft className="w-5 h-5 rtl:rotate-180" />
              </button>
@@ -498,7 +498,7 @@ const TimetablePage: React.FC = () => {
               return (
                 <div key={day} className={cn("p-6 rounded-[2rem] border transition-all duration-500", 
                   isActive ? "bg-slate-900 border-white/10 shadow-2xl" : "bg-slate-950/20 border-white/5 opacity-50")}>
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                     <div className="flex items-center gap-6">
                       <button 
                         onClick={() => toggleDay(i)}
@@ -520,7 +520,7 @@ const TimetablePage: React.FC = () => {
                   {isActive && (
                     <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-500">
                       {segments.map((seg, sIdx) => (
-                        <div key={sIdx} className="flex items-center gap-4 ps-20">
+                        <div key={sIdx} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 ps-0 sm:ps-20">
                            <select 
                             value={seg.startTime}
                             onChange={(e) => updateSegmentTime(i, sIdx, "startTime", e.target.value)}

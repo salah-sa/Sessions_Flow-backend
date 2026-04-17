@@ -233,9 +233,9 @@ const SessionPage: React.FC = () => {
                  </button>
                </div>
              ) : activeSession.status === "Active" ? (
-               <button onClick={() => setIsEndingOpen(true)} className="bg-red-500 text-white h-12 px-8 rounded-xl shadow-glow shadow-red-500/20 font-black tracking-[0.2em] uppercase text-[10px] flex items-center gap-3 hover:scale-105 transition-all">
+               <Button variant="danger" size="md" className="h-12 px-8 flex items-center gap-3" onClick={() => setIsEndingOpen(true)}>
                  <Square className="w-4 h-4 fill-current" /> {t("sessions.end")}
-               </button>
+               </Button>
              ) : (
                <div className="flex items-center gap-3">
                   <div className="px-4 py-2 bg-slate-900 border border-white/5 rounded-xl text-[9px] font-black text-slate-500 uppercase tracking-widest">

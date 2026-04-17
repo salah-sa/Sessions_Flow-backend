@@ -438,3 +438,38 @@
 .stagger-3 { animation-delay: 160ms; }
 .stagger-4 { animation-delay: 240ms; }
 .stagger-5 { animation-delay: 320ms; }
+
+/* ============================================================
+   ACCESSIBILITY — Reduced Motion
+   Respects OS-level "Reduce motion" for vestibular disorders.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-pulse,
+  .animate-bounce,
+  .animate-spin,
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-slide-left,
+  .animate-pulse-glow,
+  .animate-emerald-pulse,
+  .animate-float-slow,
+  .animate-float-medium,
+  .animate-float-fast,
+  .animate-shake,
+  .animate-scale-in,
+  .animate-mesh,
+  .animate-bell-ring,
+  .animate-bounce-subtle,
+  .animate-scan {
+    animation: none !important;
+  }
+}

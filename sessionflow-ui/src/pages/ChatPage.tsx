@@ -266,8 +266,9 @@ const ChatPage: React.FC = () => {
 
       {/* Sidebar Channels */}
       <div className={cn(
-        "fixed inset-y-0 start-0 z-50 w-[320px] sm:relative sm:w-[340px] border-e border-white/5 flex flex-col h-full bg-slate-900/40 backdrop-blur-3xl transition-transform duration-500",
-        !isSidebarOpen && "-translate-x-full sm:translate-x-0"
+        "fixed inset-y-0 start-0 z-50 w-full sm:w-[340px] md:relative border-e border-white/5 flex flex-col h-full bg-slate-950 sm:bg-slate-900/40 backdrop-blur-3xl transition-transform duration-500",
+        activeGroupId ? "hidden md:flex" : "flex",
+        !isSidebarOpen && "-translate-x-full md:translate-x-0"
       )}>
         <div className="p-8 space-y-8 flex-none">
           <div className="flex items-center justify-between">
@@ -395,7 +396,7 @@ const ChatPage: React.FC = () => {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex h-full bg-slate-950/20 relative z-0">
+      <div className={cn("flex-1 flex h-full bg-slate-950/20 relative z-0", !activeGroupId && "hidden md:flex")}>
         {currentGroup ? (
           <div className="flex-1 flex flex-col h-full">
             {/* Social Group Header */}

@@ -210,6 +210,7 @@ const Sidebar: React.FC = () => {
             "flex items-center gap-3 py-2.5 rounded-xl transition-all duration-300 text-slate-500 hover:text-slate-300 hover:bg-white/5 w-full",
             sidebarOpen ? "px-3" : "px-0 justify-center w-11 mx-auto"
           )}
+          aria-label={i18n.language === 'en' ? 'Switch to Arabic' : 'Switch to English'}
           title={!sidebarOpen ? (i18n.language === 'en' ? 'العربية' : 'English') : undefined}
         >
           <span className={cn(
@@ -274,6 +275,7 @@ const Sidebar: React.FC = () => {
               theme === 'dark' ? "text-amber-400" : "text-emerald-400"
             )}
             title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
@@ -293,6 +295,7 @@ const Sidebar: React.FC = () => {
         <button
           onClick={toggleSidebar}
           className="hidden lg:flex w-full items-center justify-center p-2 rounded-md hover:bg-emerald-500/10 text-slate-400 transition-colors"
+          aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
         >
           <div className={cn("flex flex-col gap-1 transition-all", sidebarOpen ? "rotate-0" : "rotate-90")}> 
             <div className="w-4 h-0.5 bg-current rounded-full" />
@@ -304,8 +307,8 @@ const Sidebar: React.FC = () => {
 
       {/* Logout Confirmation Modal */}
       {showLogoutConfirm && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-2xl" onClick={() => setShowLogoutConfirm(false)}>
-          <div className="w-full max-w-sm bg-slate-950 border border-emerald-500/20 rounded-3xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-2xl" role="presentation" onClick={() => setShowLogoutConfirm(false)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="logout-title" className="w-full max-w-sm bg-slate-950 border border-emerald-500/20 rounded-3xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-8 text-center space-y-6">
               <div className="w-16 h-16 mx-auto rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
                 <LogOut className="w-7 h-7 text-red-500" />

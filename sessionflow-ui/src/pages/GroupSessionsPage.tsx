@@ -135,7 +135,7 @@ const GroupSessionsPage: React.FC = () => {
           </div>
           <div>
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">{t("group_sessions.level")}</p>
-            <p className="text-xl font-brand font-black text-white">{group?.level || "—"}</p>
+            <p className="text-xl font-sora font-black text-white">{group?.level || "—"}</p>
           </div>
         </div>
 
@@ -148,7 +148,7 @@ const GroupSessionsPage: React.FC = () => {
           </div>
           <div>
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">{t("group_sessions.students")}</p>
-            <p className="text-xl font-brand font-black text-white">{group?.studentCount || "0"}</p>
+            <p className="text-xl font-sora font-black text-white">{group?.studentCount || "0"}</p>
           </div>
         </div>
 
@@ -162,7 +162,7 @@ const GroupSessionsPage: React.FC = () => {
           <div>
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">{t("group_sessions.current_session")}</p>
             <div className="flex items-center gap-2">
-              <span className="text-3xl font-brand font-black text-white leading-none">
+              <span className="text-3xl font-sora font-black text-white leading-none">
                 {String(group?.currentSessionNumber || 1).padStart(2, '0')}
               </span>
               <div className="flex flex-col -space-y-1">
@@ -182,7 +182,7 @@ const GroupSessionsPage: React.FC = () => {
           </div>
           <div>
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">{t("group_sessions.engineer")}</p>
-            <p className="text-sm font-brand font-black text-white leading-tight truncate">{group?.engineerName || "—"}</p>
+            <p className="text-sm font-sora font-black text-white leading-tight truncate">{group?.engineerName || "—"}</p>
           </div>
         </div>
       </div>
@@ -197,7 +197,7 @@ const GroupSessionsPage: React.FC = () => {
         <div className="flex justify-between items-end">
           <div className="space-y-1">
             <p className="text-[10px] font-black text-emerald-500/60 uppercase tracking-[0.2em]">{t("group_sessions.progress_label")}</p>
-            <h3 className="text-4xl font-brand font-black text-white flex items-baseline gap-2">
+            <h3 className="text-4xl font-sora font-black text-white flex items-baseline gap-2">
               {progressPercent}%
               <span className="text-xs text-slate-600 font-bold tracking-normal italic uppercase">{t("group_sessions.sync_complete")}</span>
             </h3>
@@ -207,21 +207,21 @@ const GroupSessionsPage: React.FC = () => {
               <div className="absolute top-0 right-0 p-2 opacity-5">
                  <CheckCircle className="w-8 h-8 text-white" />
               </div>
-              <p className="text-2xl font-brand font-black text-white tabular-nums">{logicalCompleted}</p>
+              <p className="text-2xl font-sora font-black text-white tabular-nums">{logicalCompleted}</p>
               <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mt-1">{t("group_sessions.completed")}</p>
             </div>
             <div className="text-start stat-card opacity-0 bg-emerald-500/5 p-4 rounded-2xl border border-emerald-500/10 min-w-[120px] relative overflow-hidden group/metric">
               <div className="absolute top-0 right-0 p-2 opacity-10">
                  <Clock className="w-8 h-8 text-emerald-500" />
               </div>
-              <p className="text-2xl font-brand font-black text-emerald-400 tabular-nums">{activeCount + scheduledCount}</p>
+              <p className="text-2xl font-sora font-black text-emerald-400 tabular-nums">{activeCount + scheduledCount}</p>
               <p className="text-[8px] font-black text-emerald-500/40 uppercase tracking-widest mt-1">{t("group_sessions.upcoming")}</p>
             </div>
             <div className="text-start stat-card opacity-0 bg-slate-950/40 p-4 rounded-2xl border border-white/5 min-w-[120px] relative overflow-hidden group/metric">
               <div className="absolute top-0 right-0 p-2 opacity-5">
                  <Target className="w-8 h-8 text-white" />
               </div>
-              <p className="text-2xl font-brand font-black text-white tabular-nums">{totalSessions}</p>
+              <p className="text-2xl font-sora font-black text-white tabular-nums">{totalSessions}</p>
               <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mt-1">{t("group_sessions.total")}</p>
             </div>
           </div>
@@ -268,7 +268,7 @@ const GroupSessionsPage: React.FC = () => {
       </div>
 
       {/* Timeline Section (Scrolling) */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 w-full h-full p-4 lg:p-8 space-y-8 animate-fade-in custom-scrollbar overflow-y-auto">
         <div className="max-w-5xl mx-auto px-8 py-10 pb-32 space-y-6">
           <div className="flex items-center justify-between border-b border-white/5 pb-4">
             <h2 className="text-sm font-black text-white uppercase tracking-[0.3em] flex items-center gap-3">
@@ -358,7 +358,7 @@ const GroupSessionsPage: React.FC = () => {
                     {/* Session Detail */}
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-center gap-3">
-                        <p className="text-lg font-brand font-black text-white leading-none">
+                        <p className="text-lg font-sora font-black text-white leading-none">
                           {t("group_sessions.session_number", { number: logicalNumber })}
                         </p>
                         {isActive && <span className="text-[10px] font-black text-blue-400 animate-pulse uppercase tracking-widest bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">{t("group_sessions.live_node")}</span>}

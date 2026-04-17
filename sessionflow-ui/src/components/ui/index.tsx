@@ -112,8 +112,11 @@ export const Modal = ({ isOpen, onClose, title, subtitle, children, className }:
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-2xl animate-in fade-in duration-300" onClick={onClose}>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-2xl animate-in fade-in duration-300" onClick={onClose} role="presentation">
       <div 
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
         className={cn("w-full max-w-xl bg-slate-950 border border-white/10 rounded-[2.5rem] shadow-[0_0_100px_-20px_rgba(59,130,246,0.15)] overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-8 duration-300", className)}
         onClick={(e) => e.stopPropagation()}
       >
@@ -121,12 +124,13 @@ export const Modal = ({ isOpen, onClose, title, subtitle, children, className }:
           <div className="space-y-1">
              <div className="flex items-center gap-3">
                 <div className="w-1.5 h-6 bg-brand-500 rounded-full" />
-                <h2 className="text-xl font-sora font-black text-white tracking-widest uppercase">{title}</h2>
+                <h2 id="modal-title" className="text-xl font-sora font-black text-white tracking-widest uppercase">{title}</h2>
              </div>
              {subtitle && <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] ps-4">{subtitle}</p>}
           </div>
           <button 
             onClick={onClose}
+            aria-label="Close dialog"
             className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 rounded-xl border border-transparent hover:border-white/5 transition-all"
           >
             <X className="w-5 h-5" />

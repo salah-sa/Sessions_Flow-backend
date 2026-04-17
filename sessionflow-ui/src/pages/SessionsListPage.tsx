@@ -115,17 +115,17 @@ const SessionsListPage: React.FC = () => {
       <header className="relative z-20 px-10 pt-10 pb-6 shrink-0 border-b border-white/[0.03] bg-black/20 backdrop-blur-md">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h1 className="text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight flex flex-wrap items-center gap-2 sm:gap-3">
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Sessions</span>
-              <span className="text-slate-800 text-3xl">/</span>
-              <span className="text-sm font-bold text-slate-500 uppercase tracking-[0.2em] pt-1.5">Management</span>
+              <span className="text-slate-800 text-2xl sm:text-3xl hidden sm:inline">/</span>
+              <span className="text-xs sm:text-sm font-bold text-slate-500 uppercase tracking-[0.2em] pt-1 sm:pt-1.5">Management</span>
             </h1>
             <p className="text-slate-500 mt-1 max-w-md text-sm">Efficiently manage and track all learning sessions, live broadcasts, and historical records.</p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             {/* Search Input */}
-            <div className="relative group min-w-[300px]">
+            <div className="relative group w-full sm:min-w-[300px]">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-blue-400 transition-colors" />
               <input 
                 placeholder="Find a session or engineer..." 
@@ -156,7 +156,7 @@ const SessionsListPage: React.FC = () => {
         </div>
 
         {/* Tab Navigation */}
-        <nav className="flex gap-8 mt-10 relative">
+        <nav className="flex gap-6 sm:gap-8 mt-6 sm:mt-10 relative overflow-x-auto hide-scrollbar pb-2 sm:pb-0">
           {tabs.map(tab => (
             <button
               key={tab.id}
