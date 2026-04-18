@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Input } from '../ui';
 import { forgotPassword, verifyResetCode, resetPassword } from '../../api/authService';
 import { cn } from '../../lib/utils';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 interface ForgotPasswordModalProps {
   isOpen: boolean;

@@ -779,7 +779,11 @@ public class AuthService
         if (user == null)
             return (false, "If an account with this email exists, a reset code has been sent."); // Standard security response
 
-        // 2. Reject legacy/local student emails
+        // 2. Check administrator approval
+        if (!user.IsApproved)
+            return (false, "Your account is pending administrative approval. Password reset is currently disabled.");
+
+        // 3. Reject legacy/local student emails
         if (user.Email.EndsWith("@student.local", StringComparison.OrdinalIgnoreCase))
             return (false, "This account does not have a registered external email for password recovery. Please contact your administrator.");
 
