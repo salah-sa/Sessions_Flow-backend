@@ -1,27 +1,27 @@
-import { fetchWithAuth } from "./client";
-import { User, Group, Student, Session, PendingEngineer, PaginatedResponse } from "../types";
+import { fetchWithAuth, fetchPublic } from "./client";
+import { User, Group, Student, Session, PendingEngineer, PaginatedResponse, LoginCredentials, AuthResponse, RegisterEngineerData, RegisterStudentRequestData, GroupCreateData, GroupUpdateData } from "../types";
 
 // Auth Module
 export const authApi = {
-  login: (credentials: { identifier: string; password: string; portal: "Admin" | "Student"; studentId?: string; engineerCode?: string }) => 
-    fetchWithAuth<{ token: string; user: User }>("/auth/login", {
+  login: (credentials: LoginCredentials) => 
+    fetchPublic<AuthResponse>("/auth/login", {
       method: "POST",
       body: JSON.stringify(credentials),
     }),
-  register: (data: any) =>
-    fetchWithAuth<{ message: string; id: string }>("/auth/register", {
+  register: (data: RegisterEngineerData) =>
+    fetchPublic<{ message: string; id: string }>("/auth/register", {
       method: "POST",
       body: JSON.stringify(data),
     }),
-  registerStudentQueue: (data: { name: string; username: string; email: string; password: string; groupName: string }) =>
-    fetchWithAuth<{ message: string; id: string }>("/auth/register-student-request", {
+  registerStudentQueue: (data: RegisterStudentRequestData) =>
+    fetchPublic<{ message: string; id: string }>("/auth/register-student-request", {
       method: "POST",
       body: JSON.stringify(data),
     }),
-  getPendingStudentRequests: () => fetchWithAuth<any[]>("/auth/pending-student-requests"),
-  discoverGroup: (name: string) => fetchWithAuth<{ groupName: string; engineerName: string; level: number; students: { id: string; name: string }[] }>(`/auth/discover-group?name=${name}`),
+  getPendingStudentRequests: () => fetchWithAuth<PendingEngineer[]>("/auth/pending-student-requests"),
+  discoverGroup: (name: string) => fetchPublic<{ groupName: string; engineerName: string; level: number; students: { id: string; name: string }[] }>(`/auth/discover-group?name=${name}`),
   approveStudentRequest: (id: string) =>
-    fetchWithAuth<{ message: string; user: any }>(`/auth/approve-student-request/${id}`, { method: "POST" }),
+    fetchWithAuth<{ message: string; user: User }>(`/auth/approve-student-request/${id}`, { method: "POST" }),
   denyStudentRequest: (id: string) =>
     fetchWithAuth<{ message: string }>(`/auth/deny-student-request/${id}`, { method: "POST" }),
   getMe: () => fetchWithAuth<User>("/auth/me"),
@@ -39,7 +39,7 @@ export const authApi = {
 
 // Groups Module
 export const groupsApi = {
-  getAll: (params?: any) => {
+  getAll: (params?: { page?: number; pageSize?: number; search?: string; status?: string }) => {
     const p = new URLSearchParams();
     if (params?.page) p.set("page", String(params.page));
     if (params?.pageSize) p.set("pageSize", String(params.pageSize));
@@ -48,12 +48,12 @@ export const groupsApi = {
     return fetchWithAuth<PaginatedResponse<Group>>(`/groups?${p.toString()}`);
   },
   getById: (id: string) => fetchWithAuth<Group>(`/groups/${id}`),
-  create: (data: any) =>
+  create: (data: GroupCreateData) =>
     fetchWithAuth<Group>("/groups", {
       method: "POST",
       body: JSON.stringify(data),
     }),
-  update: (id: string, data: any) =>
+  update: (id: string, data: GroupUpdateData) =>
     fetchWithAuth<Group>(`/groups/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),

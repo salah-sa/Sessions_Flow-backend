@@ -85,7 +85,12 @@ public static class GroupEndpoints
             var schedulesDict = allSchedules.GroupBy(s => s.GroupId).ToDictionary(g => g.Key, g => g.ToList());
 
             var allStudents = await db.Students.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync();
-            var studentCountDict = allStudents.GroupBy(s => s.GroupId).ToDictionary(g => g.Key, g => g.Count());
+            var studentCountDict = allStudents
+                .GroupBy(s => s.GroupId)
+                .ToDictionary(
+                    g => g.Key, 
+                    g => g.GroupBy(s => s.Name.ToLower().Trim()).Count()
+                );
 
             var allSessions = await db.Sessions.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync();
             var sessionsDict = allSessions.GroupBy(s => s.GroupId).ToDictionary(g => g.Key, g => g.ToList());
@@ -159,7 +164,15 @@ public static class GroupEndpoints
 
             var engineer = await db.Users.Find(u => u.Id == g.EngineerId).FirstOrDefaultAsync();
             var schedules = await db.GroupSchedules.Find(s => s.GroupId == g.Id).ToListAsync();
-            var studentCount = (int)await db.Students.CountDocumentsAsync(s => s.GroupId == g.Id && !s.IsDeleted);
+            
+            // Deduplicate to get the true unique student count
+            var allRawStudents = await db.Students.Find(s => s.GroupId == g.Id && !s.IsDeleted).ToListAsync();
+            var uniqueStudents = allRawStudents
+                .GroupBy(s => s.Name.ToLower().Trim())
+                .Select(group => group.OrderByDescending(s => s.UserId != null).ThenByDescending(s => s.CreatedAt).First())
+                .ToList();
+            
+            var studentCount = uniqueStudents.Count;
             
             var groupSessions = await db.Sessions.Find(s => s.GroupId == g.Id && !s.IsDeleted).ToListAsync();
             var completedSessionsCount = groupSessions.Count(s => s.Status == SessionStatus.Ended);
@@ -167,7 +180,7 @@ public static class GroupEndpoints
             var studentsList = new List<Student>();
             if (role == "Admin" || role == "Engineer")
             {
-                studentsList = await db.Students.Find(s => s.GroupId == g.Id && !s.IsDeleted).ToListAsync();
+                studentsList = uniqueStudents;
             }
 
             return Results.Ok(new
@@ -495,10 +508,16 @@ public static class GroupEndpoints
             var students = new List<Student>();
             if (role != "Student")
             {
-                students = await db.Students
+                var rawStudents = await db.Students
                     .Find(s => s.GroupId == id && !s.IsDeleted)
                     .SortBy(s => s.Name)
                     .ToListAsync();
+
+                students = rawStudents
+                    .GroupBy(s => s.Name.ToLower().Trim())
+                    .Select(group => group.OrderByDescending(s => s.UserId != null).ThenByDescending(s => s.CreatedAt).First())
+                    .OrderBy(s => s.Name)
+                    .ToList();
             }
 
             return Results.Ok(students.Select(s => new

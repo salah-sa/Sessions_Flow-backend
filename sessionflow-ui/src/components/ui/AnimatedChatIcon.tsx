@@ -101,7 +101,7 @@ const AnimatedChatIcon: React.FC<AnimatedChatIconProps> = ({
       
       {state === "ping" && !shouldReduceMotion && (
         <motion.div
-          className="absolute inset-0 rounded-full border-2 border-brand-500 opacity-0"
+          className="absolute inset-0 rounded-full border-2 border-var(--ui-accent) opacity-0"
           animate={{
             scale: [1, 1.8],
             opacity: [0.5, 0],
@@ -118,3 +118,4 @@ const AnimatedChatIcon: React.FC<AnimatedChatIconProps> = ({
 };
 
 export default AnimatedChatIcon;
+

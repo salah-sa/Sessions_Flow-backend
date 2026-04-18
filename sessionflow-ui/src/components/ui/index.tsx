@@ -1,34 +1,53 @@
-import React from "react";
+import React, { useEffect, useState, useRef } from "react";
+import Magnetic from "./Magnetic";
+
 import { cn } from "../../lib/utils";
-import { X, Shield, Activity, Target, AlertCircle, Inbox } from "lucide-react";
+import { X, AlertCircle, Inbox, Zap, Info, ShieldAlert } from "lucide-react";
+import { motion, AnimatePresence, HTMLMotionProps } from "framer-motion";
+
+// Global interaction refractions
+const useCursorGlow = () => {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  useEffect(() => {
+    const updateMousePosition = (ev: MouseEvent) => {
+      setMousePosition({ x: ev.clientX, y: ev.clientY });
+    };
+    window.addEventListener("mousemove", updateMousePosition);
+    return () => window.removeEventListener("mousemove", updateMousePosition);
+  }, []);
+  return mousePosition;
+};
 
 // Button
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger" | "success";
+interface ButtonProps extends Omit<HTMLMotionProps<"button">, "ref"> {
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger" | "success" | "glow";
   size?: "sm" | "md" | "lg" | "icon";
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "primary", size = "md", ...props }, ref) => {
     const variants = {
-      primary: "bg-brand-500 text-white hover:bg-brand-400 shadow-glow shadow-brand-500/20 active:scale-95 border border-brand-400/20",
-      secondary: "bg-slate-800 text-slate-100 hover:bg-slate-700 active:scale-95 border border-white/5",
-      outline: "bg-transparent border border-white/10 text-slate-400 hover:text-white hover:bg-white/5 active:scale-95",
-      ghost: "bg-transparent text-slate-500 hover:text-white hover:bg-white/5 active:scale-95",
-      danger: "bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white shadow-glow shadow-red-500/10 active:scale-95",
-      success: "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white shadow-glow shadow-emerald-500/10 active:scale-95",
+      primary: "bg-[var(--ui-accent)] text-white shadow-xl hover:opacity-90 shadow-[var(--ui-accent)]/20 active:scale-[0.98]",
+      secondary: "bg-[var(--ui-bg)] text-slate-100 border border-white/5 hover:bg-white/[0.05] hover:border-white/10",
+      outline: "bg-transparent border border-white/10 text-slate-300 hover:text-white hover:border-[var(--ui-accent)]/50 hover:bg-[var(--ui-accent)]/10",
+      ghost: "bg-transparent text-slate-400 hover:text-white hover:bg-white/5",
+      danger: "bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20",
+      success: "bg-[var(--ui-accent)]/10 text-white border border-[var(--ui-accent)]/20 hover:bg-[var(--ui-accent)]/20",
+      glow: "bg-[var(--ui-accent)] text-white shadow-glow shadow-[var(--ui-accent)]/40",
     };
     const sizes = {
-      sm: "px-4 py-1.5 text-[9px]",
-      md: "px-6 py-2.5 text-[10px]",
-      lg: "px-8 py-3.5 text-[12px]",
+      sm: "px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest",
+      md: "px-6 py-2.5 text-[11px] font-bold uppercase tracking-widest",
+      lg: "px-8 py-3.5 text-[12px] font-bold uppercase tracking-widest",
       icon: "p-2.5 rounded-xl",
     };
-    return (
-      <button
+
+    const button = (
+      <motion.button
+        whileTap={{ scale: 0.98 }}
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center rounded-xl font-black uppercase tracking-widest transition-all disabled:opacity-30 disabled:pointer-events-none font-sora",
+          "inline-flex relative overflow-hidden items-center justify-center rounded-xl font-bold transition-all duration-300 disabled:opacity-30 disabled:pointer-events-none",
           variants[variant],
           sizes[size],
           className
@@ -36,17 +55,31 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       />
     );
+
+    if (variant === "primary" || variant === "glow") {
+      return <Magnetic strength={0.3}>{button}</Magnetic>;
+    }
+
+    return button;
   }
 );
+Button.displayName = "Button";
+
+export { Magnetic };
 
 // Card
-export const Card = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div
-    className={cn("bg-slate-900/40 backdrop-blur-3xl border border-white/5 rounded-3xl overflow-hidden shadow-2xl", className)}
+export const Card = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement> & Omit<HTMLMotionProps<"div">, "ref">) => (
+  <motion.div
+    transition={{ duration: 0.3, ease: "easeOut" }}
+    className={cn(
+      "group relative bg-[var(--ui-sidebar-bg)]/80 backdrop-blur-3xl border border-white/5 rounded-xl overflow-hidden shadow-2xl",
+      className
+    )}
     {...props}
   >
+    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
     {children}
-  </div>
+  </motion.div>
 );
 
 // Input
@@ -56,23 +89,22 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, variant = "default", ...props }, ref) => {
-    const variants = {
-      default: "text-[11px] font-black tracking-widest",
-      auth: "text-sm font-medium tracking-normal normal-case",
-    };
     return (
-      <input
-        ref={ref}
-        className={cn(
-          "flex h-12 w-full rounded-xl border border-white/5 bg-slate-950/60 px-5 py-3 text-white placeholder:text-slate-600 placeholder:normal-case placeholder:font-normal placeholder:tracking-normal focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500/50 transition-all shadow-inner",
-          variants[variant],
-          className
-        )}
-        {...props}
-      />
+      <div className="relative group/input">
+        <input
+          ref={ref}
+          className={cn(
+            "flex h-12 w-full rounded-xl border border-white/10 bg-black/40 px-5 py-2 text-white text-[12px] font-medium placeholder:text-slate-700 placeholder:uppercase placeholder:font-bold placeholder:tracking-widest focus:outline-none focus:border-[var(--ui-accent)]/50 focus:bg-black/60 transition-all",
+            className
+          )}
+          {...props}
+        />
+        <div className="absolute bottom-0 inset-x-1/2 -translate-x-1/2 w-0 h-px bg-[var(--ui-accent)] group-focus-within/input:w-[90%] transition-all duration-500" />
+      </div>
     );
   }
 );
+Input.displayName = "Input";
 
 // Badge
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
@@ -81,18 +113,18 @@ interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 
 export const Badge = ({ className, variant = "default", ...props }: BadgeProps) => {
   const variants: Record<string, string> = {
-    default: "bg-slate-900 text-slate-500 border-white/5",
-    primary: "bg-brand-500/10 text-brand-500 border-brand-500/20",
-    success: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-    warning: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-    danger: "bg-red-500/10 text-red-500 border-red-500/20",
-    outline: "bg-transparent border-white/10 text-slate-400",
-    secondary: "bg-slate-800 text-slate-400 border-white/5",
-    glow: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.3)]",
+      default: "bg-white/[0.02] text-slate-500 border border-white/5",
+      primary: "bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] border border-[var(--ui-accent)]/20 shadow-glow shadow-[var(--ui-accent)]/5",
+      success: "bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] border border-[var(--ui-accent)]/20",
+      warning: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
+      danger: "bg-rose-500/10 text-rose-400 border border-rose-500/20",
+      outline: "bg-transparent border border-white/10 text-slate-500",
+      secondary: "bg-black/40 text-slate-400 border border-white/5",
+      glow: "bg-[var(--ui-accent)]/20 text-[var(--ui-accent)] border border-[var(--ui-accent)]/40 shadow-glow shadow-[var(--ui-accent)]/10",
   };
   return (
     <span
-      className={cn("px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-[0.15em] border inline-flex items-center justify-center", variants[variant], className)}
+      className={cn("px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] inline-flex items-center justify-center", variants[variant], className)}
       {...props}
     />
   );
@@ -109,53 +141,64 @@ interface ModalProps {
 }
 
 export const Modal = ({ isOpen, onClose, title, subtitle, children, className }: ModalProps) => {
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-2xl animate-in fade-in duration-300" onClick={onClose} role="presentation">
-      <div 
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
-        className={cn("w-full max-w-xl bg-slate-950 border border-white/10 rounded-[2.5rem] shadow-[0_0_100px_-20px_rgba(59,130,246,0.15)] overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-8 duration-300", className)}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-10 py-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-          <div className="space-y-1">
-             <div className="flex items-center gap-3">
-                <div className="w-1.5 h-6 bg-brand-500 rounded-full" />
-                <h2 id="modal-title" className="text-xl font-sora font-black text-white tracking-widest uppercase">{title}</h2>
-             </div>
-             {subtitle && <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] ps-4">{subtitle}</p>}
-          </div>
-          <button 
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6" role="presentation">
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
             onClick={onClose}
-            aria-label="Close dialog"
-            className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 rounded-xl border border-transparent hover:border-white/5 transition-all"
+            className="absolute inset-0 bg-black/90 backdrop-blur-xl" 
+          />
+          
+          <motion.div 
+            role="dialog" 
+            aria-modal="true"
+            initial={{ scale: 0.95, y: 20, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 0.95, y: 20, opacity: 0 }}
+            className={cn("relative w-full max-w-xl bg-[var(--ui-sidebar-bg)]/95 backdrop-blur-3xl border border-white/10 rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden", className)}
+            onClick={(e) => e.stopPropagation()}
           >
-            <X className="w-5 h-5" />
-          </button>
+            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--ui-accent)]/40 to-transparent" />
+            
+            <div className="px-10 py-8 border-b border-white/5 flex items-center justify-between">
+              <div>
+                <h2 id="modal-title" className="text-xl font-bold text-white uppercase tracking-widest">{title}</h2>
+                {subtitle && <p className="text-[10px] text-slate-500 mt-1 font-bold uppercase tracking-widest">{subtitle}</p>}
+              </div>
+              <button 
+                onClick={onClose}
+                className="p-3 text-slate-500 hover:text-white bg-white/5 rounded-xl transition-all border border-white/5 hover:border-white/10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="px-10 py-10">
+              {children}
+            </div>
+          </motion.div>
         </div>
-        <div className="px-10 py-10 font-sora">
-          {children}
-        </div>
-      </div>
-    </div>
+      )}
+    </AnimatePresence>
   );
 };
 
-// Tabs (Simple implementation)
+// Tabs
 export const TabsList = ({ children, className }: any) => (
-  <div className={cn("flex bg-slate-950 border border-white/5 p-1 rounded-2xl w-fit", className)}>{children}</div>
+  <div className={cn("flex bg-black/40 p-1.5 rounded-xl border border-white/5 w-fit", className)}>{children}</div>
 );
 
 export const TabsTrigger = ({ active, onClick, children, className }: any) => (
   <button
     onClick={onClick}
     className={cn(
-      "px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-      active ? "bg-brand-500 text-white shadow-glow shadow-brand-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5",
-      className
+      "px-6 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all duration-300 relative",
+      active 
+        ? "bg-[var(--ui-accent)] text-white shadow-glow shadow-[var(--ui-accent)]/20" 
+        : "text-slate-500 hover:text-white"
     )}
   >
     {children}
@@ -166,11 +209,14 @@ export const TabsTrigger = ({ active, onClick, children, className }: any) => (
 export const Skeleton = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
   return (
     <div
-      className={cn("animate-pulse rounded-2xl bg-white/[0.03] border border-white/5", className)}
+      className={cn("animate-pulse rounded-xl bg-white/[0.02] border border-white/5 relative overflow-hidden", className)}
       {...props}
-    />
+    >
+      <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-[var(--ui-accent)]/5 to-transparent animate-[shimmer_3s_infinite]" />
+    </div>
   );
 };
+
 // Confirm Dialog
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -197,12 +243,12 @@ export const ConfirmDialog = ({
 }: ConfirmDialogProps) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title}>
-      <div className="space-y-6">
-        <p className="text-slate-400 text-sm leading-relaxed">{description}</p>
-        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+      <div className="space-y-8">
+        <p className="text-slate-400 text-[13px] font-medium leading-relaxed">{description}</p>
+        <div className="flex flex-col sm:flex-row gap-4 pt-4">
           <Button 
             className="flex-1" 
-            variant="outline" 
+            variant="secondary" 
             onClick={onClose}
             disabled={isLoading}
           >
@@ -210,11 +256,11 @@ export const ConfirmDialog = ({
           </Button>
           <Button 
             className="flex-1" 
-            variant={variant === "danger" ? "danger" : "primary"} 
+            variant={variant === "danger" ? "danger" : "glow"} 
             onClick={onConfirm}
             disabled={isLoading}
           >
-            {isLoading ? <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : confirmLabel}
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : confirmLabel}
           </Button>
         </div>
       </div>
@@ -233,18 +279,28 @@ interface EmptyStateProps {
 
 export const EmptyState = ({ icon: Icon = Inbox, title, description, action, className }: EmptyStateProps) => {
   return (
-    <div className={cn("flex flex-col items-center justify-center p-12 text-center animate-fade-in", className)}>
-      <div className="w-20 h-20 bg-slate-900/50 border border-white/5 rounded-[2rem] flex items-center justify-center mb-6 shadow-glow shadow-slate-900/50">
-        <Icon className="w-8 h-8 text-slate-500" />
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={cn("flex flex-col items-center justify-center p-16 text-center", className)}
+    >
+      <div className="relative mb-10 group">
+        <div className="absolute inset-0 bg-[var(--ui-accent)]/20 blur-[40px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+        <div className="relative w-24 h-24 bg-[var(--ui-bg)] border border-white/10 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-500 hover:border-[var(--ui-accent)]/50 hover:-translate-y-2">
+          <Icon className="w-10 h-10 text-slate-600 group-hover:text-[var(--ui-accent)] transition-colors" />
+        </div>
+        <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-black/80 border border-white/10 flex items-center justify-center">
+           <Zap className="w-4 h-4 text-[var(--ui-accent)]" />
+        </div>
       </div>
-      <h3 className="text-xl font-sora font-black text-white tracking-widest uppercase mb-2">
+      <h3 className="text-2xl font-bold text-white uppercase tracking-widest mb-4">
         {title}
       </h3>
-      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] max-w-md mb-8">
+      <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.3em] max-w-sm mb-10 leading-loose">
         {description}
       </p>
-      {action && <div>{action}</div>}
-    </div>
+      {action && <div className="animate-fade-in [animation-delay:500ms]">{action}</div>}
+    </motion.div>
   );
 };
 
@@ -256,25 +312,40 @@ interface ErrorStateProps {
   className?: string;
 }
 
-export const ErrorState = ({ title = "System Error", error, onRetry, className }: ErrorStateProps) => {
+export const ErrorState = ({ title = "Neural Link Error", error, onRetry, className }: ErrorStateProps) => {
   const errorMessage = error instanceof Error ? error.message : String(error);
   
   return (
-    <div className={cn("flex flex-col items-center justify-center p-12 text-center animate-fade-in", className)}>
-      <div className="w-20 h-20 bg-red-500/10 border border-red-500/20 rounded-[2rem] flex items-center justify-center mb-6 shadow-glow shadow-red-500/20">
-        <AlertCircle className="w-8 h-8 text-red-500" />
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className={cn("flex flex-col items-center justify-center p-16 text-center", className)}
+    >
+      <div className="relative w-24 h-24 bg-rose-500/5 border border-rose-500/20 rounded-2xl flex items-center justify-center mb-10 shadow-2xl">
+        <ShieldAlert className="w-10 h-10 text-rose-500" />
+        <div className="absolute inset-0 bg-rose-500/10 blur-2xl rounded-full" />
       </div>
-      <h3 className="text-xl font-sora font-black text-red-500 tracking-widest uppercase mb-2">
+      <h3 className="text-2xl font-bold text-rose-500 uppercase tracking-widest mb-4">
         {title}
       </h3>
-      <p className="text-[10px] text-red-400/80 font-bold uppercase tracking-[0.2em] max-w-md mb-8 p-4 bg-red-500/5 border border-red-500/10 rounded-xl">
-        {errorMessage}
-      </p>
+      <div className="relative overflow-hidden mb-10 px-8 py-6 bg-rose-500/[0.02] border border-rose-500/10 rounded-xl max-w-md">
+        <p className="text-[10px] text-rose-400 font-bold uppercase tracking-widest leading-relaxed">
+          {errorMessage}
+        </p>
+      </div>
       {onRetry && (
-        <Button variant="danger" onClick={onRetry}>
-          Re-Initialize
+        <Button variant="danger" size="lg" onClick={onRetry} className="rounded-xl">
+          RE-INITIALIZE LINK
         </Button>
       )}
-    </div>
+    </motion.div>
   );
 };
+
+const Loader2 = ({ className }: { className?: string }) => (
+  <motion.div
+    animate={{ rotate: 360 }}
+    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+    className={cn("w-5 h-5 border-2 border-[var(--ui-accent)]/20 border-t-[var(--ui-accent)] rounded-[2px]", className)}
+  />
+);

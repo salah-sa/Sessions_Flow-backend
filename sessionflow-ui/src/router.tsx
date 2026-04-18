@@ -24,7 +24,7 @@ const ArchivePage = lazy(() => import("./pages/ArchivePage"));
 const PageLoader = () => (
   <div className="h-full w-full flex items-center justify-center bg-slate-950/50 backdrop-blur-md animate-fade-in">
     <div className="flex flex-col items-center gap-4">
-      <div className="w-12 h-12 border-4 border-brand-500/20 border-t-brand-500 rounded-full animate-spin" />
+      <div className="w-12 h-12 border-4 border-[var(--ui-accent)]/20 border-t-[var(--ui-accent)] rounded-full animate-spin" />
       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Loading Resources</p>
     </div>
   </div>

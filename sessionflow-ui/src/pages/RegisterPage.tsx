@@ -99,7 +99,8 @@ const RegisterPage: React.FC = () => {
           data.identifier,
           data.email,
           data.password,
-          data.groupName
+          data.groupName,
+          selectedStudent.id
         );
       }
 
@@ -138,7 +139,9 @@ const RegisterPage: React.FC = () => {
         selectedStudent={selectedStudent}
         onSelectStudent={onSelectStudent}
         onResetDiscovery={onResetDiscovery}
+        watch={watch}
       />
+
     </AuthLayout>
   );
 };

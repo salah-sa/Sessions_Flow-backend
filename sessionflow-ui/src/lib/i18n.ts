@@ -54,6 +54,19 @@ const resources = {
           "saturday": "Saturday"
         }
       },
+      "nav": {
+        "dashboard": "Dashboard",
+        "groups": "Groups",
+        "sessions": "Sessions",
+        "students": "Students",
+        "timetable": "Timetable",
+        "chat": "Chat",
+        "history": "History",
+        "archive": "Archive",
+        "profile": "Profile",
+        "settings": "Settings",
+        "logout": "Sign Out"
+      },
       "dashboard": {
         "welcome": "Welcome back",
         "subtitle": "Here's what's happening at SessionFlow today.",
@@ -827,6 +840,19 @@ const resources = {
         "warning": "تحذير",
         "info": "معلومات",
         "cairo_time": "توقيت القاهرة"
+      },
+      "nav": {
+        "dashboard": "لوحة التحكم",
+        "groups": "المجموعات",
+        "sessions": "الجلسات",
+        "students": "الطلاب",
+        "timetable": "الجدول الزمني",
+        "chat": "المحادثة",
+        "history": "السجل",
+        "archive": "الأرشيف",
+        "profile": "الملف الشخصي",
+        "settings": "الإعدادات",
+        "logout": "تسجيل الخروج"
       },
       "dashboard": {
         "welcome": "أهلاً بك مجدداً",

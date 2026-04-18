@@ -1,5 +1,5 @@
 import { fetchWithAuth } from "./client";
-import { Session, Student, AttendanceRecord, ChatMessage, MessageMention, TimetableEntry, Setting, EngineerCode, PendingEngineer, Station, Notification, AuditLog, PaginatedResponse, DashboardSummary } from "../types";
+import { Session, Student, User, AttendanceRecord, ChatMessage, MessageMention, TimetableEntry, Setting, EngineerCode, PendingEngineer, Station, Notification, AuditLog, PaginatedResponse, DashboardSummary, AttendanceUpdateRecord, MessageBlock, ImportPreview, ImportResult, StudentDashboardData } from "../types";
 
 // Dashboard Module
 export const dashboardApi = {
@@ -31,7 +31,7 @@ export const sessionsApi = {
       method: "POST",
       body: JSON.stringify({ notes }),
     }),
-  updateAttendance: (sessionId: string, records: any[]) =>
+  updateAttendance: (sessionId: string, records: AttendanceUpdateRecord[]) =>
     fetchWithAuth<void>(`/sessions/${sessionId}/attendance`, {
       method: "PUT",
       body: JSON.stringify(records),
@@ -64,7 +64,7 @@ export const studentsApi = {
 export const timetableApi = {
   getEntries: () => fetchWithAuth<{ sessions: Session[]; availability: TimetableEntry[]; weekStart: string; weekEnd: string }>("/timetable"),
   getAvailability: () => fetchWithAuth<TimetableEntry[]>("/timetable/availability"),
-  updateAvailability: (entries: any[]) =>
+  updateAvailability: (entries: TimetableEntry[]) =>
     fetchWithAuth<void>("/timetable/availability", {
       method: "PUT",
       body: JSON.stringify(entries),
@@ -83,12 +83,12 @@ export const chatApi = {
     const query = p.toString();
     return fetchWithAuth<ChatMessage[]>(`/chat/${groupId}/messages${query ? `?${query}` : ""}`);
   },
-  sendMessage: (groupId: string, text: string, blocks?: any[], mentions?: MessageMention[], id?: string) =>
+  sendMessage: (groupId: string, text: string, blocks?: MessageBlock[], mentions?: MessageMention[], id?: string) =>
     fetchWithAuth<ChatMessage>(`/chat/${groupId}/messages`, {
       method: "POST",
       body: JSON.stringify({ id, text, blocks, mentions }),
     }),
-  sendMessageWithFile: (groupId: string, text: string, file: File, blocks?: any[], mentions?: MessageMention[], id?: string) => {
+  sendMessageWithFile: (groupId: string, text: string, file: File, blocks?: MessageBlock[], mentions?: MessageMention[], id?: string) => {
     const formData = new FormData();
     if (id) formData.append("id", id);
     formData.append("text", text);
@@ -104,7 +104,7 @@ export const chatApi = {
 
 // Engineers Module
 export const engineersApi = {
-  getAll: () => fetchWithAuth<any[]>("/engineers"),
+  getAll: () => fetchWithAuth<User[]>("/engineers"),
   getPending: () => fetchWithAuth<PendingEngineer[]>("/pending"),
   approve: (id: string) => fetchWithAuth<void>(`/pending/${id}/approve`, { method: "PUT" }),
   deny: (id: string) => fetchWithAuth<void>(`/pending/${id}/deny`, { method: "PUT" }),
@@ -122,7 +122,7 @@ export const stationsApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
-  update: (id: string, data: any) =>
+  update: (id: string, data: Partial<Station>) =>
     fetchWithAuth<Station>(`/stations/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
@@ -133,7 +133,7 @@ export const stationsApi = {
 // Settings Module
 export const settingsApi = {
   getAll: () => fetchWithAuth<Setting[]>("/settings"),
-  update: (settings: any) =>
+  update: (settings: Setting[]) =>
     fetchWithAuth<void>("/settings", {
       method: "PUT",
       body: JSON.stringify(settings),
@@ -165,22 +165,12 @@ export const importApi = {
       body: JSON.stringify({ email, password }),
     }),
   preview: (email: string, password: string) =>
-    fetchWithAuth<{ 
-      success: boolean; 
-      groupsFound: number; 
-      groups: any[] 
-    }>("/import/3cschool/preview", {
+    fetchWithAuth<ImportPreview>("/import/3cschool/preview", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
   execute: (email: string, password: string) =>
-    fetchWithAuth<{ 
-      success: boolean; 
-      groupsFound: number; 
-      groupsImported: number; 
-      studentsImported: number; 
-      groups: any[] 
-    }>("/import/3cschool/execute", {
+    fetchWithAuth<ImportResult>("/import/3cschool/execute", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
@@ -199,5 +189,5 @@ export const reportsApi = {
 
 // Student Dashboard Module
 export const studentApi = {
-  getDashboard: () => fetchWithAuth<any>("/student/dashboard")
+  getDashboard: () => fetchWithAuth<StudentDashboardData>("/student/dashboard")
 };

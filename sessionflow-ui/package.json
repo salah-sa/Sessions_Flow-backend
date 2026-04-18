@@ -3,9 +3,11 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite --port 5174",
     "build": "npx tsx scripts/arch-guard.ts && tsc -b && vite build",
+    "build:exe": "npm run build && electron-builder",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "lint:arch": "npx tsx scripts/arch-guard.ts"
@@ -30,6 +32,7 @@
     "axios": "^1.14.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "d3-geo": "^3.1.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^11.18.2",
     "gsap": "^3.14.2",
@@ -42,8 +45,10 @@
     "react-hook-form": "^7.72.1",
     "react-i18next": "^17.0.2",
     "react-router-dom": "^6.30.3",
+    "react-simple-maps": "^3.0.0",
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.6.1",
+    "topojson-client": "^3.1.0",
     "zod": "^3.25.76",
     "zustand": "^5.0.12"
   },
@@ -56,6 +61,22 @@
     "tailwindcss": "^4.0.0",
     "tsx": "^4.21.0",
     "typescript": "~5.6.3",
-    "vite": "^6.0.1"
+    "vite": "^6.0.1",
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.sessionflow.app",
+    "productName": "SessionFlow",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/main.cjs"
+    ],
+    "win": {
+      "target": "portable"
+    }
   }
 }

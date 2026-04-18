@@ -7,7 +7,7 @@
 
 import { authApi } from "./resources";
 import { useAuthStore } from "../store/stores";
-import { User } from "../types";
+import { User, LoginCredentials, PendingEngineer } from "../types";
 
 export interface AuthResult {
   success: boolean;
@@ -27,7 +27,7 @@ export async function loginUser(
   engineerCode?: string
 ): Promise<AuthResult> {
   try {
-    const credentials: any = { identifier, password, portal };
+    const credentials: LoginCredentials = { identifier, password, portal };
     if (studentId) credentials.studentId = studentId;
     if (engineerCode) credentials.engineerCode = engineerCode;
 
@@ -68,17 +68,18 @@ export async function registerStudentQueue(
   username: string,
   email: string,
   password: string,
-  groupName: string
+  groupName: string,
+  studentId: string
 ): Promise<AuthResult> {
   try {
-    await authApi.registerStudentQueue({ name, username, email, password, groupName });
+    await authApi.registerStudentQueue({ name, username, email, password, groupName, studentId });
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || "Registration failed" };
   }
 }
 
-export async function getPendingStudentRequests(): Promise<any[]> {
+export async function getPendingStudentRequests(): Promise<PendingEngineer[]> {
   try {
     return await authApi.getPendingStudentRequests();
   } catch (err: any) {

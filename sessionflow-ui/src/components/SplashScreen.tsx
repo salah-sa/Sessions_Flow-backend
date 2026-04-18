@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useCallback, useState } from "react";
 import gsap from "gsap";
+import { useUIStore } from "../store/stores";
+
 
 /**
  * Cinematic Splash — "Particle Convergence" 
@@ -110,6 +112,8 @@ const SplashScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
   const tlRef = useRef<gsap.core.Timeline | null>(null);
 
   const [particles] = useState(generateParticles);
+  const accentColor = useUIStore(s => s.customTheme?.accent ?? "#10b981");
+  const theme = useUIStore(s => s.theme);
 
   const finish = useCallback(() => {
     if (finishedRef.current) return;
@@ -130,6 +134,11 @@ const SplashScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
   }, [onFinish]);
 
   useEffect(() => {
+    // Inject the accent color into the local context for CSS vars if needed
+    if (containerRef.current) {
+       containerRef.current.style.setProperty('--local-accent', accentColor);
+    }
+    
     const tl = gsap.timeline({
       onComplete: finish,
       defaults: { ease: "expo.out" },
@@ -247,7 +256,7 @@ const SplashScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
       clearTimeout(safetyTimer);
       tl.kill();
     };
-  }, [particles, finish]);
+  }, [particles, finish, accentColor]);
 
   // Click or keydown to skip
   useEffect(() => {
@@ -271,9 +280,18 @@ const SplashScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
     >
       {/* Ambient background glow — multi-layered */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-emerald-500/[0.05] rounded-full blur-[140px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-teal-500/[0.04] rounded-full blur-[100px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] h-[200px] bg-cyan-400/[0.03] rounded-full blur-[60px]" />
+        <div 
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full blur-[140px]" 
+          style={{ backgroundColor: `${accentColor}08` }}
+        />
+        <div 
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full blur-[100px]" 
+          style={{ backgroundColor: `${accentColor}06` }}
+        />
+        <div 
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] h-[200px] rounded-full blur-[60px]" 
+          style={{ backgroundColor: `${accentColor}04` }}
+        />
       </div>
 
       {/* Grid pattern overlay */}
@@ -281,8 +299,8 @@ const SplashScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
         className="absolute inset-0 opacity-[0.03] pointer-events-none"
         style={{
           backgroundImage: `
-            linear-gradient(rgba(16, 185, 129, 0.3) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(16, 185, 129, 0.3) 1px, transparent 1px)
+            linear-gradient(${accentColor}4D 1px, transparent 1px),
+            linear-gradient(90deg, ${accentColor}4D 1px, transparent 1px)
           `,
           backgroundSize: '60px 60px',
         }}
@@ -300,8 +318,8 @@ const SplashScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
             style={{
               width: p.size,
               height: p.size,
-              backgroundColor: `hsl(${p.hue}, 85%, 60%)`,
-              boxShadow: `0 0 ${p.size * 4}px hsl(${p.hue}, 85%, 60%)`,
+              backgroundColor: accentColor,
+              boxShadow: `0 0 ${p.size * 4}px ${accentColor}`,
               willChange: "transform, opacity",
             }}
           />
@@ -311,9 +329,10 @@ const SplashScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
       {/* Primary Shockwave Ring */}
       <div
         ref={ringRef}
-        className="absolute w-24 h-24 rounded-full border-2 border-emerald-400/60 opacity-0"
+        className="absolute w-24 h-24 rounded-full border-2 border-white/20 opacity-0"
         style={{
-          boxShadow: "0 0 60px rgba(16, 185, 129, 0.4), inset 0 0 40px rgba(16, 185, 129, 0.1)",
+          borderColor: `${accentColor}66`,
+          boxShadow: `0 0 60px ${accentColor}66, inset 0 0 40px ${accentColor}1A`,
           willChange: "transform, opacity",
         }}
       />
@@ -321,9 +340,10 @@ const SplashScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
       {/* Secondary Shockwave Ring */}
       <div
         ref={ring2Ref}
-        className="absolute w-32 h-32 rounded-full border border-teal-400/30 opacity-0"
+        className="absolute w-32 h-32 rounded-full border opacity-0"
         style={{
-          boxShadow: "0 0 40px rgba(20, 184, 166, 0.2)",
+          borderColor: `${accentColor}4D`,
+          boxShadow: `0 0 40px ${accentColor}33`,
           willChange: "transform, opacity",
         }}
       />
@@ -334,7 +354,13 @@ const SplashScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
         className="absolute flex items-center justify-center opacity-0"
         style={{ willChange: "transform, opacity", transformStyle: "preserve-3d" }}
       >
-        <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-emerald-500 via-teal-500 to-emerald-600 flex items-center justify-center shadow-[0_0_80px_rgba(16,185,129,0.5),0_20px_60px_rgba(0,0,0,0.5)] border border-emerald-400/40 relative overflow-hidden">
+        <div 
+           className="w-24 h-24 rounded-3xl flex items-center justify-center shadow-[0_20px_60px_rgba(0,0,0,0.5)] border border-white/10 relative overflow-hidden"
+           style={{ 
+             background: `linear-gradient(135deg, ${accentColor}, ${accentColor}DD)`,
+             boxShadow: `0 0 80px ${accentColor}80, 0 20px 60px rgba(0,0,0,0.5)`
+           }}
+        >
           {/* Inner light sweep */}
           <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent" />
           <span className="text-white font-brand font-black text-4xl tracking-tighter relative z-10 drop-shadow-lg">SF</span>
@@ -353,10 +379,10 @@ const SplashScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
               key={i}
               className="splash-letter text-[46px] md:text-[60px] font-brand font-black text-white tracking-[0.08em] opacity-0"
               style={{
-                textShadow: "0 0 40px rgba(16, 185, 129, 0.4), 0 0 80px rgba(16, 185, 129, 0.12), 0 4px 20px rgba(0,0,0,0.5)",
+                textShadow: `0 0 40px ${accentColor}66, 0 0 80px ${accentColor}1F, 0 4px 20px rgba(0,0,0,0.5)`,
                 willChange: "transform, opacity",
                 transformStyle: "preserve-3d",
-                color: i === 7 ? "#10b981" : undefined, // The "F" in "Flow" gets emerald accent
+                color: i === 7 ? accentColor : undefined, // The "F" in "Flow" gets the dynamic accent
               }}
             >
               {char}
@@ -370,7 +396,10 @@ const SplashScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
         ref={subtitleRef}
         className="absolute mt-48 md:mt-52 opacity-0"
       >
-        <p className="text-[11px] md:text-[12px] font-bold text-emerald-500/60 uppercase tracking-[0.6em]">
+        <p 
+          className="text-[11px] md:text-[12px] font-bold uppercase tracking-[0.6em]"
+          style={{ color: `${accentColor}99` }}
+        >
           Enterprise Session Management
         </p>
       </div>

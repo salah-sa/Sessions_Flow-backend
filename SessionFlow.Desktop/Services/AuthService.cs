@@ -148,7 +148,7 @@ public class AuthService
         return (user, null);
     }
 
-    public async Task<(PendingStudentRequest? pending, string? error)> QueueStudentRequestAsync(string name, string username, string email, string password, string groupName)
+    public async Task<(PendingStudentRequest? pending, string? error)> QueueStudentRequestAsync(string name, string username, string email, string password, string groupName, string? studentId = null)
     {
         // 1. Check if username exists
         var usernameFilter = Builders<User>.Filter.Regex(u => u.Username, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(username)}$", "i"));
@@ -176,6 +176,7 @@ public class AuthService
             GroupName = group.Name,
             GroupId = group.Id,
             EngineerId = group.EngineerId,
+            StudentId = studentId,
             Status = PendingStatus.Pending
         };
 
@@ -232,17 +233,50 @@ public class AuthService
         if (engineer == null || string.IsNullOrEmpty(engineer.EngineerCode))
             return (null, "Managing engineer is not fully configured. Code missing.");
 
-        // Generate the Student Record
-        var studentCode = Models.Student.GenerateCode(pending.Name, pending.GroupId);
-        var student = new Student
+        // Generate the Student Record/Linkage
+        string studentCode;
+        Guid studentRecordId;
+
+        if (!string.IsNullOrEmpty(pending.StudentId))
         {
-            GroupId = pending.GroupId,
-            Name = pending.Name,
-            StudentId = studentCode, // Standard generated format
-            UniqueStudentCode = studentCode,
-            CreatedAt = DateTimeOffset.UtcNow
-        };
-        await _db.Students.InsertOneAsync(student);
+            // Linking to an existing student
+            var existingStudent = await _db.Students.Find(s => s.Id.ToString() == pending.StudentId || s.StudentId == pending.StudentId).FirstOrDefaultAsync();
+            if (existingStudent != null)
+            {
+                studentCode = existingStudent.UniqueStudentCode ?? existingStudent.StudentId;
+                studentRecordId = existingStudent.Id;
+            }
+            else
+            {
+                // Fallback: existing student not found, create new
+                studentCode = Models.Student.GenerateCode(pending.Name, pending.GroupId);
+                var newStudent = new Student
+                {
+                    GroupId = pending.GroupId,
+                    Name = pending.Name,
+                    StudentId = studentCode,
+                    UniqueStudentCode = studentCode,
+                    CreatedAt = DateTimeOffset.UtcNow
+                };
+                await _db.Students.InsertOneAsync(newStudent);
+                studentRecordId = newStudent.Id;
+            }
+        }
+        else
+        {
+            // Legacy flow: create new
+            studentCode = Models.Student.GenerateCode(pending.Name, pending.GroupId);
+            var student = new Student
+            {
+                GroupId = pending.GroupId,
+                Name = pending.Name,
+                StudentId = studentCode,
+                UniqueStudentCode = studentCode,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+            await _db.Students.InsertOneAsync(student);
+            studentRecordId = student.Id;
+        }
 
         // Create the User Account
         var user = new User
@@ -260,7 +294,7 @@ public class AuthService
 
         // Link the student record
         var updateStudent = Builders<Student>.Update.Set(s => s.UserId, user.Id).Set(s => s.UpdatedAt, DateTimeOffset.UtcNow);
-        await _db.Students.UpdateOneAsync(s => s.Id == student.Id, updateStudent);
+        await _db.Students.UpdateOneAsync(s => s.Id == studentRecordId, updateStudent);
 
         // Update pending status
         var updatePending = Builders<PendingStudentRequest>.Update

@@ -36,14 +36,14 @@ const OfflineModal: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+            className="absolute inset-0 bg-var(--ui-bg)/80 backdrop-blur-md"
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="relative bg-slate-900 border border-white/10 shadow-2xl rounded-3xl p-8 max-w-sm w-full text-center overflow-hidden"
+            className="relative bg-var(--ui-sidebar-bg) border border-white/10 shadow-2xl rounded-3xl p-8 max-w-sm w-full text-center overflow-hidden"
           >
             {/* Background elements */}
             <div className="absolute -top-24 -right-24 w-48 h-48 bg-red-500/10 blur-3xl rounded-full" />
@@ -108,3 +108,4 @@ const OfflineModal: React.FC = () => {
 };
 
 export default OfflineModal;
+

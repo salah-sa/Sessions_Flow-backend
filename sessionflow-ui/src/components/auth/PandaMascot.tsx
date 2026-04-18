@@ -501,7 +501,7 @@ const PandaMascot: React.FC<PandaMascotProps> = ({ state, passwordStrength = 0 }
             exit={{ opacity: 0, y: -5, scale: 0.5 }}
             transition={{ duration: 0.4 }}
           >
-            <span className="text-fuchsia-400 font-bold drop-shadow-lg">?</span>
+            <span className="text-[var(--ui-accent)] font-bold drop-shadow-lg">?</span>
           </motion.div>
         )}
       </AnimatePresence>

@@ -2,41 +2,41 @@ import React, { useEffect, useState, useCallback } from "react";
 import { RouterProvider } from "react-router-dom";
 import { router } from "./router";
 import { useUIStore, useAuthStore } from "./store/stores";
+import { UIStyleManager, UIStyleConfig } from "./styles/UIStyleManager";
 import SplashScreen from "./components/SplashScreen";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { SignalRProvider } from "./providers/SignalRProvider";
-import { UIStyleManager, UIStyleConfig } from "./styles/UIStyleManager";
 import { validateSession } from "./api/authService";
 
 const App: React.FC = () => {
-  const language = useUIStore((s) => s.language);
-  const theme = useUIStore((s) => s.theme);
   const [showSplash, setShowSplash] = useState(true);
   const token = useAuthStore((s) => s.token);
+
+  // Obsidian Protocol: Universal Mouse Refraction Tracking
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const x = (e.clientX / window.innerWidth) * 100;
+      const y = (e.clientY / window.innerHeight) * 100;
+      document.documentElement.style.setProperty('--mouse-x', `${x}%`);
+      document.documentElement.style.setProperty('--mouse-y', `${y}%`);
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   // Initialize UI Style System
   useEffect(() => {
     UIStyleManager.apply(UIStyleConfig.current);
   }, []);
 
-  useEffect(() => {
-    if (theme === "light") {
-      document.body.classList.add("theme-light");
-    } else {
-      document.body.classList.remove("theme-light");
-    }
-  }, [theme]);
-
-
-
-  // Validate stored token on app load — refresh user data or force logout
+  // Validate stored token on app load
   useEffect(() => {
     if (token) {
       validateSession().catch(() => {
-        // Token invalid — auth store already cleared by validateSession
+        // Token invalid handled by service
       });
     }
-  }, []); // Only on mount — not on every token change
+  }, [token]);
 
   const handleSplashFinish = useCallback(() => setShowSplash(false), []);
 

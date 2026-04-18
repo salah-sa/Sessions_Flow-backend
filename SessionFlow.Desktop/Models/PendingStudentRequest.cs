@@ -14,6 +14,7 @@ public class PendingStudentRequest
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     
+    public string? StudentId { get; set; }
     public string GroupName { get; set; } = string.Empty;
     
     [BsonRepresentation(BsonType.String)]

@@ -34,7 +34,7 @@ export const StyleGlassmorphism: React.FC<LoginStyleProps> = (props) => {
       />
       
       {/* Blurry Overlays */}
-      <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-[2px] z-0" />
+      <div className="absolute inset-0 bg-var(--ui-sidebar-bg)/30 backdrop-blur-[2px] z-0" />
       <div className="absolute top-[-15%] start-[-10%] w-[40%] h-[40%] bg-emerald-500/20 blur-[120px] rounded-full z-0" />
       <div className="absolute bottom-[-15%] end-[-10%] w-[40%] h-[40%] bg-cyan-500/20 blur-[120px] rounded-full z-0" />
 
@@ -197,3 +197,4 @@ export const StyleGlassmorphism: React.FC<LoginStyleProps> = (props) => {
     </>
   );
 };
+

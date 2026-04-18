@@ -18,6 +18,8 @@ import { Events } from "../lib/eventContracts";
 // This hook only handles page-level toast notifications.
 // ═══════════════════════════════════════════════════════════
 
+import { sounds } from "../lib/sounds";
+
 // Notifications Hook — uses query invalidation + mute filtering
 export const useRealtimeNotifications = () => {
   const { on } = useSignalR();
@@ -28,6 +30,8 @@ export const useRealtimeNotifications = () => {
       // Invalidate the notification cache — React Query will refetch if mounted
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
       toast.info(title, { description: message });
+      sounds.playNotification();
+      
       const host = await getHost();
       if (host) {
         host.showToast(title, message);
@@ -36,6 +40,12 @@ export const useRealtimeNotifications = () => {
 
     const unsub2 = on(Events.NOTIFICATION_CREATED, () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      sounds.playNotification();
+    });
+
+    const unsub3 = on(Events.MESSAGE_RECEIVE, () => {
+      // Tactical feedback for incoming communication
+      sounds.playPop();
     });
 
     // Note: Presence events (UserOnline, UserOffline, PresenceSnapshot)
@@ -44,6 +54,7 @@ export const useRealtimeNotifications = () => {
     return () => {
       unsub1();
       unsub2();
+      unsub3();
     };
   }, [on, queryClient]);
 };
