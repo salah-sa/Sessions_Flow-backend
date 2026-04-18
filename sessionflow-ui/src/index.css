@@ -62,6 +62,16 @@
     @apply h-full w-full antialiased selection:bg-[#c026d3]/30 transition-all duration-700 overflow-hidden;
   }
 
+  /* Scrollable page container — prevents content clipping */
+  .container-page {
+    @apply h-full overflow-y-auto overflow-x-hidden;
+    padding-inline: 1rem;
+    scroll-behavior: smooth;
+  }
+  @media (min-width: 640px)  { .container-page { padding-inline: 1.5rem; } }
+  @media (min-width: 1024px) { .container-page { padding-inline: 2rem; } }
+  @media (min-width: 1280px) { .container-page { padding-inline: 2.5rem; } }
+
   /* ACCESSIBILITY: Focus Visible Rings */
   :focus-visible {
     outline: 2px solid var(--ui-accent);

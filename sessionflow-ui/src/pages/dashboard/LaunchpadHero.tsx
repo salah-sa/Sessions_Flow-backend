@@ -8,47 +8,50 @@ export const LaunchpadHero: React.FC = () => {
   const userName = useAuthStore(state => state.user?.name);
 
   return (
-    <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-12 relative z-30">
-      <div className="space-y-6 animate-in fade-in slide-in-from-left-12 duration-1200">
-        <div className="flex items-center gap-4">
-          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] text-[10px] font-black uppercase tracking-[0.25em] border border-[var(--ui-accent)]/20 shadow-glow shadow-[var(--ui-accent)]/5">
-            <Terminal className="w-3.5 h-3.5" />
+    <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 md:gap-8 relative z-30">
+      <div className="space-y-4 animate-in fade-in slide-in-from-left-8 duration-1000 w-full md:w-auto">
+        {/* Status badges */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] border border-[var(--ui-accent)]/20">
+            <Terminal className="w-3 h-3" />
             {t("dashboard.system_online")}
           </div>
-          <div className="h-px w-12 bg-white/10" />
-          <div className="flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest leading-none">
-             <Activity className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
+          <div className="h-px w-6 bg-white/10 hidden sm:block" />
+          <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+             <Activity className="w-3 h-3 text-emerald-500 animate-pulse" />
              {t("dashboard.telemetry_active")}
           </div>
         </div>
         
-        <div className="space-y-1">
-           <h1 className="text-6xl md:text-[5.5rem] font-black text-white tracking-tighter uppercase leading-[0.8] flex flex-col">
-              <span className="text-slate-500 text-lg md:text-xl font-black mb-4 flex items-center gap-3">
-                 <div className="w-2 h-2 rounded-full bg-[var(--ui-accent)] animate-ping" />
+        {/* Main headline — scaled down significantly */}
+        <div className="space-y-0.5">
+           <h1 className="font-black text-white tracking-tighter uppercase leading-[0.9] flex flex-col">
+              <span className="text-slate-500 text-xs sm:text-sm font-bold mb-2 flex items-center gap-2">
+                 <div className="w-1.5 h-1.5 rounded-full bg-[var(--ui-accent)] animate-ping" />
                  {t("dashboard.mission_intelligence")}
               </span>
-              <span className="relative inline-block">
+              <span className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl">
                 {t("dashboard.welcome_back")},
               </span>
-              <span className="text-[var(--ui-accent)] drop-shadow-[0_0_30px_rgba(var(--ui-accent-rgb),0.3)]">
+              <span className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl text-[var(--ui-accent)] drop-shadow-[0_0_20px_rgba(var(--ui-accent-rgb),0.25)]">
                 {userName || "OPERATIVE"}
               </span>
            </h1>
         </div>
       </div>
 
-      <div className="flex flex-col items-end gap-6 animate-in fade-in slide-in-from-right-12 duration-1200">
-         <div className="flex items-center gap-8 bg-black/30 p-4 rounded-3xl border border-white/5 backdrop-blur-xl group hover:border-[var(--ui-accent)]/30 transition-all duration-500">
-             <div className="space-y-1 text-end">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t("dashboard.power_level")}</p>
-                <p className="text-2xl font-black text-white tracking-tighter tabular-nums">1.21 <span className="text-xs text-[var(--ui-accent)]">GW</span></p>
+      {/* Power Level — condensed on mobile */}
+      <div className="flex flex-row md:flex-col items-center md:items-end gap-4 md:gap-3 animate-in fade-in slide-in-from-right-8 duration-1000 w-full md:w-auto">
+         <div className="flex items-center gap-4 sm:gap-6 bg-black/30 p-3 sm:p-3.5 rounded-2xl border border-white/5 backdrop-blur-xl group hover:border-[var(--ui-accent)]/30 transition-all duration-500 flex-1 md:flex-initial">
+             <div className="space-y-0.5 text-end flex-1 md:flex-initial">
+                <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("dashboard.power_level")}</p>
+                <p className="text-lg sm:text-xl font-black text-white tracking-tighter tabular-nums">1.21 <span className="text-[10px] text-[var(--ui-accent)]">GW</span></p>
              </div>
-             <div className="w-14 h-14 rounded-2xl bg-[var(--ui-accent)] flex items-center justify-center shadow-glow shadow-[var(--ui-accent)]/30 group-hover:scale-110 transition-transform">
-                <Zap className="w-7 h-7 text-white fill-white" />
+             <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--ui-accent)] flex items-center justify-center shadow-glow shadow-[var(--ui-accent)]/30 group-hover:scale-110 transition-transform shrink-0">
+                <Zap className="w-5 h-5 text-white fill-white" />
              </div>
          </div>
-         <p className="text-[11px] font-black text-slate-600 uppercase tracking-[0.3em] pe-2">{t("dashboard.last_sync")}: {new Date().toLocaleTimeString()}</p>
+         <p className="text-[9px] sm:text-[10px] font-bold text-slate-600 uppercase tracking-wider pe-1 hidden md:block">{t("dashboard.last_sync")}: {new Date().toLocaleTimeString()}</p>
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import { MetricsGrid } from "./dashboard/MetricsGrid";
 import { AnalyticsOverview } from "./dashboard/AnalyticsOverview";
 import { OperationalIntelligence } from "./dashboard/OperationalIntelligence";
 import { QuickScheduleModal } from "./dashboard/QuickScheduleModal";
+import WorldStudentMap from "../components/dashboard/WorldStudentMap";
 
 const DashboardPage: React.FC = () => {
   const { t } = useTranslation();
@@ -30,22 +31,21 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  // Show a cinematic loading state - but only briefly
   if (isLoading) {
     return (
       <div className="container-page flex items-center justify-center h-[60vh]">
-        <div className="relative flex flex-col items-center gap-8">
-           <div className="w-24 h-24 border-2 border-[var(--ui-accent)]/20 border-t-[var(--ui-accent)] rounded-full animate-spin shadow-glow shadow-[var(--ui-accent)]/20" />
-           <div className="space-y-2 text-center">
-              <p className="text-xl font-black text-white uppercase tracking-tighter animate-pulse">{t("common.initializing")}</p>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t("dashboard.syncing_telemetry")}</p>
+        <div className="relative flex flex-col items-center gap-6">
+           <div className="w-16 h-16 border-2 border-[var(--ui-accent)]/20 border-t-[var(--ui-accent)] rounded-full animate-spin shadow-glow shadow-[var(--ui-accent)]/20" />
+           <div className="space-y-1.5 text-center">
+              <p className="text-sm font-black text-white uppercase tracking-wider animate-pulse">{t("common.initializing")}</p>
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t("dashboard.syncing_telemetry")}</p>
            </div>
         </div>
       </div>
     );
   }
 
-  // Live stats — use API data when available, fall back to demo values
+  // Live stats — API data with graceful fallbacks
   const stats = {
     totalGroups:    data?.totalGroups    ?? 0,
     activeSessions: data?.activeSessions ?? 0,
@@ -53,10 +53,9 @@ const DashboardPage: React.FC = () => {
     avgAttendance:  Math.round(data?.attendanceRateOverall ?? 0),
   };
 
-  // Live sparkline trend arrays — fall back to flat demo data when API unavailable
-  const weeklyTrend    = data?.weeklyTrend    ?? [0, 0, 0, 0, 0, 0, 0, 0];
-  const attendanceTrend = data?.attendanceTrend ?? [0, 0, 0, 0, 0, 0, 0, 0];
-  const studentGrowth  = data?.studentGrowth  ?? [0, 0, 0, 0, 0, 0, 0, 0];
+  const weeklyTrend     = data?.weeklyTrend     ?? [0, 0, 0, 0, 0, 0, 0, 0];
+  const attendanceTrend = data?.attendanceTrend  ?? [0, 0, 0, 0, 0, 0, 0, 0];
+  const studentGrowth   = data?.studentGrowth    ?? [0, 0, 0, 0, 0, 0, 0, 0];
 
   const distributionData = [
     { label: t("sidebar.levels.fundamentals"), value: 18, color: "#3b82f6" },
@@ -66,19 +65,17 @@ const DashboardPage: React.FC = () => {
   ];
 
   return (
-    <div className="container-page pb-24 space-y-16">
-      {/* Offline / API error banner — subtle, non-blocking */}
+    <div className="container-page pb-16 sm:pb-20 space-y-5 sm:space-y-8 lg:space-y-10 pt-4 sm:pt-6">
+      {/* Offline banner */}
       {isError && (
-        <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-black uppercase tracking-widest">
-          <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-          {t("dashboard.offline_mode", "Offline mode — showing cached data")}
+        <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest">
+          <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+          {t("dashboard.offline_mode", "Offline — cached data")}
         </div>
       )}
 
-      {/* 1. Hero Section */}
       <LaunchpadHero />
 
-      {/* 2. Metrics Grid — wired to live stats + trend sparklines */}
       <MetricsGrid
         stats={stats}
         weeklyTrend={weeklyTrend}
@@ -86,22 +83,23 @@ const DashboardPage: React.FC = () => {
         studentGrowth={studentGrowth}
       />
 
-      {/* 3. Analytics Section */}
+      <WorldStudentMap compact />
+
       <AnalyticsOverview distributionData={distributionData} />
 
-      {/* 4. Operational Intelligence Section */}
       <OperationalIntelligence />
 
-      {/* Quick Action Overlay */}
-      <div className="fixed bottom-12 right-12 z-50">
+
+      {/* FAB — responsive positioning */}
+      <div className="fixed bottom-5 right-5 sm:bottom-8 sm:right-8 lg:bottom-10 lg:right-10 z-50">
          <button
            onClick={() => setIsScheduleModalOpen(true)}
-           className="h-16 px-8 rounded-2xl bg-[var(--ui-accent)] text-white shadow-glow shadow-[var(--ui-accent)]/40 hover:scale-105 active:scale-95 transition-all flex items-center gap-4 group"
+           className="h-12 sm:h-14 px-5 sm:px-7 rounded-2xl bg-[var(--ui-accent)] text-white shadow-glow shadow-[var(--ui-accent)]/40 hover:scale-105 active:scale-95 transition-all flex items-center gap-3 group"
          >
-            <div className="p-2 rounded-lg bg-white/20 group-hover:rotate-12 transition-transform">
-               <PlusIcon className="w-5 h-5" />
+            <div className="p-1.5 rounded-lg bg-white/20 group-hover:rotate-12 transition-transform">
+               <PlusIcon className="w-4 h-4" />
             </div>
-            <span className="text-[11px] font-black uppercase tracking-widest">{t("dashboard.schedule.quick_action")}</span>
+            <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest hidden sm:inline">{t("dashboard.schedule.quick_action")}</span>
          </button>
       </div>
 
@@ -124,5 +122,3 @@ const PlusIcon = ({ className }: { className?: string }) => (
 );
 
 export default DashboardPage;
-
-

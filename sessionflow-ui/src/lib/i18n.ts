@@ -19,6 +19,7 @@ const resources = {
         "admin": "Admin Panel",
         "operations": "Control Tower",
         "loading": "Loading Resources",
+        "initializing": "Initializing",
         "save": "Save Changes",
         "cancel": "Cancel",
       "none": "None",
@@ -86,7 +87,9 @@ const resources = {
           "scheduled": "Scheduled",
           "all_time": "All Time",
           "completed": "Completed",
-          "avg_duration": "Avg Duration"
+          "avg_duration": "Avg Duration",
+          "avg_attendance": "Avg Attendance",
+          "realtime_stream": "Real-time Stream"
         },
         "timeline": {
           "title": "Today's Timeline",
@@ -138,6 +141,44 @@ const resources = {
           "progression": "Progression",
           "success": "Session scheduled successfully",
           "session_started": "Session started!"
+        },
+        "system_online": "System Online",
+        "telemetry_active": "Telemetry Active",
+        "mission_intelligence": "Mission Intelligence",
+        "welcome_back": "Welcome Back",
+        "power_level": "Power Level",
+        "last_sync": "Last Sync",
+        "syncing_telemetry": "Syncing telemetry data",
+        "offline_mode": "Offline — cached data",
+        "schedule": {
+          "quick_action": "Quick Schedule",
+          "success": "Session scheduled successfully!",
+          "error": "Failed to schedule session",
+          "quick_title": "Quick Schedule",
+          "session_name": "Session name...",
+          "action_confirm": "Confirm Schedule"
+        },
+        "analytics": {
+          "realtime_telemetry": "Real-time Telemetry",
+          "attendance_title": "Attendance Analysis",
+          "attendance_hint": "Attendance rates across all active program levels",
+          "peak_hours": "Peak Hours",
+          "health_score": "Health Score",
+          "view_full_report": "View Full Report",
+          "node_distribution": "Group Distribution",
+          "population_mapping": "Population Mapping",
+          "nodes": "Groups"
+        },
+        "ops": {
+          "health_monitoring": "Health Monitoring",
+          "cluster_status": "Cluster Status",
+          "live_records": "Live Records",
+          "view_logs": "View All Logs"
+        },
+        "logs": {
+          "node_joined": "Node Joined",
+          "session_sync": "Session Sync",
+          "access_granted": "Access Granted"
         }
       },
     "groups": {
