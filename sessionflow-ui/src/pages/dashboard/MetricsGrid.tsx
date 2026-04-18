@@ -23,34 +23,43 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({
 }) => {
   const { t } = useTranslation();
 
+  const calculateTrend = (data?: number[]) => {
+    if (!data || data.length < 2) return "+0%";
+    const first = data[0];
+    const last = data[data.length - 1];
+    if (first === 0) return last > 0 ? `+${last * 100}%` : "+0%";
+    const diff = ((last - first) / first) * 100;
+    return `${diff >= 0 ? "+" : ""}${diff.toFixed(0)}%`;
+  };
+
   const metrics = [
     { 
       label: t("dashboard.stats.total_groups"), 
       value: stats.totalGroups, 
       icon: Users, 
-      trend: "+12%", 
-      data: weeklyTrend ?? [35, 42, 38, 45, 50, 48, 55]
+      trend: calculateTrend(weeklyTrend), 
+      data: weeklyTrend && weeklyTrend.length > 0 ? weeklyTrend : [0]
     },
     { 
       label: t("dashboard.stats.active_sessions"), 
       value: stats.activeSessions, 
       icon: BookOpen, 
-      trend: "+5%", 
-      data: [12, 15, 14, 18, 20, 22, 25]
+      trend: "+0%", // Hard to trend active sessions without historical active count
+      data: weeklyTrend && weeklyTrend.length > 0 ? weeklyTrend : [0]
     },
     { 
       label: t("dashboard.stats.total_students"), 
       value: stats.totalStudents, 
       icon: Activity, 
-      trend: "+18%", 
-      data: studentGrowth ?? [120, 135, 142, 150, 165, 172, 185]
+      trend: calculateTrend(studentGrowth), 
+      data: studentGrowth && studentGrowth.length > 0 ? studentGrowth : [0]
     },
     { 
       label: t("dashboard.stats.avg_attendance"), 
       value: `${stats.avgAttendance}%`, 
       icon: Clock, 
-      trend: "-2%", 
-      data: attendanceTrend ?? [92, 94, 91, 95, 93, 89, 91]
+      trend: calculateTrend(attendanceTrend), 
+      data: attendanceTrend && attendanceTrend.length > 0 ? attendanceTrend : [0]
     },
   ];
 

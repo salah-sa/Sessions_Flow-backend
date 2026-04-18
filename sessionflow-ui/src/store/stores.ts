@@ -263,29 +263,42 @@ export const useChatStore = create<ChatState>()(
 );
 // App Store (Health & Sync + Degradation Engine)
 export type ConnectionMode = "full" | "hybrid" | "degraded";
+export type NetworkQuality = "strong" | "weak" | "offline";
+
 
 interface AppState {
   isOnline: boolean;
+  networkQuality: NetworkQuality;
   connectionStatus: "Connected" | "Disconnected" | "Reconnecting";
   /** 3-mode architecture: full / hybrid / degraded */
   connectionMode: ConnectionMode;
   isSyncing: boolean;
   userDismissedOffline: boolean;
   setOnline: (isOnline: boolean) => void;
+  setNetworkQuality: (quality: NetworkQuality) => void;
   setConnectionStatus: (status: "Connected" | "Disconnected" | "Reconnecting") => void;
   setConnectionMode: (mode: ConnectionMode) => void;
   setSyncing: (isSyncing: boolean) => void;
   dismissOfflineModal: () => void;
+  showConnectionPopup: boolean;
+  setConnectionPopup: (show: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
   isOnline: navigator.onLine,
+  networkQuality: navigator.onLine ? "strong" : "offline",
   connectionStatus: "Disconnected",
   connectionMode: "degraded",
   isSyncing: false,
   userDismissedOffline: false,
   setOnline: (isOnline) => 
-    set((state) => (state.isOnline === isOnline ? state : { isOnline, userDismissedOffline: isOnline ? false : state.userDismissedOffline })),
+    set((state) => (state.isOnline === isOnline ? state : { 
+      isOnline, 
+      userDismissedOffline: isOnline ? false : state.userDismissedOffline,
+      networkQuality: isOnline ? state.networkQuality : "offline"
+    })),
+  setNetworkQuality: (networkQuality) =>
+    set((state) => (state.networkQuality === networkQuality ? state : { networkQuality })),
   setConnectionStatus: (connectionStatus) => 
     set((state) => (state.connectionStatus === connectionStatus ? state : { connectionStatus })),
   setConnectionMode: (connectionMode) => 
@@ -293,4 +306,6 @@ export const useAppStore = create<AppState>((set) => ({
   setSyncing: (isSyncing) => 
     set((state) => (state.isSyncing === isSyncing ? state : { isSyncing })),
   dismissOfflineModal: () => set({ userDismissedOffline: true }),
+  showConnectionPopup: false,
+  setConnectionPopup: (show) => set({ showConnectionPopup: show }),
 }));

@@ -280,6 +280,7 @@ export interface DashboardSummary {
 
   // Breakdowns
   revenueByLevel: RevenueByLevel[];
+  attendanceByLevel: { level: number; rate: number }[];
   sessionsByStatus: SessionsByStatus[];
   topGroups: TopGroup[];
 

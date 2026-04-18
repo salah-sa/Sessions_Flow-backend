@@ -23,6 +23,7 @@ import { Group, ChatMessage, MessageMention, Student, PaginatedResponse } from "
 import { formatDistanceToNow } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
 import { useChatRecovery } from "../hooks/useChatRecovery";
+import { useRequiresInternet } from "../hooks/useRequiresInternet";
 
 const ChatPage: React.FC = () => {
   useChatRecovery(); 
@@ -90,6 +91,7 @@ const ChatPage: React.FC = () => {
   }, [messagesData]);
 
   const sendMessageMutation = useSendMessage();
+  const { checkConnectivity } = useRequiresInternet();
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredActive = React.useMemo(() => 
@@ -120,6 +122,7 @@ const ChatPage: React.FC = () => {
 
   const handleSendMessage = async (text: string, file?: File, mentions?: MessageMention[], blocks?: any[]) => {
     if (!activeGroupId || !user) return;
+    if (!checkConnectivity()) return;
     sounds.playClick();
     const messageId = crypto.randomUUID();
 

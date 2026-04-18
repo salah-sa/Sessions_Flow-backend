@@ -35,6 +35,21 @@ export const authApi = {
       method: "PUT",
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
+  forgotPassword: (email: string) =>
+    fetchPublic<{ message: string }>("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+  verifyResetCode: (email: string, code: string) =>
+    fetchPublic<{ tokenId: string }>("/auth/verify-reset-code", {
+      method: "POST",
+      body: JSON.stringify({ email, code }),
+    }),
+  resetPassword: (tokenId: string, newPassword: string) =>
+    fetchPublic<{ message: string }>("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ tokenId, newPassword }),
+    }),
 };
 
 // Groups Module

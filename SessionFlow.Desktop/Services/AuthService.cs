@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.IO;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -769,5 +770,136 @@ public class AuthService
             };
             await _db.EngineerCodes.InsertOneAsync(codeEntity);
         }
+    }
+
+    public async Task<(bool success, string? error)> RequestPasswordResetAsync(string email)
+    {
+        // 1. Find user
+        var user = await _db.Users.Find(u => u.Email == email, new FindOptions { Collation = new Collation("en", strength: CollationStrength.Secondary) }).FirstOrDefaultAsync();
+        if (user == null)
+            return (false, "If an account with this email exists, a reset code has been sent."); // Standard security response
+
+        // 2. Reject legacy/local student emails
+        if (user.Email.EndsWith("@student.local", StringComparison.OrdinalIgnoreCase))
+            return (false, "This account does not have a registered external email for password recovery. Please contact your administrator.");
+
+        // 3. Rate limiting check (60s cooldown)
+        var lastToken = await _db.PasswordResetTokens
+            .Find(t => t.Email == email && t.CreatedAt > DateTimeOffset.UtcNow.AddSeconds(-60))
+            .SortByDescending(t => t.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (lastToken != null)
+            return (false, "Please wait 60 seconds before requesting another code.");
+
+        // 4. Generate 6-char code
+        string code = GenerateResetCode();
+
+        // 5. Store token
+        var token = new PasswordResetToken
+        {
+            UserId = user.Id,
+            Email = user.Email,
+            Code = code,
+            ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(15) // 15m TTL
+        };
+        await _db.PasswordResetTokens.InsertOneAsync(token);
+
+        // 6. Send email
+        using (var scope = _serviceProvider.CreateScope())
+        {
+            var mail = scope.ServiceProvider.GetRequiredService<SmtpEmailService>();
+            var subject = "SessionFlow - Password Reset Code";
+            var body = $@"
+                <div style='font-family: sans-serif; background: #020617; color: white; padding: 40px; border-radius: 20px; text-align: center; max-width: 500px; margin: auto;'>
+                    <h2 style='color: #3b82f6; font-size: 24px; margin-bottom: 20px;'>Verification Secure Link</h2>
+                    <p style='color: #94a3b8; font-size: 16px; margin-bottom: 30px;'>Use the code below to reset your password. This code expires in 15 minutes.</p>
+                    <div style='background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); padding: 20px; border-radius: 12px; display: inline-block;'>
+                        <span style='font-size: 32px; font-weight: bold; letter-spacing: 12px; color: #60a5fa;'>{code}</span>
+                    </div>
+                    <p style='color: #64748b; font-size: 12px; margin-top: 40px;'>If you did not request this, please ignore this email.</p>
+                </div>";
+
+            var (sent, mailError) = await mail.SendEmailAsync(user.Email, subject, body);
+            if (!sent) return (false, mailError);
+        }
+
+        return (true, null);
+    }
+
+    public async Task<(Guid? tokenId, string? error)> VerifyResetCodeAsync(string email, string code)
+    {
+        var token = await _db.PasswordResetTokens
+            .Find(t => t.Email == email && !t.IsUsed && t.ExpiresAt > DateTimeOffset.UtcNow)
+            .SortByDescending(t => t.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (token == null)
+            return (null, "Invalid or expired code.");
+
+        if (token.Attempts >= 3)
+            return (null, "Too many failed attempts. Please request a new code.");
+
+        if (token.Code.Equals(code, StringComparison.OrdinalIgnoreCase))
+        {
+            return (token.Id, null);
+        }
+        else
+        {
+            await _db.PasswordResetTokens.UpdateOneAsync(
+                t => t.Id == token.Id,
+                Builders<PasswordResetToken>.Update.Inc(t => t.Attempts, 1));
+            return (null, "Invalid code.");
+        }
+    }
+
+    public async Task<(bool success, string? error)> ResetPasswordAsync(Guid tokenId, string newPassword)
+    {
+        var token = await _db.PasswordResetTokens.Find(t => t.Id == tokenId && !t.IsUsed && t.ExpiresAt > DateTimeOffset.UtcNow).FirstOrDefaultAsync();
+        if (token == null)
+            return (false, "Session expired. Please start over.");
+
+        if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
+            return (false, "Password must be at least 6 characters long.");
+
+        var hashedPassword = BCrypt.Net.BCrypt.HashPassword(newPassword);
+
+        // Update User
+        var userUpdate = Builders<User>.Update
+            .Set(u => u.PasswordHash, hashedPassword)
+            .Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
+
+        await _db.Users.UpdateOneAsync(u => u.Id == token.UserId, userUpdate);
+
+        // Invalidate token
+        await _db.PasswordResetTokens.UpdateOneAsync(t => t.Id == token.Id, Builders<PasswordResetToken>.Update.Set(t => t.IsUsed, true));
+
+        // Audit Log
+        var audit = new AuditLog
+        {
+            UserId = token.UserId,
+            Ation = "PasswordReset",
+            Detail = "User successfully reset their password via email verification",
+            TargetId = token.UserId.ToString()
+        };
+        await _db.AuditLogs.InsertOneAsync(audit);
+
+        return (true, null);
+    }
+
+    private string GenerateResetCode()
+    {
+        const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Removed ambiguous: I, J, L, O, 0, 1
+        var randomBytes = new byte[6];
+        using (var rng = RandomNumberGenerator.Create())
+        {
+            rng.GetBytes(randomBytes);
+        }
+        var result = new char[6];
+        for (int i = 0; i < 6; i++)
+        {
+            result[i] = chars[randomBytes[i] % chars.Length];
+        }
+        return new string(result);
     }
 }

@@ -38,10 +38,12 @@ const WorldStudentMap: React.FC<{ compact?: boolean }> = ({ compact }) => {
     }
   };
 
+  const totalStudents = DEFAULT_MARKERS.reduce((acc, m) => acc + m.count, 0);
+
   return (
     <Card className={cn(
       "relative bg-var(--ui-sidebar-bg)/40 border-white/5 overflow-hidden transition-all duration-700 group",
-      compact ? "h-[300px]" : "h-[500px]"
+      compact ? "h-[420px]" : "h-[600px]"
     )}>
       {/* Background Atmosphere */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-var(--ui-accent)/5 to-transparent pointer-events-none" />
@@ -53,24 +55,22 @@ const WorldStudentMap: React.FC<{ compact?: boolean }> = ({ compact }) => {
           <div className="w-8 h-8 rounded-lg bg-var(--ui-accent)/10 border border-white/10 flex items-center justify-center">
              <Globe className="w-4 h-4 text-var(--ui-accent)" />
           </div>
-          <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Operational Intelligence</h3>
+          <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Student Map</h3>
         </div>
         <div className="flex items-center gap-6">
            <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-glow shadow-emerald-500/50" />
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Global Link Active</span>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Live Distribution</span>
            </div>
-           {!compact && (
-             <div className="flex items-center gap-2">
-                <Users className="w-3 h-3 text-slate-600" />
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">692 Total Nodes</span>
-             </div>
-           )}
+           <div className="flex items-center gap-2">
+              <Users className="w-3 h-3 text-slate-600" />
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{totalStudents} Total Students</span>
+           </div>
         </div>
       </div>
 
       <div className="w-full h-full pt-16">
-        <ComposableMap projection="geoMercator" projectionConfig={{ scale: 120 }}>
+        <ComposableMap projection="geoMercator" projectionConfig={{ scale: 140 }}>
           <Geographies geography={geoUrl}>
             {({ geographies }) =>
               geographies.map((geo) => (
@@ -131,11 +131,6 @@ const WorldStudentMap: React.FC<{ compact?: boolean }> = ({ compact }) => {
            </div>
            
            <div className="flex items-center gap-4">
-              <div className="flex flex-col items-end">
-                 <span className="text-[10px] font-black text-white uppercase tracking-widest">Atmospheric Pressure</span>
-                 <span className="text-[8px] font-bold text-var(--ui-accent) uppercase tracking-[0.3em] font-mono">1013.25 HPA</span>
-              </div>
-              <div className="w-px h-8 bg-white/5" />
               <Zap className="w-5 h-5 text-var(--ui-accent) animate-pulse" />
            </div>
         </div>

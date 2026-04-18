@@ -1,9 +1,16 @@
 import React from "react";
 import { Shield, Brain, Power, Info, ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { formatDistanceToNow } from "date-fns";
+import { enUS, ar } from "date-fns/locale";
 
-export const OperationalIntelligence: React.FC = () => {
-  const { t } = useTranslation();
+interface OperationalIntelligenceProps {
+  recentActivity?: any[];
+}
+
+export const OperationalIntelligence: React.FC<OperationalIntelligenceProps> = ({ recentActivity = [] }) => {
+  const { t, i18n } = useTranslation();
+  const currentLocale = i18n.language === "ar" ? ar : enUS;
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
@@ -59,20 +66,28 @@ export const OperationalIntelligence: React.FC = () => {
               <Info className="w-3.5 h-3.5 text-slate-600" />
             </div>
             <div className="space-y-2">
-               {[
-                 { action: "NODE_JOINED", target: "Group Blue-13", time: "2m ago" },
-                 { action: "SESSION_SYNC", target: "Server-East", time: "5m ago" },
-                 { action: "ACCESS_GRANTED", target: "Operative #4", time: "12m ago" }
-               ].map((log, i) => (
-                 <div key={i} className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 group/log cursor-default">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--ui-accent)] group-hover/log:scale-150 transition-transform shrink-0" />
-                    <div className="flex-1 min-w-0">
-                       <p className="text-[9px] sm:text-[10px] font-bold text-white uppercase truncate tracking-tight">{t(`dashboard.logs.${log.action.toLowerCase()}`, log.action)}</p>
-                       <p className="text-[8px] sm:text-[9px] font-bold text-slate-600 uppercase tracking-widest truncate">{log.target}</p>
-                    </div>
-                    <span className="text-[7px] sm:text-[8px] font-bold text-slate-700 uppercase shrink-0">{log.time}</span>
+               {recentActivity.length > 0 ? (
+                 recentActivity.map((log, i) => (
+                   <div key={i} className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 group/log cursor-default">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[var(--ui-accent)] group-hover/log:scale-150 transition-transform shrink-0" />
+                      <div className="flex-1 min-w-0">
+                         <p className="text-[9px] sm:text-[10px] font-bold text-white uppercase truncate tracking-tight">
+                            {log.groupName} - {log.status}
+                         </p>
+                         <p className="text-[8px] sm:text-[9px] font-bold text-slate-600 uppercase tracking-widest truncate">
+                            {t("dashboard.analytics.nodes")}: {log.studentCount || 0}
+                         </p>
+                      </div>
+                      <span className="text-[7px] sm:text-[8px] font-bold text-slate-700 uppercase shrink-0">
+                         {formatDistanceToNow(new Date(log.updatedAt || log.scheduledAt), { addSuffix: true, locale: currentLocale })}
+                      </span>
+                   </div>
+                 ))
+               ) : (
+                 <div className="py-8 text-center space-y-2">
+                    <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">{t("dashboard.ops.no_activity", "No recent telemetry")}</p>
                  </div>
-               ))}
+               )}
             </div>
          </div>
          <button className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] transition-all group">

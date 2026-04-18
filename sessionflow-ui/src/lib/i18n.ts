@@ -181,7 +181,24 @@ const resources = {
           "access_granted": "Access Granted"
         }
       },
-    "groups": {
+      "connection": {
+        "strong": "Strong",
+        "weak": "Weak",
+        "offline": "Offline",
+        "strong_message": "Internet connection is strong.",
+        "weak_message": "Internet connection is weak. Some features may be slow.",
+        "lost_message": "Internet connection is lost. Working in offline mode.",
+        "ok_button": "Acknowledge",
+        "check_connection": "Check your connection status",
+        "requires_internet": "This feature requires an internet connection.",
+        "popup_title_offline": "Connection Lost",
+        "popup_desc_offline": "Your link to the neural network has been severed. Some features are restricted until synchronization is restored.",
+        "popup_title_weak": "Unstable Frequency",
+        "popup_desc_weak": "The current data stream is experiencing high latency. Operational efficiency may be degraded.",
+        "popup_title_strong": "Link Synchronized",
+        "popup_desc_strong": "High-fidelity neural connection re-established. All systems operational."
+      },
+      "groups": {
         "title": "Group Management",
         "subtitle": "Organize and track your educational groups.",
         "create": "Create New Group",
@@ -760,6 +777,8 @@ const resources = {
         "welcome": "Welcome back, {{name}}!",
         "register_success": "Registration pending approval.",
         "student_register_success": "Registration successful. You can now log in.",
+        "password_strength_low": "Password too weak. Use at least 6 characters.",
+        "passwords_dont_match": "Passwords do not match.",
         "have_account": "Authorized Entity?",
         "title": "SessionFlow",
         "subtitle": "ENTERPRISE SESSION MANAGEMENT",
@@ -768,7 +787,27 @@ const resources = {
         "register_link": "Register Code",
         "has_account": "Authorized Entity?",
         "login_link": "Initiate Handshake",
-        "footer": "Powered by 3C Technology © 2024"
+        "footer": "Powered by 3C Technology © 2024",
+        "forgot_password": {
+          "title": "FORGOT PASSWORD",
+          "subtitle": "SECURE IDENTITY RECOVERY",
+          "enter_email": "Enter your registered email address to receive a validation code.",
+          "send_code": "SEND VAL-CODE",
+          "code_sent": "A 6-character code has been transmitted to {{email}}.",
+          "enter_code": "ENTER VAL-CODE",
+          "verify": "VERIFY IDENTITY",
+          "new_password": "New Secure Password",
+          "confirm_password": "Confirm Password",
+          "reset": "INITIALIZE RESET",
+          "success": "Password successfully updated. Secure link restored.",
+          "resend": "RESEND CODE",
+          "resend_in": "RESEND IN {{seconds}}s",
+          "back_to_login": "BACK TO HANDSHAKE",
+          "step_email": "IDENTIFY",
+          "step_verify": "VALIDATE",
+          "step_reset": "RECOVER",
+          "no_email": "This account lacks a recovery email. Contact HQ."
+        }
       },
       "sidebar": {
         "levels": {
@@ -1504,7 +1543,27 @@ const resources = {
         "register_link": "سجل الكود",
         "has_account": "كيان مصرح له؟",
         "login_link": "بدء الاتصال",
-        "footer": "مشغل بواسطة تقنية 3C © 2024"
+        "footer": "مشغل بواسطة تقنية 3C © 2024",
+        "forgot_password": {
+          "title": "نسيت كلمة المرور",
+          "subtitle": "استعادة الهوية الآمنة",
+          "enter_email": "أدخل بريدك الإلكتروني المسجل لتلقي كود التحقق.",
+          "send_code": "إرسال الكود",
+          "code_sent": "تم إرسال كود من 6 رموز إلى {{email}}.",
+          "enter_code": "أدخل كود التحقق",
+          "verify": "تحقق من الهوية",
+          "new_password": "كلمة المرور الجديدة",
+          "confirm_password": "تأكيد كلمة المرور",
+          "reset": "بدء إعادة التعيين",
+          "success": "تم تحديث كلمة المرور بنجاح. تمت استعادة الرابط الآمن.",
+          "resend": "إعادة إرسال",
+          "resend_in": "إعادة الإرسال خلال {{seconds}}ث",
+          "back_to_login": "العودة لتسجيل الدخول",
+          "step_email": "تحديد",
+          "step_verify": "تحقق",
+          "step_reset": "استعادة",
+          "no_email": "هذا الحساب يفتقر لبريد استرداد. اتصل بالإدارة."
+        }
       },
       "sidebar": {
         "levels": {
@@ -1567,8 +1626,26 @@ const resources = {
         "description": "سجلات المجموعات المكتملة والجلسات التاريخية.",
         "empty_title": "لا يوجد مجموعات مؤرشفة",
         "empty_desc": "ستظهر المجموعات هنا بمجرد إكمال جميع الجلسات."
+      },
+      "connection": {
+        "strong": "اتصال قوي",
+        "weak": "اتصال ضعيف",
+        "offline": "غير متصل",
+        "strong_message": "اتصال الإنترنت قوي.",
+        "weak_message": "اتصال الإنترنت ضعيف. قد تكون بعض الميزات بطيئة.",
+        "lost_message": "تم فقدان الاتصال بالإنترنت. العمل في وضع عدم الاتصال.",
+        "ok_button": "تم الاستيعاب",
+        "check_connection": "تحقق من حالة الاتصال الخاصة بك",
+        "requires_internet": "هذه الميزة تتطلب اتصالاً بالإنترنت.",
+        "popup_title_offline": "فقدان الاتصال",
+        "popup_desc_offline": "تم قطع اتصالك بالشبكة العصبية. سيتم تقييد بعض الميزات حتى يتم استعادة المزامنة.",
+        "popup_title_weak": "تردد غير مستقر",
+        "popup_desc_weak": "دفق البيانات الحالي يعاني من زمن وصول عالٍ. قد تتأثر كفاءة العمليات.",
+        "popup_title_strong": "تمت المزامنة",
+        "popup_desc_strong": "تم إعادة إنشاء اتصال عصبي عالي الدقة. جميع الأنظمة تعمل الآن."
       }
     }
+
   }
 };
 
