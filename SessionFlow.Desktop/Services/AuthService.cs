@@ -882,9 +882,10 @@ public class AuthService
         var audit = new AuditLog
         {
             UserId = token.UserId,
-            Ation = "PasswordReset",
-            Detail = "User successfully reset their password via email verification",
-            TargetId = token.UserId.ToString()
+            Action = "PasswordReset",
+            Entity = "User",
+            EntityId = token.UserId.ToString(),
+            Details = "User successfully reset their password via email verification"
         };
         await _db.AuditLogs.InsertOneAsync(audit);
 
