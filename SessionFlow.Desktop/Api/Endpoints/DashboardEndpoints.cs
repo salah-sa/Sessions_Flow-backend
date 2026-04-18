@@ -433,6 +433,17 @@ public static class DashboardEndpoints
 
                 // Breakdown data
                 revenueByLevel = revenueByLevelData,
+                attendanceByLevel = activeGroups
+                    .GroupBy(g => g.Level)
+                    .Select(grp => new {
+                        level = grp.Key,
+                        rate = activeSessions2
+                            .Where(s => grp.Select(g => g.Id).Contains(s.GroupId) && s.AttendanceRate > 0)
+                            .DefaultIfEmpty()
+                            .Average(s => s?.AttendanceRate ?? 0)
+                    })
+                    .OrderBy(x => x.level)
+                    .ToList(),
                 sessionsByStatus = sessionsByStatus,
                 topGroups = topGroups,
 

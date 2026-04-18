@@ -98,6 +98,42 @@ public static class AuthEndpoints
             });
         });
 
+        group.MapPost("/forgot-password", async (ForgotPasswordRequest req, AuthService auth) =>
+        {
+            if (string.IsNullOrWhiteSpace(req.Email))
+                return Results.BadRequest(new { error = "Email is required." });
+
+            var (success, error) = await auth.RequestPasswordResetAsync(req.Email.Trim().ToLowerInvariant());
+            if (!success && error != null)
+                return Results.BadRequest(new { error });
+
+            return Results.Ok(new { message = "If an account with this email exists, a reset code has been sent." });
+        }).AllowAnonymous();
+
+        group.MapPost("/verify-reset-code", async (VerifyResetCodeRequest req, AuthService auth) =>
+        {
+            if (string.IsNullOrWhiteSpace(req.Email) || string.IsNullOrWhiteSpace(req.Code))
+                return Results.BadRequest(new { error = "Email and code are required." });
+
+            var (tokenId, error) = await auth.VerifyResetCodeAsync(req.Email.Trim().ToLowerInvariant(), req.Code.Trim());
+            if (error != null)
+                return Results.BadRequest(new { error });
+
+            return Results.Ok(new { tokenId });
+        }).AllowAnonymous();
+
+        group.MapPost("/reset-password", async (ResetPasswordRequest req, AuthService auth) =>
+        {
+            if (req.TokenId == Guid.Empty || string.IsNullOrWhiteSpace(req.NewPassword))
+                return Results.BadRequest(new { error = "Token ID and new password are required." });
+
+            var (success, error) = await auth.ResetPasswordAsync(req.TokenId, req.NewPassword);
+            if (!success)
+                return Results.BadRequest(new { error });
+
+            return Results.Ok(new { message = "Password updated successfully." });
+        }).AllowAnonymous();
+
         group.MapPost("/register-student-request", async (RegisterStudentQueueRequest req, AuthService auth,
             SessionFlow.Desktop.Services.EventBus.IEventBus eventBus) =>
         {
@@ -308,4 +344,8 @@ public static class AuthEndpoints
     public record RegisterRequest(string Name, string Email, string Password, string? AccessCode = null);
     public record RegisterStudentRequest(string Name, string Username, string Password, string StudentId, string EngineerCode);
     public record RegisterStudentQueueRequest(string Name, string Username, string Email, string Password, string GroupName, string? StudentId);
+    
+    public record ForgotPasswordRequest(string Email);
+    public record VerifyResetCodeRequest(string Email, string Code);
+    public record ResetPasswordRequest(Guid TokenId, string NewPassword);
 }

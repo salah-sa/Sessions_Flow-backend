@@ -33,6 +33,7 @@ const ALLOWED_FILES = new Set([
   "LoginPage.tsx",       // Auth is a one-shot mutation, not cached
   "RegisterPage.tsx",    // Same
   "TimetablePage.tsx",   // getFreeSlots is a user-action-triggered one-shot lookup
+  "useNetworkQuality.ts" // Specialized latency sensing (not data fetching)
 ]);
 
 // Patterns that indicate architectural violations

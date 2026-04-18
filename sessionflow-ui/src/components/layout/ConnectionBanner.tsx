@@ -15,10 +15,11 @@ import { useTranslation } from "react-i18next";
 const ConnectionBanner: React.FC = () => {
   const { t } = useTranslation();
   const connectionMode = useAppStore((s) => s.connectionMode);
-  const isOnline = useAppStore((s) => s.isOnline);
+  const { isOnline, networkQuality } = useAppStore();
 
-  // Full mode = no banner
-  if (connectionMode === "full") return null;
+  // Hide if in full mode OR if offline (OfflineNotification handles offline state)
+  if (connectionMode === "full" || networkQuality === "offline") return null;
+
 
   const isHybrid = connectionMode === "hybrid";
   const isDegraded = connectionMode === "degraded";

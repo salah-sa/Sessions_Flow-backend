@@ -7,7 +7,8 @@ import Sidebar from "./Sidebar";
 import ConnectionBanner from "./ConnectionBanner";
 import NotificationPopup from "../chat/NotificationPopup";
 import CallOverlay from "../call/CallOverlay";
-import OfflineModal from "./OfflineModal";
+import OfflineNotification from "./OfflineNotification";
+
 import { useRealtimeNotifications } from "../../hooks/realtime";
 import { useHeartbeat } from "../../hooks/useHeartbeat";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
@@ -75,7 +76,8 @@ const Shell: React.FC = () => {
     <div className="h-screen w-screen flex flex-col bg-[var(--ui-bg)] text-slate-50 overflow-hidden font-sans selection:bg-[var(--ui-accent)]/30">   
       <NotificationPopup />
       <CallOverlay />
-      <OfflineModal />
+      <OfflineNotification />
+
       
       {/* Zenith Central Horizon Lighting */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-10 lg:opacity-20 transition-opacity duration-1000">

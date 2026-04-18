@@ -5,10 +5,37 @@ import { AttendanceRing, DonutChart } from "../../components/viz/Charts";
 
 interface AnalyticsOverviewProps {
   distributionData: { label: string; value: number; color: string }[];
+  attendanceByLevel: { level: number; rate: number }[];
+  attendanceRateOverall: number;
+  recentActivity: any[];
 }
 
-export const AnalyticsOverview: React.FC<AnalyticsOverviewProps> = ({ distributionData }) => {
+export const AnalyticsOverview: React.FC<AnalyticsOverviewProps> = ({ 
+  distributionData,
+  attendanceByLevel,
+  attendanceRateOverall,
+  recentActivity
+}) => {
   const { t } = useTranslation();
+
+  const getAttendanceForLevel = (level: number) => {
+    const entry = attendanceByLevel.find(a => a.level === level);
+    return entry ? Math.round(entry.rate * 100) : 0;
+  };
+
+  const getHealthScore = (rate: number) => {
+    const pct = rate * 100;
+    if (pct === 0 && (!recentActivity || recentActivity.length === 0)) return "NO_DATA";
+    if (pct >= 90) return "OPTIMAL";
+    if (pct >= 75) return "STABLE";
+    if (pct >= 50) return "DEGRADED";
+    return "CRITICAL";
+  };
+
+  const healthScore = getHealthScore(attendanceRateOverall);
+
+  // Derive peak hours if possible, otherwise fallback
+  const peakHours = "17:00 - 19:30"; // Placeholder for now, could be computed from session histograms
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
@@ -32,24 +59,29 @@ export const AnalyticsOverview: React.FC<AnalyticsOverviewProps> = ({ distributi
 
         {/* Attendance Rings — 2-col on mobile, 4-col on md+ */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 pt-2">
-          <AttendanceRing percentage={94} label={t("sidebar.levels.fundamentals")} />
-          <AttendanceRing percentage={88} label={t("sidebar.levels.intermediate")} />
-          <AttendanceRing percentage={91} label={t("sidebar.levels.advanced")} />
-          <AttendanceRing percentage={96} label={t("sidebar.levels.masterclass")} />
+          <AttendanceRing percentage={getAttendanceForLevel(1)} label={t("sidebar.levels.fundamentals")} />
+          <AttendanceRing percentage={getAttendanceForLevel(2)} label={t("sidebar.levels.intermediate")} />
+          <AttendanceRing percentage={getAttendanceForLevel(3)} label={t("sidebar.levels.advanced")} />
+          <AttendanceRing percentage={getAttendanceForLevel(4)} label={t("sidebar.levels.masterclass")} />
         </div>
 
         {/* Footer stats */}
         <div className="pt-5 border-t border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-           <div className="flex gap-6 sm:gap-8">
+            <div className="flex gap-6 sm:gap-8">
               <div className="space-y-0.5">
                  <p className="text-[9px] sm:text-[10px] font-bold text-slate-600 uppercase tracking-widest">{t("dashboard.analytics.peak_hours")}</p>
-                 <p className="text-base sm:text-lg font-black text-white tracking-tighter tabular-nums">17:00 - 19:30</p>
+                 <p className="text-base sm:text-lg font-black text-white tracking-tighter tabular-nums">{peakHours}</p>
               </div>
               <div className="space-y-0.5">
                  <p className="text-[9px] sm:text-[10px] font-bold text-slate-600 uppercase tracking-widest">{t("dashboard.analytics.health_score")}</p>
-                 <p className="text-base sm:text-lg font-black text-emerald-500 tracking-tighter uppercase">OPTI-PRIME</p>
+                 <p className={`text-base sm:text-lg font-black tracking-tighter uppercase ${
+                   healthScore === "OPTIMAL" ? "text-emerald-500" :
+                   healthScore === "STABLE" ? "text-blue-500" :
+                   healthScore === "DEGRADED" ? "text-amber-500" :
+                   healthScore === "CRITICAL" ? "text-rose-500" : "text-slate-500"
+                 }`}>{healthScore.replace("_", " ")}</p>
               </div>
-           </div>
+            </div>
            <button className="text-[9px] sm:text-[10px] font-bold text-slate-500 hover:text-[var(--ui-accent)] uppercase tracking-widest flex items-center gap-1.5 transition-colors">
               {t("dashboard.analytics.view_full_report")} <HelpCircle className="w-3 h-3" />
            </button>

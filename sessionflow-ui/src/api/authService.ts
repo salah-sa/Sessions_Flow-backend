@@ -132,3 +132,39 @@ export async function validateSession(): Promise<boolean> {
 export function logoutUser(): void {
   useAuthStore.getState().logout();
 }
+
+/**
+ * Forgot Password — Phase 1: Request Code
+ */
+export async function forgotPassword(email: string): Promise<AuthResult> {
+  try {
+    await authApi.forgotPassword(email);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to send reset code" };
+  }
+}
+
+/**
+ * Forgot Password — Phase 2: Verify Code
+ */
+export async function verifyResetCode(email: string, code: string): Promise<{ success: boolean; tokenId?: string; error?: string }> {
+  try {
+    const res = await authApi.verifyResetCode(email, code);
+    return { success: true, tokenId: res.tokenId };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Invalid code" };
+  }
+}
+
+/**
+ * Forgot Password — Phase 3: Update Password
+ */
+export async function resetPassword(tokenId: string, newPassword: string): Promise<AuthResult> {
+  try {
+    await authApi.resetPassword(tokenId, newPassword);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to reset password" };
+  }
+}

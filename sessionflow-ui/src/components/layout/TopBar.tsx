@@ -13,8 +13,12 @@ import {
   Minus,
   Maximize,
   Minimize2,
-  Clock
+  Clock,
+  Wifi,
+  WifiOff,
+  AlertTriangle
 } from "lucide-react";
+
 import { format } from "date-fns";
 import { useAuthStore, useAppStore, useUIStore } from "../../store/stores";
 import { useTranslation } from "react-i18next";
@@ -31,7 +35,8 @@ const TopBar: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const { connectionMode } = useAppStore();
+  const { connectionMode, networkQuality } = useAppStore();
+
   const [notifOpen, setNotifOpen] = React.useState(false);
   const [cmdOpen, setCmdOpen] = React.useState(false);
   const [currentTime, setCurrentTime] = React.useState(format(new Date(), "HH:mm:ss"));
@@ -156,13 +161,31 @@ const TopBar: React.FC = () => {
                      {connectionMode === "full" ? "Neural Link Online" : "Disconnected"}
                   </span>
                </div>
-               <div className="w-px h-3 bg-white/10" />
-               <div className="flex items-center gap-1.5">
-                  <Clock className="w-3 h-3 text-slate-600" />
-                  <span className="text-[9px] font-mono font-bold text-[var(--ui-accent)] tracking-tighter tabular-nums">
-                     {currentTime}
-                  </span>
-               </div>
+                <div className="w-px h-3 bg-white/10" />
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/[0.02] border border-white/5">
+                   {networkQuality === "strong" ? (
+                     <Wifi className="w-3 h-3 text-emerald-500 shadow-glow shadow-emerald-500/50" />
+                   ) : networkQuality === "weak" ? (
+                     <AlertTriangle className="w-3 h-3 text-amber-500 shadow-glow shadow-amber-500/50" />
+                   ) : (
+                     <WifiOff className="w-3 h-3 text-rose-500 shadow-glow shadow-rose-500/50" />
+                   )}
+                   <span className={cn(
+                     "text-[8px] font-black uppercase tracking-widest",
+                     networkQuality === "strong" ? "text-emerald-500" :
+                     networkQuality === "weak" ? "text-amber-500" : "text-rose-500"
+                   )}>
+                      {networkQuality.toUpperCase()}
+                   </span>
+                </div>
+                <div className="w-px h-3 bg-white/10" />
+                <div className="flex items-center gap-1.5">
+                   <Clock className="w-3 h-3 text-slate-600" />
+                   <span className="text-[9px] font-mono font-bold text-[var(--ui-accent)] tracking-tighter tabular-nums">
+                      {currentTime}
+                   </span>
+                </div>
+
             </div>
           </div>
         </div>

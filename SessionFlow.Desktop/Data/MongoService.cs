@@ -113,6 +113,15 @@ public class MongoService
                 });
             }
         }
+
+        // PasswordResetTokens: Email lookup + TTL
+        await PasswordResetTokens.Indexes.CreateOneAsync(new CreateIndexModel<PasswordResetToken>(
+            Builders<PasswordResetToken>.IndexKeys.Ascending(t => t.Email).Ascending(t => t.IsUsed)));
+
+        // TTL Index: Auto-delete expired tokens
+        await PasswordResetTokens.Indexes.CreateOneAsync(new CreateIndexModel<PasswordResetToken>(
+            Builders<PasswordResetToken>.IndexKeys.Ascending(t => t.ExpiresAt),
+            new CreateIndexOptions { ExpireAfter = TimeSpan.Zero }));
     }
 
     public IMongoCollection<User> Users => _database.GetCollection<User>("Users");
@@ -130,6 +139,7 @@ public class MongoService
     public IMongoCollection<Station> Stations => _database.GetCollection<Station>("Stations");
     public IMongoCollection<Notification> Notifications => _database.GetCollection<Notification>("Notifications");
     public IMongoCollection<AuditLog> AuditLogs => _database.GetCollection<AuditLog>("AuditLogs");
+    public IMongoCollection<PasswordResetToken> PasswordResetTokens => _database.GetCollection<PasswordResetToken>("PasswordResetTokens");
 
     public IMongoDatabase Database => _database;
 }

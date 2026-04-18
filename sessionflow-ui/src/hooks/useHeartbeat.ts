@@ -2,6 +2,8 @@ import { useEffect, useRef, useCallback } from "react";
 import { useSignalR } from "../providers/SignalRProvider";
 import { usePresenceStore } from "../store/presenceStore";
 import { useAuthStore, useAppStore } from "../store/stores";
+import { useNetworkQuality } from "./useNetworkQuality";
+
 
 // ═══════════════════════════════════════════════════════════
 // Client Heartbeat + Adaptive Presence Engine
@@ -29,7 +31,19 @@ export function useHeartbeat() {
   const heartbeatTimerRef = useRef<ReturnType<typeof setInterval>>();
   const idleTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
+  const { quality } = useNetworkQuality();
   const userId = user?.id;
+
+  // ── Sync Network Quality to Store ────────────────
+  useEffect(() => {
+    useAppStore.getState().setNetworkQuality(quality);
+    if (quality === "offline") {
+      useAppStore.getState().setOnline(false);
+    } else {
+      useAppStore.getState().setOnline(true);
+    }
+  }, [quality]);
+
 
   // ── Reset idle timer on user activity ─────────────
   const resetIdleTimer = useCallback(() => {
@@ -137,10 +151,11 @@ export function useHeartbeat() {
     window.addEventListener("focus", handleFocus);
     window.addEventListener("blur", handleBlur);
     window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
     document.addEventListener("mousemove", handleActivity, { passive: true });
     document.addEventListener("keydown", handleActivity, { passive: true });
     document.addEventListener("touchstart", handleActivity, { passive: true });
+
+
 
     // Initial idle timer
     resetIdleTimer();
@@ -150,7 +165,6 @@ export function useHeartbeat() {
       window.removeEventListener("focus", handleFocus);
       window.removeEventListener("blur", handleBlur);
       window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
       document.removeEventListener("mousemove", handleActivity);
       document.removeEventListener("keydown", handleActivity);
       document.removeEventListener("touchstart", handleActivity);

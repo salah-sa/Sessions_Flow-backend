@@ -57,12 +57,18 @@ const DashboardPage: React.FC = () => {
   const attendanceTrend = data?.attendanceTrend  ?? [0, 0, 0, 0, 0, 0, 0, 0];
   const studentGrowth   = data?.studentGrowth    ?? [0, 0, 0, 0, 0, 0, 0, 0];
 
-  const distributionData = [
-    { label: t("sidebar.levels.fundamentals"), value: 18, color: "#3b82f6" },
-    { label: t("sidebar.levels.intermediate"), value: 12, color: "#8b5cf6" },
-    { label: t("sidebar.levels.advanced"),     value: 8,  color: "#10b981" },
-    { label: t("sidebar.levels.masterclass"),  value: 4,  color: "#f59e0b" },
-  ];
+  const levelColors = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b"];
+  const levelKeys = ["fundamentals", "intermediate", "advanced", "masterclass"];
+  
+  const distributionData = [1, 2, 3, 4].map((lvl, i) => {
+    const groupsAtLevel = (data?.topGroups || []).filter(g => g.level === lvl);
+    const studentCount = groupsAtLevel.reduce((sum, g) => sum + g.studentCount, 0);
+    return { 
+      label: t(`sidebar.levels.${levelKeys[i]}`), 
+      value: studentCount, 
+      color: levelColors[i] 
+    };
+  });
 
   return (
     <div className="container-page pb-16 sm:pb-20 space-y-5 sm:space-y-8 lg:space-y-10 pt-4 sm:pt-6">
@@ -83,11 +89,16 @@ const DashboardPage: React.FC = () => {
         studentGrowth={studentGrowth}
       />
 
-      <WorldStudentMap compact />
+      <WorldStudentMap />
 
-      <AnalyticsOverview distributionData={distributionData} />
+      <AnalyticsOverview 
+        distributionData={distributionData} 
+        attendanceRateOverall={data?.attendanceRateOverall ?? 0}
+        attendanceByLevel={data?.attendanceByLevel ?? []}
+        recentActivity={data?.recentActivity ?? []}
+      />
 
-      <OperationalIntelligence />
+      <OperationalIntelligence recentActivity={data?.recentActivity ?? []} />
 
 
       {/* FAB — responsive positioning */}

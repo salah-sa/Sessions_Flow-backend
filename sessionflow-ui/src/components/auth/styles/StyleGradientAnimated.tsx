@@ -9,6 +9,7 @@ import { Input, Button, Badge } from "../../ui";
 import { LoginStyleProps } from "../types";
 import { SocialButtons } from "../SocialButtons";
 import RealisticPandaMascot from "../RealisticPandaMascot";
+import { ForgotPasswordModal } from "../ForgotPasswordModal";
 
 /* ─── Password strength labels + colors ─── */
 const strengthConfig = [
@@ -333,6 +334,18 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                       </div>
                       <FieldError error={(props.errors as any).password} />
                       
+                      {!isRegister && (
+                        <div className="flex justify-end mt-1 px-1">
+                          <button
+                            type="button"
+                            onClick={() => setShowForgotDialog(true)}
+                            className="text-[10px] font-bold text-[var(--ui-accent)]/60 hover:text-[var(--ui-accent)] transition-colors uppercase tracking-widest"
+                          >
+                            Forgot Password?
+                          </button>
+                        </div>
+                      )}
+                      
                       {/* Strength Meter */}
                       {isRegister && props.passwordStrength > 0 && (
                         <div className="pt-1 px-1 flex items-center gap-2">
@@ -468,18 +481,11 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
         </motion.div>
       </div>
 
-      {/* Forgot Dialog */}
-      <AnimatePresence>
-        {showForgotDialog && (
-          <motion.div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md" onClick={() => setShowForgotDialog(false)}>
-            <motion.div className="w-full max-w-sm bg-var(--ui-bg) border border-white/10 rounded-2xl p-6" onClick={e => e.stopPropagation()}>
-              <h3 className="text-white font-black uppercase text-center mb-4">Reset Password</h3>
-              <p className="text-slate-500 text-[11px] text-center mb-6 leading-relaxed">Please contact your administrator to reset your credentials. They can manage this via the secure admin panel.</p>
-              <Button onClick={() => setShowForgotDialog(false)} className="w-full">Got It</Button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ForgotPasswordModal 
+        isOpen={showForgotDialog} 
+        onClose={() => setShowForgotDialog(false)}
+        loginMode={props.loginMode}
+      />
     </div>
   );
 };
