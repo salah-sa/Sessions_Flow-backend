@@ -143,7 +143,8 @@ public static class AuthEndpoints
             if (string.IsNullOrWhiteSpace(name))
                 return Results.BadRequest(new { error = "Group name is required." });
 
-            var groupObj = await db.Groups.Find(g => g.Name == name && !g.IsDeleted).FirstOrDefaultAsync();
+            var normalizedName = name.Trim().ToLowerInvariant();
+            var groupObj = await db.Groups.Find(g => g.Name.ToLower() == normalizedName && !g.IsDeleted).FirstOrDefaultAsync();
             if (groupObj == null)
                 return Results.NotFound(new { error = "Group not found." });
 
