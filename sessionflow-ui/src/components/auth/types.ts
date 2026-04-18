@@ -1,4 +1,4 @@
-import { UseFormRegister, FieldErrors, UseFormSetValue } from "react-hook-form";
+import { UseFormRegister, FieldErrors, UseFormSetValue, UseFormWatch } from "react-hook-form";
 
 export type MascotState = "idle" | "watching" | "password" | "success" | "error";
 export type AuthMode = "engineer" | "student";
@@ -22,6 +22,7 @@ export interface LoginStyleProps extends SharedAuthProps {
   errors: FieldErrors<any>;
   onSubmit: (e?: React.BaseSyntheticEvent) => Promise<void>;
   setValue?: UseFormSetValue<any>;
+  watch?: UseFormWatch<any>;
   isRegister?: boolean;
   discoveryStep?: 'search' | 'pick-student' | 'register';
   discoveredGroup?: {

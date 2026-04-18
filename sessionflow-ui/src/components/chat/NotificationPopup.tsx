@@ -43,16 +43,16 @@ const NotificationPopup: React.FC = () => {
             className="pointer-events-auto"
           >
             <div 
-              className="bg-slate-900/85 backdrop-blur-xl border border-white/10 p-4 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] cursor-pointer group relative overflow-hidden"
+              className="bg-[var(--ui-bg)]/85 backdrop-blur-xl border border-white/10 p-4 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] cursor-pointer group relative overflow-hidden"
               onClick={() => handleClick(notification.groupId, notification.id)}
             >
               {/* Hover gradient */}
-              <div className="absolute inset-0 bg-gradient-to-r from-brand-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-r from-[var(--ui-accent)]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
               
               {/* Auto-dismiss progress bar */}
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/5">
                 <motion.div
-                  className="h-full bg-brand-500/40"
+                  className="h-full bg-[var(--ui-accent)]/40"
                   initial={{ width: "100%" }}
                   animate={{ width: "0%" }}
                   transition={{ duration: 5, ease: "linear" }}
@@ -67,7 +67,7 @@ const NotificationPopup: React.FC = () => {
               </button>
               
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 shrink-0 rounded-2xl bg-brand-500/20 text-brand-500 flex items-center justify-center border border-brand-500/30 overflow-hidden">
+                <div className="w-10 h-10 shrink-0 rounded-2xl bg-[var(--ui-accent)]/20 text-[var(--ui-accent)] flex items-center justify-center border border-[var(--ui-accent)]/30 overflow-hidden">
                   {notification.avatarUrl ? (
                     <img src={notification.avatarUrl} alt="" className="w-full h-full object-cover" />
                   ) : (

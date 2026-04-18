@@ -68,7 +68,7 @@ const EngineerControlTowerPage: React.FC = () => {
 
   const filteredStudents = pendingStudents.filter(s => 
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    s.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (s.username?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
     s.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -95,14 +95,14 @@ const EngineerControlTowerPage: React.FC = () => {
           variant="outline" 
           onClick={fetchData}
           disabled={isLoading}
-          className="h-10 px-4 bg-slate-900 border-white/10 hover:bg-white/5 active:scale-95 transition-all w-full sm:w-auto font-black tracking-wider text-[11px] uppercase text-white shadow-xl shadow-black/50"
+          className="h-10 px-4 bg-var(--ui-sidebar-bg) border-white/10 hover:bg-white/5 active:scale-95 transition-all w-full sm:w-auto font-black tracking-wider text-[11px] uppercase text-white shadow-xl shadow-black/50"
         >
           <RefreshCcw className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")} />
           {t("common.refresh")}
         </Button>
       </div>
 
-      <div className="space-y-6 flex-1 min-h-0 bg-slate-900/50 rounded-xl border border-white/5 p-4 sm:p-6">
+      <div className="space-y-6 flex-1 min-h-0 bg-var(--ui-sidebar-bg)/50 rounded-xl border border-white/5 p-4 sm:p-6">
         {/* Navigation Tabs - Strict Engineer Only View */}
         <div className="flex flex-col sm:flex-row gap-4 justify-between border-b border-white/10 pb-4">
           <div className="flex overflow-x-auto hide-scrollbar gap-2 pb-2 sm:pb-0">
@@ -112,7 +112,7 @@ const EngineerControlTowerPage: React.FC = () => {
               className={cn(
                 "h-10 px-5 font-black uppercase tracking-wider text-[11px] rounded-lg transition-all shrink-0 border border-transparent shadow-none gap-2",
                 activeTab === "students" 
-                  ? "bg-slate-800 text-white border-white/10" 
+                  ? "bg-var(--ui-surface) text-white border-white/10" 
                   : "text-slate-400 hover:text-slate-300 hover:bg-white/5"
               )}
             >
@@ -127,15 +127,15 @@ const EngineerControlTowerPage: React.FC = () => {
 
         {/* Dynamic Content */}
         <div className="flex-1 min-h-0">
-          <Card className="bg-slate-900 border-white/10 shadow-2xl overflow-hidden h-full flex flex-col pt-0">
-             <div className="p-4 border-b border-white/5 flex flex-col justify-end bg-slate-900/50 shrink-0">
+          <Card className="bg-var(--ui-sidebar-bg) border-white/10 shadow-2xl overflow-hidden h-full flex flex-col pt-0">
+             <div className="p-4 border-b border-white/5 flex flex-col justify-end bg-var(--ui-sidebar-bg)/50 shrink-0">
                 <div className="relative w-full max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                   <Input 
                     placeholder="Search requested students..." 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 h-10 w-full bg-slate-950 border-white/5 focus:border-white/10 transition-all font-medium text-sm text-white" 
+                    className="pl-10 h-10 w-full bg-var(--ui-bg) border-white/5 focus:border-white/10 transition-all font-medium text-sm text-white" 
                   />
                 </div>
               </div>
@@ -143,7 +143,7 @@ const EngineerControlTowerPage: React.FC = () => {
               <div className="flex-1 overflow-x-auto">
                 <div className="min-w-[800px] h-full flex flex-col">
                   {/* Table Header */}
-                  <div className="grid grid-cols-12 gap-4 px-6 border-b border-white/5 bg-slate-900/80 sticky top-0 z-10 backdrop-blur-xl h-12 sm:h-[46px]">
+                  <div className="grid grid-cols-12 gap-4 px-6 border-b border-white/5 bg-var(--ui-sidebar-bg)/80 sticky top-0 z-10 backdrop-blur-xl h-12 sm:h-[46px]">
                     <div className="col-span-3 lg:col-span-4 flex items-center text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-slate-500">Student Info</div>
                     <div className="col-span-3 lg:col-span-2 flex items-center text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-slate-500">Target Group</div>
                     <div className="col-span-2 flex items-center text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-slate-500">{t("common.date")}</div>
@@ -164,13 +164,13 @@ const EngineerControlTowerPage: React.FC = () => {
                             key={req.id} 
                             className={cn(
                               "grid grid-cols-12 gap-4 px-6 py-4 items-center group transition-all",
-                              "hover:bg-slate-800/50",
+                              "hover:bg-var(--ui-surface)/50",
                               highlightId === req.id && "bg-emerald-500/10 border-l-4 border-l-emerald-500"
                             )}
                           >
                             <div className="col-span-3 lg:col-span-4 min-w-0 pr-4">
                               <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-white/5 shrink-0 relative overflow-hidden group-hover:border-emerald-500/30 transition-colors">
+                                <div className="w-10 h-10 rounded-full bg-var(--ui-surface) flex items-center justify-center border border-white/5 shrink-0 relative overflow-hidden group-hover:border-emerald-500/30 transition-colors">
                                   <Users className="w-4 h-4 text-emerald-500/70" />
                                 </div>
                                 <div className="min-w-0">
@@ -233,7 +233,7 @@ const EngineerControlTowerPage: React.FC = () => {
                       </div>
                     ) : (
                       <div className="absolute inset-0 p-6 flex flex-col justify-center items-center text-center opacity-60">
-                        <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4">
+                        <div className="w-16 h-16 rounded-full bg-var(--ui-surface) flex items-center justify-center mb-4">
                           <Users className="w-8 h-8 text-slate-500" />
                         </div>
                         <h3 className="text-sm font-semibold text-white mb-1">No requests</h3>

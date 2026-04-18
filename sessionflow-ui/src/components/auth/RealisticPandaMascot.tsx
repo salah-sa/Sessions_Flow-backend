@@ -581,7 +581,7 @@ const RealisticPandaMascot: React.FC<RealisticPandaMascotProps> = ({
             exit={{ opacity: 0, y: -6, scale: 0.3 }}
             transition={{ type: "spring", stiffness: 200, damping: 12 }}
           >
-            <span className="text-2xl font-black text-fuchsia-400 drop-shadow-[0_0_8px_rgba(217,70,239,0.6)]">?</span>
+            <span className="text-2xl font-black text-[var(--ui-accent)] drop-shadow-[0_0_8px_rgba(var(--ui-accent-rgb),0.6)]">?</span>
           </motion.div>
         )}
       </AnimatePresence>

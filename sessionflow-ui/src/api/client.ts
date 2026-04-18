@@ -3,12 +3,40 @@ import { apiMonitor } from "../lib/apiMonitor";
 
 const BASE_URL = "/api";
 
+export async function fetchPublic<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const headers = new Headers(options.headers);
+  if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  }
+  headers.set("X-Requested-With", "XMLHttpRequest");
+
+  try {
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Request failed with status ${response.status}`);
+    }
+
+    if (response.status === 204) return {} as T;
+    return await response.json();
+  } catch (error: any) {
+    throw error;
+  }
+}
+
 export async function fetchWithAuth<T>(
   endpoint: string,
   options: RequestInit = {},
   isBlob = false
 ): Promise<T> {
-  const token = localStorage.getItem("sf_token");
+  const { token } = useAuthStore.getState();
   
   const headers = new Headers(options.headers);
   if (token) {
@@ -17,6 +45,7 @@ export async function fetchWithAuth<T>(
   if (!isBlob && !headers.has("Content-Type") && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
+  headers.set("X-Requested-With", "XMLHttpRequest");
 
   // Track every API call for duplicate detection
   apiMonitor.track(endpoint, options.method || "GET");
@@ -57,12 +86,14 @@ export async function fetchWithAuth<T>(
     if (isBlob) return await response.blob() as unknown as T;
     
     return await response.json();
-  } catch (error: any) {
-    if (error.name === "AbortError") {
-      console.debug(`[fetchWithAuth] Request aborted: ${endpoint}`);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      if (error.name === "AbortError") {
+        console.debug(`[fetchWithAuth] Request aborted: ${endpoint}`);
+      }
       throw error;
     }
-    throw error;
+    throw new Error("An unexpected error occurred during the API request.");
   }
 }
 

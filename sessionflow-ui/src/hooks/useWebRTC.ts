@@ -25,6 +25,9 @@ const ICE_SERVERS: RTCConfiguration = {
 
 export const useWebRTC = () => {
   const { invoke } = useSignalR();
+  const log = useCallback((...args: any[]) => {
+    if (import.meta.env.DEV) console.log("[WebRTC]", ...args);
+  }, []);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -47,7 +50,7 @@ export const useWebRTC = () => {
 
   /** Full cleanup — close PC, stop tracks, remove audio element */
   const cleanup = useCallback(() => {
-    console.log("[WebRTC] Cleanup");
+    log("[WebRTC] Cleanup");
     if (pcRef.current) {
       pcRef.current.onicecandidate = null;
       pcRef.current.ontrack = null;
@@ -90,7 +93,7 @@ export const useWebRTC = () => {
 
     // Remote track → attach to audio element
     pc.ontrack = (event) => {
-      console.log("[WebRTC] Remote track received:", event.track.kind);
+      log("[WebRTC] Remote track received:", event.track.kind);
       const audio = ensureAudioElement();
       audio.srcObject = event.streams[0];
       // Force play (some browsers need explicit call after user gesture)
@@ -99,7 +102,7 @@ export const useWebRTC = () => {
 
     // Connection state monitoring
     pc.onconnectionstatechange = () => {
-      console.log("[WebRTC] Connection state:", pc.connectionState);
+      log("[WebRTC] Connection state:", pc.connectionState);
       if (pc.connectionState === "failed") {
         console.error("[WebRTC] Connection failed — ending call");
         useCallStore.getState().ended();
@@ -107,7 +110,7 @@ export const useWebRTC = () => {
     };
 
     pc.oniceconnectionstatechange = () => {
-      console.log("[WebRTC] ICE state:", pc.iceConnectionState);
+      log("[WebRTC] ICE state:", pc.iceConnectionState);
     };
 
     return pc;
@@ -146,11 +149,11 @@ export const useWebRTC = () => {
         // Caller creates the offer
         const { isOutgoing, remoteUserId } = useCallStore.getState();
         if (isOutgoing && remoteUserId) {
-          console.log("[WebRTC] Creating offer (caller)");
+          log("[WebRTC] Creating offer (caller)");
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
           await invoke("SendOffer", remoteUserId, JSON.stringify(offer));
-          console.log("[WebRTC] Offer sent");
+          log("[WebRTC] Offer sent");
         }
         // Receiver waits for the offer to arrive via store
       } catch (err) {
@@ -188,7 +191,7 @@ export const useWebRTC = () => {
 
         if (remoteSdpType === "offer") {
           // Receiver path
-          console.log("[WebRTC] Setting remote offer");
+          log("[WebRTC] Setting remote offer");
           await pc.setRemoteDescription(new RTCSessionDescription(sdp));
 
           // Drain any buffered ICE candidates that arrived before remote description was set
@@ -202,19 +205,19 @@ export const useWebRTC = () => {
           }
           useCallStore.getState().clearPendingIceCandidates();
 
-          console.log("[WebRTC] Creating answer (receiver)");
+          log("[WebRTC] Creating answer (receiver)");
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
 
           const { remoteUserId } = useCallStore.getState();
           if (remoteUserId) {
             await invoke("SendAnswer", remoteUserId, JSON.stringify(answer));
-            console.log("[WebRTC] Answer sent");
+            log("[WebRTC] Answer sent");
           }
 
         } else if (remoteSdpType === "answer") {
           // Caller path
-          console.log("[WebRTC] Setting remote answer");
+          log("[WebRTC] Setting remote answer");
           await pc.setRemoteDescription(new RTCSessionDescription(sdp));
 
           // Drain buffered ICE

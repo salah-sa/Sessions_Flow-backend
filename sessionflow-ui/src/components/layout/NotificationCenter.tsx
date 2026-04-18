@@ -1,60 +1,32 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Bell, Check, Trash2, Info, CheckCircle, AlertTriangle, XCircle, Clock, ArrowUpRight, Users, X, Loader2 } from "lucide-react";
+import React from "react";
+import { 
+  Bell, 
+  Trash2, 
+  Clock, 
+  Zap,
+  Box
+} from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { 
+  Button, 
+  Badge, 
+  Card
+} from "../ui";
 import { cn } from "../../lib/utils";
-import { formatDistanceToNow } from "date-fns";
-import { Button, Badge } from "../ui";
-import { NotificationType } from "../../types";
-import { useNotifications, useNotificationMutations } from "../../queries/useNotificationQueries";
-import { usePendingStudentRequests } from "../../queries/useEngineerQueries";
-import { useAuthStore } from "../../store/stores";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { 
+  useNotifications, 
+  useNotificationMutations 
+} from "../../queries/useNotificationQueries";
+import { Notification as NotificationType } from "../../types";
 
-const NotificationCenter: React.FC = () => {
-  const navigate = useNavigate();
-  const [isOpen, setIsOpen] = useState(false);
-  const user = useAuthStore((s) => s.user);
-  
-  const { data: notifData } = useNotifications();
-  const notifications = notifData?.notifications || [];
-  const baseUnreadCount = notifData?.unreadCount || 0;
-  
-  const { data: pendingRequestsData } = usePendingStudentRequests();
-  const pendingRequests = user?.role === "Engineer" || user?.role === "Admin" ? (pendingRequestsData || []) : [];
-  
-  // Unread count for the main Bell badge (Telemtry alerts only)
-  const unreadCount = baseUnreadCount;
-  // Total pending tasks (Requests only)
-  const pendingCount = pendingRequests.length;
-  
+const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
+  const { data: notificationData } = useNotifications();
+  const notifications = notificationData?.notifications || [];
   const { markAsReadMutation, markAllAsReadMutation } = useNotificationMutations();
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Auto-mark telemetry alerts as read when panel is opened
-  // Using a 2-second delay to ensure user actually "acknowledges" the view
-  useEffect(() => {
-    if (isOpen && baseUnreadCount > 0) {
-      const timer = setTimeout(() => {
-        markAllAsReadMutation.mutate();
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen, baseUnreadCount, markAllAsReadMutation]);
-
-  const handleMarkAsRead = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  
+  const handleMarkAsRead = (id: string) => {
     markAsReadMutation.mutate(id);
   };
 
@@ -62,176 +34,103 @@ const NotificationCenter: React.FC = () => {
     markAllAsReadMutation.mutate();
   };
 
-  const getTypeIcon = (type: NotificationType) => {
-    switch (type) {
-      case "Success": return <CheckCircle className="w-4 h-4 text-emerald-500" />;
-      case "Warning": return <AlertTriangle className="w-4 h-4 text-amber-500" />;
-      case "Error": return <XCircle className="w-4 h-4 text-red-500" />;
-      default: return <Info className="w-4 h-4 text-brand-500" />;
-    }
+  const handlePurge = () => {
+    markAllAsReadMutation.mutate();
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all border border-transparent hover:border-white/5 group/bell"
-      >
-        <Bell className={cn("w-5 h-5 transition-all duration-300", unreadCount > 0 && "animate-bell-ring text-red-500")} />
-        {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-lg bg-red-600 text-[8px] font-black text-white border-2 border-slate-950 shadow-[0_0_10px_rgba(239,68,68,0.5)] animate-bounce-subtle">
-            {unreadCount > 9 ? "9+" : unreadCount}
-          </span>
-        )}
-      </button>
-
-      <AnimatePresence>
-        {isOpen && (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] flex justify-end">
           <motion.div 
-            initial={{ opacity: 0, y: 15, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 15, scale: 0.95 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="absolute right-0 mt-4 w-[calc(100vw-2rem)] md:w-[420px] bg-slate-950/90 border border-white/10 rounded-[2.5rem] shadow-2xl z-[100] overflow-hidden backdrop-blur-3xl shadow-brand-500/5 ring-1 ring-white/10"
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            onClick={onClose}
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm" 
+          />
+          
+          <motion.div 
+            initial={{ x: "100%", opacity: 0.5 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "100%", opacity: 0.5 }}
+            transition={{ type: "spring", damping: 30, stiffness: 200 }}
+            className="relative w-full max-w-[420px] h-full bg-[var(--ui-sidebar-bg)]/95 backdrop-blur-3xl border-s border-white/5 shadow-2xl overflow-hidden flex flex-col"
           >
-          <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-            <div className="flex items-center gap-4">
-               <div className="w-1.5 h-6 bg-brand-500 rounded-full shadow-glow" />
-               <h3 className="text-[11px] font-sora font-black uppercase tracking-[0.2em] text-white">Alert Matrix</h3>
-            </div>
-            {unreadCount > 0 && (
-              <button 
-                className="h-8 px-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center gap-2"
-                onClick={handleMarkAllAsRead}
-              >
-                <CheckCircle className="w-3 h-3" />
-                Intercept All
-              </button>
-            )}
-          </div>
+            <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-[var(--ui-accent)]/5 blur-[100px] pointer-events-none" />
 
-            <div className="max-h-[60vh] overflow-y-auto custom-scrollbar">
-              {pendingRequests.length > 0 && (
-                <div className="mb-2 border-b border-white/5 pb-2">
-                  <div className="px-6 py-2 flex items-center justify-between">
-                    <h4 className="text-[10px] font-black text-brand-400 uppercase tracking-widest flex items-center gap-2">
-                      <Users className="w-3 h-3" />
-                      Join Requests {pendingCount > 0 && <span className="ms-1 text-slate-500">({pendingCount})</span>}
-                    </h4>
-                    <Badge variant="success" className="text-[8px] animate-pulse">Action Required</Badge>
-                  </div>
-                  <div className="divide-y divide-white/5">
-                    {pendingRequests.map((req: any) => (
-                      <motion.div 
-                        key={req.id} 
-                        layout
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="px-6 py-5 transition-all flex gap-4 group bg-emerald-500/5 hover:bg-emerald-500/10 relative overflow-hidden"
-                      >
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 shadow-glow opacity-50 group-hover:opacity-100 transition-opacity" />
-                        <div className="shrink-0 mt-1">
-                          <div className="w-10 h-10 rounded-2xl flex items-center justify-center border bg-emerald-500/20 border-emerald-500/30 text-emerald-400 shadow-glow shadow-emerald-500/10 group-hover:scale-110 transition-transform">
-                            <Users className="w-5 h-5" />
+            <div className="px-10 py-10 border-b border-white/5 flex items-center justify-between relative z-10">
+              <div>
+                <h2 className="text-xl font-bold text-white uppercase tracking-widest flex items-center gap-3">
+                  <Bell className="w-5 h-5 text-[var(--ui-accent)]" />
+                  Internal Alerts
+                </h2>
+                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-2">Protocol Notification System</p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={onClose} className="rounded-xl hover:bg-white/5"><Trash2 className="w-4 h-4 text-slate-500" /></Button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar relative z-10">
+              {notifications.length > 0 ? (
+                <AnimatePresence mode="popLayout">
+                  {notifications.map((n) => (
+                    <motion.div
+                      layout
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      key={n.id}
+                      onClick={() => !n.isRead && handleMarkAsRead(n.id)}
+                      className={cn(
+                        "p-6 rounded-2xl transition-all border group relative cursor-pointer",
+                        n.isRead 
+                          ? "bg-transparent border-white/[0.03] opacity-40 hover:opacity-60" 
+                          : "bg-white/[0.02] border-white/10 hover:border-white/20"
+                      )}
+                    >
+                      {!n.isRead && (
+                        <div className="absolute top-6 right-6 w-2 h-2 rounded-full bg-[var(--ui-accent)] shadow-glow" />
+                      )}
+                      
+                      <div className="flex gap-4">
+                        <div className={cn(
+                          "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border",
+                          n.type === "Success" ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/20 text-[var(--ui-accent)]" : 
+                          n.type === "Error" ? "bg-rose-500/10 border-rose-500/20 text-rose-500" :
+                          "bg-white/[0.05] border-white/10 text-slate-400"
+                        )}>
+                          {n.type === "Success" ? <Zap className="w-4 h-4" /> : <Box className="w-4 h-4" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-[11px] font-bold text-white uppercase tracking-widest mb-1">{n.title}</h4>
+                          <p className="text-[10px] text-slate-500 font-medium leading-relaxed line-clamp-2">{n.message}</p>
+                          <div className="flex items-center gap-2 mt-4">
+                             <Clock className="w-3 h-3 text-slate-700" />
+                             <span className="text-[8px] font-bold text-slate-700 uppercase tracking-widest">
+                                {new Date(n.createdAt).toLocaleTimeString()}
+                             </span>
                           </div>
                         </div>
-                        <div className="flex-1 space-y-3">
-                          <div>
-                            <p className="text-[13px] font-sora font-black tracking-tight text-white uppercase">{req.name}</p>
-                            <p className="text-[11px] text-slate-400 mt-0.5 leading-tight">
-                              Wants to join <span className="text-emerald-400 font-bold">{req.groupName}</span>
-                            </p>
-                            <div className="flex items-center gap-2 mt-1.5 opacity-60 text-[9px] font-medium text-slate-500">
-                               <span className="bg-white/5 px-1.5 py-0.5 rounded border border-white/5">{req.username}</span>
-                               <span className="bg-white/5 px-1.5 py-0.5 rounded border border-white/5">{req.email}</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 mt-2">
-                            <Button 
-                              size="sm"
-                              className="h-8 px-4 text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 active:scale-95 transition-all w-full"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setIsOpen(false); // Close notification center
-                                navigate(`/control-tower/engineer?tab=students&requestId=${req.id}`);
-                              }}
-                            >
-                              View Request <ArrowUpRight className="w-3 h-3 ml-1.5 opacity-60" />
-                            </Button>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              ) : (
+                <div className="h-64 flex flex-col items-center justify-center opacity-20">
+                   <Bell className="w-12 h-12 text-slate-500 mb-4" />
+                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">No Alerts In Queue</p>
                 </div>
               )}
+            </div>
 
-            {notifications.length === 0 && pendingRequests.length === 0 ? (
-              <div className="p-16 text-center space-y-6 opacity-30">
-                <div className="w-16 h-16 bg-slate-900 rounded-[1.5rem] flex items-center justify-center mx-auto border border-white/5">
-                    <Bell className="w-6 h-6 text-slate-500" />
-                </div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">No Active Alerts</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-white/5">
-                {notifications.map((n) => (
-                  <div 
-                    key={n.id} 
-                    className={cn(
-                      "px-6 py-4 transition-all flex gap-4 group cursor-default relative overflow-hidden",
-                      n.isRead ? "opacity-40" : "bg-brand-500/[0.02] hover:bg-brand-500/[0.04]"
-                    )}
-                  >
-                    {!n.isRead && <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-500 shadow-glow" />}
-                    <div className="shrink-0 mt-1">
-                        <div className={cn(
-                          "w-10 h-10 rounded-xl flex items-center justify-center border transition-all shrink-0",
-                          n.type === "Success" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" :
-                          n.type === "Warning" ? "bg-amber-500/10 border-amber-500/20 text-amber-500" :
-                          n.type === "Error" ? "bg-red-500/10 border-red-500/20 text-red-500" :
-                          "bg-brand-500/10 border-brand-500/20 text-brand-500"
-                        )}>
-                           {getTypeIcon(n.type)}
-                        </div>
-                    </div>
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <p className={cn("text-[13px] font-sora font-black tracking-tight", !n.isRead ? "text-white" : "text-slate-400 uppercase")}>{n.title}</p>
-                        {!n.isRead && (
-                          <button 
-                            onClick={(e) => handleMarkAsRead(n.id, e)}
-                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/5 text-slate-500 hover:text-emerald-500 hover:bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-all border border-white/5 hover:border-emerald-500/20"
-                            title="Intercept Directive"
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                      <p className="text-[12px] text-slate-400 leading-relaxed font-black opacity-80">{n.message}</p>
-                      <div className="flex items-center gap-2 pt-2">
-                        <Clock className="w-3 h-3 text-slate-600" />
-                        <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
-                           {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="p-6 bg-white/[0.02] border-t border-white/5 text-center">
-             <button className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] hover:text-brand-500 transition-colors flex items-center justify-center gap-3 mx-auto group">
-               Telemetry Archive
-               <ArrowUpRight className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition-opacity" />
-             </button>
-          </div>
-        </motion.div>
+            <div className="p-8 bg-black/40 border-t border-white/5 flex gap-4 relative z-10">
+              <Button variant="secondary" className="flex-1 rounded-xl h-11 text-[10px] font-black uppercase tracking-widest" onClick={handleMarkAllAsRead}>Mark All Read</Button>
+              <Button variant="primary" className="flex-1 rounded-xl h-11 text-[10px] font-black uppercase tracking-widest" onClick={handlePurge}>Purge Archive</Button>
+            </div>
+          </motion.div>
+        </div>
       )}
-      </AnimatePresence>
-    </div>
+    </AnimatePresence>
   );
 };
 

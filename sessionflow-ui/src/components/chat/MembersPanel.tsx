@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { X, Shield, User as UserIcon, Crown, Wifi, WifiOff, Phone } from "lucide-react";
+import { X, Shield, User as UserIcon, Crown, Wifi, WifiOff, Phone, Activity, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../../lib/utils";
 import { Group } from "../../types";
@@ -8,10 +8,6 @@ import { useAuthStore } from "../../store/stores";
 import { useCallStore } from "../../store/callStore";
 import { useSignalR } from "../../providers/SignalRProvider";
 import { useTranslation } from "react-i18next";
-
-// ═══════════════════════════════════════════════════════════
-// Members Panel — Slide-in Real-Time Presence List
-// ═══════════════════════════════════════════════════════════
 
 interface MembersPanelProps {
   group: Group;
@@ -28,57 +24,36 @@ interface MemberEntry {
 }
 
 const StatusDot: React.FC<{ status: PresenceStatus; confidence: number }> = ({ status, confidence }) => {
-  let bg = "bg-slate-600";
+  let bg = "bg-var(--ui-surface)";
   let shadow = "";
   let label = "Offline";
   let pulse = false;
 
   switch (status) {
     case "online":
-      bg = "bg-emerald-500";
-      shadow = "shadow-[0_0_8px_rgba(16,185,129,0.5)]";
-      label = "Online";
+      bg = "bg-[var(--ui-accent)]";
+      shadow = "shadow-[0_0_8px_rgba(var(--ui-accent-rgb),0.5)]";
+      label = "Active";
       break;
     case "away":
-      bg = "bg-amber-500";
-      shadow = "shadow-[0_0_6px_rgba(245,158,11,0.4)]";
-      label = "Away";
+      bg = "bg-[#7c3aed]";
+      shadow = "shadow-[0_0_6px_rgba(124,58,237,0.4)]";
+      label = "Standby";
       break;
     case "unknown":
-      bg = "bg-amber-500/60";
-      label = "Connecting...";
+      bg = "bg-[var(--ui-accent)]/40";
+      label = "Syncing...";
       pulse = true;
-      break;
-    case "offline":
-      bg = "bg-slate-600";
-      label = "Offline";
       break;
   }
 
   return (
     <div className="flex items-center gap-2">
       <div className="relative">
-        <div
-          className={cn(
-            "w-2.5 h-2.5 rounded-full transition-colors duration-500",
-            bg,
-            shadow
-          )}
-        />
-        {pulse && (
-          <div className={cn("absolute inset-0 rounded-full animate-ping", bg, "opacity-40")} />
-        )}
+        <div className={cn("w-2 h-2 rounded-full transition-all duration-500", bg, shadow)} />
+        {pulse && <div className={cn("absolute inset-0 rounded-full animate-ping", bg, "opacity-40")} />}
       </div>
-      <span
-        className={cn(
-          "text-[9px] font-bold uppercase tracking-widest",
-          status === "online"
-            ? "text-emerald-400"
-            : status === "away" || status === "unknown"
-            ? "text-amber-400"
-            : "text-slate-600"
-        )}
-      >
+      <span className={cn("text-[8px] font-bold uppercase tracking-[0.2em]", status === "online" ? "text-[var(--ui-accent)]" : "text-slate-600")}>
         {label}
       </span>
     </div>
@@ -86,11 +61,8 @@ const StatusDot: React.FC<{ status: PresenceStatus; confidence: number }> = ({ s
 };
 
 const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
-  // Pull primitive properties individually to prevent Zustand from constantly failing deep equality checks
-  // and triggering cascade re-renders with framer-motion's layout engine.
   const status = usePresenceStore((s) => s.getPresence(member.userId).status);
   const confidence = usePresenceStore((s) => s.getPresence(member.userId).confidence);
-  const source = usePresenceStore((s) => s.getPresence(member.userId).source);
   const user = useAuthStore((s) => s.user);
   const isMe = member.userId === user?.id;
   const { invoke } = useSignalR();
@@ -101,88 +73,47 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
     invoke("CallUser", member.userId).catch(console.error);
   };
 
-  const initial = member.name?.charAt(0).toUpperCase() || "?";
-
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20 }}
       className={cn(
-        "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group/member",
+        "flex items-center gap-4 px-4 py-4 rounded-xl transition-all duration-300 group/member border",
         status === "online"
-          ? "bg-emerald-500/5 hover:bg-emerald-500/10"
-          : "bg-transparent hover:bg-white/5"
+          ? "bg-[var(--ui-accent)]/5 border-[var(--ui-accent)]/10"
+          : "bg-transparent border-transparent hover:bg-white/[0.02]"
       )}
     >
-      {/* Avatar */}
       <div className="relative shrink-0">
-        <div
-          className={cn(
-            "w-10 h-10 rounded-full flex items-center justify-center text-xs font-black uppercase overflow-hidden",
-            member.role === "Engineer"
-              ? "bg-gradient-to-br from-blue-500 to-cyan-500 text-white"
-              : "bg-slate-800 text-slate-400 border border-white/10"
-          )}
-        >
-          {member.avatarUrl ? (
-            <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" />
-          ) : (
-            initial
-          )}
+        <div className={cn(
+          "w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold uppercase overflow-hidden border",
+          member.role === "Engineer" ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/40 text-white shadow-glow shadow-[var(--ui-accent)]/10" : "bg-var(--ui-sidebar-bg) border-white/10 text-slate-500"
+        )}>
+          {member.avatarUrl ? <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" /> : member.name?.charAt(0)}
         </div>
         <div className="absolute -bottom-0.5 -right-0.5">
-          <div
-            className={cn(
-              "w-3 h-3 rounded-full border-2 border-slate-950 transition-colors duration-500",
-              status === "online"
-                ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]"
-                : status === "away" || status === "unknown"
-                ? "bg-amber-500"
-                : "bg-slate-600"
-            )}
-          />
+          <div className={cn("w-3 h-3 rounded-full border border-[var(--ui-bg)]", status === "online" ? "bg-[var(--ui-accent)]" : "bg-var(--ui-surface)")} />
         </div>
       </div>
 
-      {/* Name + Role */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-[12px] font-black text-white uppercase tracking-wider truncate">
-            {member.name} {isMe && <span className="text-brand-500 lowercase ml-1">(me)</span>}
+          <span className="text-[11px] font-bold text-white uppercase tracking-widest truncate">
+            {member.name} {isMe && <span className="text-[var(--ui-accent)] lowercase opacity-50 ml-1">(node)</span>}
           </span>
-          {member.role === "Engineer" && (
-            <Shield className="w-3 h-3 text-blue-400 shrink-0" />
-          )}
         </div>
-        <div className="flex items-center gap-2 mt-0.5">
+        <div className="flex items-center gap-2 mt-1">
           <span className={cn(
-            "text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md",
-            member.role === "Admin" ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" :
-            member.role === "Engineer" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" :
-            "bg-slate-900 text-slate-500 border border-white/5"
+            "text-[8px] font-bold uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-md border",
+            member.role === "Engineer" ? "bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] border-[var(--ui-accent)]/20" : "bg-white/[0.02] text-slate-600 border-white/5"
           )}>
-            {member.role === "Admin" ? "Administrator" : member.role}
+            {member.role}
           </span>
-          {source !== "server" && (
-            <span className="text-[8px] font-bold text-slate-700 uppercase tracking-widest bg-slate-900 px-1.5 py-0.5 rounded">
-              {source === "hybrid" ? "partial" : "local"}
-            </span>
-          )}
         </div>
       </div>
 
-      {/* Status + Call */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {status === "online" && !isMe && (
-          <button
-            onClick={handleCall}
-            className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white flex items-center justify-center transition-all duration-200 opacity-0 group-hover/member:opacity-100"
-            title={`Call ${member.name}`}
-          >
-            <Phone className="w-3.5 h-3.5" />
-          </button>
+          <button onClick={handleCall} className="w-8 h-8 rounded-lg bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] hover:bg-[var(--ui-accent)] hover:text-white flex items-center justify-center transition-all opacity-0 group-hover/member:opacity-100"><Phone className="w-3.5 h-3.5" /></button>
         )}
         <StatusDot status={status} confidence={confidence} />
       </div>
@@ -194,125 +125,72 @@ const MembersPanel: React.FC<MembersPanelProps> = ({ group, isOpen, onClose }) =
   const { t } = useTranslation();
   const isOnline = usePresenceStore((s) => s.isOnline);
 
-  // Derive member list
-  const members: MemberEntry[] = useMemo(() => {
+  const members = useMemo(() => {
     const result: MemberEntry[] = [];
-
-    // Engineer first
-    if (group.engineer) {
-      result.push({
-        id: group.engineerId,
-        userId: group.engineer.id || group.engineerId,
-        name: group.engineerName || group.engineer.name || "Engineer",
-        role: "Engineer",
-        avatarUrl: group.engineer.avatarUrl,
-      });
-    } else if (group.engineerId) {
-      result.push({
-        id: group.engineerId,
-        userId: group.engineerId,
-        name: group.engineerName || "Engineer",
-        role: "Engineer",
-      });
-    }
-
-    const { user } = useAuthStore.getState();
-    const isCurrentStudent = user?.role === "Student";
-
-    // Students
-    if (group.students) {
-      for (const student of group.students) {
-        result.push({
-          id: student.id,
-          userId: student.userId || student.id,
-          name: student.name,
-          role: "Student",
-        });
-      }
-    }
+    if (group.engineerId) result.push({ id: group.engineerId, userId: group.engineerId, name: group.engineerName || "Engineer", role: "Engineer", avatarUrl: group.engineer?.avatarUrl });
     
-    // Polyfill Current User if not present (backend might filter out self)
-    if (user && !result.some(m => m.userId === user.id)) {
-      result.push({
-        id: user.studentId || user.id,
-        userId: user.id,
-        name: user.name,
-        role: user.role === "Admin" ? "Admin" : (user.role === "Engineer" ? "Engineer" : "Student"),
-        avatarUrl: user.avatarUrl
+    if (group.students) {
+      // Deduplicate by name to prevent legcay duplicate records from cluttering the UI
+      const uniqueStudentsMap = new Map<string, any>();
+      group.students.forEach(s => {
+        const key = s.name.toLowerCase().trim();
+        const existing = uniqueStudentsMap.get(key);
+        // Prioritize records with a userId (linked to an account)
+        if (!existing || (!existing.userId && s.userId)) {
+          uniqueStudentsMap.set(key, s);
+        }
+      });
+
+      Array.from(uniqueStudentsMap.values()).forEach(s => {
+        result.push({ id: s.id, userId: s.userId || s.id, name: s.name, role: "Student" });
       });
     }
-
     return result;
   }, [group]);
 
-  // Sort: online first, then alphabetical
   const sortedMembers = useMemo(() => {
     return [...members].sort((a, b) => {
       const aOnline = isOnline(a.userId) ? 0 : 1;
       const bOnline = isOnline(b.userId) ? 0 : 1;
       if (aOnline !== bOnline) return aOnline - bOnline;
-      // Engineer always first within same status
-      if (a.role === "Engineer" && b.role !== "Engineer") return -1;
-      if (b.role === "Engineer" && a.role !== "Engineer") return 1;
       return a.name.localeCompare(b.name);
     });
   }, [members, isOnline]);
-
-  const onlineCount = members.filter((m) => isOnline(m.userId)).length;
 
   return (
     <AnimatePresence>
       {isOpen && (
         <motion.div
           initial={{ width: 0, opacity: 0 }}
-          animate={{ width: 320, opacity: 1 }}
+          animate={{ width: 340, opacity: 1 }}
           exit={{ width: 0, opacity: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          className="h-full border-s border-white/5 bg-slate-950/60 backdrop-blur-2xl overflow-hidden flex flex-col shrink-0"
+          className="h-full border-s border-white/5 bg-[var(--ui-sidebar-bg)]/95 backdrop-blur-3xl overflow-hidden flex flex-col shrink-0 relative"
         >
-          {/* Header */}
-          <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between flex-none">
+          <div className="absolute top-0 right-0 w-full h-[300px] bg-[var(--ui-accent)]/5 blur-[100px] pointer-events-none" />
+
+          <div className="px-8 py-8 border-b border-white/5 flex items-center justify-between flex-none relative z-10">
             <div>
-              <h3 className="text-[12px] font-sora font-black text-white uppercase tracking-widest flex items-center gap-2">
-                <UserIcon className="w-4 h-4 text-emerald-500" />
-                {t("chat.members", "Members")}
+              <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-3">
+                <Users className="w-4 h-4 text-[var(--ui-accent)]" />
+                {t("chat.members")}
               </h3>
-              <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest mt-1">
-                {onlineCount} {t("chat.online", "online")} · {members.length - onlineCount} {t("chat.offline", "offline")}
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-2">
+                 Network Presence Active
               </p>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-xl bg-white/5 text-slate-500 hover:text-white hover:bg-white/10 transition-all"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <button onClick={onClose} className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-slate-500 hover:text-white transition-all"><X className="w-4 h-4" /></button>
           </div>
 
-          {/* Presence Source Indicator */}
-          <div className="px-5 py-2 border-b border-white/[0.03] bg-white/[0.02] flex items-center gap-2">
-            <Wifi className="w-3 h-3 text-slate-700" />
-            <span className="text-[8px] font-bold text-slate-700 uppercase tracking-widest">
-              {t("chat.presence_note", "Presence updates in real-time")}
-            </span>
+          <div className="px-8 py-3 border-b border-white/[0.02] bg-white/[0.01] flex items-center gap-3 relative z-10">
+            <Activity className="w-3.5 h-3.5 text-[var(--ui-accent)]/60" />
+            <span className="text-[8px] font-bold text-[var(--ui-accent)]/60 uppercase tracking-widest">Neural Stream Matrix Established</span>
           </div>
 
-          {/* Members List */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar relative z-10">
             <AnimatePresence mode="popLayout">
-              {sortedMembers.map((member) => (
-                <MemberRow key={member.id} member={member} />
-              ))}
+              {sortedMembers.map((m) => <MemberRow key={m.id} member={m} />)}
             </AnimatePresence>
-
-            {sortedMembers.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <UserIcon className="w-8 h-8 text-slate-700 mb-3" />
-                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
-                  {t("chat.no_members", "No members in this group")}
-                </p>
-              </div>
-            )}
           </div>
         </motion.div>
       )}
@@ -321,3 +199,4 @@ const MembersPanel: React.FC<MembersPanelProps> = ({ group, isOpen, onClose }) =
 };
 
 export default MembersPanel;
+

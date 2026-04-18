@@ -1,19 +1,11 @@
 import React, { useMemo } from "react";
-import { Users, Volume2, VolumeX, ChevronDown, Shield, Pencil, ChevronLeft } from "lucide-react";
+import { Users, Volume2, VolumeX, ChevronDown, Shield, Pencil, ChevronLeft, Zap, Activity, Info } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Group, User } from "../../types";
 import { usePresenceStore } from "../../store/presenceStore";
 import { useAuthStore, useChatStore } from "../../store/stores";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-
-// ═══════════════════════════════════════════════════════════
-// Group Header — Social Live Status Panel
-// ═══════════════════════════════════════════════════════════
-// Displays: group name, description, member count,
-// online/offline counters, avatar stack with live dots,
-// and mute/members toggle.
-// ═══════════════════════════════════════════════════════════
 
 interface GroupHeaderProps {
   group: Group;
@@ -24,62 +16,45 @@ interface GroupHeaderProps {
   membersOpen: boolean;
 }
 
-// ── Presence Dot ───────────────────────────────────────
 const PresenceDot: React.FC<{ userId: string; size?: "sm" | "md" }> = ({ userId, size = "sm" }) => {
   const status = usePresenceStore((s) => s.getPresence(userId).status);
   const dotSize = size === "sm" ? "w-2.5 h-2.5" : "w-3 h-3";
   
-  let bgColor = "bg-slate-600"; // offline
+  let bgColor = "bg-var(--ui-surface)"; // offline
   let shadow = "";
   
   if (status === "online") {
-    bgColor = "bg-emerald-500";
-    shadow = "shadow-[0_0_6px_rgba(16,185,129,0.6)]";
+    bgColor = "bg-[var(--ui-accent)]";
+    shadow = "shadow-[0_0_8px_rgba(var(--ui-accent-rgb),0.6)]";
   } else if (status === "away") {
-    bgColor = "bg-amber-500";
-    shadow = "shadow-[0_0_6px_rgba(245,158,11,0.4)]";
-  } else if (status === "unknown") {
-    bgColor = "bg-amber-500/60";
+    bgColor = "bg-[#7c3aed]/60";
+    shadow = "shadow-[0_0_6px_rgba(124,58,237,0.4)]";
   }
   
   return (
-    <div
-      className={cn(
-        dotSize,
-        "rounded-full border-2 border-slate-950 transition-colors duration-500",
-        bgColor,
-        shadow
-      )}
-    />
+    <div className={cn(
+      dotSize,
+      "rounded-full border border-[var(--ui-bg)] transition-all duration-500",
+      bgColor,
+      shadow
+    )} />
   );
 };
 
-// ── Member Avatar with Live Dot ─────────────────────────
 const MemberAvatar: React.FC<{
   name: string;
   userId: string;
   avatarUrl?: string | null;
   isEngineer?: boolean;
 }> = ({ name, userId, avatarUrl, isEngineer }) => {
-  const initial = name?.charAt(0).toUpperCase() || "?";
-  
   return (
     <div className="relative group/avatar" title={name}>
-      <div
-        className={cn(
-          "w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black uppercase overflow-hidden transition-transform duration-300 hover:scale-110 hover:z-10",
-          isEngineer
-            ? "bg-gradient-to-br from-blue-500 to-cyan-500 text-white ring-2 ring-blue-500/30"
-            : "bg-slate-800 text-slate-400 ring-1 ring-white/10"
-        )}
-      >
-        {avatarUrl ? (
-          <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
-        ) : (
-          initial
-        )}
+      <div className={cn(
+        "w-8 h-8 rounded-full flex items-center justify-center text-[9px] font-bold uppercase overflow-hidden transition-all duration-300 hover:scale-110 hover:z-20 border",
+        isEngineer ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/40 text-white" : "bg-var(--ui-sidebar-bg) border-white/10 text-slate-500"
+      )}>
+        {avatarUrl ? <img src={avatarUrl} alt={name} className="w-full h-full object-cover" /> : name?.charAt(0)}
       </div>
-      {/* Live presence dot */}
       <div className="absolute -bottom-0.5 -right-0.5">
         <PresenceDot userId={userId} size="sm" />
       </div>
@@ -97,206 +72,100 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
 }) => {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
-  const isOnline = usePresenceStore((s) => s.isOnline);
   const isArchived = group.status === "Completed" || group.status === "Archived";
   const canEdit = user?.role === "Admin" || user?.role === "Engineer";
+  const isOnlineFunc = usePresenceStore((s) => s.isOnline);
 
-  // Derive member list
   const members = useMemo(() => {
-    const result: Array<{ id: string; userId: string; name: string; avatarUrl?: string | null; isEngineer: boolean }> = [];
-
-    // Engineer first
-    if (group.engineer) {
-      result.push({
-        id: group.engineerId,
-        userId: group.engineer.id || group.engineerId,
-        name: group.engineerName || group.engineer.name || "Engineer",
-        avatarUrl: group.engineer.avatarUrl,
-        isEngineer: true,
-      });
-    } else if (group.engineerId) {
-      result.push({
-        id: group.engineerId,
-        userId: group.engineerId,
-        name: group.engineerName || "Engineer",
-        isEngineer: true,
-      });
-    }
-
-    // Students
+    const result: any[] = [];
+    if (group.engineerId) result.push({ id: group.engineerId, userId: group.engineerId, name: group.engineerName || "Engineer", isEngineer: true });
+    
     if (group.students) {
-      for (const student of group.students) {
-        result.push({
-          id: student.id,
-          userId: student.userId || student.id,
-          name: student.name,
-          isEngineer: false,
-        });
-      }
-    }
+      const uniqueStudentsMap = new Map<string, any>();
+      group.students.forEach(s => {
+        const key = s.name.toLowerCase().trim();
+        const existing = uniqueStudentsMap.get(key);
+        // Prioritize records with a userId (linked to an account)
+        if (!existing || (!existing.userId && s.userId)) {
+          uniqueStudentsMap.set(key, s);
+        }
+      });
 
+      Array.from(uniqueStudentsMap.values()).forEach(s => {
+        result.push({ id: s.id, userId: s.userId || s.id, name: s.name, isEngineer: false });
+      });
+    }
     return result;
   }, [group]);
 
-  const serverOnline = usePresenceStore((s) => s.serverOnline);
-  const clientOnline = usePresenceStore((s) => s.clientOnline);
-  const isOnlineFunc = usePresenceStore((s) => s.isOnline);
-
-  const totalMembers = members.length;
-  const onlineCount = useMemo(
-    () => members.filter((m) => isOnlineFunc(m.userId)).length,
-    [members, isOnlineFunc, serverOnline, clientOnline]
-  );
-  const offlineCount = totalMembers - onlineCount;
-
-  // Avatar stack: show max 5 + overflow
+  const onlineCount = useMemo(() => members.filter((m) => isOnlineFunc(m.userId)).length, [members, isOnlineFunc]);
   const visibleAvatars = members.slice(0, 5);
-  const overflow = totalMembers - visibleAvatars.length;
-
-  // Color tag mapping
-  const colorMap: Record<string, string> = {
-    blue: "from-blue-500 to-cyan-500",
-    red: "from-red-500 to-rose-500",
-    green: "from-emerald-500 to-green-500",
-    purple: "from-violet-500 to-purple-500",
-    orange: "from-orange-500 to-amber-500",
-    pink: "from-pink-500 to-rose-400",
-    yellow: "from-yellow-500 to-amber-400",
-    indigo: "from-indigo-500 to-blue-500",
-  };
-  const gradient = colorMap[group.colorTag] || colorMap.blue;
+  const overflow = members.length - visibleAvatars.length;
 
   return (
-    <div className="relative px-6 py-4 bg-slate-950/60 backdrop-blur-2xl border-b border-white/5 flex-none">
-      {/* Gradient accent line */}
-      <div className={cn("absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r opacity-60", gradient)} />
+    <div className="relative px-10 py-6 bg-[var(--ui-sidebar-bg)]/80 backdrop-blur-3xl border-b border-white/5 flex-none z-20">
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--ui-accent)]/40 to-transparent" />
 
-      <div className="flex items-center justify-between gap-4">
-        {/* Mobile Back Button */}
-        <button
-          onClick={() => useChatStore.getState().setActiveGroup(null)}
-          className="md:hidden p-2 -ms-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all shrink-0"
-        >
+      <div className="flex items-center justify-between gap-8">
+        <button onClick={() => useChatStore.getState().setActiveGroup(null)} className="md:hidden p-2 rounded-xl text-slate-500 hover:text-white bg-white/[0.02] border border-white/5 transition-all shrink-0">
           <ChevronLeft className="w-5 h-5" />
         </button>
 
-        {/* Left: Group Info */}
-        <div className="flex items-center gap-4 min-w-0 flex-1">
-          {/* Group Icon */}
-          <div
-            className={cn(
-              "w-11 h-11 shrink-0 rounded-2xl bg-gradient-to-br flex items-center justify-center text-white font-black text-sm shadow-lg",
-              gradient
-            )}
-          >
+        <div className="flex items-center gap-6 min-w-0 flex-1">
+          <div className="w-12 h-12 shrink-0 rounded-xl bg-gradient-to-br from-[var(--ui-accent)]/20 to-[#7c3aed]/10 border border-[var(--ui-accent)]/30 flex items-center justify-center text-white font-bold text-xs shadow-glow shadow-[var(--ui-accent)]/10">
             L{group.level}
           </div>
 
           <div className="min-w-0 flex-1">
-            {/* Group Name + Archive Badge */}
-            <div className="flex items-center gap-2">
-              <h2 className="text-[15px] font-sora font-black text-white uppercase tracking-wider truncate leading-none">
+            <div className="flex items-center gap-3">
+              <h2 className="text-base font-bold text-white uppercase tracking-widest truncate leading-none">
                 {group.name}
               </h2>
               {isArchived && (
-                <span className="text-[8px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full uppercase tracking-widest">
-                  {t("common.archived", "Archived")}
+                <span className="text-[7px] font-bold text-[var(--ui-accent)] bg-[var(--ui-accent)]/10 border border-[var(--ui-accent)]/20 px-2 py-0.5 rounded-md uppercase tracking-[0.2em]">
+                  ARCHIVE
                 </span>
               )}
             </div>
 
-            {/* Member Status Line */}
-            <div className="flex items-center gap-3 mt-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                {totalMembers} {t("chat.members", "members")}
+            <div className="flex items-center gap-3 mt-1.5 opacity-60">
+              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+                {members.length} USERS
               </span>
-              <span className="w-1 h-1 rounded-full bg-slate-700" />
-              <span className="text-[10px] font-bold text-emerald-400/80 uppercase tracking-widest flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                {onlineCount} {t("chat.online", "online")}
-              </span>
-              {offlineCount > 0 && (
-                <>
-                  <span className="w-1 h-1 rounded-full bg-slate-700" />
-                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
-                    {offlineCount} {t("chat.offline", "offline")}
-                  </span>
-                </>
-              )}
+              <div className="w-1 h-1 rounded-full bg-var(--ui-surface)" />
+              <div className="flex items-center gap-1.5 text-[9px] font-bold text-[var(--ui-accent)] uppercase tracking-[0.2em]">
+                <Activity className="w-3 h-3" />
+                {onlineCount} ACTIVE
+              </div>
             </div>
 
-            {/* Description preview */}
             {group.description && (
-              <p className="text-[10px] text-slate-500 mt-1 truncate max-w-md leading-tight">
-                {group.description}
+              <div className="flex items-center gap-3 mt-2">
+                <p className="text-[9px] text-slate-500 font-medium uppercase tracking-widest truncate max-w-md">
+                  {group.description}
+                </p>
                 {canEdit && onEditDescription && (
-                  <button
-                    onClick={onEditDescription}
-                    className="inline-flex items-center ml-2 text-slate-600 hover:text-emerald-400 transition-colors"
-                  >
-                    <Pencil className="w-2.5 h-2.5" />
-                  </button>
+                  <button onClick={onEditDescription} className="text-slate-700 hover:text-[var(--ui-accent)] transition-colors"><Pencil className="w-3 h-3" /></button>
                 )}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Center: Avatar Stack */}
-        <div className="hidden md:flex items-center">
-          <div className="flex -space-x-2">
-            {visibleAvatars.map((member) => (
-              <MemberAvatar
-                key={member.id}
-                name={member.name}
-                userId={member.userId}
-                avatarUrl={member.avatarUrl}
-                isEngineer={member.isEngineer}
-              />
-            ))}
-            {overflow > 0 && (
-              <div className="w-8 h-8 rounded-full bg-slate-800/80 border border-white/10 flex items-center justify-center text-[9px] font-black text-slate-400">
-                +{overflow}
               </div>
             )}
           </div>
         </div>
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Mute Toggle */}
-          <button
-            onClick={onToggleMute}
-            className={cn(
-              "p-2.5 rounded-xl transition-all duration-300 group/btn",
-              isMuted
-                ? "bg-red-500/10 text-red-400 hover:bg-red-500/20"
-                : "bg-white/5 text-slate-500 hover:bg-white/10 hover:text-slate-300"
-            )}
-            title={isMuted ? t("chat.unmute", "Unmute") : t("chat.mute", "Mute")}
-          >
-            {isMuted ? (
-              <VolumeX className="w-4 h-4 transition-transform group-hover/btn:scale-110" />
-            ) : (
-              <Volume2 className="w-4 h-4 transition-transform group-hover/btn:scale-110" />
-            )}
-          </button>
+        <div className="hidden lg:flex items-center">
+          <div className="flex -space-x-3">
+            {visibleAvatars.map((m) => <MemberAvatar key={m.id} name={m.name} userId={m.userId} isEngineer={m.isEngineer} />)}
+            {overflow > 0 && <div className="w-8 h-8 rounded-full bg-[var(--ui-sidebar-bg)] border border-white/10 flex items-center justify-center text-[8px] font-bold text-slate-500">+{overflow}</div>}
+          </div>
+        </div>
 
-          {/* Members Panel Toggle */}
-          <button
-            onClick={onToggleMembers}
-            className={cn(
-              "p-2.5 rounded-xl transition-all duration-300 flex items-center gap-2 group/btn",
-              membersOpen
-                ? "bg-emerald-500/10 text-emerald-400"
-                : "bg-white/5 text-slate-500 hover:bg-white/10 hover:text-slate-300"
-            )}
-            title={t("chat.toggle_members", "Toggle Members")}
-          >
-            <Users className="w-4 h-4 transition-transform group-hover/btn:scale-110" />
-            {totalMembers > 0 && (
-              <span className="text-[10px] font-black">{totalMembers}</span>
-            )}
+        <div className="flex items-center gap-3 shrink-0">
+          <button onClick={onToggleMute} className={cn("w-11 h-11 rounded-xl flex items-center justify-center transition-all border", isMuted ? "bg-rose-500/10 border-rose-500/30 text-rose-500" : "bg-white/[0.02] border-white/5 text-slate-600 hover:text-[var(--ui-accent)] hover:border-[var(--ui-accent)]/20")}>
+            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
+          <button onClick={onToggleMembers} className={cn("h-11 px-5 rounded-xl flex items-center gap-3 transition-all border font-bold text-[9px] uppercase tracking-widest", membersOpen ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/40 text-[var(--ui-accent)]" : "bg-white/[0.02] border-white/5 text-slate-600 hover:text-white hover:border-white/10")}>
+            <Users className="w-4 h-4" />
+            <span>{members.length}</span>
           </button>
         </div>
       </div>
@@ -305,3 +174,4 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
 };
 
 export default GroupHeader;
+

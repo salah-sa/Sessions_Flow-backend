@@ -110,7 +110,7 @@ public static class AuthEndpoints
                 return Results.BadRequest(new { error = "Password must be at least 6 characters." });
 
             var (pending, error) = await auth.QueueStudentRequestAsync(
-                req.Name.Trim(), req.Username.Trim().ToLowerInvariant(), req.Email.Trim().ToLowerInvariant(), req.Password, req.GroupName.Trim());
+                req.Name.Trim(), req.Username.Trim().ToLowerInvariant(), req.Email.Trim().ToLowerInvariant(), req.Password, req.GroupName.Trim(), req.StudentId?.Trim());
 
             if (error != null)
                 return Results.Conflict(new { error });
@@ -175,7 +175,7 @@ public static class AuthEndpoints
                 level = groupObj.Level,
                 students = availableStudents.Select(s => new { id = s.Id, name = s.Name }).ToList()
             });
-        }).RequireAuthorization(); // Standardize on authorized discovery only
+        }).AllowAnonymous(); // Allow pre-registration group discovery
 
         group.MapGet("/pending-student-requests", async (HttpContext ctx, AuthService auth) =>
         {
@@ -306,5 +306,5 @@ public static class AuthEndpoints
     }
     public record RegisterRequest(string Name, string Email, string Password, string? AccessCode = null);
     public record RegisterStudentRequest(string Name, string Username, string Password, string StudentId, string EngineerCode);
-    public record RegisterStudentQueueRequest(string Name, string Username, string Email, string Password, string GroupName);
+    public record RegisterStudentQueueRequest(string Name, string Username, string Email, string Password, string GroupName, string? StudentId);
 }

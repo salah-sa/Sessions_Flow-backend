@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { dashboardApi, timetableApi } from "../api/resources_extra";
 import { queryKeys } from "./keys";
+import { DashboardSummary, Session, TimetableEntry } from "../types";
 
 export const useDashboardSummary = () => {
   return useQuery({

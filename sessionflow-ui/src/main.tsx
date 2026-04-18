@@ -49,7 +49,20 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       persistOptions={persistOptions}
     >
       <App />
-      <Toaster position="bottom-right" richColors closeButton />
+      <Toaster 
+        position="bottom-right" 
+        richColors 
+        closeButton 
+        theme="dark"
+        toastOptions={{
+          style: {
+            background: 'var(--ui-sidebar-bg)',
+            border: '1px solid rgba(255, 255, 255, 0.05)',
+            backdropFilter: 'blur(20px)',
+          },
+          className: "zenith-toast"
+        }}
+      />
     </PersistQueryClientProvider>
   </React.StrictMode>
 );

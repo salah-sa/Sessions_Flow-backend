@@ -1,185 +1,266 @@
-import React, { useEffect, useState } from "react";
-import { Minus, Square, X, Target, Menu, Bell, User, Search, HelpCircle } from "lucide-react";
-import { getHost, cn } from "../../lib/utils";
-import { useUIStore, useAuthStore, useAppStore } from "../../store/stores";
-import NotificationCenter from "./NotificationCenter";
+import React from "react";
+import { 
+  Bell, 
+  Search, 
+  Plus, 
+  HelpCircle, 
+  ChevronDown, 
+  Maximize2, 
+  MessageCircle,
+  Zap,
+  LayoutGrid,
+  X,
+  Minus,
+  Maximize,
+  Minimize2,
+  Clock
+} from "lucide-react";
 import { format } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useAuthStore, useAppStore, useUIStore } from "../../store/stores";
 import { useTranslation } from "react-i18next";
+import { useNavigate, Link } from "react-router-dom";
+import { cn } from "../../lib/utils";
+import { motion } from "framer-motion";
+import { toast } from "sonner";
+import NotificationCenter from "./NotificationCenter";
+import CommandPalette from "./CommandPalette";
+import { useNotifications } from "../../queries/useNotificationQueries";
+import { ConfirmDialog } from "../ui";
 
 const TopBar: React.FC = () => {
   const { t } = useTranslation();
-  const [isDesktop, setIsDesktop] = useState(false);
-  const toggleSidebar = useUIStore((s) => s.toggleSidebar);
-  const user = useAuthStore((s) => s.user);
-  const isOnline = useAppStore((s) => s.isOnline);
-  const connectionStatus = useAppStore((s) => s.connectionStatus);
-  const [cairoTime, setCairoTime] = useState(new Date());
   const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const { connectionMode } = useAppStore();
+  const [notifOpen, setNotifOpen] = React.useState(false);
+  const [cmdOpen, setCmdOpen] = React.useState(false);
+  const [currentTime, setCurrentTime] = React.useState(format(new Date(), "HH:mm:ss"));
+  const [showExitConfirm, setShowExitConfirm] = React.useState(false);
+  const [isExiting, setIsExiting] = React.useState(false);
 
-  useEffect(() => {
-    const checkHost = async () => {
-      const host = await getHost();
-      setIsDesktop(!!host);
-    };
-    checkHost();
+  // Notification Sync
+  const { data: notificationData } = useNotifications();
+  const unreadCount = notificationData?.unreadCount || 0;
 
+  React.useEffect(() => {
     const timer = setInterval(() => {
-      setCairoTime(new Date());
+      setCurrentTime(format(new Date(), "HH:mm:ss"));
     }, 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const handleMinimize = async () => {
-    const host = await getHost();
-    host?.minimizeWindow();
+  React.useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setCmdOpen((open) => !open);
+      }
+    };
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, []);
+
+  const [isMaximized, setIsMaximized] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsMaximized(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  const setMinimized = useUIStore((s) => s.setMinimized);
+
+  const handleMinimize = () => {
+    const electron = (window as any).electronAPI;
+    if (electron) {
+      electron.minimize();
+    } else {
+      setMinimized(true);
+      toast("UI Node Minimized", {
+        icon: <Minus className="w-4 h-4 text-emerald-500" />,
+      });
+      window.blur();
+    }
   };
 
-  const handleMaximize = async () => {
-    const host = await getHost();
-    host?.maximizeWindow();
+  const handleClose = () => {
+    setShowExitConfirm(true);
   };
 
-  const handleClose = async () => {
-    const host = await getHost();
-    host?.closeWindow();
+  const onConfirmExit = () => {
+    setIsExiting(true);
+    const electron = (window as any).electronAPI;
+    
+    if (electron) {
+      electron.close();
+    } else {
+      // Manual Close Instruction for Web
+      const closed = window.close();
+      
+      // If window.close() is blocked (usual browser behavior)
+      setTimeout(() => {
+        toast.error("AUTONOMOUS SHUTDOWN PREVENTED", {
+          description: "SECURITY PROTOCOL ACTIVE: Please terminate the neural link manually via the host browser tab.",
+          icon: <Zap className="w-4 h-4 text-rose-500 shadow-glow shadow-rose-500/50" />,
+          duration: 10000,
+        });
+        setShowExitConfirm(false);
+        setIsExiting(false);
+      }, 500);
+    }
   };
 
-  // Helper for Cairo Time without external tz library
-  const getCairoTimeString = (date: Date) => {
-    return new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Africa/Cairo",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    }).format(date);
+  React.useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isExiting) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isExiting]);
+
+  const toggleFullscreen = () => {
+    const electron = (window as any).electronAPI;
+    if (electron) {
+      electron.maximize();
+    } else if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {
+         toast.error("Fullscreen protocol denied by host");
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
   };
+
 
   return (
-    <div className="h-16 w-full flex items-center justify-between bg-[rgba(10,15,26,0.85)] backdrop-blur-xl border-b border-emerald-500/10 select-none app-drag-region z-50">
-      <div className="flex items-center gap-4 px-5 h-full">
-        {/* Mobile Hamburger Menu */}
-        <button 
-          onClick={toggleSidebar}
-          aria-label="Toggle sidebar menu"
-          className="lg:hidden p-2 -ms-2 text-slate-400 hover:text-white transition-colors app-no-drag"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-
+    <header className="h-[80px] bg-[var(--ui-sidebar-bg)] border-b border-white/5 flex items-center justify-between px-6 relative z-40 select-none" style={{ WebkitAppRegion: 'drag' } as any}>
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--ui-accent)] to-transparent opacity-30" />
+      
+      <div className="flex items-center gap-3 flex-1" style={{ WebkitAppRegion: 'no-drag' } as any}>
         <div className="flex items-center gap-3">
-          <div className="p-1.5 bg-emerald-500 rounded-xl shadow-[0_0_20px_-5px_rgba(16,185,129,0.6)]">
-            <Target className="w-3.5 h-3.5 text-white" />
+          <div className="w-10 h-10 rounded-xl bg-[var(--ui-accent)]/10 border border-[var(--ui-accent)]/20 flex items-center justify-center shadow-glow shadow-[var(--ui-accent)]/5">
+             <LayoutGrid className="w-5 h-5 text-[var(--ui-accent)]" />
           </div>
-          <span className="font-sora font-extrabold text-[12px] tracking-tight text-white uppercase hidden sm:inline-block">
-            Session<span className="text-emerald-400">Flow</span>
-          </span>
+          <div className="hidden sm:block text-start">
+            <h1 className="text-sm font-bold text-white uppercase tracking-[0.2em]">{t("dashboard.title")}</h1>
+            <div className="flex items-center gap-3 mt-0.5">
+               <div className="flex items-center gap-1.5">
+                  <div className={cn("w-1.5 h-1.5 rounded-full shadow-glow", connectionMode === "full" ? "bg-[var(--ui-accent)]" : "bg-rose-500 shadow-rose-500/50")} />
+                  <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">
+                     {connectionMode === "full" ? "Neural Link Online" : "Disconnected"}
+                  </span>
+               </div>
+               <div className="w-px h-3 bg-white/10" />
+               <div className="flex items-center gap-1.5">
+                  <Clock className="w-3 h-3 text-slate-600" />
+                  <span className="text-[9px] font-mono font-bold text-[var(--ui-accent)] tracking-tighter tabular-nums">
+                     {currentTime}
+                  </span>
+               </div>
+            </div>
+          </div>
         </div>
 
-        <div className="ms-4 h-6 w-px bg-white/10" />
-        
-        {/* Welcome Back Greeting (from mockup) */}
-        <div className="hidden md:flex items-center gap-3 app-no-drag">
-          <div className="flex flex-col">
-            <span className="text-[13px] font-semibold text-white leading-none">
-              {t("dashboard.welcome", "Welcome Back")}, <span className="text-emerald-400">{user?.name || "User"}</span>
-            </span>
-            {(() => {
-              const isReady = isOnline && connectionStatus === "Connected";
-              const isTransitioning = isOnline && connectionStatus === "Reconnecting";
-              
-              const statusColor = isReady ? "bg-emerald-500" : isTransitioning ? "bg-amber-500" : "bg-red-500";
-              const statusGlow = isReady ? "shadow-[0_0_8px_rgba(16,185,129,0.5)]" : isTransitioning ? "shadow-[0_0_8px_rgba(245,158,11,0.5)]" : "shadow-[0_0_8px_rgba(239,68,68,0.5)]";
-              const statusText = !isOnline ? "Offline" : connectionStatus;
-              
-              return (
-                <span className={cn("text-[10px] font-bold flex items-center gap-1.5 mt-1", isReady ? "text-emerald-500/70" : isTransitioning ? "text-amber-500/70" : "text-red-500/70")}>
-                  <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", statusColor, statusGlow)} />
-                  {statusText}
-                </span>
-              );
-            })()}
+        <div 
+          onClick={() => setCmdOpen(true)}
+          className="hidden md:flex items-center max-w-sm w-full relative group cursor-pointer"
+        >
+          <Search className="absolute left-4 w-4 h-4 text-slate-600 group-hover:text-[var(--ui-accent)] transition-colors" />
+          <div className="w-full h-11 bg-white/[0.03] border border-white/5 rounded-xl pl-12 pr-4 flex items-center text-[10px] font-bold uppercase tracking-widest text-slate-500 transition-all select-none">
+            {t("common.search_placeholder", "COMMAND SEARCH...")}
           </div>
+          <div className="absolute right-3 px-2 py-1 rounded bg-white/[0.05] border border-white/5 text-[8px] font-black text-slate-600 tracking-tighter shadow-sm">CTRL + K</div>
         </div>
       </div>
 
-      {/* Center: Search Bar (from mockup) */}
-      <div className="hidden lg:flex items-center flex-1 max-w-md mx-8 app-no-drag">
-        <div className="relative w-full group">
-          <Search className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
-          <input 
-            type="text"
-            placeholder="Search..."
-            className="w-full h-10 ps-11 pe-4 rounded-xl bg-slate-900/60 border border-white/5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/30 transition-all"
-          />
-        </div>
-      </div>
-
-      <div className="flex items-center h-full app-no-drag">
-        <div className="flex items-center gap-2 me-4 pe-4 border-e border-white/5 h-8">
-           {/* Cairo Time Chip */}
-           <div className="hidden xl:flex items-center gap-2.5 px-4 h-8 bg-white/[0.03] border border-white/5 rounded-full me-2">
-             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-             <span className="text-[10px] font-black font-mono text-slate-400 tracking-wider">
-               CAI {getCairoTimeString(cairoTime)}
-             </span>
-           </div>
-
-           <NotificationCenter />
-           
-           {/* Help Button (from mockup) */}
-           <button aria-label="Help" className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-500 hover:text-emerald-400 hover:bg-white/5 transition-all">
-             <HelpCircle className="w-4.5 h-4.5" />
-           </button>
-
+      <div className="flex items-center gap-0" style={{ WebkitAppRegion: 'no-drag' } as any}>
+        <div className="hidden lg:flex items-center gap-4 border-r border-white/5 pe-6">
            <button 
-             onClick={() => navigate("/profile")}
-             aria-label="User profile"
-             className="flex items-center gap-3 ms-2 p-1.5 hover:bg-white/5 rounded-2xl transition-all border border-transparent hover:border-emerald-500/20 group/profile"
+              onClick={() => navigate("/chat")}
+              className="p-2 text-slate-500 hover:text-white transition-colors relative"
            >
-              <div className="text-end hidden lg:block">
-                 <p className="text-[10px] font-black text-white leading-none uppercase tracking-widest group-hover/profile:text-emerald-400 transition-colors">{user?.name || "Member"}</p>
-                 <p className="text-[8px] font-black text-slate-500 leading-none mt-1 uppercase tracking-tighter opacity-70">{user?.role || "ENGINEER"}</p>
-              </div>
-              <div className="w-9 h-9 rounded-xl bg-slate-900 border border-emerald-500/20 flex items-center justify-center text-[11px] font-black text-white shadow-lg overflow-hidden relative group-hover/profile:border-emerald-500/50 transition-all">
-                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-600/10 opacity-0 group-hover/profile:opacity-100 transition-opacity" />
-                 {user?.avatarUrl ? (
-                   <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
-                 ) : (
-                   user?.name ? user.name.charAt(0).toUpperCase() : <User className="w-4 h-4" />
-                 )}
-              </div>
+              <MessageCircle className="w-4 h-4" />
+              <div className="absolute top-2 right-2 w-2 h-2 bg-[var(--ui-accent)] rounded-full border border-[var(--ui-sidebar-bg)] shadow-glow" />
+           </button>
+           <button 
+             onClick={() => setNotifOpen(true)} 
+             className="p-2 text-slate-500 hover:text-white transition-all relative group"
+           >
+              <Bell className={cn("w-4 h-4 transition-all", unreadCount > 0 && "text-[var(--ui-accent)] animate-[pulse_2s_infinite]")} />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 min-w-[14px] h-[14px] px-1 bg-[var(--ui-accent)] text-black text-[8px] font-black rounded-full flex items-center justify-center shadow-glow shadow-[var(--ui-accent)]/40 animate-in zoom-in-50 duration-500">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
            </button>
         </div>
 
-        {isDesktop && (
-          <div className="flex items-center h-full">
-            <button
-              onClick={handleMinimize}
-              className="h-full px-4 hover:bg-slate-800 transition-colors"
-              title="Minimize"
-            >
-              <Minus className="w-4 h-4 text-slate-400" />
-            </button>
-            <button
-              onClick={handleMaximize}
-              className="h-full px-4 hover:bg-slate-800 transition-colors"
-              title="Maximize"
-            >
-              <Square className="w-3.5 h-3.5 text-slate-400" />
-            </button>
-            <button
-              onClick={handleClose}
-              className="h-full px-6 hover:bg-red-500/90 transition-colors group"
-              title="Close to Tray"
-            >
-              <X className="w-4 h-4 text-slate-400 group-hover:text-white" />
-            </button>
+        <Link 
+          to="/profile" 
+          className="flex items-center gap-4 px-6 group transition-all border-r border-white/5 h-[80px]" 
+        >
+          <div className="text-right hidden sm:block">
+            <p className="text-[10px] font-bold text-white uppercase tracking-widest leading-none group-hover:text-[var(--ui-accent)] transition-colors">{user?.name}</p>
+            <p className="text-[8px] font-bold text-[var(--ui-accent)] uppercase tracking-widest mt-1.5 opacity-80">{user?.role} NODE</p>
           </div>
-        )}
+          <div className="relative">
+             <div className="w-10 h-10 rounded-xl bg-[var(--ui-surface)] border border-white/5 flex items-center justify-center text-white overflow-hidden shadow-xl transition-all duration-300 group-hover:border-[var(--ui-accent)]/50 group-hover:shadow-[var(--ui-accent)]/10 ring-0 group-hover:ring-4 ring-[var(--ui-accent)]/5">
+                {user?.avatarUrl ? <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" /> : <div className="text-xs font-black">{user?.name?.charAt(0)}</div>}
+             </div>
+          </div>
+        </Link>
+
+        {/* Windows-style Window Controls on the FAR Right */}
+        <div className="flex items-center h-[80px]">
+          <button 
+            onClick={handleMinimize}
+            className="w-[48px] h-full flex items-center justify-center text-slate-500 hover:bg-white/5 transition-colors"
+            title="Minimize"
+          >
+            <Minus className="w-[14px] h-[14px]" />
+          </button>
+          <button 
+            onClick={toggleFullscreen}
+            className="w-[48px] h-full flex items-center justify-center text-slate-500 hover:bg-white/5 transition-colors"
+            title={isMaximized ? "Restore" : "Maximize"}
+          >
+            {isMaximized ? (
+              <Minimize2 className="w-[14px] h-[14px]" />
+            ) : (
+              <Maximize className="w-[14px] h-[14px]" />
+            )}
+          </button>
+          <button 
+            onClick={handleClose} 
+            className="w-[48px] h-full flex items-center justify-center text-slate-500 hover:bg-rose-600 hover:text-white transition-colors"
+            title="Close"
+          >
+            <X className="w-[14px] h-[14px]" />
+          </button>
+        </div>
       </div>
-    </div>
+      
+      <NotificationCenter isOpen={notifOpen} onClose={() => setNotifOpen(false)} />
+      <CommandPalette isOpen={cmdOpen} onClose={() => setCmdOpen(false)} />
+      
+      <ConfirmDialog
+        isOpen={showExitConfirm}
+        onClose={() => setShowExitConfirm(false)}
+        onConfirm={onConfirmExit}
+        title="Terminate Neural Link?"
+        description="Are you sure you want to disconnect? Any unsaved telemetry and active session data may be purged from local cache."
+        confirmLabel="Confirm Exit"
+        cancelLabel="Stay Connected"
+        variant="danger"
+        isLoading={isExiting}
+      />
+    </header>
   );
 };
 

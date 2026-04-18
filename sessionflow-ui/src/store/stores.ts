@@ -2,15 +2,27 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { User, Session, AttendanceRecord, Notification, AuditLog, ChatMessage } from "../types";
 
+export interface StudentLocationData {
+  city: string;
+  lat?: number;
+  lng?: number;
+  source: 'auto' | 'manual';
+  timestamp: number;
+}
+
 // Auth Store
 interface AuthState {
   user: User | null;
   token: string | null;
   rememberMe: boolean;
+  studentLocation: string | null; // Keep for legacy/string display
+  studentLocationData: StudentLocationData | null;
   _hasHydrated: boolean;
   _lastLoginAt: number; // Timestamp of last successful login
   setAuth: (user: User, token: string) => void;
   setRememberMe: (val: boolean) => void;
+  setStudentLocation: (loc: string) => void;
+  setStudentLocationData: (data: StudentLocationData) => void;
   updateUser: (user: User) => void;
   setHasHydrated: (val: boolean) => void;
   logout: () => void;
@@ -22,19 +34,19 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       rememberMe: false,
+      studentLocation: null,
+      studentLocationData: null,
       _hasHydrated: false,
       _lastLoginAt: 0,
       setAuth: (user, token) => {
-        localStorage.setItem("sf_token", token);
         set({ user, token, _lastLoginAt: Date.now() });
       },
       setRememberMe: (val) => set({ rememberMe: val }),
+      setStudentLocation: (studentLocation) => set({ studentLocation }),
+      setStudentLocationData: (data) => set({ studentLocationData: data, studentLocation: data.city }),
       updateUser: (user) => set({ user }),
       setHasHydrated: (val) => set({ _hasHydrated: val }),
       logout: () => {
-        localStorage.removeItem("sf_token");
-        localStorage.removeItem("sf-auth-storage");
-        sessionStorage.removeItem("sf-auth-storage");
         set({ user: null, token: null, rememberMe: false });
       },
     }),
@@ -74,13 +86,25 @@ export const useSessionStore = create<SessionState>((set) => ({
 }));
 
 // UI Store
+export interface CustomTheme {
+  accent: string;
+  background: string;
+  surface: string;
+  sidebar: string;
+}
+
 interface UIState {
   theme: "light" | "dark";
   language: "en" | "ar";
   sidebarOpen: boolean;
+  customTheme: CustomTheme | null;
+  isMinimized: boolean;
   setTheme: (theme: "light" | "dark") => void;
   setLanguage: (lang: "en" | "ar") => void;
   toggleSidebar: () => void;
+  setCustomTheme: (theme: CustomTheme | null) => void;
+  updateCustomTheme: (theme: Partial<CustomTheme>) => void;
+  setMinimized: (minimized: boolean) => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -89,9 +113,16 @@ export const useUIStore = create<UIState>()(
       theme: "dark",
       language: "en",
       sidebarOpen: true,
+      customTheme: null,
+      isMinimized: false,
       setTheme: (theme) => set({ theme }),
       setLanguage: (language) => set({ language }),
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+      setCustomTheme: (customTheme) => set({ customTheme }),
+      updateCustomTheme: (theme) => set((state) => ({ 
+        customTheme: state.customTheme ? { ...state.customTheme, ...theme } : { accent: "", background: "", surface: "", sidebar: "", ...theme } 
+      })),
+      setMinimized: (isMinimized) => set({ isMinimized }),
     }),
     { name: "sf-ui-storage" }
   )
@@ -219,7 +250,15 @@ export const useChatStore = create<ChatState>()(
         });
       },
     }),
-    { name: "sf-chat-storage" }
+    { 
+      name: "sf-chat-storage",
+      partialize: (state) => ({
+        unreadCounts: state.unreadCounts,
+        lastMessages: state.lastMessages,
+        pendingMessages: state.pendingMessages,
+        activeGroupId: state.activeGroupId
+      })
+    }
   )
 );
 // App Store (Health & Sync + Degradation Engine)

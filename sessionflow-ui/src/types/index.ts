@@ -90,6 +90,10 @@ export interface Session {
   totalStudents?: number;
   attendanceRate?: number;
   attendanceRecords?: AttendanceRecord[];
+  students?: Student[];
+  attendance?: AttendanceRecord[];
+  canStart?: boolean;
+  isEditable?: boolean;
 }
 
 export type AttendanceStatus = "Unmarked" | "Absent" | "Present" | "Late";
@@ -150,7 +154,7 @@ export interface Setting {
   id: string;
   key: string;
   value: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export interface EngineerCode {
@@ -166,6 +170,8 @@ export interface PendingEngineer {
   id: string;
   name: string;
   email: string;
+  username?: string;
+  groupName?: string;
   requestedAt: string;
   status: "Pending" | "Approved" | "Denied";
 }
@@ -278,7 +284,100 @@ export interface DashboardSummary {
   topGroups: TopGroup[];
 
   // Timeline
-  todayTimeline: any[];
-  recentActivity: any[];
-  nextUpcomingSession: any;
+  todayTimeline: Session[];
+  recentActivity: AuditLog[];
+  nextUpcomingSession: Session | null;
+}
+
+// ═══════════════════════════════════════════════
+// API Request/Response Interfaces
+// ═══════════════════════════════════════════════
+
+export interface LoginCredentials {
+  identifier: string;
+  password: string;
+  portal: "Admin" | "Student";
+  studentId?: string;
+  engineerCode?: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: User;
+}
+
+export interface RegisterEngineerData {
+  name: string;
+  email: string;
+  password: string;
+}
+
+export interface RegisterStudentRequestData {
+  name: string;
+  username: string;
+  email: string;
+  password: string;
+  groupName: string;
+  studentId: string;
+}
+
+export interface GroupCreateData {
+  name: string;
+  description?: string;
+  level: number;
+  colorTag: string;
+  numberOfStudents: number;
+  startingSessionNumber: number;
+  totalSessions: number;
+}
+
+export interface GroupUpdateData extends Partial<GroupCreateData> {
+  status?: GroupStatus;
+  engineerId?: string;
+}
+
+export interface AttendanceUpdateRecord {
+  studentId: string;
+  status: AttendanceStatus;
+}
+
+export interface StudentDashboardData {
+  identity: {
+    name: string;
+    level: number;
+    groupName: string;
+    studentId: string;
+    avatarUrl?: string;
+  };
+  progress: {
+    completed: number;
+    total: number;
+    remaining: number;
+    percentage: number;
+  };
+  todaySession: Session | null;
+  nextSession: Session | null;
+  primaryAction: {
+    label: string;
+  };
+  timeline: (Session & { status: string })[];
+  error?: {
+    message: string;
+  };
+}
+
+export interface ImportPreview {
+  success: boolean;
+  groupsFound: number;
+  groups: Array<{
+    id: string;
+    name: string;
+    level: number;
+    studentCount: number;
+  }>;
+}
+
+export interface ImportResult extends ImportPreview {
+  groupsImported: number;
+  studentsImported: number;
 }

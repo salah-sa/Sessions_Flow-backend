@@ -15,7 +15,7 @@ const strengthConfig = [
   { label: "Weak", color: "bg-red-500", textColor: "text-red-400" },
   { label: "Fair", color: "bg-amber-500", textColor: "text-amber-400" },
   { label: "Good", color: "bg-emerald-400", textColor: "text-emerald-400" },
-  { label: "Strong", color: "bg-emerald-500", textColor: "text-emerald-300" },
+  { label: "Strong", color: "bg-[var(--ui-accent)]", textColor: "text-[var(--ui-accent)]" },
 ];
 
 function getStrengthIndex(s: number): number {
@@ -69,19 +69,19 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
   const strengthIdx = getStrengthIndex(props.passwordStrength);
 
   return (
-    <div className="absolute inset-0 bg-[#0a0f1a] overflow-hidden">
+    <div className="absolute inset-0 bg-[var(--ui-bg)] overflow-hidden">
       {/* ═══ Background System — Matching Shell's Ambient Nebula ═══ */}
       <div
         ref={blobRef}
         className="absolute w-[900px] h-[900px] rounded-full blur-[180px] opacity-20 mix-blend-screen pointer-events-none -translate-x-1/2 -translate-y-1/2"
         style={{
-          background: "radial-gradient(circle, rgba(16,185,129,0.6) 0%, rgba(6,182,212,0.4) 35%, rgba(59,130,246,0.3) 70%, transparent 100%)",
+          background: "radial-gradient(circle, rgba(var(--ui-accent-rgb), 0.6) 0%, rgba(var(--ui-accent-rgb), 0.4) 35%, rgba(var(--ui-accent-rgb), 0.3) 70%, transparent 100%)",
         }}
       />
       {/* Static ambient orbs matching Shell */}
-      <div className="absolute top-[-15%] left-[-10%] w-[60%] h-[50%] bg-emerald-600/20 blur-[140px] rounded-full animate-breathe pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[60%] bg-blue-600/15 blur-[160px] rounded-full animate-breathe pointer-events-none" style={{ animationDelay: "2s" }} />
-      <div className="absolute top-[30%] right-[-15%] w-[40%] h-[40%] bg-cyan-400/10 blur-[120px] rounded-full animate-breathe pointer-events-none" style={{ animationDelay: "1s" }} />
+      <div className="absolute top-[-15%] left-[-10%] w-[60%] h-[50%] bg-[var(--ui-accent)]/20 blur-[140px] rounded-full animate-breathe pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[60%] bg-[var(--ui-accent)]/15 blur-[160px] rounded-full animate-breathe pointer-events-none" style={{ animationDelay: "2s" }} />
+      <div className="absolute top-[30%] right-[-15%] w-[40%] h-[40%] bg-[var(--ui-accent)]/10 blur-[120px] rounded-full animate-breathe pointer-events-none" style={{ animationDelay: "1s" }} />
 
       {/* Noise texture */}
       <div className="absolute inset-0 opacity-[0.025] pointer-events-none"
@@ -112,10 +112,10 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
               style={{ background: "linear-gradient(135deg, rgba(16,185,129,0.4) 0%, rgba(6,182,212,0.25) 40%, rgba(255,255,255,0.03) 60%, rgba(59,130,246,0.3) 100%)" }}
             />
 
-            <div className="relative rounded-[23px] bg-[rgba(15,23,42,0.75)] backdrop-blur-2xl px-6 py-6 pt-10 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+            <div className="relative rounded-[23px] bg-[var(--ui-sidebar-bg)]/75 backdrop-blur-2xl px-6 py-6 pt-10 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
               {/* Top accent bar */}
               <div className="absolute top-0 left-0 right-0 h-[2px]">
-                <div className="h-full bg-gradient-to-r from-emerald-500 via-cyan-400 to-blue-500 opacity-80" />
+                <div className="h-full bg-gradient-to-r from-[var(--ui-accent)]/40 via-[var(--ui-accent)] to-[var(--ui-accent)]/40 opacity-80" />
               </div>
 
               {/* ═══ Header ═══ */}
@@ -129,9 +129,9 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
               </div>
 
               {/* ═══ Role Switcher ═══ */}
-              <div className="relative flex p-[3px] bg-slate-950/60 rounded-xl mb-4 border border-white/[0.05]">
+              <div className="relative flex p-[3px] bg-var(--ui-bg)/60 rounded-xl mb-4 border border-white/[0.05]">
                 <motion.div
-                  className="absolute top-[3px] bottom-[3px] rounded-[11px] bg-emerald-500/15 border border-emerald-500/25 shadow-[0_0_12px_rgba(16,185,129,0.15)]"
+                  className="absolute top-[3px] bottom-[3px] rounded-[11px] bg-[var(--ui-accent)]/15 border border-[var(--ui-accent)]/25 shadow-[0_0_12px_rgba(var(--ui-accent-rgb),0.15)]"
                   animate={{
                     left: props.loginMode === "engineer" ? "3px" : "50%",
                     right: props.loginMode === "engineer" ? "50%" : "3px",
@@ -142,7 +142,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                   type="button"
                   onClick={() => props.setLoginMode("engineer")}
                   className={`relative z-10 flex-1 py-2 text-[10px] font-black rounded-lg transition-colors duration-200 uppercase tracking-widest ${
-                    props.loginMode === "engineer" ? "text-emerald-400" : "text-slate-600 hover:text-slate-400"
+                    props.loginMode === "engineer" ? "text-[var(--ui-accent)]" : "text-slate-600 hover:text-slate-400"
                   }`}
                 >
                   Engineer
@@ -151,7 +151,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                   type="button"
                   onClick={() => props.setLoginMode("student")}
                   className={`relative z-10 flex-1 py-2 text-[10px] font-black rounded-lg transition-colors duration-200 uppercase tracking-widest ${
-                    props.loginMode === "student" ? "text-emerald-400" : "text-slate-600 hover:text-slate-400"
+                    props.loginMode === "student" ? "text-[var(--ui-accent)]" : "text-slate-600 hover:text-slate-400"
                   }`}
                 >
                   Student
@@ -172,12 +172,12 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                         Find Your Group
                       </label>
                       <div className={`relative group rounded-xl transition-all duration-300 ${
-                        focusedField === "groupName" ? "ring-2 ring-emerald-500/25" : ""
+                        focusedField === "groupName" ? "ring-2 ring-[var(--ui-accent)]/25" : ""
                       }`}>
-                        <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-emerald-400" />
+                        <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-[var(--ui-accent)]" />
                         <Input
                           {...props.register("groupName")}
-                          className="w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] focus:border-emerald-500/30 transition-all text-[13px] placeholder:text-slate-600 font-medium normal-case tracking-normal"
+                          className="w-full h-[42px] pl-10 bg-var(--ui-bg)/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] focus:border-[var(--ui-accent)]/30 transition-all text-[13px] placeholder:text-slate-600 font-medium normal-case tracking-normal"
                           placeholder="Exact group name (e.g. Math-101)"
                           onFocus={() => { setFocusedField("groupName"); props.handleFieldFocus("text"); }}
                           onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
@@ -190,9 +190,9 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                     </div>
                     <Button
                       type="button"
-                      onClick={() => props.onDiscover?.((props.register("groupName") as any).value || "")}
+                      onClick={() => props.onDiscover?.(props.watch?.("groupName") || "")}
                       disabled={props.loading}
-                      className="w-full h-[44px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all shadow-glow shadow-emerald-500/10"
+                      className="w-full h-[44px] bg-[var(--ui-accent)]/10 border border-[var(--ui-accent)]/20 text-[var(--ui-accent)] hover:bg-[var(--ui-accent)] hover:text-white transition-all shadow-glow shadow-[var(--ui-accent)]/10"
                     >
                       {props.loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
                         <div className="flex items-center gap-2">
@@ -210,16 +210,16 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                     animate={{ opacity: 1, scale: 1 }}
                     className="space-y-4"
                   >
-                    <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-4 space-y-3">
+                    <div className="bg-[var(--ui-accent)]/5 border border-[var(--ui-accent)]/10 rounded-2xl p-4 space-y-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/20 shadow-glow shadow-emerald-500/10">
-                          <Users className="w-5 h-5 text-emerald-400" />
+                        <div className="w-10 h-10 rounded-xl bg-[var(--ui-accent)]/20 flex items-center justify-center border border-[var(--ui-accent)]/20 shadow-glow shadow-[var(--ui-accent)]/10">
+                          <Users className="w-5 h-5 text-[var(--ui-accent)]" />
                         </div>
                         <div>
                           <h3 className="text-sm font-black text-white uppercase tracking-wider">
                             {props.discoveredGroup.groupName}
                           </h3>
-                          <p className="text-[9px] text-emerald-400 font-bold uppercase tracking-widest mt-0.5">
+                          <p className="text-[9px] text-[var(--ui-accent)] font-bold uppercase tracking-widest mt-0.5">
                             Level {props.discoveredGroup.level} • {props.discoveredGroup.engineerName}
                           </p>
                         </div>
@@ -235,10 +235,10 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                               key={student.id}
                               type="button"
                               onClick={() => props.onSelectStudent?.(student)}
-                              className="w-full px-4 py-2.5 bg-slate-950/40 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-500/30 rounded-xl text-start transition-all group flex items-center justify-between"
+                              className="w-full px-4 py-2.5 bg-var(--ui-bg)/40 hover:bg-[var(--ui-accent)]/10 border border-white/5 hover:border-[var(--ui-accent)]/30 rounded-xl text-start transition-all group flex items-center justify-between"
                             >
                               <span className="text-[11px] text-slate-400 group-hover:text-white font-bold uppercase transition-colors">{student.name}</span>
-                              <div className="w-5 h-5 rounded-full bg-white/5 group-hover:bg-emerald-500 flex items-center justify-center transition-all">
+                              <div className="w-5 h-5 rounded-full bg-white/5 group-hover:bg-[var(--ui-accent)] flex items-center justify-center transition-all">
                                 <ArrowRight className="w-3 h-3 text-slate-600 group-hover:text-white" />
                               </div>
                             </button>
@@ -274,12 +274,12 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                                 </Badge>
                             )}
                           </div>
-                          <div className={`relative group rounded-xl transition-all ${focusedField === "name" ? "ring-2 ring-emerald-500/25" : ""} ${isStudent && props.selectedStudent ? "opacity-70 pointer-events-none" : ""}`}>
-                            <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-emerald-400" />
+                          <div className={`relative group rounded-xl transition-all ${focusedField === "name" ? "ring-2 ring-[var(--ui-accent)]/25" : ""} ${isStudent && props.selectedStudent ? "opacity-70 pointer-events-none" : ""}`}>
+                            <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-[var(--ui-accent)]" />
                             <Input
                               {...props.register("name")}
                               readOnly={!!(isStudent && props.selectedStudent)}
-                              className={`w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] text-[13px] ${isStudent && props.selectedStudent ? "cursor-not-allowed text-slate-400" : ""}`}
+                              className={`w-full h-[42px] pl-10 bg-var(--ui-bg)/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] text-[13px] ${isStudent && props.selectedStudent ? "cursor-not-allowed text-slate-400" : ""}`}
                               placeholder="Enter your full name"
                               onFocus={() => { setFocusedField("name"); props.handleFieldFocus("text"); }}
                               onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
@@ -300,11 +300,11 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                       <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">
                         {isStudent ? "Username" : "Email"}
                       </label>
-                      <div className={`relative group rounded-xl transition-all ${focusedField === "identifier" ? "ring-2 ring-emerald-500/25" : ""}`}>
+                      <div className={`relative group rounded-xl transition-all ${focusedField === "identifier" ? "ring-2 ring-[var(--ui-accent)]/25" : ""}`}>
                         {isStudent ? <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" /> : <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />}
                         <Input
                           {...props.register("identifier")}
-                          className="w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl text-[13px]"
+                          className="w-full h-[42px] pl-10 bg-var(--ui-bg)/60 border-white/[0.05] text-white rounded-xl text-[13px]"
                           placeholder={isStudent ? "Enter your username" : "username@gmail.com"}
                           onFocus={() => { setFocusedField("identifier"); props.handleFieldFocus("text"); }}
                           onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
@@ -316,12 +316,12 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                     {/* Password field */}
                     <div className="space-y-1">
                       <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">Password</label>
-                      <div className={`relative group rounded-xl transition-all ${focusedField === "password" ? "ring-2 ring-emerald-500/25" : ""}`}>
+                      <div className={`relative group rounded-xl transition-all ${focusedField === "password" ? "ring-2 ring-[var(--ui-accent)]/25" : ""}`}>
                         <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
                         <Input
                           {...props.register("password")}
                           type={showPassword ? "text" : "password"}
-                          className="w-full h-[42px] pl-10 pr-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl text-[13px]"
+                          className="w-full h-[42px] pl-10 pr-10 bg-var(--ui-bg)/60 border-white/[0.05] text-white rounded-xl text-[13px]"
                           placeholder="••••••••"
                           onFocus={() => { setFocusedField("password"); props.handleFieldFocus("password"); }}
                           onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
@@ -336,7 +336,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                       {/* Strength Meter */}
                       {isRegister && props.passwordStrength > 0 && (
                         <div className="pt-1 px-1 flex items-center gap-2">
-                          <div className="flex-1 h-[3px] bg-slate-800 rounded-full overflow-hidden">
+                          <div className="flex-1 h-[3px] bg-var(--ui-surface) rounded-full overflow-hidden">
                             <motion.div
                               className={`h-full ${strengthIdx >= 0 ? strengthConfig[strengthIdx].color : ""}`}
                               initial={{ width: 0 }}
@@ -358,12 +358,12 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                           className="space-y-1 overflow-hidden"
                         >
                           <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">Confirm Password</label>
-                          <div className={`relative group rounded-xl transition-all ${focusedField === "confirmPassword" ? "ring-2 ring-emerald-500/25" : ""}`}>
+                          <div className={`relative group rounded-xl transition-all ${focusedField === "confirmPassword" ? "ring-2 ring-[var(--ui-accent)]/25" : ""}`}>
                             <ShieldCheck className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
                             <Input
                               {...props.register("confirmPassword")}
                               type={showConfirmPassword ? "text" : "password"}
-                              className="w-full h-[42px] pl-10 pr-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl text-[13px]"
+                              className="w-full h-[42px] pl-10 pr-10 bg-var(--ui-bg)/60 border-white/[0.05] text-white rounded-xl text-[13px]"
                               placeholder="••••••••"
                               onFocus={() => { setFocusedField("confirmPassword"); props.handleFieldFocus("password"); }}
                               onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
@@ -382,16 +382,16 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                       <div className="space-y-3 mt-3">
                         <div className="space-y-1">
                           <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">Email Address</label>
-                          <div className={`relative group rounded-xl transition-all ${focusedField === "email" ? "ring-2 ring-emerald-500/25" : ""}`}>
+                          <div className={`relative group rounded-xl transition-all ${focusedField === "email" ? "ring-2 ring-[var(--ui-accent)]/25" : ""}`}>
                             <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
                           <Input
                             {...props.register("email")}
-                            className="w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl text-[13px]"
+                            className="w-full h-[42px] pl-10 bg-var(--ui-bg)/60 border-white/[0.05] text-white rounded-xl text-[13px]"
                             placeholder="yourname@gmail.com"
                             onFocus={() => { setFocusedField("email"); props.handleFieldFocus("text"); }}
                             onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
                           />
-                          <p className="text-[10px] text-emerald-500/60 font-medium ml-1 mt-1">
+                          <p className="text-[10px] text-[var(--ui-accent)]/60 font-medium ml-1 mt-1">
                             * Strictly Gmail accounts only
                           </p>
                           </div>
@@ -405,11 +405,11 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                       <div className="space-y-3 mt-3">
                          <div className="space-y-1">
                           <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">Student ID</label>
-                          <div className={`relative group rounded-xl transition-all ${focusedField === "studentId" ? "ring-2 ring-emerald-500/25" : ""}`}>
+                          <div className={`relative group rounded-xl transition-all ${focusedField === "studentId" ? "ring-2 ring-[var(--ui-accent)]/25" : ""}`}>
                             <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
                             <Input
                               {...props.register("studentId")}
-                              className="w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl text-[13px]"
+                              className="w-full h-[42px] pl-10 bg-var(--ui-bg)/60 border-white/[0.05] text-white rounded-xl text-[13px]"
                               placeholder="STU-2025-XXXXX"
                               onFocus={() => { setFocusedField("studentId"); props.handleFieldFocus("text"); }}
                               onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
@@ -418,11 +418,11 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                         </div>
                         <div className="space-y-1">
                           <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] ml-1">Engineer Code</label>
-                          <div className={`relative group rounded-xl transition-all ${focusedField === "engineerCode" ? "ring-2 ring-emerald-500/25" : ""}`}>
+                          <div className={`relative group rounded-xl transition-all ${focusedField === "engineerCode" ? "ring-2 ring-[var(--ui-accent)]/25" : ""}`}>
                             <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
                             <Input
                               {...props.register("engineerCode")}
-                              className="w-full h-[42px] pl-10 bg-slate-950/60 border-white/[0.05] text-white rounded-xl text-[13px]"
+                              className="w-full h-[42px] pl-10 bg-var(--ui-bg)/60 border-white/[0.05] text-white rounded-xl text-[13px]"
                               placeholder="Enter engineer code"
                               onFocus={() => { setFocusedField("engineerCode"); props.handleFieldFocus("text"); }}
                               onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
@@ -436,7 +436,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                     <Button
                       type="submit"
                       disabled={props.loading}
-                      className="w-full h-[46px] bg-gradient-to-r from-emerald-600 to-blue-600 text-white font-black rounded-xl uppercase tracking-widest text-[11px] mt-4 shadow-emerald-500/20 shadow-lg"
+                      className="w-full h-[46px] bg-gradient-to-r from-[var(--ui-accent)]/80 to-[var(--ui-accent)] text-white font-black rounded-xl uppercase tracking-widest text-[11px] mt-4 shadow-[var(--ui-accent)]/20 shadow-lg"
                     >
                       {props.loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                         isRegister ? <> <CheckCircle2 className="w-4 h-4 mr-2" /> Create Account </> : "Sign In"
@@ -472,7 +472,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
       <AnimatePresence>
         {showForgotDialog && (
           <motion.div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md" onClick={() => setShowForgotDialog(false)}>
-            <motion.div className="w-full max-w-sm bg-slate-950 border border-white/10 rounded-2xl p-6" onClick={e => e.stopPropagation()}>
+            <motion.div className="w-full max-w-sm bg-var(--ui-bg) border border-white/10 rounded-2xl p-6" onClick={e => e.stopPropagation()}>
               <h3 className="text-white font-black uppercase text-center mb-4">Reset Password</h3>
               <p className="text-slate-500 text-[11px] text-center mb-6 leading-relaxed">Please contact your administrator to reset your credentials. They can manage this via the secure admin panel.</p>
               <Button onClick={() => setShowForgotDialog(false)} className="w-full">Got It</Button>
@@ -483,3 +483,4 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
     </div>
   );
 };
+

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { timetableApi } from "../api/resources_extra";
 import { queryKeys } from "./keys";
+import { TimetableEntry } from "../types";
 
 export const useTimetableEntries = () => {
   return useQuery({
@@ -13,7 +14,7 @@ export const useTimetableMutations = () => {
   const queryClient = useQueryClient();
 
   const updateAvailability = useMutation({
-    mutationFn: (entries: any[]) => timetableApi.updateAvailability(entries),
+    mutationFn: (entries: TimetableEntry[]) => timetableApi.updateAvailability(entries),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.timetable.all });
     },

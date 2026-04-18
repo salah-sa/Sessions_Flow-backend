@@ -13,7 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 /* TAILWIND JIT SAFELIST
   border-amber-500/20 group-hover:border-amber-500/50 group-hover:bg-amber-950/20 border-amber-500/30 border-t-amber-500 text-amber-500 text-amber-400 group-hover:text-amber-300 drop-shadow-[0_0_8px_rgba(var(--amber-500-rgb),0.5)]
-  border-brand-500/20 group-hover:border-brand-500/50 group-hover:bg-brand-950/20 border-brand-500/30 border-t-brand-500 text-brand-500 text-brand-400 group-hover:text-brand-300 drop-shadow-[0_0_8px_rgba(var(--brand-500-rgb),0.5)]
+  border-[var(--ui-accent)]/20 group-hover:border-[var(--ui-accent)]/50 group-hover:bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/30 border-t-[var(--ui-accent)] text-[var(--ui-accent)] text-[var(--ui-accent)] group-hover:text-[var(--ui-accent)] drop-shadow-[0_0_8px_rgba(var(--ui-accent-rgb),0.5)]
   border-purple-500/20 group-hover:border-purple-500/50 group-hover:bg-purple-950/20 border-purple-500/30 border-t-purple-500 text-purple-500 text-purple-400 group-hover:text-purple-300 drop-shadow-[0_0_8px_rgba(var(--purple-500-rgb),0.5)]
   border-emerald-500/20 group-hover:border-emerald-500/50 group-hover:bg-emerald-950/20 border-emerald-500/30 border-t-emerald-500 text-emerald-500 text-emerald-400 group-hover:text-emerald-300 drop-shadow-[0_0_8px_rgba(var(--emerald-500-rgb),0.5)]
 */
@@ -140,13 +140,13 @@ const AdminPage: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-slate-950 animate-fade-in overflow-hidden">
+    <div className="h-full flex flex-col bg-[var(--ui-bg)] animate-fade-in overflow-hidden">
       {/* Header */}
-      <div className="p-8 border-b border-white/5 bg-slate-950/50 backdrop-blur-3xl flex flex-col md:flex-row md:items-center justify-between gap-8 shrink-0">
+      <div className="p-8 border-b border-white/5 bg-[var(--ui-bg)]/50 backdrop-blur-3xl flex flex-col md:flex-row md:items-center justify-between gap-8 shrink-0">
         <div className="space-y-1">
           <h1 className="text-3xl font-sora font-black text-white tracking-tighter uppercase flex items-center gap-4">
-            <div className="p-3 bg-brand-500/10 rounded-2xl border border-brand-500/20 shadow-glow shadow-brand-500/5">
-               <ShieldCheck className="w-8 h-8 text-brand-500" />
+            <div className="p-3 bg-[var(--ui-accent)]/10 rounded-2xl border border-[var(--ui-accent)]/20 shadow-glow shadow-[var(--ui-accent)]/5">
+               <ShieldCheck className="w-8 h-8 text-[var(--ui-accent)]" />
             </div>
             {t("admin.title") || "Access Control Command"}
           </h1>
@@ -175,31 +175,36 @@ const AdminPage: React.FC = () => {
       </div>
 
       {/* Hexagonal Stats Summary Panel */}
-      <div className="px-8 py-8 border-b border-white/5 bg-slate-950/80 flex flex-wrap justify-center gap-4 lg:gap-8 shrink-0 relative overflow-hidden backdrop-blur-md">
+      <div className="px-8 py-8 border-b border-white/5 bg-[var(--ui-bg)]/80 flex flex-wrap justify-center gap-4 lg:gap-8 shrink-0 relative overflow-hidden backdrop-blur-md">
          {/* Hex Pattern Background Layer */}
          <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: "repeating-linear-gradient(30deg, transparent, transparent 20px, #ffffff 20px, #ffffff 21px), repeating-linear-gradient(150deg, transparent, transparent 20px, #ffffff 20px, #ffffff 21px)" }} />
          
          {[
            { label: t("admin.stats.pending"), value: pending.length, color: "amber", isStatus: false, icon: UserPlus },
-           { label: t("admin.stats.codes"), value: codes.filter(c => !c.isUsed).length, color: "brand", isStatus: false, icon: Key },
+           { label: t("admin.stats.codes"), value: codes.filter(c => !c.isUsed).length, color: "accent", isStatus: false, icon: Key, colorVar: "var(--ui-accent)" },
            { label: t("admin.stats.engineers"), value: engineers.length, color: "purple", isStatus: false, icon: Shield },
            { label: t("admin.stats.status_optimal"), value: "OPTIMAL", color: "emerald", isStatus: true, icon: CheckCircle2 }
          ].map((stat, i) => (
            <div key={i} className="relative group w-56 h-28 lg:w-64 flex items-center justify-center transition-transform hover:scale-[1.05] duration-500 hover:z-10 cursor-default">
               {/* Actual Hexagon Shape */}
               <div className={cn(
-                "absolute inset-0 bg-slate-900 border transition-all duration-500 flex items-center justify-center shadow-xl filter drop-shadow-2xl",
+                "absolute inset-0 bg-[var(--ui-sidebar-bg)] border transition-all duration-500 flex items-center justify-center shadow-xl filter drop-shadow-2xl",
                 `border-${stat.color}-500/20 group-hover:border-${stat.color}-500/50`
               )} style={{ clipPath: 'polygon(15% 0, 85% 0, 100% 50%, 85% 100%, 15% 100%, 0 50%)' }}>
-                 <div className={cn("absolute inset-[1px] bg-slate-950 transition-colors duration-500", `group-hover:bg-${stat.color}-950/20`)} style={{ clipPath: 'polygon(15% 0, 85% 0, 100% 50%, 85% 100%, 15% 100%, 0 50%)' }} />
+                 <div className={cn("absolute inset-[1px] bg-[var(--ui-bg)] transition-colors duration-500", `group-hover:bg-${stat.color}-950/20`)} style={{ clipPath: 'polygon(15% 0, 85% 0, 100% 50%, 85% 100%, 15% 100%, 0 50%)' }} />
                  <div className="relative z-10 flex flex-col items-center justify-center text-center px-10 py-2">
                     <div className="flex items-center gap-2 mb-1.5">
-                      {stat.isStatus ? (
-                         <div className={`w-4 h-4 rounded-full border-2 border-${stat.color}-500/30 border-t-${stat.color}-500 animate-spin`} />
-                      ) : (
-                         <stat.icon className={`w-4 h-4 text-${stat.color}-500 opacity-80`} />
-                      )}
-                      <p className={`text-xl font-sora font-black tracking-tighter tabular-nums drop-shadow-[0_0_8px_rgba(var(--${stat.color}-500-rgb),0.5)] text-${stat.color}-400 group-hover:text-${stat.color}-300 transition-colors`}>{stat.value}</p>
+                       {stat.color === "accent" ? (
+                          <stat.icon className="w-4 h-4 text-[var(--ui-accent)] opacity-80" />
+                       ) : stat.isStatus ? (
+                          <div className={`w-4 h-4 rounded-full border-2 border-${stat.color}-500/30 border-t-${stat.color}-500 animate-spin`} />
+                       ) : (
+                          <stat.icon className={`w-4 h-4 text-${stat.color}-500 opacity-80`} />
+                       )}
+                      <p className={cn(
+                        "text-xl font-sora font-black tracking-tighter tabular-nums transition-colors",
+                        stat.color === "accent" ? "text-[var(--ui-accent)] drop-shadow-[0_0_8px_rgba(var(--ui-accent-rgb),0.5)]" : `text-${stat.color}-400 group-hover:text-${stat.color}-300 drop-shadow-[0_0_8px_rgba(var(--${stat.color}-500-rgb),0.5)]`
+                      )}>{stat.value}</p>
                     </div>
                     <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] leading-tight w-[120%] truncate">{stat.label}</p>
                  </div>
@@ -209,7 +214,7 @@ const AdminPage: React.FC = () => {
       </div>
 
       {/* Hexagonal Navigation Matrix */}
-      <div className="px-10 py-6 bg-slate-900/40 border-b border-white/5 flex flex-wrap gap-4 shrink-0 justify-center">
+      <div className="px-10 py-6 bg-[var(--ui-sidebar-bg)]/40 border-b border-white/5 flex flex-wrap gap-4 shrink-0 justify-center">
          {[
            { id: "pending", name: t("admin.tabs.pending"), icon: UserPlus },
            { id: "students", name: "Students", icon: Users },
@@ -223,19 +228,19 @@ const AdminPage: React.FC = () => {
              className={cn(
                "group flex items-center gap-3 px-6 py-3 transition-all duration-300 relative min-w-[160px] justify-center",
                activeTab === item.id 
-                 ? "text-brand-500 transform scale-105" 
+                 ? "text-[var(--ui-accent)] transform scale-105" 
                  : "text-slate-500 hover:text-slate-300"
              )}
            >
              {/* Hexagon Background */}
              <div className="absolute inset-0 z-0 opacity-20 pointer-events-none group-hover:opacity-40 transition-opacity" style={{ clipPath: 'polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%)' }}>
-               <div className={cn("w-full h-full", activeTab === item.id ? "bg-brand-500 shadow-glow" : "bg-slate-700")} />
+               <div className={cn("w-full h-full", activeTab === item.id ? "bg-[var(--ui-accent)] shadow-glow" : "bg-slate-700")} />
              </div>
              
              {/* Hexagon Border Effect */}
              {activeTab === item.id && (
                <div className="absolute inset-0 z-0 pointer-events-none" style={{ clipPath: 'polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%)' }}>
-                 <div className="w-full h-full border border-brand-500 shadow-[inset_0_0_15px_rgba(8,217,214,0.3)] bg-brand-500/10" />
+                 <div className="w-full h-full border border-[var(--ui-accent)] shadow-[inset_0_0_15px_rgba(8,217,214,0.3)] bg-[var(--ui-accent)]/10" />
                </div>
              )}
 
@@ -252,10 +257,10 @@ const AdminPage: React.FC = () => {
             </div>
          ) : activeTab === "pending" ? (
             <div className="p-4 lg:p-8 animate-fade-in">
-               <div className="overflow-x-auto custom-scrollbar card-base bg-slate-900/20 border-white/5 p-0">
+               <div className="overflow-x-auto custom-scrollbar card-base bg-[var(--ui-sidebar-bg)]/20 border-white/5 p-0">
                <table className="w-full text-start border-collapse min-w-[800px]">
                   <thead>
-                     <tr className="bg-slate-950 border-b border-white/5 text-slate-500 text-[10px] uppercase font-black tracking-widest">
+                     <tr className="bg-[var(--ui-bg)] border-b border-white/5 text-slate-500 text-[10px] uppercase font-black tracking-widest">
                         <th className="px-8 py-5 text-start">{t("admin.table.registrant")}</th>
                         <th className="px-8 py-5 text-start">{t("admin.table.requested_date")}</th>
                         <th className="px-8 py-5 text-center">{t("admin.table.security_status")}</th>
@@ -269,8 +274,8 @@ const AdminPage: React.FC = () => {
                         <tr key={req.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
                            <td className="px-8 py-6">
                               <div className="flex items-center gap-4">
-                                 <div className="w-11 h-11 rounded-2xl bg-brand-500/5 border border-brand-500/10 flex items-center justify-center">
-                                    <UserPlus className="w-4 h-4 text-brand-500" />
+                                 <div className="w-11 h-11 rounded-2xl bg-[var(--ui-accent)]/5 border border-[var(--ui-accent)]/10 flex items-center justify-center">
+                                    <UserPlus className="w-4 h-4 text-[var(--ui-accent)]" />
                                  </div>
                                  <div className="text-start">
                                     <p className="font-black text-white uppercase tracking-tight">{req.name}</p>
@@ -282,7 +287,7 @@ const AdminPage: React.FC = () => {
                               {format(new Date(req.requestedAt), "MMM dd, yyyy")}
                            </td>
                            <td className="px-8 py-6 text-center">
-                              <Badge variant="primary" className="bg-brand-500/10 text-brand-500 border-none font-black text-[8px] px-3 uppercase">{t("admin.verified_code")}</Badge>
+                              <Badge variant="primary" className="bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] border-none font-black text-[8px] px-3 uppercase">{t("admin.verified_code")}</Badge>
                            </td>
                            <td className="px-8 py-6 text-end">
                               <div className="flex justify-end gap-3">
@@ -301,7 +306,7 @@ const AdminPage: React.FC = () => {
                                    onClick={() => handleDeny(req.id)} 
                                    disabled={processingIds.has(req.id) || req.status !== "Pending"}
                                    className={cn(
-                                      "h-9 px-6 bg-slate-900 border border-white/5 text-red-500 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all",
+                                      "h-9 px-6 bg-[var(--ui-sidebar-bg)] border border-white/5 text-red-500 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all",
                                       (processingIds.has(req.id) || req.status !== "Pending") ? "opacity-50 grayscale cursor-not-allowed" : "hover:bg-red-500 hover:text-white"
                                    )}
                                  >
@@ -317,10 +322,10 @@ const AdminPage: React.FC = () => {
             </div>
          ) : activeTab === "students" ? (
              <div className="p-4 lg:p-8 animate-fade-in">
-                <div className="overflow-x-auto custom-scrollbar card-base bg-slate-900/20 border-white/5 p-0">
+                <div className="overflow-x-auto custom-scrollbar card-base bg-[var(--ui-sidebar-bg)]/20 border-white/5 p-0">
                 <table className="w-full text-start border-collapse min-w-[800px]">
                    <thead>
-                      <tr className="bg-slate-950 border-b border-white/5 text-slate-500 text-[10px] uppercase font-black tracking-widest">
+                      <tr className="bg-[var(--ui-bg)] border-b border-white/5 text-slate-500 text-[10px] uppercase font-black tracking-widest">
                          <th className="px-8 py-5 text-start">Student Identity</th>
                          <th className="px-8 py-5 text-start">Requested Group</th>
                          <th className="px-8 py-5 text-start">Requested Date</th>
@@ -366,7 +371,7 @@ const AdminPage: React.FC = () => {
                                     onClick={() => handleDenyStudent(req.id, req.name)} 
                                     disabled={studentProcessingIds.has(req.id)}
                                     className={cn(
-                                       "h-9 px-6 bg-slate-900 border border-white/5 text-red-500 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all",
+                                       "h-9 px-6 bg-[var(--ui-bg)] border border-white/5 text-red-500 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all",
                                        studentProcessingIds.has(req.id) ? "opacity-50 grayscale cursor-not-allowed" : "hover:bg-red-500 hover:text-white"
                                     )}
                                   >
@@ -389,7 +394,7 @@ const AdminPage: React.FC = () => {
                   </div>
                   <button 
                      onClick={handleGenerateCode}
-                     className="h-11 px-8 bg-brand-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-glow shadow-brand-500/20"
+                     className="h-11 px-8 bg-[var(--ui-accent)] text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-glow shadow-[var(--ui-accent)]/20"
                   >
                      {t("admin.pipeline.generate")}
                   </button>
@@ -398,11 +403,11 @@ const AdminPage: React.FC = () => {
                   {codes.map((c: EngineerCode, i: number) => (
                     <div key={i} className={cn(
                       "card-base p-6 border-2 border-dashed flex flex-col gap-6 group hover:scale-[1.02] transition-all relative overflow-hidden",
-                      c.isUsed ? "border-white/5 bg-slate-900/20 opacity-40" : "border-brand-500/20 bg-brand-500/[0.03] hover:border-brand-500"
+                      c.isUsed ? "border-white/5 bg-[var(--ui-sidebar-bg)]/20 opacity-40" : "border-[var(--ui-accent)]/20 bg-[var(--ui-accent)]/[0.03] hover:border-[var(--ui-accent)]"
                     )}>
                        <div className="flex items-start justify-between">
-                          <div className={cn("p-2 rounded-lg", c.isUsed ? "bg-slate-900" : "bg-brand-500/10")}>
-                             <Key className={cn("w-4 h-4", c.isUsed ? "text-slate-600" : "text-brand-500")} />
+                          <div className={cn("p-2 rounded-lg", c.isUsed ? "bg-[var(--ui-sidebar-bg)]" : "bg-[var(--ui-accent)]/10")}>
+                             <Key className={cn("w-4 h-4", c.isUsed ? "text-slate-600" : "text-[var(--ui-accent)]")} />
                           </div>
                           {!c.isUsed && (
                              <button onClick={() => handleRevokeCode(c.id)} className="text-slate-700 hover:text-red-500 transition-colors">
@@ -425,20 +430,20 @@ const AdminPage: React.FC = () => {
             <div className="flex flex-col h-full animate-fade-in">
                <div className="px-8 py-6 border-b border-white/5 flex items-center justify-between shrink-0">
                   <div className="relative group w-full max-w-sm">
-                     <Search className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 transition-colors group-focus-within:text-brand-500" />
+                     <Search className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 transition-colors group-focus-within:text-[var(--ui-accent)]" />
                      <Input 
                        placeholder={t("common.search")}
                        value={searchQuery}
                        onChange={e => setSearchQuery(e.target.value)}
-                       className="ps-12 h-11 border-white/5 bg-slate-900/40 text-[10px] font-black uppercase tracking-widest focus:bg-white/[0.08]"
+                       className="ps-12 h-11 border-white/5 bg-[var(--ui-sidebar-bg)]/40 text-[10px] font-black uppercase tracking-widest focus:bg-white/[0.08]"
                      />
                   </div>
                </div>
                <div className="p-4 lg:p-8 flex-1 overflow-y-auto">
-                  <div className="overflow-x-auto custom-scrollbar card-base bg-slate-900/20 border-white/5 p-0">
+                  <div className="overflow-x-auto custom-scrollbar card-base bg-[var(--ui-sidebar-bg)]/20 border-white/5 p-0">
                   <table className="w-full text-start border-collapse min-w-[800px]">
                      <thead>
-                        <tr className="bg-slate-950 border-b border-white/5 text-slate-500 text-[10px] uppercase font-black tracking-widest">
+                        <tr className="bg-[var(--ui-bg)] border-b border-white/5 text-slate-500 text-[10px] uppercase font-black tracking-widest">
                            <th className="px-8 py-5 text-start">{t("admin.table.node_engineer")}</th>
                            <th className="px-8 py-5 text-start">{t("admin.table.role")}</th>
                            <th className="px-8 py-5 text-start">{t("admin.table.joined")}</th>
@@ -452,7 +457,7 @@ const AdminPage: React.FC = () => {
                            <tr key={eng.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
                               <td className="px-8 py-6">
                                  <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-2xl bg-slate-950 border border-white/5 flex items-center justify-center font-black text-slate-500 uppercase tracking-tighter shadow-inner">
+                                    <div className="w-10 h-10 rounded-2xl bg-[var(--ui-bg)] border border-white/5 flex items-center justify-center font-black text-slate-500 uppercase tracking-tighter shadow-inner">
                                        {eng.name.substring(0, 2)}
                                     </div>
                                     <div className="text-start">
@@ -463,11 +468,11 @@ const AdminPage: React.FC = () => {
                               </td>
                               <td className="px-8 py-6">
                                  <div className="flex items-center gap-3">
-                                    <Badge variant={eng.role === "Admin" ? "success" : "primary"} className="bg-brand-500/10 text-brand-500 border-none px-3 font-black text-[8px] tracking-widest">
+                                    <Badge variant={eng.role === "Admin" ? "success" : "primary"} className="bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] border-none px-3 font-black text-[8px] tracking-widest">
                                        {eng.role?.toUpperCase() || "UNIT"}
                                     </Badge>
                                     {eng.engineerCode && (
-                                       <span className="text-[10px] font-mono font-black text-slate-400 tracking-widest px-2 py-1 bg-slate-900 rounded-md border border-white/5 select-all hover:text-white transition-colors cursor-pointer">{eng.engineerCode}</span>
+                                       <span className="text-[10px] font-mono font-black text-slate-400 tracking-widest px-2 py-1 bg-[var(--ui-sidebar-bg)] rounded-md border border-white/5 select-all hover:text-white transition-colors cursor-pointer">{eng.engineerCode}</span>
                                     )}
                                  </div>
                               </td>
@@ -488,10 +493,10 @@ const AdminPage: React.FC = () => {
             </div>
          ) : (
             <div className="p-4 lg:p-8 animate-fade-in">
-               <div className="overflow-x-auto custom-scrollbar card-base bg-slate-900/20 border-white/5 p-0">
+               <div className="overflow-x-auto custom-scrollbar card-base bg-[var(--ui-sidebar-bg)]/20 border-white/5 p-0">
                <table className="w-full text-start border-collapse min-w-[800px]">
                   <thead>
-                     <tr className="bg-slate-950 border-b border-white/5 text-slate-500 text-[10px] uppercase font-black tracking-widest">
+                     <tr className="bg-[var(--ui-bg)] border-b border-white/5 text-slate-500 text-[10px] uppercase font-black tracking-widest">
                         <th className="px-8 py-5 text-start">{t("admin.table.activity")}</th>
                         <th className="px-8 py-5 text-center">{t("admin.table.origin")}</th>
                         <th className="px-8 py-5 text-end">{t("admin.table.timestamp")}</th>
@@ -502,14 +507,14 @@ const AdminPage: React.FC = () => {
                         <tr key={log.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
                            <td className="px-8 py-6">
                               <div className="flex items-center gap-4 text-start">
-                                 <div className="p-2 bg-slate-950 rounded-lg border border-white/5"><FileText className="w-3.5 h-3.5 text-slate-600" /></div>
+                                 <div className="p-2 bg-[var(--ui-bg)] rounded-lg border border-white/5"><FileText className="w-3.5 h-3.5 text-slate-600" /></div>
                                  <div>
                                     <p className="text-[11px] font-black text-white uppercase tracking-tight">{log.action}</p>
                                     <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">{log.details || "SYSTEM-CORE"}</p>
                                  </div>
                               </div>
                            </td>
-                           <td className="px-8 py-6 text-center text-brand-500 font-black uppercase text-[10px] tracking-widest">
+                           <td className="px-8 py-6 text-center text-[var(--ui-accent)] font-black uppercase text-[10px] tracking-widest">
                               {log.userName}
                            </td>
                            <td className="px-8 py-6 text-end text-slate-500 font-black uppercase text-[9px] tracking-widest">

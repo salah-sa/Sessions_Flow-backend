@@ -1,22 +1,33 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { sessionsApi } from "../api/resources_extra";
 import { queryKeys } from "./keys";
+import { Session, PaginatedResponse, AttendanceUpdateRecord } from "../types";
 
-export const useSessions = (filters: any = {}) => {
+export interface SessionFilters {
+  page?: number;
+  pageSize?: number;
+  groupId?: string;
+  status?: string;
+  date?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export const useSessions = (filters: SessionFilters = {}) => {
   return useQuery({
     queryKey: queryKeys.sessions.list(filters),
     queryFn: () => sessionsApi.getAll(filters),
   });
 };
 
-export const useInfiniteSessions = (filters: any = {}) => {
+export const useInfiniteSessions = (filters: SessionFilters = {}) => {
   return useInfiniteQuery({
     queryKey: queryKeys.sessions.list(filters),
     queryFn: ({ pageParam = 1 }) => 
-      sessionsApi.getAll({ ...filters, page: pageParam, pageSize: filters.pageSize || 20 }),
+      sessionsApi.getAll({ ...filters, page: pageParam as number, pageSize: filters.pageSize || 20 }),
     initialPageParam: 1,
-    getNextPageParam: (lastPage: any) => 
-      lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
+    getNextPageParam: (lastPage: PaginatedResponse<Session>) => 
+      lastPage.hasMore ? (lastPage.page || 1) + 1 : undefined,
   });
 };
 
@@ -76,7 +87,7 @@ export const useSessionMutations = () => {
   });
 
   const updateAttendanceMutation = useMutation({
-    mutationFn: ({ id, records }: { id: string; records: any[] }) => 
+    mutationFn: ({ id, records }: { id: string; records: AttendanceUpdateRecord[] }) => 
       sessionsApi.updateAttendance(id, records),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["sessions", "attendance", id] });

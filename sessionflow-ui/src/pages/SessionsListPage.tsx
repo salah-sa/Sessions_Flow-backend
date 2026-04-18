@@ -5,7 +5,7 @@ import { Search, Loader2, Calendar, LayoutGrid, List as ListIcon, Box, Zap, Cloc
 import { toast } from "sonner";
 import { Card, Button, Input, Skeleton } from "../components/ui";
 import { useInfiniteSessions } from "../queries/useSessionQueries";
-import { Session } from "../types";
+import { Session, PaginatedResponse } from "../types";
 import { cn } from "../lib/utils";
 import { useTranslation } from "react-i18next";
 import { useHoverSound } from "../hooks/useHoverSound";
@@ -17,9 +17,9 @@ import { motion, AnimatePresence } from "framer-motion";
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const config: Record<string, { bg: string; text: string; dot: string; label: string }> = {
     Active: {
-      bg: "bg-emerald-500/10 border-emerald-500/20",
-      text: "text-emerald-400",
-      dot: "bg-emerald-500",
+      bg: "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/20",
+      text: "text-[var(--ui-accent)]",
+      dot: "bg-[var(--ui-accent)]",
       label: "Active Now"
     },
     Scheduled: {
@@ -29,7 +29,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
       label: "Scheduled"
     },
     Ended: {
-      bg: "bg-slate-800/40 border-slate-700/50",
+      bg: "bg-white/5 border-white/5",
       text: "text-slate-500",
       dot: "bg-slate-600",
       label: "Completed"
@@ -75,7 +75,7 @@ const SessionsListPage: React.FC = () => {
     pageSize: 20
   });
 
-  const sessions = data?.pages.flatMap(page => page.items) || [];
+  const sessions = data?.pages.flatMap(page => (page as PaginatedResponse<Session>).items) || [];
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -104,11 +104,11 @@ const SessionsListPage: React.FC = () => {
   ];
 
   return (
-    <div className="h-full flex flex-col bg-[#050505] text-slate-200 font-sans overflow-hidden">
+    <div className="h-full flex flex-col bg-[var(--ui-bg)] text-slate-200 font-sans overflow-hidden">
       {/* Background Ambience */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/5 blur-[120px] rounded-full" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-600/5 blur-[120px] rounded-full" />
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[var(--ui-accent)]/5 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[var(--ui-accent)]/5 blur-[120px] rounded-full" />
       </div>
 
       {/* Header Section */}
@@ -116,8 +116,8 @@ const SessionsListPage: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight flex flex-wrap items-center gap-2 sm:gap-3">
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Sessions</span>
-              <span className="text-slate-800 text-2xl sm:text-3xl hidden sm:inline">/</span>
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[var(--ui-accent)] to-[#7e22ce]">Sessions</span>
+              <span className="text-var(--ui-surface) text-2xl sm:text-3xl hidden sm:inline">/</span>
               <span className="text-xs sm:text-sm font-bold text-slate-500 uppercase tracking-[0.2em] pt-1 sm:pt-1.5">Management</span>
             </h1>
             <p className="text-slate-500 mt-1 max-w-md text-sm">Efficiently manage and track all learning sessions, live broadcasts, and historical records.</p>
@@ -126,12 +126,12 @@ const SessionsListPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             {/* Search Input */}
             <div className="relative group w-full sm:min-w-[300px]">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-blue-400 transition-colors" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-[var(--ui-accent)] transition-colors" />
               <input 
                 placeholder="Find a session or engineer..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-11 pr-4 h-12 bg-white/[0.03] border border-white/[0.08] rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/30 transition-all placeholder:text-slate-700"
+                className="w-full pl-11 pr-4 h-12 bg-white/[0.03] border border-white/[0.08] rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ui-accent)]/20 focus:border-[var(--ui-accent)]/30 transition-all placeholder:text-slate-700"
               />
             </div>
 
@@ -172,7 +172,7 @@ const SessionsListPage: React.FC = () => {
               {activeTab === tab.id && (
                 <motion.div 
                   layoutId="activeTabNav"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.5)]" 
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--ui-accent)] shadow-[0_0_12px_rgba(var(--ui-accent-rgb),0.5)]" 
                 />
               )}
             </button>
@@ -197,7 +197,7 @@ const SessionsListPage: React.FC = () => {
               className="flex flex-col items-center justify-center py-32 text-center"
             >
               <div className="w-24 h-24 rounded-[2.5rem] bg-white/[0.02] border border-white/[0.05] flex items-center justify-center mb-8 relative">
-                 <Box className="w-10 h-10 text-slate-800" />
+                 <Box className="w-10 h-10 text-var(--ui-surface)" />
                  <div className="absolute inset-0 bg-blue-500/5 blur-2xl rounded-full" />
               </div>
               <h3 className="text-xl font-bold text-white mb-2">No Records Found</h3>
@@ -214,20 +214,20 @@ const SessionsListPage: React.FC = () => {
                   onClick={() => navigate(`/sessions/${session.id}`)}
                   className={cn(
                     "group relative flex items-center gap-6 p-5 rounded-3xl border transition-all duration-500 cursor-pointer overflow-hidden",
-                    "bg-[#0a0a0a]/40 border-white/[0.04] hover:bg-[#111]/60 hover:border-white/[0.1] hover:shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:translate-x-1",
-                    session.status === "Active" && "bg-emerald-500/[0.02] border-emerald-500/10 hover:border-emerald-500/20"
+                    "bg-[var(--ui-sidebar-bg)] border-white/[0.04] hover:bg-white/[0.03] hover:border-white/[0.1] hover:shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:translate-x-1",
+                    session.status === "Active" && "bg-[var(--ui-accent)]/[0.02] border-[var(--ui-accent)]/10 hover:border-[var(--ui-accent)]/20"
                   )}
                 >
                   <div className={cn(
                     "absolute left-0 top-[20%] bottom-[20%] w-[3px] rounded-r-full transition-all group-hover:top-0 group-hover:bottom-0",
-                    session.status === "Active" ? "bg-emerald-500 shadow-[0_0_10px_#10b981]" : 
+                    session.status === "Active" ? "bg-[var(--ui-accent)] shadow-[0_0_10px_rgba(var(--ui-accent-rgb),0.5)]" : 
                     session.status === "Scheduled" ? "bg-blue-500 shadow-[0_0_10px_#3b82f6]" : 
                     "bg-slate-700"
                   )} />
 
                   <div className={cn(
                     "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border transition-all duration-500",
-                    session.status === "Active" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : 
+                    session.status === "Active" ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/20 text-[var(--ui-accent)]" : 
                     session.status === "Scheduled" ? "bg-blue-500/10 border-blue-500/20 text-blue-400" : 
                     "bg-white/[0.02] border-white/[0.04] text-slate-600"
                   )}>
@@ -236,7 +236,7 @@ const SessionsListPage: React.FC = () => {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1">
-                      <h3 className="text-lg font-bold text-white truncate transition-colors group-hover:text-blue-400">
+                      <h3 className="text-lg font-bold text-white truncate transition-colors group-hover:text-[var(--ui-accent)]">
                         {session.groupName || session.group?.name || "Private Session"}
                       </h3>
                       <StatusBadge status={session.status} />
@@ -254,7 +254,7 @@ const SessionsListPage: React.FC = () => {
                   </div>
 
                   <div className="hidden sm:flex items-center gap-4 shrink-0 px-4">
-                     <ChevronRight className="w-5 h-5 text-slate-700 group-hover:text-blue-500 transition-colors group-hover:translate-x-1" />
+                     <ChevronRight className="w-5 h-5 text-slate-700 group-hover:text-[var(--ui-accent)] transition-colors group-hover:translate-x-1" />
                   </div>
                 </motion.div>
               ))}
@@ -276,7 +276,7 @@ const SessionsListPage: React.FC = () => {
                 >
                   <div className={cn(
                     "absolute -top-10 -right-10 w-32 h-32 blur-[60px] rounded-full opacity-20 transition-all duration-700 group-hover:scale-150 group-hover:opacity-40",
-                    session.status === "Active" ? "bg-emerald-500" : "bg-blue-500"
+                    session.status === "Active" ? "bg-[var(--ui-accent)]" : "bg-blue-500"
                   )} />
 
                   <div className="relative z-10 flex justify-between items-start">
@@ -287,7 +287,7 @@ const SessionsListPage: React.FC = () => {
                   </div>
 
                   <div className="relative z-10 mt-auto">
-                    <h3 className="text-xl font-bold text-white leading-tight mb-2 group-hover:text-blue-400 transition-colors truncate">
+                    <h3 className="text-xl font-bold text-white leading-tight mb-2 group-hover:text-[var(--ui-accent)] transition-colors truncate">
                       {session.groupName || session.group?.name || "Private Session"}
                     </h3>
                     <div className="space-y-1.5 text-slate-500 text-sm">
@@ -308,7 +308,7 @@ const SessionsListPage: React.FC = () => {
         </AnimatePresence>
 
         <div ref={sentinelRef} className="h-20 flex items-center justify-center">
-          {loadingMore && <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />}
+          {loadingMore && <Loader2 className="w-6 h-6 text-[var(--ui-accent)] animate-spin" />}
         </div>
       </main>
     </div>
@@ -316,3 +316,4 @@ const SessionsListPage: React.FC = () => {
 };
 
 export default SessionsListPage;
+

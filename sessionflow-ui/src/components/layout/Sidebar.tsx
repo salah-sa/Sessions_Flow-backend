@@ -1,340 +1,170 @@
-import React, { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import React from "react";
 import { 
-  LayoutDashboard, 
+  BarChart3, 
   Users, 
-  Calendar, 
-  History, 
-  MessageSquare, 
   Settings, 
-  ShieldCheck,
-  GraduationCap,
-  PlayCircle,
+  MessageSquare, 
+  Calendar, 
+  ShieldCheck, 
   LogOut,
-  Sun,
-  Moon,
-  ChevronDown,
-  ArchiveRestore
+  Zap,
+  Target,
+  Activity,
+  Box,
+  Clock,
+  Archive,
+  User,
+  UserCircle
 } from "lucide-react";
-import { cn } from "../../lib/utils";
-import { useAuthStore, useUIStore, useChatStore } from "../../store/stores";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useAuthStore } from "../../store/stores";
 import { useTranslation } from "react-i18next";
-import { useHoverSound } from "../../hooks/useHoverSound";
-import AnimatedChatIcon from "../ui/AnimatedChatIcon";
+import { cn } from "../../lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+
+const LanguageBridge: React.FC = () => {
+  const { i18n } = useTranslation();
+  const currentLang = i18n.language;
+
+  const toggleLang = () => {
+    const next = currentLang === "en" ? "ar" : "en";
+    i18n.changeLanguage(next);
+    document.documentElement.dir = next === "ar" ? "rtl" : "ltr";
+  };
+
+  return (
+    <div className="mt-auto px-6 py-8">
+      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Language Bridge</span>
+        <button 
+          onClick={toggleLang}
+          className="relative w-16 h-8 bg-black rounded-full border border-white/5 p-1 flex items-center gap-1 overflow-hidden group"
+        >
+          <motion.div 
+            animate={{ x: currentLang === "en" ? 0 : 32 }}
+            className="absolute inset-y-1 w-6 h-6 bg-[var(--ui-accent)] rounded-full shadow-glow shadow-[var(--ui-accent)]/20 z-10"
+          />
+          <span className={cn("text-[8px] font-black uppercase tracking-widest flex-1 z-0 transition-opacity", currentLang === "en" ? "text-white" : "text-slate-600")}>EN</span>
+          <span className={cn("text-[8px] font-black uppercase tracking-widest flex-1 z-0 transition-opacity", currentLang === "ar" ? "text-white" : "text-slate-600")}>AR</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const NavItem = ({ to, icon: Icon, label, badge }: { to: string; icon: any; label: string; badge?: number }) => (
+  <NavLink
+    to={to}
+    className={({ isActive }) => cn(
+      "group relative flex items-center gap-4 px-6 py-4 rounded-xl transition-all duration-300 overflow-hidden",
+      isActive ? "bg-[var(--ui-accent)]/10 text-white" : "text-slate-500 hover:text-white hover:bg-white/[0.02]"
+    )}
+  >
+    {({ isActive }) => (
+      <>
+        {isActive && (
+          <motion.div 
+            layoutId="active-indicator"
+            className="absolute left-0 w-1 h-6 bg-[var(--ui-accent)] rounded-r-full shadow-glow shadow-[var(--ui-accent)]/40"
+          />
+        )}
+        <Icon className={cn("w-5 h-5 transition-all duration-300", isActive ? "text-[var(--ui-accent)]" : "group-hover:text-[var(--ui-accent)]")} />
+        <span className="text-[11px] font-bold uppercase tracking-[0.2em] flex-1">{label}</span>
+        {badge !== undefined && badge > 0 && (
+          <span className="px-2 py-0.5 rounded-md bg-[var(--ui-accent)] text-white text-[8px] font-bold shadow-glow shadow-[var(--ui-accent)]/20">
+            {badge}
+          </span>
+        )}
+        {isActive && (
+          <div className="absolute inset-0 bg-gradient-to-r from-[var(--ui-accent)]/5 to-transparent pointer-events-none" />
+        )}
+      </>
+    )}
+  </NavLink>
+);
 
 const Sidebar: React.FC = () => {
-  const user = useAuthStore((s) => s.user);
+  const { t } = useTranslation();
   const logout = useAuthStore((s) => s.logout);
-  const sidebarOpen = useUIStore((s) => s.sidebarOpen);
-  const toggleSidebar = useUIStore((s) => s.toggleSidebar);
-  const theme = useUIStore((s) => s.theme);
-  const setTheme = useUIStore((s) => s.setTheme);
+  const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
-  const { t, i18n } = useTranslation();
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const playHover = useHoverSound();
-  const totalUnreadChat = useChatStore((s) => Object.values(s.unreadCounts).reduce((a, b) => a + b, 0));
-
-  const toggleLanguage = () => {
-    const nextLng = i18n.language === 'en' ? 'ar' : 'en';
-    i18n.changeLanguage(nextLng);
-  };
-
-  const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
-  };
 
   const handleLogout = () => {
-    setShowLogoutConfirm(true);
-  };
-
-  const confirmLogout = () => {
     logout();
     navigate("/login");
   };
 
-  // PRIMARY NAVIGATION — Archive removed from here
-  const navItems = [
-    { name: t("common.dashboard"), href: "/dashboard", icon: LayoutDashboard },
-    { name: t("common.groups"), href: "/groups", icon: Users },
-    { name: t("common.sessions"), href: "/sessions", icon: PlayCircle },
-    { name: t("common.timetable"), href: "/timetable", icon: Calendar },
-    { name: t("common.students"), href: "/students", icon: GraduationCap },
-    { name: t("common.history"), href: "/history", icon: History },
-    { name: t("common.chat"), href: "/chat", icon: MessageSquare },
-  ];
-
-  const adminItems = [
-    { name: t("common.operations"), href: "/control-tower/admin", icon: ShieldCheck },
-    { name: t("common.settings"), href: "/settings", icon: Settings },
-  ];
-
-  const engineerItems = [
-    { name: t("common.operations"), href: "/control-tower/engineer", icon: ShieldCheck },
-    { name: t("common.settings"), href: "/settings", icon: Settings },
-  ];
-
-  const handleLinkClick = () => {
-    // On small screens, auto-close sidebar when a link is clicked
-    if (window.innerWidth < 1024) {
-      toggleSidebar();
-    }
-  };
-
-  const renderNavLink = (item: { name: string; href: string; icon: React.ComponentType<any> }) => {
-    const isChat = item.href === "/chat";
-
-    return (
-    <NavLink
-      key={item.name}
-      to={item.href}
-      onClick={handleLinkClick}
-      onMouseEnter={playHover}
-      title={!sidebarOpen ? item.name : undefined}
-      className={({ isActive }) => cn(
-        "flex items-center gap-3 py-2.5 rounded-xl transition-all duration-300 relative group",
-        sidebarOpen ? "px-3" : "px-0 justify-center w-11 mx-auto",
-        isActive
-          ? "bg-emerald-500/10 text-emerald-400"
-          : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
-      )}
-    >
-      {({ isActive }) => (
-        <>
-          {isActive && (
-            <div className="absolute start-[-12px] w-1 h-5 bg-emerald-500 rounded-e-full shadow-[4px_0_12px_rgba(16,185,129,0.4)]" />
-          )}
-          <div className="relative shrink-0">
-            {isChat ? (
-              <AnimatedChatIcon 
-                size={20} 
-                state={totalUnreadChat > 0 ? "ping" : isActive ? "active" : "idle"}
-                className={cn("transition-transform group-hover:scale-110", isActive && "drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]")}
-              />
-            ) : (
-              <item.icon className={cn("w-5 h-5 transition-transform group-hover:scale-110", isActive && "drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]")} />
-            )}
-            {isChat && totalUnreadChat > 0 && (
-              <div className="absolute -top-1.5 -end-1.5 w-4 h-4 bg-red-500 text-white text-[8px] font-black flex items-center justify-center rounded-full shadow-[0_0_10px_rgba(239,68,68,0.6)] animate-pulse">
-                {totalUnreadChat > 9 ? "9+" : totalUnreadChat}
-              </div>
-            )}
-          </div>
-          {(sidebarOpen || window.innerWidth < 1024) && (
-            <span className={cn("font-bold text-[11px] uppercase tracking-widest transition-colors", isActive ? "text-emerald-400" : "text-slate-500")}>
-              {item.name}
-            </span>
-          )}
-        </>
-      )}
-    </NavLink>
-  )};
-
   return (
-    <aside
-      className={cn(
-        "h-full bg-[rgba(10,15,26,0.9)] backdrop-blur-xl border-e border-emerald-500/10 transition-all duration-300 flex flex-col z-50",
-        sidebarOpen ? "w-64" : "w-0 lg:w-16 overflow-hidden"
-      )}
-    >
-      {/* Aero Noir Branding */}
-      <div className={cn("py-6 border-b border-emerald-500/10", sidebarOpen ? "px-5" : "px-2")}>
-        {sidebarOpen ? (
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-black font-brand font-black text-xs shadow-[0_0_20px_rgba(16,185,129,0.4)]">
-              SF
+    <aside className="h-full w-[280px] bg-[var(--ui-sidebar-bg)] border-e border-white/5 flex flex-col z-[50]">
+      <div className="p-10 mb-6 relative">
+         <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-[var(--ui-accent)] flex items-center justify-center shadow-glow shadow-[var(--ui-accent)]/20 relative overflow-hidden">
+               <Zap className="w-6 h-6 text-white relative z-10" />
+               <div className="absolute inset-0 bg-white/20 blur-xl scale-150 animate-pulse" />
             </div>
             <div>
-              <p className="text-[14px] font-sora font-black text-white tracking-tighter uppercase leading-none">Session<span className="text-emerald-400">Flow</span></p>
-              <p className="text-[8px] text-slate-500 font-sora font-black uppercase tracking-[0.25em] mt-0.5">Creative Intelligence</p>
+              <h2 className="text-xl font-bold text-white tracking-widest uppercase">Zenith</h2>
+              <p className="text-[8px] font-bold text-[var(--ui-accent)] tracking-[0.4em] uppercase opacity-60">Session Flow</p>
             </div>
-          </div>
-        ) : (
-          <div className="flex justify-center">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-black font-brand font-black text-[10px] shadow-[0_0_20px_rgba(16,185,129,0.4)]">
-              SF
-            </div>
-          </div>
-        )}
-
-        {/* Project Selector */}
-        {sidebarOpen && (
-          <button 
-            onMouseEnter={playHover}
-            className="mt-4 w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold uppercase tracking-widest hover:bg-emerald-500/15 transition-all group"
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
-            <span className="flex-1 text-start truncate">{user?.role === "Admin" ? "Admin Console" : "My Workspace"}</span>
-            <ChevronDown className="w-3.5 h-3.5 text-emerald-500/50 group-hover:text-emerald-400 transition-colors" />
-          </button>
-        )}
+         </div>
+         <div className="absolute bottom-0 left-10 right-10 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </div>
 
-      {/* ════════════════════════════════════════ */}
-      {/* PRIMARY NAVIGATION */}
-      {/* ════════════════════════════════════════ */}
-      <div className={cn("flex-1 py-4 space-y-1 overflow-y-auto custom-scrollbar", sidebarOpen ? "px-3" : "px-2")}>
-        {navItems.filter(item => {
-          if (user?.role === "Student") {
-            return [t("common.dashboard"), t("common.history"), t("common.chat")].includes(item.name);
-          }
-          return true;
-        }).map(renderNavLink)}
-
-        {/* Operations/Admin Section */}
-        {(user?.role === "Admin" || user?.role === "Engineer") && (
-          <>
-            <div className="pt-6 pb-3">
-              <div className={cn("h-px bg-emerald-500/10", sidebarOpen ? "mx-2" : "mx-4")} />
-              {(sidebarOpen || window.innerWidth < 1024) && (
-                <p className="text-[10px] uppercase font-extrabold text-slate-600 mt-5 px-4 tracking-[0.2em] rtl:tracking-normal">
-                  {user?.role === "Admin" ? t("common.admin") : "Control Tower"}
-                </p>
-              )}
-            </div>
-            {(user?.role === "Admin" ? adminItems : engineerItems).map(renderNavLink)}
-          </>
-        )}
-      </div>
-
-      {/* ════════════════════════════════════════ */}
-      {/* LANGUAGE SWITCHER + ARCHIVE SECTION */}
-      {/* Visually separated from primary nav */}
-      {/* ════════════════════════════════════════ */}
-      <div className={cn("border-t border-emerald-500/10 py-3 space-y-1", sidebarOpen ? "px-3" : "px-2")}>
-        {/* Language Switcher — Above Archive */}
-        <button
-          onClick={toggleLanguage}
-          onMouseEnter={playHover}
-          className={cn(
-            "flex items-center gap-3 py-2.5 rounded-xl transition-all duration-300 text-slate-500 hover:text-slate-300 hover:bg-white/5 w-full",
-            sidebarOpen ? "px-3" : "px-0 justify-center w-11 mx-auto"
-          )}
-          aria-label={i18n.language === 'en' ? 'Switch to Arabic' : 'Switch to English'}
-          title={!sidebarOpen ? (i18n.language === 'en' ? 'العربية' : 'English') : undefined}
-        >
-          <span className={cn(
-            "w-5 h-5 shrink-0 rounded-md border border-current flex items-center justify-center text-[9px] font-black",
-            i18n.language === 'ar' ? "text-emerald-400 border-emerald-500/30" : "text-slate-500"
-          )}>
-            {i18n.language === 'en' ? 'ع' : 'EN'}
-          </span>
-          {(sidebarOpen || window.innerWidth < 1024) && (
-            <span className="font-bold text-[11px] uppercase tracking-widest">
-              {i18n.language === 'en' ? 'العربية' : 'English'}
-            </span>
-          )}
-        </button>
-
-        {/* ═══ Archive — WhatsApp-style dedicated section ═══ */}
-        <NavLink
-          to="/archive"
-          onClick={handleLinkClick}
-          onMouseEnter={playHover}
-          title={!sidebarOpen ? t("common.archive") : undefined}
-          className={({ isActive }) => cn(
-            "flex items-center gap-3 py-2.5 rounded-xl transition-all duration-300 relative group",
-            sidebarOpen ? "px-3" : "px-0 justify-center w-11 mx-auto",
-            isActive
-              ? "bg-amber-500/10 text-amber-400"
-              : "text-slate-500 hover:text-amber-400/70 hover:bg-amber-500/5"
-          )}
-        >
-          {({ isActive }) => (
-            <>
-              {isActive && (
-                <div className="absolute start-[-12px] w-1 h-5 bg-amber-500 rounded-e-full shadow-[4px_0_12px_rgba(245,158,11,0.4)]" />
-              )}
-              {/* WhatsApp-style Archive Icon — box with down arrow */}
-              <div className={cn(
-                "w-5 h-5 shrink-0 relative flex items-center justify-center transition-transform group-hover:scale-110",
-                isActive && "drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]"
-              )}>
-                <ArchiveRestore className={cn("w-5 h-5", isActive ? "text-amber-400" : "text-slate-500 group-hover:text-amber-400/70")} />
-              </div>
-              {(sidebarOpen || window.innerWidth < 1024) && (
-                <span className={cn("font-bold text-[11px] uppercase tracking-widest transition-colors", isActive ? "text-amber-400" : "text-slate-500")}>
-                  {t("common.archive")}
-                </span>
-              )}
-            </>
-          )}
-        </NavLink>
-      </div>
-
-      {/* ════════════════════════════════════════ */}
-      {/* FOOTER — Theme + Logout */}
-      {/* ════════════════════════════════════════ */}
-      <div className="p-4 border-t border-emerald-500/10 bg-[rgba(10,15,26,0.6)] space-y-2">
-        <div className="flex gap-2">
-          <button
-            onClick={toggleTheme}
-            className={cn(
-              "flex items-center justify-center p-2 rounded-xl border border-emerald-500/10 text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-500/10 transition-all",
-              sidebarOpen ? "flex-1" : "w-11 mx-auto",
-              theme === 'dark' ? "text-amber-400" : "text-emerald-400"
-            )}
-            title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
-            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
-          <button
-            onClick={handleLogout}
-            className={cn(
-              "flex items-center gap-3 py-2.5 rounded-xl text-red-500/80 hover:bg-red-500/10 hover:text-red-400 transition-all group",
-              !sidebarOpen ? "justify-center w-11 mx-auto px-0" : "flex-1 px-3"
-            )}
-            title={t("common.logout")}
-          >
-            <LogOut className="w-5 h-5 shrink-0 group-hover:scale-110 transition-transform" />
-            {sidebarOpen && <span className="font-bold text-[11px] uppercase tracking-widest">{t("common.logout")}</span>}
-          </button>
+      <nav className="flex-1 px-4 space-y-2 overflow-y-auto custom-scrollbar">
+        <NavItem to="/dashboard" icon={BarChart3} label={t("nav.dashboard")} />
+        <NavItem to="/groups" icon={Users} label={t("nav.groups") || "Groups"} />
+        <NavItem to="/sessions" icon={Target} label={t("nav.sessions") || "Sessions"} />
+        <NavItem to="/students" icon={User} label={t("nav.students")} />
+        <NavItem to="/timetable" icon={Calendar} label={t("nav.timetable")} />
+        <NavItem to="/chat" icon={MessageSquare} label={t("nav.chat")} />
+        <NavItem to="/history" icon={Clock} label={t("nav.history") || "History"} />
+        
+        <div className="py-8 px-6">
+           <p className="text-[9px] font-bold text-slate-700 uppercase tracking-widest mb-4">Core Modules</p>
+           <div className="h-px bg-white/5" />
         </div>
 
-        <button
-          onClick={toggleSidebar}
-          className="hidden lg:flex w-full items-center justify-center p-2 rounded-md hover:bg-emerald-500/10 text-slate-400 transition-colors"
-          aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-        >
-          <div className={cn("flex flex-col gap-1 transition-all", sidebarOpen ? "rotate-0" : "rotate-90")}> 
-            <div className="w-4 h-0.5 bg-current rounded-full" />
-            <div className="w-4 h-0.5 bg-current rounded-full" />
-            <div className="w-4 h-0.5 bg-current rounded-full" />
-          </div>
-        </button>
-      </div>
+        {user?.role === "Admin" && (
+          <NavItem to="/control-tower/admin" icon={ShieldCheck} label="Admin Tower" />
+        )}
+        {user?.role === "Engineer" && (
+          <NavItem to="/control-tower/engineer" icon={Zap} label="Engineer Tower" />
+        )}
+        
+        <NavItem to="/archive" icon={Archive} label={t("nav.archive") || "Archive"} />
+        <NavItem to="/profile" icon={UserCircle} label={t("nav.profile") || "Profile"} />
+        <NavItem to="/settings" icon={Settings} label={t("nav.settings")} />
 
-      {/* Logout Confirmation Modal */}
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-2xl" role="presentation" onClick={() => setShowLogoutConfirm(false)}>
-          <div role="dialog" aria-modal="true" aria-labelledby="logout-title" className="w-full max-w-sm bg-slate-950 border border-emerald-500/20 rounded-3xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="p-8 text-center space-y-6">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-                <LogOut className="w-7 h-7 text-red-500" />
+        <LanguageBridge />
+      </nav>
+
+      <div className="p-4">
+        <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-6 relative overflow-hidden group">
+          <div className="relative z-10 flex flex-col gap-6">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-black border border-white/10 flex items-center justify-center shrink-0">
+                 <Box className="w-5 h-5 text-slate-600 group-hover:text-[var(--ui-accent)] transition-colors" />
               </div>
-              <div className="space-y-2">
-                <h3 className="text-lg font-sora font-black text-white uppercase tracking-widest">{t("sidebar.logout.confirm_title")}</h3>
-                <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">{t("sidebar.logout.confirm_desc")}</p>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowLogoutConfirm(false)}
-                  className="flex-1 h-11 rounded-xl bg-slate-800 text-slate-300 font-black text-[10px] uppercase tracking-widest hover:bg-slate-700 transition-all"
-                >
-                  {t("common.cancel")}
-                </button>
-                <button
-                  onClick={confirmLogout}
-                  className="flex-1 h-11 rounded-xl bg-red-500 text-white font-black text-[10px] uppercase tracking-widest hover:bg-red-400 transition-all shadow-lg shadow-red-500/20"
-                >
-                  {t("common.logout")}
-                </button>
+              <div>
+                <p className="text-[10px] font-bold text-white uppercase tracking-widest leading-none">Active Node</p>
+                <div className="flex items-center gap-1.5 mt-1.5 opacity-60">
+                   <Activity className="w-3 h-3 text-[var(--ui-accent)]" />
+                   <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Protocol 1.9</span>
+                </div>
               </div>
             </div>
+            
+            <button 
+              onClick={handleLogout}
+              className="w-full h-11 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-xl flex items-center justify-center gap-3 text-[10px] font-bold uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all shadow-glow shadow-rose-500/0 hover:shadow-rose-500/20"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>{t("nav.logout")}</span>
+            </button>
           </div>
+          <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--ui-accent)]/5 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2" />
         </div>
-      )}
+      </div>
     </aside>
   );
 };

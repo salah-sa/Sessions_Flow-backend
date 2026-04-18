@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Calendar, Plus, Filter, Download, MoreHorizontal, ChevronLeft, ChevronRight, Loader2, Clock, Check, X, Zap } from "lucide-react";
+import { Calendar, Plus, Filter, Download, MoreHorizontal, ChevronLeft, ChevronRight, Loader2, Clock, Check, X, Zap, Activity, Info } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfWeek, endOfWeek, addDays, isSameDay, addWeeks, subWeeks } from "date-fns";
-import { useHoverSound } from "../hooks/useHoverSound";
 import { useNavigate } from "react-router-dom";
-import { Card, Button, Input, Badge, Modal } from "../components/ui";
+import { Button, Input, Badge, Modal, ConfirmDialog } from "../components/ui";
 import { WeekView } from "../components/timetable/WeekView";
 import { cn } from "../lib/utils";
 import { useGroups } from "../queries/useGroupQueries";
@@ -15,7 +14,6 @@ import { useSignalR } from "../providers/SignalRProvider";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../queries/keys";
-import gsap from "gsap";
 
 const generateTimeSlots = () => {
   const slots = [];
@@ -30,28 +28,13 @@ const generateTimeSlots = () => {
 };
 
 const TIME_SLOTS = generateTimeSlots();
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 const TimetablePage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const playHover = useHoverSound();
-
-  // Animation Refs
-  const headerRef = useRef(null);
-  const controlsRef = useRef(null);
-  const gridRef = useRef(null);
-
-  const DAYS = [
-    t("common.days.sunday"),
-    t("common.days.monday"),
-    t("common.days.tuesday"),
-    t("common.days.wednesday"),
-    t("common.days.thursday"),
-    t("common.days.friday"),
-    t("common.days.saturday")
-  ];
 
   // Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -94,47 +77,13 @@ const TimetablePage: React.FC = () => {
     }
   }, [timetableData]);
 
-  // Real-time updates handled globally via SignalRProvider
-
-  // GSAP Animations
-  useEffect(() => {
-    if (!loading) {
-      const ctx = gsap.context(() => {
-        gsap.from(headerRef.current, {
-           y: -20,
-           opacity: 0,
-           duration: 0.8,
-           ease: "expo.out"
-        });
-        
-        gsap.from(controlsRef.current, {
-           y: 10,
-           opacity: 0,
-           duration: 0.8,
-           delay: 0.2,
-           ease: "power2.out"
-        });
-
-        gsap.from(gridRef.current, {
-           scale: 0.98,
-           opacity: 0,
-           duration: 1,
-           delay: 0.4,
-           ease: "expo.out"
-        });
-      });
-      return () => ctx.revert();
-    }
-  }, [loading]);
-
   const fetchFreeSlots = async () => {
     if (!newSessionGroupId || !newSessionDate) return;
     setLoadingSlots(true);
     try {
-      const group = groups.find(g => g.id === newSessionGroupId);
+      const group = groups.find((g: Group) => g.id === newSessionGroupId);
       if (!group) return;
       
-      // We still need this one-off API call for free slots
       const { timetableApi } = await import("../api/resources_extra");
       const slots = await timetableApi.getFreeSlots(group.engineerId, newSessionDate, 60);
       setAvailableSlots(slots);
@@ -278,215 +227,180 @@ const TimetablePage: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-slate-950 animate-fade-in overflow-hidden relative">
-      {/* Decorative Blur */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 blur-[150px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-500/5 blur-[120px] rounded-full pointer-events-none" />
+    <div className="h-full flex flex-col bg-[var(--ui-bg)] animate-fade-in overflow-hidden relative">
+      {/* Decorative Zenith Glow */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[var(--ui-accent)]/5 blur-[100px] rounded-full pointer-events-none -z-10" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#7c3aed]/5 blur-[100px] rounded-full pointer-events-none -z-10" />
 
       {/* Header */}
-      <div ref={headerRef} className="px-8 py-8 border-b border-white/5 bg-slate-950/20 backdrop-blur-3xl flex flex-col md:flex-row md:items-center justify-between gap-8 shrink-0 relative z-10">
-        <div className="space-y-2">
-          <div className="flex items-center gap-4">
-             <div className="p-3 bg-blue-500 rounded-2xl shadow-xl shadow-blue-500/20">
-                <Calendar className="w-8 h-8 text-white" />
-             </div>
-             <div className="space-y-1">
-                <h1 className="text-4xl font-sora font-black text-white tracking-tighter uppercase leading-none">
-                  {t("timetable.title")}
-                </h1>
-                <p className="text-slate-500 font-black text-[10px] uppercase tracking-[0.3em] ps-1 flex items-center gap-3">
-                   <Zap className="w-3 h-3 text-blue-400" />
-                   {t("timetable.subtitle") || "Synchronized Projected Deployment Grid"}
-                </p>
-             </div>
-          </div>
+      <div className="px-8 py-8 flex flex-col md:flex-row md:items-center justify-between gap-8 shrink-0 relative z-10">
+        <div className="space-y-1 text-start">
+          <h1 className="text-3xl font-bold text-white tracking-tight">
+            {t("timetable.title")}
+          </h1>
+          <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-2">
+             <Zap className="w-3.5 h-3.5 text-[var(--ui-accent)]" />
+             {t("timetable.subtitle") || "Projection Matrix Alpha"}
+          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 mt-6 md:mt-0">
-           <div ref={controlsRef} className="flex bg-slate-900 border border-white/5 rounded-2xl p-1.5 shadow-2xl overflow-x-auto hide-scrollbar max-w-full">
-             <button onClick={handlePrevWeek} onMouseEnter={playHover} className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 transition-all">
+        <div className="flex flex-wrap items-center gap-4">
+           {/* Date Navigation */}
+           <div className="flex items-center bg-[var(--ui-sidebar-bg)]/80 backdrop-blur-3xl border border-white/5 rounded-xl p-1.5 shadow-xl">
+             <button onClick={handlePrevWeek} className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 transition-all">
                <ChevronLeft className="w-5 h-5 rtl:rotate-180" />
              </button>
-             <button onClick={handleToday} onMouseEnter={playHover} className="px-5 text-[10px] font-black text-slate-300 uppercase tracking-widest hover:text-blue-400 transition-colors">
+             <button onClick={handleToday} className="px-5 text-[10px] font-bold text-slate-300 uppercase tracking-widest hover:text-[var(--ui-accent)] transition-colors min-w-[160px]">
                {format(currentDate, "MMMM yyyy")}
              </button>
-             <button onClick={handleNextWeek} onMouseEnter={playHover} className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 transition-all">
+             <button onClick={handleNextWeek} className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 transition-all">
                <ChevronRight className="w-5 h-5 rtl:rotate-180" />
              </button>
            </div>
            
-           <div className="h-10 w-px bg-white/10 mx-2" />
-           
-           <button 
-              onClick={async () => {
-                const loadingToast = toast.loading(t("timetable.syncing") || "Deploying synchronization protocols...");
-                try {
-                  await autoFillMutation.mutateAsync();
-                  toast.success(t("timetable.sync_success") || "Deployment successful: Timetable Matrix Up-to-date", { id: loadingToast });
-                } catch (err: any) {
-                  toast.error(err.message || t("timetable.sync_failure") || "Protocol Failure", { id: loadingToast });
-                }
-              }} 
-             className="flex items-center justify-center h-12 text-[10px] font-black uppercase px-6 text-emerald-400 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl hover:bg-emerald-500/10 transition-all shadow-glow shadow-emerald-500/5 whitespace-nowrap"
-           >
-             <Check className="w-4 h-4 me-3 shrink-0" /> {t("timetable.controls.sync") || "SYNC FROM NODES"}
-           </button>
+           <div className="flex gap-3">
+             <button 
+                onClick={async () => {
+                  const loadingToast = toast.loading(t("timetable.syncing") || "Initializing synchronization protocols...");
+                  try {
+                    await autoFillMutation.mutateAsync();
+                    toast.success(t("timetable.sync_success") || "Sync Successful", { id: loadingToast });
+                  } catch (err: any) {
+                    toast.error(err.message || t("timetable.sync_failure") || "Sync Failure", { id: loadingToast });
+                  }
+                }} 
+               className="h-12 px-6 rounded-xl bg-[var(--ui-accent)]/5 border border-[var(--ui-accent)]/20 text-[10px] font-bold uppercase tracking-widest text-[var(--ui-accent)] hover:bg-[var(--ui-accent)]/10 transition-all flex items-center gap-2"
+             >
+               <Activity className="w-4 h-4" /> {t("timetable.controls.sync") || "SYNC NODES"}
+             </button>
 
-           <button onClick={() => setIsAvailOpen(true)} className="flex items-center justify-center h-12 px-6 border border-white/5 rounded-2xl bg-slate-900 text-slate-300 uppercase text-[10px] font-black tracking-[0.2em] whitespace-nowrap hover:bg-slate-800 transition-all">
-             <Clock className="w-4 h-4 me-3 shrink-0 text-blue-400" /> {t("timetable.modal.avail_title")}
-           </button>
+             <button onClick={() => setIsAvailOpen(true)} className="h-12 px-6 rounded-xl bg-white/[0.02] border border-white/5 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center gap-2">
+               <Clock className="w-4 h-4 text-[var(--ui-accent)]" /> {t("timetable.modal.avail_title")}
+             </button>
 
-           <button onClick={() => setIsCreateOpen(true)} className="flex items-center justify-center h-12 bg-white text-black hover:bg-slate-100 shadow-2xl font-black uppercase tracking-[0.2em] text-[10px] px-8 rounded-2xl transition-all whitespace-nowrap active:scale-95">
-             <Plus className="w-4 h-4 me-3 shrink-0" /> {t("timetable.modal.schedule_title")}
-           </button>
+             <button onClick={() => setIsCreateOpen(true)} className="btn-primary h-12 px-8 flex items-center gap-2">
+               <Plus className="w-4 h-4" /> {t("timetable.modal.schedule_title")}
+             </button>
+           </div>
         </div>
       </div>
 
       {/* Main Content - Full Height WeekView */}
-      <div ref={gridRef} className="flex-1 px-8 py-6 overflow-hidden relative z-10">
-        {loading ? (
-          <div className="h-full grid grid-cols-7 gap-6">
-             {[1,2,3,4,5,6,7].map(i => (
-                <div key={i} className="bg-white/[0.01] border border-white/5 animate-pulse rounded-3xl h-full shadow-inner" />
-             ))}
-          </div>
-        ) : (
-          <div className="h-full rounded-[2.5rem] border border-white/5 bg-slate-900/10 backdrop-blur-md overflow-hidden relative shadow-[0_40px_100px_-30px_rgba(0,0,0,0.5)]">
+      <div className="flex-1 px-8 pb-8 overflow-hidden relative z-10">
+        <div className="h-full rounded-xl border border-white/5 bg-[var(--ui-sidebar-bg)]/40 backdrop-blur-3xl overflow-hidden relative shadow-2xl">
+           {loading ? (
+             <div className="h-full w-full flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                   <Loader2 className="w-8 h-8 text-[var(--ui-accent)] animate-spin" />
+                   <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500">Accessing Matrix...</span>
+                </div>
+             </div>
+           ) : (
              <WeekView 
                sessions={sessions}
                currentDate={currentDate}
                onAddSession={handleAddSession}
                onViewSession={handleViewSession}
              />
-          </div>
-        )}
+           )}
+        </div>
       </div>
 
-      {/* Footer / Legend */}
-      <div className="px-10 py-6 border-t border-white/5 bg-slate-950/80 backdrop-blur-3xl flex items-center justify-between shrink-0 relative z-10">
+      {/* Bottom Toolbar / Legend */}
+      <div className="px-10 py-5 border-t border-white/5 bg-[var(--ui-sidebar-bg)]/80 backdrop-blur-3xl flex items-center justify-between shrink-0 relative z-10">
           <div className="flex items-center gap-10">
-             <div className="flex items-center gap-4 group cursor-default">
-                <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-glow" />
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] group-hover:text-white transition-colors">{t("timetable.legend.projected") || "PROJECTED"}</span>
+             <div className="flex items-center gap-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-[var(--ui-accent)] shadow-[0_0_10px_rgba(var(--ui-accent-rgb),0.5)]" />
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t("timetable.legend.projected") || "PROJECTED"}</span>
              </div>
-             <div className="flex items-center gap-4 group cursor-default">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-glow-emerald" />
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] group-hover:text-white transition-colors">{t("timetable.legend.live_deploy") || "LIVE-DEPLOY"}</span>
+             <div className="flex items-center gap-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#7c3aed] shadow-[0_0_10px_rgba(124,58,237,0.5)]" />
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t("timetable.legend.live_deploy") || "OPERATIONAL"}</span>
              </div>
-             <div className="flex items-center gap-4 group cursor-default opacity-40">
-                <div className="w-2.5 h-2.5 rounded-full bg-slate-700" />
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] group-hover:text-white transition-colors">{t("timetable.legend.archive") || "ARCHIVE"}</span>
+             <div className="flex items-center gap-3 opacity-40">
+                <div className="w-2.5 h-2.5 rounded-full bg-var(--ui-surface)" />
+                <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">{t("timetable.legend.archive") || "ARCHIVE"}</span>
              </div>
           </div>
-          <button onClick={handleExportICS} className="h-10 px-8 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] border border-white/5 bg-slate-900 text-slate-400 hover:text-white transition-all shadow-xl flex items-center gap-4">
-            <Download className="w-4 h-4 opacity-50" /> {t("timetable.controls.export") || "EXPORT SYNC DATA"}
+          <button onClick={handleExportICS} className="h-10 px-6 rounded-xl bg-white/[0.02] border border-white/5 text-[9px] font-bold uppercase tracking-widest text-slate-500 hover:text-white transition-all flex items-center gap-3">
+            <Download className="w-4 h-4 opacity-50" /> {t("timetable.controls.export") || "EXPORT GRID"}
           </button>
       </div>
 
       {/* Create Session Modal */}
       <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title={t("timetable.modal.schedule_title")}>
-        <div className="space-y-10 p-2">
-          <div className="space-y-4">
-            <label className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">{t("timetable.modal.select_group")}</label>
-            <div className="relative">
+        <div className="space-y-8 p-2 text-start">
+          <div className="p-5 bg-[var(--ui-accent)]/5 border border-[var(--ui-accent)]/10 rounded-xl flex items-center gap-4">
+             <div className="w-10 h-10 rounded-lg bg-[var(--ui-accent)]/10 flex items-center justify-center text-[var(--ui-accent)] border border-[var(--ui-accent)]/20 shadow-glow"><Info className="w-5 h-5" /></div>
+             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">{t("timetable.modal.select_group_desc") || "Select the target unit for deployment."}</p>
+          </div>
+
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest ps-1">{t("timetable.modal.select_group")}</label>
               <select 
-                className="w-full h-14 rounded-2xl border border-slate-800 bg-slate-950 px-5 text-sm font-black uppercase text-white appearance-none cursor-pointer focus:ring-4 focus:ring-blue-500/20 transition-all"
+                className="w-full h-14 rounded-xl border border-white/5 bg-black/40 px-5 text-xs font-bold uppercase text-white focus:ring-1 focus:ring-[var(--ui-accent)]/30 focus:outline-none transition-all"
                 value={newSessionGroupId}
                 onChange={(e) => setNewSessionGroupId(e.target.value)}
               >
-                <option value="" className="bg-slate-950">{t("timetable.modal.select_placeholder")}</option>
-                {groups.map(g => (
-                  <option key={g.id} value={g.id} className="bg-slate-950">{g.name}</option>
+                <option value="" className="bg-[var(--ui-sidebar-bg)]">{t("timetable.modal.select_placeholder")}</option>
+                {groups.map((g: Group) => (
+                  <option key={g.id} value={g.id} className="bg-[var(--ui-sidebar-bg)]">{g.name.toUpperCase()}</option>
                 ))}
               </select>
             </div>
-          </div>
 
-          {(() => {
-            const selectedGroup = groups.find(g => g.id === newSessionGroupId);
-            if (!selectedGroup) return null;
-            return (
-              <div className="p-8 rounded-3xl border border-blue-500/20 bg-blue-500/[0.03] backdrop-blur-md animate-in slide-in-from-bottom-4 duration-500 flex items-center justify-between">
-                <div className="flex items-center gap-6">
-                  <div className={cn(
-                    "w-12 h-12 rounded-2xl flex items-center justify-center shadow-2xl transition-all",
-                    selectedGroup.colorTag === "blue" ? "bg-blue-500 shadow-blue-500/30" : 
-                    selectedGroup.colorTag === "violet" ? "bg-violet-500 shadow-violet-500/30" :
-                    selectedGroup.colorTag === "emerald" ? "bg-emerald-500 shadow-emerald-500/30" : 
-                    selectedGroup.colorTag === "amber" ? "bg-amber-500 shadow-amber-500/30" :
-                    "bg-rose-500 shadow-rose-500/30"
-                  )}>
-                    <Zap className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="font-black text-lg text-white uppercase tracking-tighter leading-none">{selectedGroup.name}</p>
-                    <div className="flex items-center gap-4">
-                        <span className="text-blue-400 text-[11px] font-black uppercase tracking-widest">{t("dashboard.modal.level")} {selectedGroup.level}</span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-slate-700" />
-                        <span className="text-slate-500 text-[11px] font-black uppercase tracking-widest">{selectedGroup.studentCount ?? 0} {t("dashboard.modal.students")}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right space-y-1">
-                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{t("dashboard.modal.progression")}</p>
-                   <p className="text-3xl font-sora font-black text-white leading-none">
-                      {selectedGroup.currentSessionNumber}
-                      <span className="text-sm text-slate-600 font-bold"> / {selectedGroup.totalSessions}</span>
-                   </p>
-                </div>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest ps-1">{t("timetable.modal.launch_date")}</label>
+                <input 
+                  type="date" 
+                  value={newSessionDate}
+                  onChange={(e) => setNewSessionDate(e.target.value)}
+                  className="w-full h-14 rounded-xl border border-white/5 bg-black/40 px-5 text-xs font-bold uppercase text-white focus:ring-1 focus:ring-[var(--ui-accent)]/30 focus:outline-none transition-all"
+                />
               </div>
-            );
-          })()}
-
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <label className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">{t("timetable.modal.launch_date")}</label>
-              <Input 
-                type="date" 
-                value={newSessionDate}
-                onChange={(e) => setNewSessionDate(e.target.value)}
-                className="h-14 rounded-2xl bg-slate-950 border-slate-800 text-white font-black uppercase text-xs tracking-widest focus:ring-4 focus:ring-blue-500/20"
-              />
-            </div>
-            <div className="space-y-4">
-              <label className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">{t("timetable.modal.launch_time")}</label>
-              <select 
-                value={newSessionTime}
-                onChange={(e) => setNewSessionTime(e.target.value)}
-                className="w-full h-14 rounded-2xl border border-slate-800 bg-slate-950 px-5 text-sm font-black uppercase text-white focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all appearance-none cursor-pointer"
-              >
-                {availableSlots.length > 0 ? (
-                  availableSlots.map(t => <option key={t} value={t}>{t}</option>)
-                ) : (
-                  <option disabled>{t("timetable.modal.no_slots")}</option>
-                )}
-              </select>
+              <div className="space-y-3">
+                <label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest ps-1">{t("timetable.modal.launch_time")}</label>
+                <select 
+                  value={newSessionTime}
+                  onChange={(e) => setNewSessionTime(e.target.value)}
+                  className="w-full h-14 rounded-xl border border-white/5 bg-black/40 px-5 text-xs font-bold uppercase text-white focus:ring-1 focus:ring-[var(--ui-accent)]/30 focus:outline-none transition-all"
+                >
+                  {availableSlots.length > 0 ? (
+                    availableSlots.map(t => <option key={t} value={t} className="bg-[var(--ui-sidebar-bg)]">{t}</option>)
+                  ) : (
+                    <option disabled className="bg-[var(--ui-sidebar-bg)]">{t("timetable.modal.no_slots")}</option>
+                  )}
+                </select>
+              </div>
             </div>
           </div>
-          <div className="flex gap-4 pt-10 border-t border-slate-800">
-              <Button variant="ghost" className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-[11px]" onClick={() => setIsCreateOpen(false)}>{t("timetable.modal.abort")}</Button>
-              <Button disabled={submitting || !newSessionGroupId} className="flex-1 h-14 rounded-2xl bg-blue-600 hover:bg-blue-500 font-black uppercase tracking-[0.2em] text-[11px] shadow-glow" onClick={handleCreateSession}>
+
+          <div className="flex gap-4 pt-4">
+              <button className="flex-1 h-12 rounded-xl bg-white/[0.02] border border-white/5 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-all" onClick={() => setIsCreateOpen(false)}>{t("common.cancel")}</button>
+              <button disabled={submitting || !newSessionGroupId} className="btn-primary flex-1 h-12" onClick={handleCreateSession}>
                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t("timetable.modal.confirm")}
-              </Button>
+              </button>
           </div>
         </div>
       </Modal>
 
-      {/* Availability Modal Upgrade */}
-      <Modal isOpen={isAvailOpen} onClose={() => setIsAvailOpen(false)} title={t("timetable.modal.avail_title")} className="max-w-3xl bg-slate-950/95 backdrop-blur-3xl">
-        <div className="space-y-10">
-          <div className="flex items-center gap-6 p-6 bg-blue-500/5 border border-blue-500/10 rounded-[2rem]">
-             <div className="w-14 h-14 rounded-2xl bg-blue-500 shadow-xl shadow-blue-500/20 flex items-center justify-center text-white">
-                <Clock className="w-7 h-7" />
+      {/* Availability Modal */}
+      <Modal isOpen={isAvailOpen} onClose={() => setIsAvailOpen(false)} title={t("timetable.modal.avail_title")} className="max-w-3xl">
+        <div className="space-y-8 p-2 text-start">
+          <div className="flex items-center gap-6 p-6 bg-[var(--ui-accent)]/5 border border-[var(--ui-accent)]/10 rounded-xl">
+             <div className="w-12 h-12 rounded-xl bg-[var(--ui-accent)]/10 flex items-center justify-center text-[var(--ui-accent)] border border-[var(--ui-accent)]/20 shadow-glow">
+                <Clock className="w-6 h-6" />
              </div>
              <div>
-                <p className="text-[14px] font-black text-white uppercase tracking-widest leading-none mb-2">{t("timetable.modal.duty_window")}</p>
-                <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-tight">{t("timetable.modal.duty_desc")}</p>
+                <p className="text-[12px] font-bold text-white uppercase tracking-widest mb-1">{t("timetable.modal.duty_window")}</p>
+                <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest leading-tight">{t("timetable.modal.duty_desc")}</p>
              </div>
           </div>
           
-          <div className="space-y-4 max-h-[500px] overflow-y-auto px-2 custom-scrollbar pe-4">
-            {DAYS.map((day, i) => {
+          <div className="space-y-4 max-h-[500px] overflow-y-auto px-1 custom-scrollbar pe-3">
+            {DAYS.map((day: string, i: number) => {
               const entry = availability.find(a => a.dayOfWeek === i);
               const isActive = entry?.isAvailable ?? false;
               let segments = entry?.segments || [];
@@ -496,61 +410,47 @@ const TimetablePage: React.FC = () => {
               }
               
               return (
-                <div key={day} className={cn("p-6 rounded-[2rem] border transition-all duration-500", 
-                  isActive ? "bg-slate-900 border-white/10 shadow-2xl" : "bg-slate-950/20 border-white/5 opacity-50")}>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                <div key={day} className={cn("p-6 rounded-xl border transition-all duration-300", 
+                  isActive ? "bg-white/[0.02] border-white/10 shadow-lg" : "bg-black/20 border-white/5 opacity-40")}>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-6">
                     <div className="flex items-center gap-6">
                       <button 
                         onClick={() => toggleDay(i)}
-                        className={cn("w-14 h-8 rounded-full relative transition-all duration-500", isActive ? "bg-emerald-500 shadow-glow-emerald" : "bg-slate-800")}
+                        className={cn("w-12 h-6 rounded-full relative transition-all duration-500", isActive ? "bg-[var(--ui-accent)] shadow-glow" : "bg-[var(--ui-bg)]")}
                       >
-                        <div className={cn("absolute top-1 w-6 h-6 rounded-full bg-white transition-all shadow-xl", isActive ? "translate-x-7" : "translate-x-1")} />
+                        <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-xl", isActive ? "translate-x-7" : "translate-x-1")} />
                       </button>
-                      <span className="text-lg font-sora font-black text-white uppercase tracking-tighter w-32">{day}</span>
+                      <span className="text-sm font-bold text-white uppercase tracking-widest w-24">{day}</span>
                     </div>
                     {isActive && (
-                      <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="sm" onClick={() => addSegment(i)} className="h-10 px-6 text-[10px] font-black uppercase tracking-widest text-blue-400 bg-blue-500/5 border border-blue-500/10 hover:bg-blue-500/10 rounded-xl">
-                           <Plus className="w-4 h-4 me-2" /> {t("timetable.modal.add_slot") || "ADD SLOT"}
-                        </Button>
-                      </div>
+                      <button onClick={() => addSegment(i)} className="h-9 px-4 text-[9px] font-bold uppercase tracking-widest text-[var(--ui-accent)] bg-[var(--ui-accent)]/5 border border-[var(--ui-accent)]/20 hover:bg-[var(--ui-accent)]/10 rounded-lg flex items-center gap-2 transition-all">
+                         <Plus className="w-3.5 h-3.5" /> {t("timetable.modal.add_slot") || "ADD SLOT"}
+                      </button>
                     )}
                   </div>
                   
                   {isActive && (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-500">
+                    <div className="space-y-4 animate-fade-in">
                       {segments.map((seg, sIdx) => (
-                        <div key={sIdx} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 ps-0 sm:ps-20">
+                        <div key={sIdx} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 ps-0 sm:ps-16">
                            <select 
-                            value={seg.startTime}
-                            onChange={(e) => updateSegmentTime(i, sIdx, "startTime", e.target.value)}
-                            className="bg-slate-950 border border-white/5 rounded-2xl h-12 px-5 text-sm font-black text-white w-40 appearance-none shadow-xl cursor-pointer hover:border-blue-500/30 transition-all"
+                             value={seg.startTime}
+                             onChange={(e) => updateSegmentTime(i, sIdx, "startTime", e.target.value)}
+                             className="bg-black/40 border border-white/5 rounded-lg h-11 px-4 text-[11px] font-bold text-slate-300 w-36 focus:outline-none focus:ring-1 focus:ring-[var(--ui-accent)]/30"
                            >
-                             {TIME_SLOTS.map(t => {
-                               const [h, m] = t.split(":");
-                               const hour = parseInt(h, 10);
-                               const ampm = hour >= 12 ? "PM" : "AM";
-                               const hour12 = hour % 12 || 12;
-                               return <option key={t} value={t}>{`${hour12}:${m} ${ampm}`}</option>;
-                             })}
+                             {TIME_SLOTS.map(t => <option key={t} value={t} className="bg-[var(--ui-sidebar-bg)]">{t}</option>)}
                            </select>
-                           <div className="w-6 h-1 bg-slate-800 rounded-full" />
+                           <div className="w-4 h-px bg-white/10" />
                            <select 
-                            value={seg.endTime}
-                            onChange={(e) => updateSegmentTime(i, sIdx, "endTime", e.target.value)}
-                            className="bg-slate-950 border border-white/5 rounded-2xl h-12 px-5 text-sm font-black text-white w-40 appearance-none shadow-xl cursor-pointer hover:border-blue-500/30 transition-all"
+                             value={seg.endTime}
+                             onChange={(e) => updateSegmentTime(i, sIdx, "endTime", e.target.value)}
+                             className="bg-black/40 border border-white/5 rounded-lg h-11 px-4 text-[11px] font-bold text-slate-300 w-36 focus:outline-none focus:ring-1 focus:ring-[var(--ui-accent)]/30"
                            >
-                             {TIME_SLOTS.map(t => {
-                               const [h, m] = t.split(":");
-                               const hour = parseInt(h, 10);
-                               const ampm = hour >= 12 ? "PM" : "AM";
-                               const hour12 = hour % 12 || 12;
-                               return <option key={t} value={t}>{`${hour12}:${m} ${ampm}`}</option>;
-                             })}
+                             {TIME_SLOTS.map(t => <option key={t} value={t} className="bg-[var(--ui-sidebar-bg)]">{t}</option>)}
                            </select>
                            {segments.length > 1 && (
-                             <button onClick={() => removeSegment(i, sIdx)} className="p-3 text-slate-600 hover:text-rose-500 transition-colors">
-                               <X className="w-6 h-6" />
+                             <button onClick={() => removeSegment(i, sIdx)} className="p-2 text-slate-600 hover:text-rose-500 transition-colors">
+                               <X className="w-4 h-4" />
                              </button>
                            )}
                         </div>
@@ -562,11 +462,11 @@ const TimetablePage: React.FC = () => {
             })}
           </div>
 
-          <div className="flex gap-4 pt-10 border-t border-slate-800">
-              <Button variant="ghost" className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-[11px]" onClick={() => setIsAvailOpen(false)}>{t("timetable.modal.cancel")}</Button>
-              <Button disabled={savingAvail} className="flex-1 h-14 rounded-2xl bg-blue-600 hover:bg-blue-500 font-black uppercase tracking-[0.2em] text-[11px] shadow-glow" onClick={handleUpdateAvailability}>
-                 {savingAvail ? <Loader2 className="w-6 h-6 animate-spin" /> : t("timetable.modal.save")}
-              </Button>
+          <div className="flex gap-4 pt-4">
+              <button className="flex-1 h-12 rounded-xl bg-white/[0.02] border border-white/5 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-all" onClick={() => setIsAvailOpen(false)}>{t("common.cancel")}</button>
+              <button disabled={savingAvail} className="btn-primary flex-1 h-12" onClick={handleUpdateAvailability}>
+                 {savingAvail ? <Loader2 className="w-5 h-5 animate-spin" /> : t("timetable.modal.save")}
+              </button>
           </div>
         </div>
       </Modal>
@@ -575,3 +475,4 @@ const TimetablePage: React.FC = () => {
 };
 
 export default TimetablePage;
+

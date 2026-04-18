@@ -80,12 +80,12 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ src }) => {
   const progressPercentage = duration ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="flex items-center gap-3 p-3 bg-slate-900 border border-white/10 rounded-xl w-full sm:w-[300px]">
+    <div className="flex items-center gap-3 p-3 bg-[var(--ui-sidebar-bg)] border border-white/10 rounded-xl w-full sm:w-[300px]">
       <audio ref={audioRef} src={src} preload="metadata" />
       
       <button 
         onClick={togglePlay}
-        className="w-10 h-10 shrink-0 bg-brand-500 rounded-full flex items-center justify-center text-white shadow-lg hover:scale-105 transition-transform"
+        className="w-10 h-10 shrink-0 bg-[var(--ui-accent)] rounded-full flex items-center justify-center text-white shadow-lg hover:scale-105 transition-transform"
       >
         {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-1 rtl:mr-1 rtl:ml-0" />}
       </button>
@@ -94,10 +94,10 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ src }) => {
         <div 
           ref={progressBarRef}
           onClick={handleProgressClick}
-          className="h-2 border border-slate-700 bg-slate-800 rounded-full cursor-pointer relative overflow-hidden group"
+          className="h-2 border border-slate-700 bg-[var(--ui-bg)] rounded-full cursor-pointer relative overflow-hidden group"
         >
           <div 
-            className="absolute top-0 bottom-0 bg-brand-400 transition-all duration-100 start-0"
+            className="absolute top-0 bottom-0 bg-[var(--ui-accent)] transition-all duration-100 start-0"
             style={{ width: `${progressPercentage}%` }}
           />
         </div>
