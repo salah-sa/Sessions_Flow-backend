@@ -1,0 +1,44 @@
+using MongoDB.Driver;
+using SessionFlow.Desktop.Models;
+using SessionFlow.Desktop.Data;
+using Microsoft.Extensions.Configuration;
+using System;
+using System.Threading.Tasks;
+
+var builder = new ConfigurationBuilder()
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+IConfiguration configuration = builder.Build();
+
+var mongoService = new MongoService(configuration);
+
+string username = "HANY";
+string studentId = "STU-2026-55DB1";
+string engineerCode = "Eng1";
+
+var filter = Builders<User>.Filter.Eq(u => u.Username, username)
+           & Builders<User>.Filter.Eq(u => u.StudentId, studentId)
+           & Builders<User>.Filter.Eq(u => u.EngineerCode, engineerCode);
+
+var user = await mongoService.Users.Find(filter).FirstOrDefaultAsync();
+
+if (user == null)
+{
+    Console.WriteLine("USER NOT FOUND");
+    // List some users to see what's there
+    var allStudents = await mongoService.Users.Find(u => u.Role == UserRole.Student).Limit(10).ToListAsync();
+    Console.WriteLine("\nExisting Students:");
+    foreach (var s in allStudents)
+    {
+        Console.WriteLine($"- Name: {s.Name}, Username: {s.Username}, SID: {s.StudentId}, EngCode: {s.EngineerCode}, Approved: {s.IsApproved}");
+    }
+}
+else
+{
+    Console.WriteLine($"USER FOUND: {user.Name}");
+    Console.WriteLine($"Username Match: {user.Username == username}");
+    Console.WriteLine($"StudentId Match: {user.StudentId == studentId}");
+    Console.WriteLine($"EngineerCode Match: {user.EngineerCode == engineerCode}");
+    Console.WriteLine($"IsApproved: {user.IsApproved}");
+}
