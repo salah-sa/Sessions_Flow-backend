@@ -9,6 +9,7 @@ public class PasswordResetToken
     [BsonRepresentation(BsonType.String)]
     public Guid Id { get; set; } = Guid.NewGuid();
 
+    [BsonRepresentation(BsonType.String)]
     public Guid UserId { get; set; }
     public string Email { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty; // 6-char alphanumeric

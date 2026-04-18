@@ -100,22 +100,14 @@ public static class AuthEndpoints
 
         group.MapPost("/forgot-password", async (ForgotPasswordRequest req, AuthService auth) =>
         {
-            try 
-            {
-                if (string.IsNullOrWhiteSpace(req.Email))
-                    return Results.BadRequest(new { error = "Email is required." });
+            if (string.IsNullOrWhiteSpace(req.Email))
+                return Results.BadRequest(new { error = "Email is required." });
 
-                var (success, error) = await auth.RequestPasswordResetAsync(req.Email.Trim().ToLowerInvariant());
-                if (!success && error != null)
-                    return Results.BadRequest(new { error });
+            var (success, error) = await auth.RequestPasswordResetAsync(req.Email.Trim().ToLowerInvariant());
+            if (!success && error != null)
+                return Results.BadRequest(new { error });
 
-                return Results.Ok(new { message = "If an account with this email exists, a reset code has been sent." });
-            }
-            catch (Exception ex)
-            {
-                // DIAGNOSTIC: Return actual exception to clarify 500 error
-                return Results.Json(new { error = $"Server Exception: {ex.Message}", stack = ex.StackTrace }, statusCode: 500);
-            }
+            return Results.Ok(new { message = "If an account with this email exists, a reset code has been sent." });
         }).AllowAnonymous();
 
         group.MapPost("/verify-reset-code", async (VerifyResetCodeRequest req, AuthService auth) =>
