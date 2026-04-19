@@ -10,6 +10,7 @@ import { PendingEngineer, EngineerCode } from "../types";
 import { cn } from "../lib/utils";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 
 /* TAILWIND JIT SAFELIST
   border-amber-500/20 group-hover:border-amber-500/50 group-hover:bg-amber-950/20 border-amber-500/30 border-t-amber-500 text-amber-500 text-amber-400 group-hover:text-amber-300 drop-shadow-[0_0_8px_rgba(var(--amber-500-rgb),0.5)]
@@ -21,12 +22,26 @@ import { useQueryClient } from "@tanstack/react-query";
 const AdminPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"pending" | "students" | "codes" | "engineers" | "audit">("pending");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = (searchParams.get("tab") as any) || "pending";
+  const [activeTab, setActiveTab] = useState<"pending" | "students" | "codes" | "engineers" | "audit">(initialTab);
   const [searchQuery, setSearchQuery] = useState("");
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [studentProcessingIds, setStudentProcessingIds] = useState<Set<string>>(new Set());
 
   const dateLocale = i18n.language === "ar" ? ar : enUS;
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab && ["pending", "students", "codes", "engineers", "audit"].includes(tab)) {
+      setActiveTab(tab as any);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab as any);
+    setSearchParams({ tab });
+  };
 
   const { 
     pendingEngineers, 
@@ -224,7 +239,7 @@ const AdminPage: React.FC = () => {
          ].map((item: any) => (
            <button
              key={item.id}
-             onClick={() => setActiveTab(item.id as any)}
+             onClick={() => handleTabChange(item.id)}
              className={cn(
                "group flex items-center gap-3 px-6 py-3 transition-all duration-300 relative min-w-[160px] justify-center",
                activeTab === item.id 

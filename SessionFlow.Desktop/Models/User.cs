@@ -27,6 +27,16 @@ public class User
     public bool IsApproved { get; set; }
     public string? AvatarUrl { get; set; }
     
+    // Geolocation (set by student on login)
+    [BsonIgnoreIfNull]
+    public double? Latitude { get; set; }
+
+    [BsonIgnoreIfNull]
+    public double? Longitude { get; set; }
+
+    [BsonIgnoreIfNull]
+    public string? City { get; set; }
+    
     // Student-specific fields
     [BsonIgnoreIfNull]
     public string? StudentId { get; set; } // Unique student identifier

@@ -202,6 +202,15 @@ const resources = {
            "subtitle": "Select operational node to initiate."
         }
       },
+      "sidebar": {
+        "levels": {
+          "level": "Level",
+          "fundamentals": "Level 1 — Fundamentals",
+          "intermediate": "Level 2 — Intermediate",
+          "advanced": "Level 3 — Advanced",
+          "masterclass": "Level 4 — Masterclass"
+        }
+      },
       "connection": {
         "strong": "Strong",
         "weak": "Weak",
@@ -934,14 +943,6 @@ const resources = {
           "step_verify": "Confirm",
           "step_reset": "Finish",
           "no_email": "No recovery email found. Contact support."
-        }
-      },
-      "sidebar": {
-        "levels": {
-          "fundamentals": "Level 1 — Fundamentals",
-          "intermediate": "Level 2 — Intermediate",
-          "advanced": "Level 3 — Advanced",
-          "masterclass": "Level 4 — Masterclass"
         }
       },
       "group_sessions": {

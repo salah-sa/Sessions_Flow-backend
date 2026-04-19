@@ -11,7 +11,17 @@ import WorldStudentMap from "../components/dashboard/WorldStudentMap";
 import { Button } from "../components/ui";
 import { Plus } from "lucide-react";
 
+import { useAuthStore } from "../store/stores";
+import { StudentDashboard } from "./StudentDashboard";
+
 const DashboardPage: React.FC = () => {
+  const user = useAuthStore((s) => s.user);
+
+  // Route students to their dedicated dashboard
+  if (user?.role === "Student") {
+    return <StudentDashboard />;
+  }
+
   const { t } = useTranslation();
   const { data, isLoading, isError } = useDashboardSummary();
 
@@ -132,11 +142,4 @@ const DashboardPage: React.FC = () => {
     </div>
   );
 };
-
-const PlusIcon = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-  </svg>
-);
-
 export default DashboardPage;

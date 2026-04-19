@@ -77,6 +77,13 @@ public static class TimetableEndpoints
 
             var availability = await db.TimetableEntries.Find(availabilityFilter).ToListAsync();
 
+            // Fetch all GroupSchedules for the groups managed by this engineer
+            var activeGroupIds = await db.Groups.Find(g => 
+                (role == "Admin" || g.EngineerId == uid) && !g.IsDeleted
+            ).Project(g => g.Id).ToListAsync();
+
+            var schedules = await db.GroupSchedules.Find(gs => activeGroupIds.Contains(gs.GroupId)).ToListAsync();
+
             return Results.Ok(new 
             { 
                 sessions = sessionResults, 
@@ -89,6 +96,15 @@ public static class TimetableEndpoints
                     segments = t.Segments,
                     startTime = t.StartTime.HasValue ? t.StartTime.Value.ToString(@"hh\:mm") : null,
                     endTime = t.EndTime.HasValue ? t.EndTime.Value.ToString(@"hh\:mm") : null
+                }),
+                groupSchedules = schedules.Select(gs => new {
+                    id = gs.Id,
+                    groupId = gs.GroupId,
+                    groupName = groupDict.TryGetValue(gs.GroupId, out var g) ? g.Name : "Unknown",
+                    groupColorTag = groupDict.TryGetValue(gs.GroupId, out var g2) ? g2.ColorTag : "blue",
+                    dayOfWeek = gs.DayOfWeek,
+                    startTime = gs.StartTime.ToString(@"hh\:mm"),
+                    durationMinutes = gs.DurationMinutes
                 }),
                 weekStart, 
                 weekEnd 

@@ -1,5 +1,5 @@
 import { fetchWithAuth } from "./client";
-import { Session, Student, User, AttendanceRecord, ChatMessage, MessageMention, TimetableEntry, Setting, EngineerCode, PendingEngineer, Station, Notification, AuditLog, PaginatedResponse, DashboardSummary, AttendanceUpdateRecord, MessageBlock, ImportPreview, ImportResult, StudentDashboardData } from "../types";
+import { Session, Student, User, AttendanceRecord, ChatMessage, MessageMention, TimetableEntry, GroupScheduleEntry, Setting, EngineerCode, PendingEngineer, Station, Notification, AuditLog, PaginatedResponse, DashboardSummary, AttendanceUpdateRecord, MessageBlock, ImportPreview, ImportResult, StudentDashboardData } from "../types";
 
 // Dashboard Module
 export const dashboardApi = {
@@ -62,7 +62,7 @@ export const studentsApi = {
 
 // Timetable Module
 export const timetableApi = {
-  getEntries: () => fetchWithAuth<{ sessions: Session[]; availability: TimetableEntry[]; weekStart: string; weekEnd: string }>("/timetable"),
+  getEntries: () => fetchWithAuth<{ sessions: Session[]; groupSchedules: GroupScheduleEntry[]; availability: TimetableEntry[]; weekStart: string; weekEnd: string }>("/timetable"),
   getAvailability: () => fetchWithAuth<TimetableEntry[]>("/timetable/availability"),
   updateAvailability: (entries: TimetableEntry[]) =>
     fetchWithAuth<void>("/timetable/availability", {
@@ -191,3 +191,14 @@ export const reportsApi = {
 export const studentApi = {
   getDashboard: () => fetchWithAuth<StudentDashboardData>("/student/dashboard")
 };
+
+// Student Location Module
+export const studentLocationApi = {
+  getAll: () => fetchWithAuth<{ id: string; name: string; lat: number; lng: number; city: string; level: number }[]>("/students/locations"),
+  update: (data: { lat: number; lng: number; city: string }) =>
+    fetchWithAuth<void>("/student/location", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+};
+

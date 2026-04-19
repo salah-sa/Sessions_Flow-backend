@@ -41,9 +41,25 @@ const LoginPage: React.FC = () => {
       );
 
       if (result.success) {
+        // Force location re-consent for students on every login
+        const isStudent = result.user?.role === "Student" || sharedAuth.loginMode === "student";
+        
+        if (isStudent) {
+          import("../store/stores").then((m) => {
+            const authStore = m.useAuthStore.getState();
+            authStore.setStudentLocation(""); 
+            // @ts-ignore - we know it's there
+            authStore.setStudentLocationData(null as any);
+          });
+        }
+        
         sharedAuth.setMascotState("success");
         toast.success(t("auth.login_success") || "Login successful!");
-        setTimeout(() => sharedAuth.onNavigate("/dashboard"), 800);
+        
+        // Ensure student lands on student dashboard even if portal was mismarked
+        setTimeout(() => {
+          sharedAuth.onNavigate("/dashboard");
+        }, 800);
       } else {
         sharedAuth.setMascotState("error");
         toast.error(result.error || t("auth.login_failed") || "Login failed");

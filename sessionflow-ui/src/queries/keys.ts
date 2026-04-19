@@ -27,6 +27,7 @@ export const queryKeys = {
     all: ["students"] as const,
     list: (filters: any) => ["students", "list", filters] as const,
     byId: (id: string) => ["students", "detail", id] as const,
+    locations: ["students", "locations"] as const,
   },
   timetable: {
     all: ["timetable"] as const,

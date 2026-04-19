@@ -27,6 +27,7 @@ import { useAuthStore } from "../store/stores";
 import { cn } from "../lib/utils";
 import WorldStudentMap from "../components/dashboard/WorldStudentMap";
 import { useReverseGeocode, useIPGeolocation } from "../queries/useGeoQueries";
+import { useUpdateStudentLocation } from "../queries/useStudentLocationQueries";
 import { toast } from "sonner";
 
 export const StudentDashboard: React.FC = () => {
@@ -39,6 +40,25 @@ export const StudentDashboard: React.FC = () => {
   const [geoStatus, setGeoStatus] = useState<"idle" | "detecting" | "denied" | "error">("idle");
   const { mutateAsync: reverseGeocode } = useReverseGeocode();
   const { mutateAsync: fetchIPGeo } = useIPGeolocation();
+  const { mutate: updateBackendLocation } = useUpdateStudentLocation();
+
+  // Hydrate location store from backend data if available and store is empty
+  React.useEffect(() => {
+    if (data?.identity && !studentLocation) {
+      const { city, latitude, longitude } = data.identity;
+      if (city && latitude !== undefined && longitude !== undefined) {
+        setStudentLocationData({
+          city,
+          lat: latitude,
+          lng: longitude,
+          source: 'auto', // Treat as auto since it was previously validated
+          timestamp: Date.now()
+        });
+      } else if (city) {
+        setStudentLocation(city);
+      }
+    }
+  }, [data, studentLocation, setStudentLocation, setStudentLocationData]);
 
   const handleAutoDetect = async () => {
     setGeoStatus("detecting");
@@ -49,23 +69,29 @@ export const StudentDashboard: React.FC = () => {
           ? await reverseGeocode({ lat: latitude, lng: longitude })
           : citySource;
         
-        setStudentLocationData({
+        const locationData = {
           city,
           lat: latitude,
           lng: longitude,
-          source: 'auto',
+          source: 'auto' as const,
           timestamp: Date.now()
-        });
+        };
+
+        setStudentLocationData(locationData);
+        updateBackendLocation({ lat: latitude, lng: longitude, city });
+        
         toast.success(`Node synchronized: ${city}`);
         setGeoStatus("idle");
       } catch (err) {
+        const fallbackCity = `${latitude.toFixed(2)}, ${longitude.toFixed(2)}`;
         setStudentLocationData({
-          city: `${latitude.toFixed(2)}, ${longitude.toFixed(2)}`,
+          city: fallbackCity,
           lat: latitude,
           lng: longitude,
           source: 'auto',
           timestamp: Date.now()
         });
+        updateBackendLocation({ lat: latitude, lng: longitude, city: fallbackCity });
         setGeoStatus("idle");
       }
     };
@@ -112,86 +138,110 @@ export const StudentDashboard: React.FC = () => {
   // Mandatory Location Check - Cinematic Consent Flow
   if (!studentLocation) {
     return (
-      <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-3xl flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-4">
         <motion.div 
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          initial={{ opacity: 0, scale: 0.9, y: 30 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          className="w-full max-w-lg bg-var(--ui-sidebar-bg) border border-white/10 rounded-[32px] p-10 relative overflow-hidden shadow-[0_0_100px_rgba(var(--ui-accent-rgb),0.1)]"
+          className="w-full max-w-xl bg-[var(--ui-sidebar-bg)] border border-white/5 rounded-[40px] p-12 relative overflow-hidden shadow-[0_0_150px_rgba(var(--ui-accent-rgb),0.15)]"
         >
           {/* Decorative Elements */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-var(--ui-accent)/5 blur-[100px] rounded-full translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-emerald-500/5 blur-[80px] rounded-full -translate-x-1/2 translate-y-1/2" />
+          <div className="absolute top-0 right-0 w-80 h-80 bg-[var(--ui-accent)]/10 blur-[120px] rounded-full translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/10 blur-[100px] rounded-full -translate-x-1/2 translate-y-1/2" />
           
           <div className="relative z-10 text-center">
-            <div className="w-20 h-20 rounded-3xl bg-var(--ui-accent)/10 border border-white/10 flex items-center justify-center mx-auto mb-8 relative group">
-               <Navigation className={cn("w-10 h-10 text-var(--ui-accent) transition-all duration-700", geoStatus === "detecting" && "animate-pulse scale-90")} />
-               <div className="absolute inset-0 bg-var(--ui-accent)/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
+            <motion.div 
+              animate={geoStatus === "detecting" ? { rotate: 360 } : {}}
+              transition={geoStatus === "detecting" ? { repeat: Infinity, duration: 2, ease: "linear" } : {}}
+              className="w-24 h-24 rounded-[32px] bg-gradient-to-br from-[var(--ui-accent)]/20 to-transparent border border-white/10 flex items-center justify-center mx-auto mb-10 relative group"
+            >
+               <Navigation className={cn("w-12 h-12 text-[var(--ui-accent)] transition-all duration-700", geoStatus === "detecting" && "scale-75")} />
+               <div className="absolute -inset-4 bg-[var(--ui-accent)]/10 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+            </motion.div>
 
-            <h2 className="text-4xl font-sora font-semibold text-whiteer mb-4">
-              Initialize Node
+            <h2 className="text-4xl font-sora font-bold text-white mb-6 uppercase tracking-tight">
+              Initialize <span className="text-[var(--ui-accent)]">Node</span>
             </h2>
-            <p className="text-slate-400 font-medium text-lg leading-relaxed mb-10 px-4">
-              Set your geographic operational node to initialize dashboard telemetry and synchronize with local active sessions.
+            <p className="text-slate-400 font-medium text-lg leading-relaxed mb-12 px-6">
+              Establish your geographic coordinates to activate dashboard telemetry and synchronize with local operational clusters.
             </p>
 
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-5">
                 <Button 
                   onClick={handleAutoDetect}
                   disabled={geoStatus === "detecting"}
                   className={cn(
-                    "h-16 w-full text-base font-semibold rounded-2xl shadow-xl active:scale-95 transition-all gap-3",
-                    geoStatus === "denied" ? "bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500/20" : "bg-white text-black hover:bg-slate-200"
+                    "h-20 w-full text-lg font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl active:scale-95 transition-all gap-4 border-0 relative overflow-hidden",
+                    geoStatus === "denied" 
+                      ? "bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500/20" 
+                      : "bg-white text-black hover:bg-slate-100 ring-1 ring-white/20"
                   )}
                 >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer" />
                   {geoStatus === "detecting" ? (
                     <>
-                      <RefreshCcw className="w-5 h-5 animate-spin" />
-                      <span>Syncing Neural Link...</span>
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                      <span>Linking...</span>
                     </>
                   ) : geoStatus === "denied" ? (
                     <>
-                      <AlertTriangle className="w-5 h-5" />
-                      <span>Access Denied - Retry?</span>
+                      <AlertTriangle className="w-6 h-6" />
+                      <span>Permission Denied</span>
                     </>
                   ) : (
                     <>
-                      <Crosshair className="w-5 h-5" />
-                      <span>Auto-Detect Location</span>
+                      <Crosshair className="w-6 h-6" />
+                      <span>Sync Telemetry</span>
                     </>
                   )}
                 </Button>
 
-               <div className="relative py-4">
+                <div className="relative py-6">
                   <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5" /></div>
-                  <div className="relative flex justify-center text-xs font-semibold text-slate-600"><span className="bg-var(--ui-sidebar-bg) px-4">Secure Override</span></div>
+                  <div className="relative flex justify-center text-[10px] font-black text-slate-700 uppercase tracking-[0.4em]"><span className="bg-[var(--ui-sidebar-bg)] px-6">Manual Override</span></div>
                </div>
 
-               <div className="flex gap-3">
-                 <div className="relative flex-1">
+               <div className="flex gap-4">
+                 <div className="relative flex-1 group">
+                   <div className="absolute inset-0 bg-[var(--ui-accent)]/5 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
                    <Input 
                      value={tempLocation}
                      onChange={(e) => setTempLocation(e.target.value)}
-                     placeholder="ENTER CITY MANUALLY..."
-                     className="h-14 bg-white/5 border-white/5 focus:border-white/20 pl-6 rounded-xl font-bold uppercase text-xs"
-                     onKeyDown={(e) => e.key === "Enter" && tempLocation.trim() && setStudentLocation(tempLocation.trim())}
+                     placeholder="LOCATION CODE / CITY..."
+                     className="h-16 bg-white/[0.03] border-white/5 focus:border-[var(--ui-accent)]/30 focus:bg-white/[0.05] pl-8 rounded-2xl font-mono font-bold uppercase text-sm tracking-wider transition-all placeholder:text-slate-700"
+                     onKeyDown={(e) => {
+                        if (e.key === "Enter" && tempLocation.trim()) {
+                            const loc = tempLocation.trim();
+                            setStudentLocation(loc);
+                            updateBackendLocation({ lat: 0, lng: 0, city: loc });
+                        }
+                     }}
                    />
                  </div>
                  <Button 
                    variant="outline"
                    disabled={!tempLocation.trim()}
-                   onClick={() => setStudentLocation(tempLocation.trim())}
-                   className="h-14 px-6 border-white/10 hover:bg-white/5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white"
+                   onClick={() => {
+                      const loc = tempLocation.trim();
+                      setStudentLocation(loc);
+                      updateBackendLocation({ lat: 0, lng: 0, city: loc });
+                      toast.success(`Manual sync: ${loc}`);
+                   }}
+                   className="h-16 px-8 border-white/5 bg-white/[0.02] hover:bg-white/10 hover:border-white/20 rounded-2xl text-[var(--ui-accent)] transition-all"
                  >
-                   <CheckCircle className="w-5 h-5" />
+                    <ArrowRight className="w-6 h-6" />
                  </Button>
                </div>
             </div>
 
-            <p className="mt-10 text-xs font-bold text-slate-600 uppercase flex items-center justify-center gap-2">
-               <ShieldCheck className="w-3 h-3" />
-               End-to-end encrypted telemetry link enabled
-            </p>
+            <div className="mt-12 flex flex-col items-center gap-4">
+              <div className="flex items-center gap-3">
+                 <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">Encrypted Neural Handshake Active</span>
+              </div>
+              <p className="text-[9px] font-bold text-slate-700 uppercase tracking-tighter max-w-xs mx-auto leading-relaxed">
+                By initializing, you authorize telemetry sync for local session optimization and group distribution mapping.
+              </p>
+            </div>
           </div>
         </motion.div>
       </div>
@@ -256,7 +306,7 @@ export const StudentDashboard: React.FC = () => {
                   <span className="text-xs font-semibold text-emerald-400 uppercase">{studentLocation}</span>
                 </div>
               </div>
-              <h1 className="text-3xl lg:text-4xl font-sora font-semibold text-whiteer">
+              <h1 className="text-3xl lg:text-4xl font-sora font-semibold text-white">
                 {identity.name}
               </h1>
               <div className="flex items-center gap-3 text-xs text-slate-400 font-bold tracking-wider">
@@ -312,20 +362,10 @@ export const StudentDashboard: React.FC = () => {
             <WorldStudentMap compact />
 
             <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
-              <div className="flex items-center gap-6">
-                 <div>
-                    <p className="text-xs font-semibold text-slate-600 uppercase">Total Peer Load</p>
-                    <p className="text-lg font-mono font-semibold text-white tabular-nums">108</p>
-                 </div>
-                 <div>
-                    <p className="text-xs font-semibold text-slate-600 uppercase">Cross-Node Latency</p>
-                    <p className="text-lg font-mono font-semibold text-emerald-500 tabular-nums">1.2ms</p>
-                 </div>
-              </div>
-              <div className="text-right">
-                 <p className="text-xs font-semibold text-slate-600 uppercase">Sync Health</p>
-                 <p className="text-lg font-mono font-semibold text-cyan-400 tabular-nums">99.9%</p>
-              </div>
+               <div className="flex items-center gap-2">
+                  <Activity className="w-3 h-3 text-emerald-500 animate-pulse" />
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Neural Link Active</span>
+               </div>
             </div>
           </motion.div>
 
@@ -339,7 +379,7 @@ export const StudentDashboard: React.FC = () => {
                 <span className="text-xs font-bold text-slate-500 uppercase">{progress.completed} / {progress.total} Complete</span>
               </div>
               
-              <div className="h-3 bg-var(--ui-surface) rounded-full overflow-hidden w-full p-0.5 border border-white/5">
+              <div className="h-3 bg-[var(--ui-surface)] rounded-full overflow-hidden w-full p-0.5 border border-white/5">
                 <div 
                   className="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 rounded-full relative"
                   style={{ width: `${progress.percentage}%` }}
@@ -369,7 +409,7 @@ export const StudentDashboard: React.FC = () => {
               <div className="space-y-4">
                 {timeline.slice(0, 3).map((session: any) => (
                   <div key={session.id} className="flex items-center gap-4 p-3 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors cursor-pointer group" onClick={() => navigate(`/sessions/${session.id}`)}>
-                    <div className={cn("p-2 rounded-lg border", session.status === "Ended" ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-var(--ui-surface) border-slate-700 text-slate-400')}>
+                    <div className={cn("p-2 rounded-lg border", session.status === "Ended" ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-[var(--ui-surface)] border-slate-700 text-slate-400')}>
                       {session.status === "Ended" ? <CheckCircle className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
                     </div>
                     <div className="flex-1 min-w-0">

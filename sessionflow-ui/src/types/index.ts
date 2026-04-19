@@ -150,6 +150,16 @@ export interface TimetableEntry {
   endTime?: string;
 }
 
+export interface GroupScheduleEntry {
+  id: string;
+  groupId: string;
+  groupName: string;
+  groupColorTag: string;
+  dayOfWeek: number;
+  startTime: string;
+  durationMinutes: number;
+}
+
 export interface Setting {
   id: string;
   key: string;
@@ -195,6 +205,7 @@ export interface Notification {
   message: string;
   type: NotificationType;
   isRead: boolean;
+  link?: string;
   createdAt: string;
 }
 
@@ -349,6 +360,9 @@ export interface StudentDashboardData {
     groupName: string;
     studentId: string;
     avatarUrl?: string;
+    city?: string;
+    latitude?: number;
+    longitude?: number;
   };
   progress: {
     completed: number;
