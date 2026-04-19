@@ -43,6 +43,9 @@ public static class AuthEndpoints
                     studentId = user.StudentId,
                     engineerCode = user.EngineerCode,
                     avatarUrl = ResolveAvatarUrl(user.AvatarUrl, ctx.Request),
+                    latitude = user.Latitude,
+                    longitude = user.Longitude,
+                    city = user.City,
                     createdAt = user.CreatedAt
                 }
             });
@@ -264,6 +267,9 @@ public static class AuthEndpoints
                 studentId = user.StudentId,
                 engineerCode = user.EngineerCode,
                 avatarUrl = ResolveAvatarUrl(user.AvatarUrl, ctx.Request),
+                latitude = user.Latitude,
+                longitude = user.Longitude,
+                city = user.City,
                 createdAt = user.CreatedAt
             });
         }).RequireAuthorization();

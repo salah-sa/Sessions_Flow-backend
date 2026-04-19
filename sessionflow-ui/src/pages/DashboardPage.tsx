@@ -27,7 +27,7 @@ const DashboardPage: React.FC = () => {
 
   const { t } = useTranslation();
   const { data, isLoading, isError } = useDashboardSummary();
-  const { setStudentLocationData, studentLocation } = useAuthStore();
+  const { setStudentLocationData, studentLocation, updateUser } = useAuthStore();
   const { mutateAsync: fetchIPGeo } = useIPGeolocation();
   const { mutate: updateBackendLocation } = useUpdateStudentLocation();
 
@@ -63,6 +63,15 @@ const DashboardPage: React.FC = () => {
           timestamp: Date.now()
         });
         updateBackendLocation({ lat: geo.lat, lng: geo.lng, city: geo.city });
+        
+        // Final link: Update the user object in store so the effect doesn't re-trigger
+        updateUser({ 
+          ...user, 
+          latitude: geo.lat, 
+          longitude: geo.lng, 
+          city: geo.city 
+        });
+
         console.log(`[Telemetry] Auto-synchronized node to ${geo.city}`);
       }).catch(err => {
         console.warn("[Telemetry] Silent synchronization failed:", err);
