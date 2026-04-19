@@ -413,14 +413,18 @@ public static class StudentEndpoints
             var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
 
-            if (!Guid.TryParse(userIdStr, out var userId) || role != "Student")
+            if (!Guid.TryParse(userIdStr, out var userId) || (role != "Student" && role != "Engineer"))
                 return Results.Forbid();
 
             var update = Builders<User>.Update
-                .Set(u => u.Latitude, req.Lat)
-                .Set(u => u.Longitude, req.Lng)
                 .Set(u => u.City, req.City?.Trim())
                 .Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
+
+            if (req.Lat.HasValue && req.Lng.HasValue)
+            {
+                update = update.Set(u => u.Latitude, req.Lat.Value)
+                               .Set(u => u.Longitude, req.Lng.Value);
+            }
 
             var result = await db.Users.UpdateOneAsync(u => u.Id == userId, update);
             if (result.MatchedCount == 0) return Results.NotFound();
@@ -428,15 +432,17 @@ public static class StudentEndpoints
             return Results.Ok();
         }).RequireAuthorization();
 
-        // GET /api/students/locations - Get all student locations for the world map
-        app.MapGet("/api/students/locations", async (MongoService db) =>
+        // GET /api/students/locations - Get all student and engineer locations for the world map
+        app.MapGet("/api/students/locations", async (MongoService db, IPresenceService presence) =>
         {
-            // Only fetch students who have location data
+            // Only fetch students and engineers who have location data
             var usersWithLocation = await db.Users
-                .Find(u => u.Role == UserRole.Student && u.Latitude != null && u.Longitude != null)
+                .Find(u => (u.Role == UserRole.Student || u.Role == UserRole.Engineer) && u.Latitude != null && u.Longitude != null)
                 .ToListAsync();
 
             if (!usersWithLocation.Any()) return Results.Ok(new List<object>());
+
+            var onlineUserIds = presence.GetOnlineUserIds().ToHashSet();
 
             // Get associated Student records to get GroupId and Level
             var userIds = usersWithLocation.Select(u => u.Id).ToList();
@@ -461,7 +467,9 @@ public static class StudentEndpoints
                     lat = u.Latitude,
                     lng = u.Longitude,
                     city = u.City,
-                    level = level
+                    level = level,
+                    role = u.Role.ToString().ToLower(),
+                    isOnline = onlineUserIds.Contains(u.Id.ToString())
                 };
             }).ToList();
 
@@ -470,6 +478,6 @@ public static class StudentEndpoints
     }
 
     public record UpdateStudentRequest(string? Name, Guid? GroupId);
-    public record UpdateLocationRequest(double Lat, double Lng, string? City);
+    public record UpdateLocationRequest(double? Lat, double? Lng, string? City);
 }
 

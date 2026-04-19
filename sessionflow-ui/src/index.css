@@ -58,13 +58,24 @@
     color: #ffffff;
     font-family: var(--ui-font-family);
     letter-spacing: var(--ui-letter-spacing);
+    height: 100%;
+    width: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: all 700ms cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
     margin: 0;
-    @apply h-full w-full antialiased selection:bg-[#c026d3]/30 transition-all duration-700 overflow-hidden;
+
+    &::selection {
+      background-color: rgba(192, 38, 211, 0.3);
+    }
   }
 
   /* Scrollable page container — prevents content clipping */
   .container-page {
-    @apply h-full overflow-y-auto overflow-x-hidden;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
     padding-inline: 1rem;
     scroll-behavior: smooth;
   }
@@ -81,7 +92,8 @@
 
   /* GLOBAL ZENITH ENFORCEMENT */
   h1, h2, h3, h4, h5, h6 {
-    @apply tracking-tight font-bold;
+    letter-spacing: -0.025em;
+    font-weight: 700;
     color: #ffffff;
   }
 }
@@ -90,7 +102,9 @@
 
   /* Structural Base Overrides for Zenith tags */
   .card-base {
-    @apply transition-all duration-500 relative overflow-hidden;
+    transition: all 500ms cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
     background: var(--ui-surface);
     border: none !important; /* Borderless design */
     box-shadow: var(--ui-shadow-zenith);
@@ -129,13 +143,21 @@
   }
 
   .btn-primary {
-    @apply text-white font-semibold text-[13px] py-3 px-8 active:scale-[0.95] transition-all;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 0.75rem 2rem;
+    transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
     background: linear-gradient(90deg, var(--ui-accent-secondary), var(--ui-accent)) !important;
     background-size: 200% auto !important;
     animation: refraction-sweep 5s ease infinite !important;
     box-shadow: var(--ui-shadow-glow) !important;
     border: none !important;
     border-radius: var(--ui-radius-btn) !important;
+  }
+
+  .btn-primary:active {
+    transform: scale(0.95);
   }
 
   .btn-primary:hover {
@@ -145,35 +167,86 @@
   }
 
   .btn-secondary {
-    @apply text-slate-300 font-semibold text-[13px] py-3 px-8 active:scale-[0.95] transition-all border border-white/10;
+    color: #cbd5e1; /* slate-300 */
+    font-weight: 600;
+    font-size: 13px;
+    padding: 0.75rem 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.03) !important;
     backdrop-filter: blur(24px) !important;
     border-radius: var(--ui-radius-btn) !important;
   }
 
+  .btn-secondary:active {
+    transform: scale(0.95);
+  }
+
+
   .btn-secondary:hover {
-    @apply border-white/20 bg-white/5 text-white;
+    border-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
     transform: translateY(-1px);
   }
 
   .btn-danger {
-    @apply text-rose-500 font-semibold text-[13px] py-3 px-8 active:scale-[0.95] transition-all border border-rose-500/20;
+    color: #f43f5e; /* rose-500 */
+    font-weight: 600;
+    font-size: 13px;
+    padding: 0.75rem 2rem;
+    transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(244, 63, 94, 0.2);
     background: rgba(244, 63, 94, 0.1) !important;
     border-radius: var(--ui-radius-btn) !important;
   }
 
+  .btn-danger:active {
+    transform: scale(0.95);
+  }
+
+
   .btn-danger:hover {
-    @apply border-rose-500/40 bg-rose-500/20 text-rose-400;
+    border-color: rgba(244, 63, 94, 0.4);
+    background-color: rgba(244, 63, 94, 0.2);
+    color: #fb7185; /* rose-400 */
     transform: translateY(-1px);
   }
 
   .btn-ghost {
-    @apply text-slate-400 hover:text-white font-semibold text-[13px] py-2 px-6 transition-all border border-transparent hover:border-white/10;
+    color: #94a3b8; /* slate-400 */
+    font-weight: 600;
+    font-size: 13px;
+    padding: 0.5rem 1.5rem;
+    transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
     background: transparent !important;
+
+    &:hover {
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.1);
+    }
   }
 
   .input-base {
-    @apply w-full px-6 py-4 text-xs text-white placeholder:text-slate-700 bg-white/[0.03] focus:outline-none transition-all;
+    width: 100%;
+    padding: 1rem 1.5rem;
+    font-size: 0.75rem;
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.03);
+    transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    &::placeholder {
+      color: #334155; /* slate-700 */
+    }
+
+    &:focus {
+      outline: none;
+    }
+    
     border: none !important;
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
     border-radius: var(--ui-radius-card);
@@ -185,7 +258,10 @@
   }
 
   .badge-base {
-    @apply text-[11px] font-medium px-3 py-1 border;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 0.25rem 0.75rem;
+    border: 1px solid;
     background: rgba(var(--ui-accent-rgb), 0.1);
     border-color: rgba(var(--ui-accent-rgb), 0.2);
     color: var(--ui-accent);
@@ -193,7 +269,9 @@
   }
 
   .glass {
-    @apply backdrop-blur-3xl relative overflow-hidden;
+    backdrop-filter: blur(64px); /* backdrop-blur-3xl */
+    position: relative;
+    overflow: hidden;
     background: rgba(22, 25, 34, 0.7);
     border: none !important;
     box-shadow: var(--ui-shadow-zenith);
@@ -212,6 +290,16 @@
   .animate-stagger-3 { animation-delay: 300ms; }
   .animate-stagger-4 { animation-delay: 400ms; }
   .animate-stagger-5 { animation-delay: 500ms; }
+
+  /* Map Online Ripple Animation */
+  @keyframes ripple {
+    0% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(3.5); opacity: 0; }
+  }
+
+  .animate-ripple {
+    animation: ripple 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
 }
 
 /* Custom Scrollbar for the Void */

@@ -26,7 +26,7 @@ import { queryKeys } from "../queries/keys";
 import { useAuthStore } from "../store/stores";
 import { cn } from "../lib/utils";
 import WorldStudentMap from "../components/dashboard/WorldStudentMap";
-import { useReverseGeocode, useIPGeolocation } from "../queries/useGeoQueries";
+import { useReverseGeocode, useIPGeolocation, useForwardGeocode } from "../queries/useGeoQueries";
 import { useUpdateStudentLocation } from "../queries/useStudentLocationQueries";
 import { toast } from "sonner";
 
@@ -40,25 +40,38 @@ export const StudentDashboard: React.FC = () => {
   const [geoStatus, setGeoStatus] = useState<"idle" | "detecting" | "denied" | "error">("idle");
   const { mutateAsync: reverseGeocode } = useReverseGeocode();
   const { mutateAsync: fetchIPGeo } = useIPGeolocation();
+  const { mutateAsync: forwardGeocode } = useForwardGeocode();
   const { mutate: updateBackendLocation } = useUpdateStudentLocation();
 
   // Hydrate location store from backend data if available and store is empty
   React.useEffect(() => {
     if (data?.identity && !studentLocation) {
       const { city, latitude, longitude } = data.identity;
-      if (city && latitude !== undefined && longitude !== undefined) {
+      if (city && latitude !== null && latitude !== undefined && longitude !== null && longitude !== undefined) {
         setStudentLocationData({
           city,
           lat: latitude,
           lng: longitude,
-          source: 'auto', // Treat as auto since it was previously validated
+          source: 'auto',
           timestamp: Date.now()
         });
       } else if (city) {
-        setStudentLocation(city);
+        // If we have a city but no coordinates, try to resolve them silently
+        forwardGeocode(city).then(coords => {
+          setStudentLocationData({
+            city,
+            lat: coords.lat,
+            lng: coords.lng,
+            source: 'auto',
+            timestamp: Date.now()
+          });
+          updateBackendLocation({ lat: coords.lat, lng: coords.lng, city });
+        }).catch(() => {
+          setStudentLocation(city);
+        });
       }
     }
-  }, [data, studentLocation, setStudentLocation, setStudentLocationData]);
+  }, [data?.identity, studentLocation, setStudentLocation, setStudentLocationData, forwardGeocode, updateBackendLocation]);
 
   const handleAutoDetect = async () => {
     setGeoStatus("detecting");
@@ -136,7 +149,10 @@ export const StudentDashboard: React.FC = () => {
   }
 
   // Mandatory Location Check - Cinematic Consent Flow
-  if (!studentLocation) {
+  // Only show if we are NOT loading AND we don't have a location in store OR in the recently fetched identity
+  const hasResolvedLocation = studentLocation || (data?.identity?.city && data.identity.latitude !== null);
+  
+  if (!hasResolvedLocation && !isLoading && !error && !data?.error) {
     return (
       <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-4">
         <motion.div 
@@ -208,11 +224,25 @@ export const StudentDashboard: React.FC = () => {
                      onChange={(e) => setTempLocation(e.target.value)}
                      placeholder="LOCATION CODE / CITY..."
                      className="h-16 bg-white/[0.03] border-white/5 focus:border-[var(--ui-accent)]/30 focus:bg-white/[0.05] pl-8 rounded-2xl font-mono font-bold uppercase text-sm tracking-wider transition-all placeholder:text-slate-700"
-                     onKeyDown={(e) => {
+                     onKeyDown={async (e) => {
                         if (e.key === "Enter" && tempLocation.trim()) {
                             const loc = tempLocation.trim();
-                            setStudentLocation(loc);
-                            updateBackendLocation({ lat: 0, lng: 0, city: loc });
+                            try {
+                                const coords = await forwardGeocode(loc);
+                                setStudentLocationData({
+                                  city: loc,
+                                  lat: coords.lat,
+                                  lng: coords.lng,
+                                  source: 'auto',
+                                  timestamp: Date.now()
+                                });
+                                updateBackendLocation({ lat: coords.lat, lng: coords.lng, city: loc });
+                                toast.success(`Node synchronized: ${loc}`);
+                            } catch (err) {
+                                setStudentLocation(loc);
+                                updateBackendLocation({ lat: null as any, lng: null as any, city: loc });
+                                toast.success(`Manual sync: ${loc}`);
+                            }
                         }
                      }}
                    />
@@ -220,12 +250,25 @@ export const StudentDashboard: React.FC = () => {
                  <Button 
                    variant="outline"
                    disabled={!tempLocation.trim()}
-                   onClick={() => {
-                      const loc = tempLocation.trim();
-                      setStudentLocation(loc);
-                      updateBackendLocation({ lat: 0, lng: 0, city: loc });
-                      toast.success(`Manual sync: ${loc}`);
-                   }}
+                    onClick={async () => {
+                       const loc = tempLocation.trim();
+                       try {
+                         const coords = await forwardGeocode(loc);
+                         setStudentLocationData({
+                           city: loc,
+                           lat: coords.lat,
+                           lng: coords.lng,
+                           source: 'auto',
+                           timestamp: Date.now()
+                         });
+                         updateBackendLocation({ lat: coords.lat, lng: coords.lng, city: loc });
+                         toast.success(`Node synchronized: ${loc}`);
+                       } catch (err) {
+                         setStudentLocation(loc);
+                         updateBackendLocation({ lat: null as any, lng: null as any, city: loc });
+                         toast.success(`Manual sync: ${loc}`);
+                       }
+                    }}
                    className="h-16 px-8 border-white/5 bg-white/[0.02] hover:bg-white/10 hover:border-white/20 rounded-2xl text-[var(--ui-accent)] transition-all"
                  >
                     <ArrowRight className="w-6 h-6" />

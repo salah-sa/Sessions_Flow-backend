@@ -139,7 +139,7 @@ const Sidebar: React.FC = () => {
         <NavItem to="/groups" icon={Users} label={t("nav.groups") || "Groups"} locked={isStudent} />
         <NavItem to="/sessions" icon={Target} label={t("nav.sessions") || "Sessions"} locked={isStudent} />
         <NavItem to="/students" icon={User} label={t("nav.students")} locked={isStudent} />
-        <NavItem to="/timetable" icon={Calendar} label={t("nav.timetable")} locked={isStudent} />
+        <NavItem to="/timetable" icon={Calendar} label={t("nav.timetable")} />
         <NavItem to="/chat" icon={MessageSquare} label={t("nav.chat")} />
         <NavItem to="/history" icon={Clock} label={t("nav.history") || "History"} />
         

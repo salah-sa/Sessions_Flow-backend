@@ -14,6 +14,8 @@ import { useSignalR } from "../providers/SignalRProvider";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../queries/keys";
+import { useAuthStore } from "../store/stores";
+
 
 const generateTimeSlots = () => {
   const slots = [];
@@ -34,6 +36,8 @@ const TimetablePage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const user = useAuthStore(s => s.user);
+  const isStudent = user?.role === "Student";
   const [currentDate, setCurrentDate] = useState(new Date());
 
   // Modal State
@@ -262,30 +266,32 @@ const TimetablePage: React.FC = () => {
              </button>
            </div>
            
-           <div className="flex gap-3">
-             <button 
-                onClick={async () => {
-                  const loadingToast = toast.loading(t("timetable.syncing") || "Initializing synchronization protocols...");
-                  try {
-                    await autoFillMutation.mutateAsync();
-                    toast.success(t("timetable.sync_success") || "Sync Successful", { id: loadingToast });
-                  } catch (err: any) {
-                    toast.error(err.message || t("timetable.sync_failure") || "Sync Failure", { id: loadingToast });
-                  }
-                }} 
-               className="h-12 px-6 rounded-xl bg-[var(--ui-accent)]/5 border border-[var(--ui-accent)]/20 text-xs font-bold uppercase text-[var(--ui-accent)] hover:bg-[var(--ui-accent)]/10 transition-all flex items-center gap-2"
-             >
-               <Activity className="w-4 h-4" /> {t("timetable.controls.sync") || "SYNC NODES"}
-             </button>
+            {!isStudent && (
+             <div className="flex gap-3">
+               <button 
+                  onClick={async () => {
+                    const loadingToast = toast.loading(t("timetable.syncing") || "Initializing synchronization protocols...");
+                    try {
+                      await autoFillMutation.mutateAsync();
+                      toast.success(t("timetable.sync_success") || "Sync Successful", { id: loadingToast });
+                    } catch (err: any) {
+                      toast.error(err.message || t("timetable.sync_failure") || "Sync Failure", { id: loadingToast });
+                    }
+                  }} 
+                 className="h-12 px-6 rounded-xl bg-[var(--ui-accent)]/5 border border-[var(--ui-accent)]/20 text-xs font-bold uppercase text-[var(--ui-accent)] hover:bg-[var(--ui-accent)]/10 transition-all flex items-center gap-2"
+               >
+                 <Activity className="w-4 h-4" /> {t("timetable.controls.sync") || "SYNC NODES"}
+               </button>
 
-             <button onClick={() => setIsAvailOpen(true)} className="h-12 px-6 rounded-xl bg-white/[0.02] border border-white/5 text-xs font-bold uppercase text-slate-400 hover:text-white transition-all flex items-center gap-2">
-               <Clock className="w-4 h-4 text-[var(--ui-accent)]" /> {t("timetable.modal.avail_title")}
-             </button>
+               <button onClick={() => setIsAvailOpen(true)} className="h-12 px-6 rounded-xl bg-white/[0.02] border border-white/5 text-xs font-bold uppercase text-slate-400 hover:text-white transition-all flex items-center gap-2">
+                 <Clock className="w-4 h-4 text-[var(--ui-accent)]" /> {t("timetable.modal.avail_title")}
+               </button>
 
-             <button onClick={() => setIsCreateOpen(true)} className="btn-primary h-12 px-8 flex items-center gap-2">
-               <Plus className="w-4 h-4" /> {t("timetable.modal.schedule_title")}
-             </button>
-           </div>
+               <button onClick={() => setIsCreateOpen(true)} className="btn-primary h-12 px-8 flex items-center gap-2">
+                 <Plus className="w-4 h-4" /> {t("timetable.modal.schedule_title")}
+               </button>
+             </div>
+            )}
         </div>
       </div>
 
@@ -306,6 +312,7 @@ const TimetablePage: React.FC = () => {
                currentDate={currentDate}
                onAddSession={handleAddSession}
                onViewSession={handleViewSession}
+               isStudent={isStudent}
              />
            )}
         </div>

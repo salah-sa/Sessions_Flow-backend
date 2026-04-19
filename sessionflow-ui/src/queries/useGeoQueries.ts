@@ -27,3 +27,18 @@ export const useIPGeolocation = () => {
   });
 };
 
+export const useForwardGeocode = () => {
+  return useMutation({
+    mutationFn: async (city: string) => {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}&limit=1`);
+      if (!response.ok) throw new Error("Geocoding Error");
+      const data = await response.json();
+      if (!data || data.length === 0) throw new Error("Location not found");
+      return {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon)
+      };
+    }
+  });
+};
+
