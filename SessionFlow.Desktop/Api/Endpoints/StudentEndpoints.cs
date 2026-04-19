@@ -407,13 +407,12 @@ public static class StudentEndpoints
             });
         });
 
-        // PUT /api/student/location - Update student's geo-coordinates
+        // PUT /api/student/location - Update any user's geo-coordinates
         app.MapPut("/api/student/location", async (UpdateLocationRequest req, MongoService db, HttpContext ctx) =>
         {
             var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
 
-            if (!Guid.TryParse(userIdStr, out var userId) || (role != "Student" && role != "Engineer"))
+            if (!Guid.TryParse(userIdStr, out var userId))
                 return Results.Forbid();
 
             var update = Builders<User>.Update
