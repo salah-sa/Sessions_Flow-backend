@@ -432,12 +432,12 @@ public static class StudentEndpoints
             return Results.Ok();
         }).RequireAuthorization();
 
-        // GET /api/students/locations - Get all student and engineer locations for the world map
+        // GET /api/students/locations - Get all user locations for the world map
         app.MapGet("/api/students/locations", async (MongoService db, IPresenceService presence, HttpContext ctx) =>
         {
-            // Only fetch students and engineers who have location data
+            // Fetch all roles (Student, Engineer, Admin) who have location data
             var usersWithLocation = await db.Users
-                .Find(u => (u.Role == UserRole.Student || u.Role == UserRole.Engineer) && u.Latitude != null && u.Longitude != null)
+                .Find(u => u.Latitude != null && u.Longitude != null)
                 .ToListAsync();
 
             if (!usersWithLocation.Any()) return Results.Ok(new List<object>());
