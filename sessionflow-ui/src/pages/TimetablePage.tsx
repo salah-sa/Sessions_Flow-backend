@@ -9,7 +9,7 @@ import { cn } from "../lib/utils";
 import { useGroups } from "../queries/useGroupQueries";
 import { useTimetableEntries, useTimetableMutations } from "../queries/useTimetableQueries";
 import { useInfiniteSessions, useSessionMutations } from "../queries/useSessionQueries";
-import { Session, Group, TimetableEntry } from "../types";
+import { Session, Group, TimetableEntry, GroupScheduleEntry } from "../types";
 import { useSignalR } from "../providers/SignalRProvider";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
@@ -62,6 +62,7 @@ const TimetablePage: React.FC = () => {
   });
 
   const sessions = sessionsData?.pages.flatMap(p => p.items) || [];
+  const groupSchedules = timetableData?.groupSchedules || [];
   const groups = groupsData?.items || [];
   const loading = loadingTimetable || loadingGroups || loadingSessions;
 
@@ -106,9 +107,12 @@ const TimetablePage: React.FC = () => {
   const handleNextWeek = () => setCurrentDate(prev => addWeeks(prev, 1));
   const handleToday = () => setCurrentDate(new Date());
 
-  const handleAddSession = (date: Date) => {
+  const handleAddSession = (date: Date, groupId?: string) => {
     setNewSessionDate(format(date, "yyyy-MM-dd"));
     setNewSessionTime(format(date, "HH:mm"));
+    if (groupId) {
+      setNewSessionGroupId(groupId);
+    }
     setIsCreateOpen(true);
   };
 
@@ -298,6 +302,7 @@ const TimetablePage: React.FC = () => {
            ) : (
              <WeekView 
                sessions={sessions}
+               groupSchedules={groupSchedules}
                currentDate={currentDate}
                onAddSession={handleAddSession}
                onViewSession={handleViewSession}

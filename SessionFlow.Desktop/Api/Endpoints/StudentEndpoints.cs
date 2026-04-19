@@ -135,7 +135,10 @@ public static class StudentEndpoints
                     groupStatus = groupEntity.Status.ToString(),
                     level = groupEntity.Level,
                     engineerName = engineer?.Name,
-                    avatarUrl = user.AvatarUrl
+                    avatarUrl = user.AvatarUrl,
+                    latitude = user.Latitude,
+                    longitude = user.Longitude,
+                    city = user.City
                 },
                 todaySession = todaySession == null ? null : new { id = todaySession.Id, number = todaySession.SessionNumber, status = todaySession.Status.ToString(), scheduledAt = todaySession.ScheduledAt },
                 nextSession = nextSession == null ? null : new { id = nextSession.Id, number = nextSession.SessionNumber, status = nextSession.Status.ToString(), scheduledAt = nextSession.ScheduledAt },
@@ -403,7 +406,70 @@ public static class StudentEndpoints
                 records = sortedList
             });
         });
+
+        // PUT /api/student/location - Update student's geo-coordinates
+        app.MapPut("/api/student/location", async (UpdateLocationRequest req, MongoService db, HttpContext ctx) =>
+        {
+            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (!Guid.TryParse(userIdStr, out var userId) || role != "Student")
+                return Results.Forbid();
+
+            var update = Builders<User>.Update
+                .Set(u => u.Latitude, req.Lat)
+                .Set(u => u.Longitude, req.Lng)
+                .Set(u => u.City, req.City?.Trim())
+                .Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
+
+            var result = await db.Users.UpdateOneAsync(u => u.Id == userId, update);
+            if (result.MatchedCount == 0) return Results.NotFound();
+
+            return Results.Ok();
+        }).RequireAuthorization();
+
+        // GET /api/students/locations - Get all student locations for the world map
+        app.MapGet("/api/students/locations", async (MongoService db) =>
+        {
+            // Only fetch students who have location data
+            var usersWithLocation = await db.Users
+                .Find(u => u.Role == UserRole.Student && u.Latitude != null && u.Longitude != null)
+                .ToListAsync();
+
+            if (!usersWithLocation.Any()) return Results.Ok(new List<object>());
+
+            // Get associated Student records to get GroupId and Level
+            var userIds = usersWithLocation.Select(u => u.Id).ToList();
+            var studentDocs = await db.Students.Find(s => s.UserId != null && userIds.Contains(s.UserId.Value)).ToListAsync();
+            var studentDict = studentDocs.ToDictionary(s => s.UserId!.Value);
+
+            var groupIds = studentDocs.Select(s => s.GroupId).Distinct().ToList();
+            var groups = await db.Groups.Find(g => groupIds.Contains(g.Id)).ToListAsync();
+            var groupDict = groups.ToDictionary(g => g.Id);
+
+            var result = usersWithLocation.Select(u => 
+            {
+                int level = 1;
+                if (studentDict.TryGetValue(u.Id, out var s) && groupDict.TryGetValue(s.GroupId, out var g))
+                {
+                    level = g.Level;
+                }
+
+                return new {
+                    id = u.Id,
+                    name = u.Name,
+                    lat = u.Latitude,
+                    lng = u.Longitude,
+                    city = u.City,
+                    level = level
+                };
+            }).ToList();
+
+            return Results.Ok(result);
+        }).RequireAuthorization();
     }
 
     public record UpdateStudentRequest(string? Name, Guid? GroupId);
+    public record UpdateLocationRequest(double Lat, double Lng, string? City);
 }
+

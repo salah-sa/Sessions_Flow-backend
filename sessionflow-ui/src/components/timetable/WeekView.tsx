@@ -2,18 +2,19 @@ import React, { useState, useEffect } from "react";
 import { format, addDays, startOfWeek, isSameDay, isAfter } from "date-fns";
 import { Calendar as CalendarIcon, Clock, Plus, Zap, Archive, Layers } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { Session } from "../../types";
+import { Session, GroupScheduleEntry } from "../../types";
 
 interface WeekViewProps {
   sessions: Session[];
+  groupSchedules: GroupScheduleEntry[];
   currentDate: Date;
-  onAddSession: (date: Date) => void;
+  onAddSession: (date: Date, groupId?: string) => void;
   onViewSession: (session: Session) => void;
 }
 
 const HOURS = Array.from({ length: 14 }, (_, i) => i + 9); // 09:00 to 22:00
 
-export const WeekView: React.FC<WeekViewProps> = ({ sessions, currentDate, onAddSession, onViewSession }) => {
+export const WeekView: React.FC<WeekViewProps> = ({ sessions, groupSchedules, currentDate, onAddSession, onViewSession }) => {
   const [now, setNow] = useState(new Date());
   
   useEffect(() => {
@@ -124,11 +125,45 @@ export const WeekView: React.FC<WeekViewProps> = ({ sessions, currentDate, onAdd
                                  onAddSession(date);
                               }}
                            >
-                              <div className="absolute inset-1.5 rounded-lg border border-dashed border-[var(--ui-accent)]/20 opacity-0 group-hover/slot:opacity-100 transition-all flex items-center justify-center bg-[var(--ui-accent)]/5 backdrop-blur-sm scale-95 group-hover/slot:scale-100">
+                               <div className="absolute inset-1.5 rounded-lg border border-dashed border-[var(--ui-accent)]/20 opacity-0 group-hover/slot:opacity-100 transition-all flex items-center justify-center bg-[var(--ui-accent)]/5 backdrop-blur-sm scale-95 group-hover/slot:scale-100">
                                  <Plus className="w-4 h-4 text-[var(--ui-accent)]/40" />
                               </div>
                            </div>
                         ))}
+
+                        {/* Schedule Blueprints (The Matrix) */}
+                        {groupSchedules
+                           .filter(gs => gs.dayOfWeek === dayIndex)
+                           .map((gs, idx) => {
+                              const [hours, minutes] = gs.startTime.split(":").map(Number);
+                              const top = (hours - 9) * 96 + (minutes / 60) * 96;
+                              const height = (gs.durationMinutes / 60) * 96;
+                              
+                              return (
+                                 <div
+                                    key={`blueprint-${idx}`}
+                                    onClick={() => {
+                                       const date = new Date(day);
+                                       date.setHours(hours, minutes, 0, 0);
+                                       onAddSession(date, gs.groupId);
+                                    }}
+                                    className="absolute left-2.5 right-2.5 rounded-xl border-2 border-dashed border-white/5 hover:border-[var(--ui-accent)]/30 hover:bg-[var(--ui-accent)]/5 bg-white/[0.01] transition-all cursor-pointer group/blueprint z-0 flex flex-col p-3 overflow-hidden"
+                                    style={{ top: `${top + 3}px`, height: `${height - 6}px` }}
+                                 >
+                                    <div className="flex items-center justify-between opacity-30 group-hover/blueprint:opacity-100 transition-opacity">
+                                       <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest truncate max-w-[80%]">
+                                          {gs.groupName}
+                                       </span>
+                                       <Plus className="w-2.5 h-2.5 text-[var(--ui-accent)]" />
+                                    </div>
+                                    <div className="mt-auto opacity-20 group-hover/blueprint:opacity-40 transition-opacity">
+                                       <span className="text-[7.5px] font-bold text-slate-500 uppercase tracking-widest">
+                                          Template Matrix
+                                       </span>
+                                    </div>
+                                 </div>
+                              );
+                           })}
 
                         {/* Session Cards */}
                         {sessions
