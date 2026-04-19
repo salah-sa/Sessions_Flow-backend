@@ -9,6 +9,22 @@ import { usePresenceStore } from "../../store/presenceStore";
 
 const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
+interface HexagonProps {
+  r: number;
+  color: string;
+  className?: string;
+}
+
+const Hexagon: React.FC<HexagonProps> = ({ r, color, className }) => {
+  // Hexagon points for SVG path
+  const points = [];
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 3) * i - Math.PI / 6;
+    points.push(`${r * Math.cos(angle)},${r * Math.sin(angle)}`);
+  }
+  return <path d={`M ${points.join(" L ")} Z`} fill={color} className={className} />;
+};
+
 interface MarkerData {
   id: string;
   name: string;
