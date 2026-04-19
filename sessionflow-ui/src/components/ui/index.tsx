@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import Magnetic from "./Magnetic";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "../../lib/utils";
 import { X, AlertCircle, Inbox, Zap, Info, ShieldAlert } from "lucide-react";
@@ -36,9 +37,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       glow: "bg-[var(--ui-accent)] text-white shadow-glow shadow-[var(--ui-accent)]/40",
     };
     const sizes = {
-      sm: "px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest",
-      md: "px-6 py-2.5 text-[11px] font-bold uppercase tracking-widest",
-      lg: "px-8 py-3.5 text-[12px] font-bold uppercase tracking-widest",
+      sm: "px-4 py-1.5 text-[12px] font-semibold tracking-wide",
+      md: "px-6 py-2.5 text-[13px] font-semibold tracking-normal",
+      lg: "px-8 py-3.5 text-[14px] font-semibold tracking-normal",
       icon: "p-2.5 rounded-xl",
     };
 
@@ -94,7 +95,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <input
           ref={ref}
           className={cn(
-            "flex h-12 w-full rounded-xl border border-white/10 bg-black/40 px-5 py-2 text-white text-[12px] font-medium placeholder:text-slate-700 placeholder:uppercase placeholder:font-bold placeholder:tracking-widest focus:outline-none focus:border-[var(--ui-accent)]/50 focus:bg-black/60 transition-all",
+            "flex h-12 w-full rounded-xl border border-white/10 bg-black/40 px-5 py-2 text-white text-[13px] font-normal placeholder:text-slate-500 placeholder:font-normal placeholder:tracking-normal focus:outline-none focus:border-[var(--ui-accent)]/50 focus:bg-black/60 transition-all",
             className
           )}
           {...props}
@@ -124,7 +125,7 @@ export const Badge = ({ className, variant = "default", ...props }: BadgeProps) 
   };
   return (
     <span
-      className={cn("px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] inline-flex items-center justify-center", variants[variant], className)}
+      className={cn("px-3 py-1 rounded-full text-[11px] font-medium tracking-normal inline-flex items-center justify-center", variants[variant], className)}
       {...props}
     />
   );
@@ -166,8 +167,8 @@ export const Modal = ({ isOpen, onClose, title, subtitle, children, className }:
             
             <div className="px-10 py-8 border-b border-white/5 flex items-center justify-between">
               <div>
-                <h2 id="modal-title" className="text-xl font-bold text-white uppercase tracking-widest">{title}</h2>
-                {subtitle && <p className="text-[10px] text-slate-500 mt-1 font-bold uppercase tracking-widest">{subtitle}</p>}
+                <h2 id="modal-title" className="text-xl font-bold text-white tracking-tight">{title}</h2>
+                {subtitle && <p className="text-sm text-slate-500 mt-1 font-normal">{subtitle}</p>}
               </div>
               <button 
                 onClick={onClose}
@@ -195,7 +196,7 @@ export const TabsTrigger = ({ active, onClick, children, className }: any) => (
   <button
     onClick={onClick}
     className={cn(
-      "px-6 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all duration-300 relative",
+      "px-6 py-2 rounded-lg text-[13px] font-semibold tracking-normal transition-all duration-300 relative",
       active 
         ? "bg-[var(--ui-accent)] text-white shadow-glow shadow-[var(--ui-accent)]/20" 
         : "text-slate-500 hover:text-white"
@@ -293,10 +294,10 @@ export const EmptyState = ({ icon: Icon = Inbox, title, description, action, cla
            <Zap className="w-4 h-4 text-[var(--ui-accent)]" />
         </div>
       </div>
-      <h3 className="text-2xl font-bold text-white uppercase tracking-widest mb-4">
+      <h3 className="text-2xl font-bold text-white tracking-tight mb-4">
         {title}
       </h3>
-      <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.3em] max-w-sm mb-10 leading-loose">
+      <p className="text-sm text-slate-500 font-normal max-w-sm mb-10 leading-relaxed">
         {description}
       </p>
       {action && <div className="animate-fade-in [animation-delay:500ms]">{action}</div>}
@@ -312,7 +313,8 @@ interface ErrorStateProps {
   className?: string;
 }
 
-export const ErrorState = ({ title = "Neural Link Error", error, onRetry, className }: ErrorStateProps) => {
+export const ErrorState = ({ title = "System Connection Error", error, onRetry, className }: ErrorStateProps) => {
+  const { t } = useTranslation();
   const errorMessage = error instanceof Error ? error.message : String(error);
   
   return (
@@ -325,17 +327,17 @@ export const ErrorState = ({ title = "Neural Link Error", error, onRetry, classN
         <ShieldAlert className="w-10 h-10 text-rose-500" />
         <div className="absolute inset-0 bg-rose-500/10 blur-2xl rounded-full" />
       </div>
-      <h3 className="text-2xl font-bold text-rose-500 uppercase tracking-widest mb-4">
+      <h3 className="text-2xl font-bold text-rose-500 tracking-tight mb-4">
         {title}
       </h3>
       <div className="relative overflow-hidden mb-10 px-8 py-6 bg-rose-500/[0.02] border border-rose-500/10 rounded-xl max-w-md">
-        <p className="text-[10px] text-rose-400 font-bold uppercase tracking-widest leading-relaxed">
+        <p className="text-sm text-rose-400 font-normal leading-relaxed">
           {errorMessage}
         </p>
       </div>
       {onRetry && (
-        <Button variant="danger" size="lg" onClick={onRetry} className="rounded-xl">
-          RE-INITIALIZE LINK
+        <Button variant="primary" onClick={onRetry} className="mt-4 px-8 min-w-[160px]">
+          {t("common.confirm", "RETRY CONNECTION")}
         </Button>
       )}
     </motion.div>

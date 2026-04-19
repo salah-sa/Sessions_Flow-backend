@@ -171,6 +171,8 @@ public static class StudentEndpoints
             {
                 var myGroups = await db.Groups.Find(g => g.EngineerId == userId && !g.IsDeleted).ToListAsync();
                 var myGroupIds = myGroups.Select(g => g.Id).ToList();
+                if (myGroupIds.Count == 0)
+                    return Results.Ok(PaginationHelper.Envelope(new List<object>(), 0, page ?? 1, pageSize ?? 20));
                 filter &= builder.In(s => s.GroupId, myGroupIds);
             }
             else if (role == "Student")

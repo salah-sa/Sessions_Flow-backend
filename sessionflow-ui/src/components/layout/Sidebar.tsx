@@ -125,10 +125,10 @@ const Sidebar: React.FC = () => {
         </div>
 
         {user?.role === "Admin" && (
-          <NavItem to="/control-tower/admin" icon={ShieldCheck} label="Admin Tower" />
+          <NavItem to="/admin" icon={ShieldCheck} label={t("staff.portal_title")} />
         )}
         {user?.role === "Engineer" && (
-          <NavItem to="/control-tower/engineer" icon={Zap} label="Engineer Tower" />
+          <NavItem to="/staff" icon={Zap} label={t("staff.portal_title")} />
         )}
         
         <NavItem to="/archive" icon={Archive} label={t("nav.archive") || "Archive"} />

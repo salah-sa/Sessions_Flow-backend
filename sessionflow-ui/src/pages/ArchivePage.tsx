@@ -62,8 +62,8 @@ const ArchivePage: React.FC = () => {
             <History className="w-8 h-8 text-[var(--ui-accent)]" />
             {t("common.archive")}
           </h1>
-          <p className="text-slate-500 text-[10px] font-medium uppercase tracking-[0.2em]">
-             {t("archive.description") || "Historical Unit Records & Intelligence"}
+          <p className="text-slate-500 text-xs font-medium uppercase">
+             {t("archive.description")}
           </p>
         </div>
         
@@ -86,13 +86,13 @@ const ArchivePage: React.FC = () => {
       {/* Stats Summary */}
       <div className="px-8 py-6 grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0 relative z-10">
         {[
-          { label: "Archived Units", value: groups.length, icon: History },
-          { label: "Total Data Blocks", value: groups.reduce((acc, g) => acc + (g.totalSessions || 0), 0), icon: Database },
-          { label: "Stability Rating", value: "99.9%", icon: ArrowUpRight }
+          { label: t("archive.stats.archived_units"), value: groups.length, icon: History },
+          { label: t("archive.stats.total_data"), value: groups.reduce((acc, g) => acc + (g.totalSessions || 0), 0), icon: Database },
+          { label: t("archive.stats.reliability"), value: "99.9%", icon: ArrowUpRight }
         ].map((stat, i) => (
           <div key={i} className="card-base p-6 flex items-center justify-between group">
             <div className="space-y-1 text-start">
-              <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">{stat.label}</p>
+              <p className="text-xs font-bold text-slate-600 uppercase">{stat.label}</p>
               <p className="text-2xl font-bold text-white tracking-tighter">{stat.value}</p>
             </div>
             <div className="w-10 h-10 rounded-lg flex items-center justify-center border border-white/5 bg-[var(--ui-accent)]/5 text-[var(--ui-accent)] group-hover:scale-110 transition-transform shadow-glow">
@@ -110,7 +110,7 @@ const ArchivePage: React.FC = () => {
             placeholder={t("groups.search_placeholder")} 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-11 bg-black/40 border border-white/5 rounded-xl ps-12 pe-4 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-300 focus:outline-none focus:ring-1 focus:ring-[var(--ui-accent)]/30 transition-all font-bold"
+            className="w-full h-11 bg-black/40 border border-white/5 rounded-xl ps-12 pe-4 text-xs font-bold uppercase text-slate-300 focus:outline-none focus:ring-1 focus:ring-[var(--ui-accent)]/30 transition-all font-bold"
           />
         </div>
       </div>
@@ -129,7 +129,7 @@ const ArchivePage: React.FC = () => {
         ) : groups.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center opacity-30 space-y-6">
             <History className="w-24 h-24 text-slate-600" />
-            <p className="text-sm font-bold uppercase tracking-[0.3em]">{search ? t("common.no_results") : t("archive.empty_title") || "VAULT EMPTY"}</p>
+            <p className="text-sm font-bold uppercase">{search ? t("common.no_results") : t("archive.empty_title")}</p>
           </div>
         ) : (
           <div className={cn(
@@ -155,10 +155,10 @@ const ArchivePage: React.FC = () => {
                 <div className={cn("space-y-4 w-full flex-1", viewMode === "list" && "flex items-center gap-6 space-y-0")}>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-3">
-                      <div className="h-5 px-3 rounded-md bg-white/5 border border-white/5 text-[9px] font-bold uppercase tracking-widest flex items-center text-slate-500">
+                      <div className="h-5 px-3 rounded-md bg-white/5 border border-white/5 text-xs font-bold uppercase flex items-center text-slate-500">
                         LVL {group.level}
                       </div>
-                      <div className="h-5 px-3 rounded-md bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] text-[9px] font-bold uppercase tracking-widest flex items-center border border-[var(--ui-accent)]/20 shadow-glow">
+                      <div className="h-5 px-3 rounded-md bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] text-xs font-bold uppercase flex items-center border border-[var(--ui-accent)]/20 shadow-glow">
                         ARCHIVED
                       </div>
                     </div>
@@ -166,7 +166,7 @@ const ArchivePage: React.FC = () => {
                       {group.name}
                     </h3>
                     <p className="text-slate-500 text-[11px] line-clamp-2 mt-2 leading-relaxed">
-                      {group.description || t("archive.data_preserved") || "Mission records successfully committed to long-term storage."}
+                      {group.description || t("archive.data_preserved")}
                     </p>
                   </div>
 
@@ -175,11 +175,11 @@ const ArchivePage: React.FC = () => {
                     viewMode === "grid" ? "grid-cols-2" : "flex items-center gap-12 pt-0 mt-0 border-none"
                   )}>
                     <div className="space-y-1">
-                      <p className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">{t("groups.students")}</p>
+                      <p className="text-xs text-slate-600 font-bold uppercase">{t("groups.students")}</p>
                       <p className="text-sm font-bold text-white tabular-nums">{group.numberOfStudents}</p>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">{t("groups.sessions")}</p>
+                      <p className="text-xs text-slate-600 font-bold uppercase">{t("groups.sessions")}</p>
                       <p className="text-sm font-bold text-white tabular-nums">{group.totalSessions}/{group.totalSessions}</p>
                     </div>
                   </div>
@@ -187,7 +187,7 @@ const ArchivePage: React.FC = () => {
                   <div className={cn("flex gap-3", viewMode === "grid" ? "mt-8" : "ml-auto")}>
                     <button 
                       onClick={() => navigate(`/groups/${group.id}/sessions`)}
-                      className="flex-1 h-11 rounded-xl bg-white/[0.02] border border-white/5 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center justify-center gap-2"
+                      className="flex-1 h-11 rounded-xl bg-white/[0.02] border border-white/5 text-xs font-bold uppercase text-slate-400 hover:text-white transition-all flex items-center justify-center gap-2"
                     >
                       <Eye className="w-4 h-4" />
                       {t("common.details")}
@@ -210,7 +210,7 @@ const ArchivePage: React.FC = () => {
            {isFetchingNextPage && (
              <div className="flex items-center gap-3">
                <Loader2 className="w-5 h-5 text-[var(--ui-accent)] animate-spin" />
-               <span className="text-[9px] uppercase font-black tracking-[0.3em] text-slate-600">Retrieving Archived Intel...</span>
+               <span className="text-xs uppercase font-semibold text-slate-600">{t("archive.loading_intel")}</span>
              </div>
            )}
         </div>

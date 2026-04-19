@@ -59,7 +59,7 @@ const AdminPage: React.FC = () => {
       await approveMutation.mutateAsync(id);
       toast.success(t("admin.approve_success"));
     } catch (err: any) {
-      const errorMsg = err.message || "Approval protocol failed";
+      const errorMsg = err.message || t("admin.approval_failed");
       toast.error(errorMsg);
     } finally {
       setProcessingIds(prev => {
@@ -92,9 +92,9 @@ const AdminPage: React.FC = () => {
     setStudentProcessingIds(prev => new Set(prev).add(id));
     try {
       await approveStudentMutation.mutateAsync(id);
-      toast.success(`${name} approved successfully`);
+      toast.success(t("admin.approve_success_named", { name }));
     } catch (err: any) {
-      toast.error(err.message || "Approval failed");
+      toast.error(err.message || t("admin.approval_failed"));
     } finally {
       setStudentProcessingIds(prev => {
         const next = new Set(prev);
@@ -144,32 +144,32 @@ const AdminPage: React.FC = () => {
       {/* Header */}
       <div className="p-8 border-b border-white/5 bg-[var(--ui-bg)]/50 backdrop-blur-3xl flex flex-col md:flex-row md:items-center justify-between gap-8 shrink-0">
         <div className="space-y-1">
-          <h1 className="text-3xl font-sora font-black text-white tracking-tighter uppercase flex items-center gap-4">
+          <h1 className="text-3xl font-sora font-bold text-white tracking-tight flex items-center gap-4">
             <div className="p-3 bg-[var(--ui-accent)]/10 rounded-2xl border border-[var(--ui-accent)]/20 shadow-glow shadow-[var(--ui-accent)]/5">
                <ShieldCheck className="w-8 h-8 text-[var(--ui-accent)]" />
             </div>
-            {t("admin.title") || "Access Control Command"}
+            {t("admin.title")}
           </h1>
-          <p className="text-slate-500 font-black text-[10px] uppercase tracking-[0.2em] opacity-80 ps-1">
-             {t("admin.subtitle") || "Security protocols and identity clearance management"}
+          <p className="text-slate-500 font-medium text-xs ps-1">
+             {t("admin.subtitle")}
           </p>
         </div>
         
         <div className="flex items-center gap-4">
            <div className="hidden lg:flex flex-col items-end pe-6 border-e border-white/5">
-              <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-1">{t("admin.status.label") || "Firewall Integrity"}</p>
+              <p className="text-xs font-medium text-slate-500 mb-1">{t("admin.status.label")}</p>
               <div className="flex items-center gap-2">
                  <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-glow" />
-                 <p className="text-xs font-black text-white uppercase tracking-tighter">{t("admin.status.secure") || "SECURE"}</p>
+                 <p className="text-xs font-semibold text-white">{t("admin.status.secure")}</p>
               </div>
            </div>
            <button 
              onClick={() => fetchData()} 
              disabled={loading}
-             className="h-12 px-8 bg-white/5 border border-white/5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white hover:bg-white/10 transition-all flex items-center gap-3"
+             className="h-12 px-8 bg-white/5 border border-white/5 rounded-xl text-[13px] font-semibold text-slate-300 hover:text-white hover:bg-white/10 transition-all flex items-center gap-3"
            >
              <RefreshCcw className={cn("w-4 h-4", loading && "animate-spin")} />
-             {t("admin.controls.sync") || "Sync Matrix"}
+             {t("admin.controls.sync")}
            </button>
         </div>
       </div>
@@ -202,11 +202,11 @@ const AdminPage: React.FC = () => {
                           <stat.icon className={`w-4 h-4 text-${stat.color}-500 opacity-80`} />
                        )}
                       <p className={cn(
-                        "text-xl font-sora font-black tracking-tighter tabular-nums transition-colors",
+                        "text-xl font-sora font-bold tracking-tight tabular-nums transition-colors",
                         stat.color === "accent" ? "text-[var(--ui-accent)] drop-shadow-[0_0_8px_rgba(var(--ui-accent-rgb),0.5)]" : `text-${stat.color}-400 group-hover:text-${stat.color}-300 drop-shadow-[0_0_8px_rgba(var(--${stat.color}-500-rgb),0.5)]`
                       )}>{stat.value}</p>
                     </div>
-                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] leading-tight w-[120%] truncate">{stat.label}</p>
+                    <p className="text-xs font-medium text-slate-500 leading-tight w-[120%] truncate">{stat.label}</p>
                  </div>
               </div>
            </div>
@@ -217,7 +217,7 @@ const AdminPage: React.FC = () => {
       <div className="px-10 py-6 bg-[var(--ui-sidebar-bg)]/40 border-b border-white/5 flex flex-wrap gap-4 shrink-0 justify-center">
          {[
            { id: "pending", name: t("admin.tabs.pending"), icon: UserPlus },
-           { id: "students", name: "Students", icon: Users },
+           { id: "students", name: t("admin.tabs.students"), icon: Users },
            { id: "codes", name: t("admin.tabs.codes"), icon: Key },
            { id: "engineers", name: t("admin.tabs.engineers"), icon: Shield },
            { id: "audit", name: t("admin.tabs.audit"), icon: FileText }
@@ -245,7 +245,7 @@ const AdminPage: React.FC = () => {
              )}
 
              <item.icon className="w-4 h-4 relative z-10" />
-             <span className="text-[10px] font-black uppercase tracking-widest relative z-10">{item.name}</span>
+             <span className="text-[12px] font-semibold relative z-10">{item.name}</span>
            </button>
          ))}
       </div>
@@ -260,7 +260,7 @@ const AdminPage: React.FC = () => {
                <div className="overflow-x-auto custom-scrollbar card-base bg-[var(--ui-sidebar-bg)]/20 border-white/5 p-0">
                <table className="w-full text-start border-collapse min-w-[800px]">
                   <thead>
-                     <tr className="bg-[var(--ui-bg)] border-b border-white/5 text-slate-500 text-[10px] uppercase font-black tracking-widest">
+                     <tr className="bg-[var(--ui-bg)] border-b border-white/5 text-slate-500 text-xs uppercase font-semibold tracking-wide">
                         <th className="px-8 py-5 text-start">{t("admin.table.registrant")}</th>
                         <th className="px-8 py-5 text-start">{t("admin.table.requested_date")}</th>
                         <th className="px-8 py-5 text-center">{t("admin.table.security_status")}</th>
@@ -269,7 +269,7 @@ const AdminPage: React.FC = () => {
                   </thead>
                   <tbody className="text-sm">
                      {pending.length === 0 ? (
-                        <tr><td colSpan={4} className="px-8 py-20 text-center text-slate-600 font-black uppercase tracking-[0.4em] text-[10px]">{t("admin.no_pending")}</td></tr>
+                        <tr><td colSpan={4} className="px-8 py-20 text-center text-slate-600 font-medium text-sm">{t("admin.no_pending")}</td></tr>
                      ) : pending.map((req: PendingEngineer) => (
                         <tr key={req.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
                            <td className="px-8 py-6">
@@ -278,16 +278,16 @@ const AdminPage: React.FC = () => {
                                     <UserPlus className="w-4 h-4 text-[var(--ui-accent)]" />
                                  </div>
                                  <div className="text-start">
-                                    <p className="font-black text-white uppercase tracking-tight">{req.name}</p>
-                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{req.email}</p>
+                                    <p className="font-semibold text-white">{req.name}</p>
+                                    <p className="text-xs text-slate-500 font-normal">{req.email}</p>
                                  </div>
                               </div>
                            </td>
-                           <td className="px-8 py-6 font-black text-slate-500 uppercase text-[10px] tracking-widest">
+                           <td className="px-8 py-6 font-medium text-slate-500 text-xs">
                               {format(new Date(req.requestedAt), "MMM dd, yyyy")}
                            </td>
                            <td className="px-8 py-6 text-center">
-                              <Badge variant="primary" className="bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] border-none font-black text-[8px] px-3 uppercase">{t("admin.verified_code")}</Badge>
+                              <Badge variant="primary" className="bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] border-none font-medium text-[11px] px-3">{t("admin.verified_code")}</Badge>
                            </td>
                            <td className="px-8 py-6 text-end">
                               <div className="flex justify-end gap-3">
@@ -295,7 +295,7 @@ const AdminPage: React.FC = () => {
                                    onClick={() => handleApprove(req.id)} 
                                    disabled={processingIds.has(req.id) || req.status !== "Pending"}
                                    className={cn(
-                                      "h-9 px-6 bg-emerald-500 text-black text-[9px] font-black uppercase tracking-widest rounded-xl shadow-glow shadow-emerald-500/10 transition-all flex items-center gap-2",
+                                      "h-9 px-6 bg-emerald-500 text-black text-[12px] font-semibold rounded-xl shadow-glow shadow-emerald-500/10 transition-all flex items-center gap-2",
                                       (processingIds.has(req.id) || req.status !== "Pending") ? "opacity-50 grayscale cursor-not-allowed" : "hover:scale-105"
                                    )}
                                  >
@@ -306,7 +306,7 @@ const AdminPage: React.FC = () => {
                                    onClick={() => handleDeny(req.id)} 
                                    disabled={processingIds.has(req.id) || req.status !== "Pending"}
                                    className={cn(
-                                      "h-9 px-6 bg-[var(--ui-sidebar-bg)] border border-white/5 text-red-500 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all",
+                                      "h-9 px-6 bg-[var(--ui-sidebar-bg)] border border-white/5 text-red-500 text-[12px] font-semibold rounded-xl transition-all",
                                       (processingIds.has(req.id) || req.status !== "Pending") ? "opacity-50 grayscale cursor-not-allowed" : "hover:bg-red-500 hover:text-white"
                                    )}
                                  >
@@ -325,16 +325,16 @@ const AdminPage: React.FC = () => {
                 <div className="overflow-x-auto custom-scrollbar card-base bg-[var(--ui-sidebar-bg)]/20 border-white/5 p-0">
                 <table className="w-full text-start border-collapse min-w-[800px]">
                    <thead>
-                      <tr className="bg-[var(--ui-bg)] border-b border-white/5 text-slate-500 text-[10px] uppercase font-black tracking-widest">
-                         <th className="px-8 py-5 text-start">Student Identity</th>
-                         <th className="px-8 py-5 text-start">Requested Group</th>
-                         <th className="px-8 py-5 text-start">Requested Date</th>
-                         <th className="px-8 py-5 text-end">Actions</th>
+                      <tr className="bg-[var(--ui-bg)] border-b border-white/5 text-slate-500 text-xs uppercase font-semibold tracking-wide">
+                         <th className="px-8 py-5 text-start">{t("admin.table.student_identity")}</th>
+                         <th className="px-8 py-5 text-start">{t("admin.table.requested_group")}</th>
+                         <th className="px-8 py-5 text-start">{t("admin.table.requested_date")}</th>
+                         <th className="px-8 py-5 text-end">{t("admin.table.actions")}</th>
                       </tr>
                    </thead>
                    <tbody className="text-sm">
                       {pendingStudents.length === 0 ? (
-                         <tr><td colSpan={4} className="px-8 py-20 text-center text-slate-600 font-black uppercase tracking-[0.4em] text-[10px]">No Pending Students</td></tr>
+                         <tr><td colSpan={4} className="px-8 py-20 text-center text-slate-600 font-medium text-sm">{t("admin.no_pending_students")}</td></tr>
                       ) : pendingStudents.map((req: any) => (
                          <tr key={req.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
                             <td className="px-8 py-6">
@@ -343,15 +343,15 @@ const AdminPage: React.FC = () => {
                                      <Users className="w-4 h-4 text-emerald-500" />
                                   </div>
                                   <div className="text-start">
-                                     <p className="font-black text-white uppercase tracking-tight">{req.name}</p>
-                                     <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{req.username} • {req.email}</p>
+                                     <p className="font-semibold text-white">{req.name}</p>
+                                     <p className="text-xs text-slate-500 font-normal">{req.username} • {req.email}</p>
                                   </div>
                                </div>
                             </td>
                             <td className="px-8 py-6">
                                <Badge className="bg-emerald-500/10 text-emerald-400 border-none">{req.groupName}</Badge>
                             </td>
-                            <td className="px-8 py-6 font-black text-slate-500 uppercase text-[10px] tracking-widest">
+                            <td className="px-8 py-6 font-medium text-slate-500 text-xs">
                                {format(new Date(req.requestedAt), "MMM dd, yyyy")}
                             </td>
                             <td className="px-8 py-6 text-end">
@@ -360,22 +360,22 @@ const AdminPage: React.FC = () => {
                                     onClick={() => handleApproveStudent(req.id, req.name)} 
                                     disabled={studentProcessingIds.has(req.id)}
                                     className={cn(
-                                       "h-9 px-6 bg-emerald-500 text-black text-[9px] font-black uppercase tracking-widest rounded-xl shadow-glow shadow-emerald-500/10 transition-all flex items-center gap-2",
+                                       "h-9 px-6 bg-emerald-500 text-black text-[12px] font-semibold rounded-xl shadow-glow shadow-emerald-500/10 transition-all flex items-center gap-2",
                                        studentProcessingIds.has(req.id) ? "opacity-50 grayscale cursor-not-allowed" : "hover:scale-105"
                                     )}
                                   >
                                      {studentProcessingIds.has(req.id) && <RefreshCcw className="w-3 h-3 animate-spin" />}
-                                     Approve
+                                     {t("common.approve")}
                                   </button>
                                   <button 
                                     onClick={() => handleDenyStudent(req.id, req.name)} 
                                     disabled={studentProcessingIds.has(req.id)}
                                     className={cn(
-                                       "h-9 px-6 bg-[var(--ui-bg)] border border-white/5 text-red-500 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all",
+                                       "h-9 px-6 bg-[var(--ui-bg)] border border-white/5 text-red-500 text-[12px] font-semibold rounded-xl transition-all",
                                        studentProcessingIds.has(req.id) ? "opacity-50 grayscale cursor-not-allowed" : "hover:bg-red-500 hover:text-white"
                                     )}
                                   >
-                                     Cancel
+                                     {t("common.cancel")}
                                   </button>
                                </div>
                             </td>
@@ -389,12 +389,12 @@ const AdminPage: React.FC = () => {
             <div className="p-8 space-y-8 animate-fade-in text-start">
                <div className="flex items-center justify-between pb-6 border-b border-white/5">
                   <div className="space-y-1">
-                     <h2 className="text-lg font-sora font-black text-white uppercase tracking-tight">{t("admin.pipeline.title")}</h2>
-                     <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{t("admin.pipeline.subtitle")}</p>
+                     <h2 className="text-lg font-sora font-bold text-white tracking-tight">{t("admin.pipeline.title")}</h2>
+                     <p className="text-xs text-slate-500 font-medium">{t("admin.pipeline.subtitle")}</p>
                   </div>
                   <button 
                      onClick={handleGenerateCode}
-                     className="h-11 px-8 bg-[var(--ui-accent)] text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-glow shadow-[var(--ui-accent)]/20"
+                     className="h-11 px-8 bg-[var(--ui-accent)] text-white rounded-xl font-semibold text-[13px] transition-all shadow-glow shadow-[var(--ui-accent)]/20"
                   >
                      {t("admin.pipeline.generate")}
                   </button>
@@ -416,8 +416,8 @@ const AdminPage: React.FC = () => {
                           )}
                        </div>
                        <div className="space-y-1">
-                          <p className="text-[14px] font-mono font-black text-white tracking-[0.2em]">{c.code}</p>
-                          <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest">
+                          <p className="text-[14px] font-mono font-semibold text-white">{c.code}</p>
+                          <p className="text-xs font-medium text-slate-600">
                              {c.isUsed ? `${c.usedByEngineerName}` : t("admin.code_status.active")}
                           </p>
                        </div>
@@ -435,7 +435,7 @@ const AdminPage: React.FC = () => {
                        placeholder={t("common.search")}
                        value={searchQuery}
                        onChange={e => setSearchQuery(e.target.value)}
-                       className="ps-12 h-11 border-white/5 bg-[var(--ui-sidebar-bg)]/40 text-[10px] font-black uppercase tracking-widest focus:bg-white/[0.08]"
+                       className="ps-12 h-11 border-white/5 bg-[var(--ui-sidebar-bg)]/40 text-[13px] font-normal focus:bg-white/[0.08]"
                      />
                   </div>
                </div>
@@ -443,7 +443,7 @@ const AdminPage: React.FC = () => {
                   <div className="overflow-x-auto custom-scrollbar card-base bg-[var(--ui-sidebar-bg)]/20 border-white/5 p-0">
                   <table className="w-full text-start border-collapse min-w-[800px]">
                      <thead>
-                        <tr className="bg-[var(--ui-bg)] border-b border-white/5 text-slate-500 text-[10px] uppercase font-black tracking-widest">
+                        <tr className="bg-[var(--ui-bg)] border-b border-white/5 text-slate-500 text-xs uppercase font-semibold tracking-wide">
                            <th className="px-8 py-5 text-start">{t("admin.table.node_engineer")}</th>
                            <th className="px-8 py-5 text-start">{t("admin.table.role")}</th>
                            <th className="px-8 py-5 text-start">{t("admin.table.joined")}</th>
@@ -457,26 +457,26 @@ const AdminPage: React.FC = () => {
                            <tr key={eng.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
                               <td className="px-8 py-6">
                                  <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-2xl bg-[var(--ui-bg)] border border-white/5 flex items-center justify-center font-black text-slate-500 uppercase tracking-tighter shadow-inner">
+                                    <div className="w-10 h-10 rounded-2xl bg-[var(--ui-bg)] border border-white/5 flex items-center justify-center font-semibold text-slate-500 uppercase tracking-tighter shadow-inner">
                                        {eng.name.substring(0, 2)}
                                     </div>
                                     <div className="text-start">
-                                       <p className="font-black text-white uppercase tracking-tight">{eng.name}</p>
-                                       <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">{eng.email}</p>
+                                       <p className="font-semibold text-white">{eng.name}</p>
+                                       <p className="text-xs text-slate-600 font-normal">{eng.email}</p>
                                     </div>
                                  </div>
                               </td>
                               <td className="px-8 py-6">
                                  <div className="flex items-center gap-3">
-                                    <Badge variant={eng.role === "Admin" ? "success" : "primary"} className="bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] border-none px-3 font-black text-[8px] tracking-widest">
-                                       {eng.role?.toUpperCase() || "UNIT"}
+                                    <Badge variant={eng.role === "Admin" ? "success" : "primary"} className="bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] border-none px-3 font-medium text-[11px]">
+                                       {eng.role?.toUpperCase() === "ADMIN" ? "Admin" : t("auth.role_engineer")}
                                     </Badge>
                                     {eng.engineerCode && (
-                                       <span className="text-[10px] font-mono font-black text-slate-400 tracking-widest px-2 py-1 bg-[var(--ui-sidebar-bg)] rounded-md border border-white/5 select-all hover:text-white transition-colors cursor-pointer">{eng.engineerCode}</span>
+                                       <span className="text-xs font-mono font-medium text-slate-400 px-2 py-1 bg-[var(--ui-sidebar-bg)] rounded-md border border-white/5 select-all hover:text-white transition-colors cursor-pointer">{eng.engineerCode}</span>
                                     )}
                                  </div>
                               </td>
-                              <td className="px-8 py-6 text-slate-500 font-black text-[10px] uppercase tracking-widest">
+                              <td className="px-8 py-6 text-slate-500 font-medium text-xs">
                                 {format(new Date(eng.createdAt || new Date()), "MMM dd, yyyy")}
                               </td>
                               <td className="px-8 py-6 text-end">
@@ -496,7 +496,7 @@ const AdminPage: React.FC = () => {
                <div className="overflow-x-auto custom-scrollbar card-base bg-[var(--ui-sidebar-bg)]/20 border-white/5 p-0">
                <table className="w-full text-start border-collapse min-w-[800px]">
                   <thead>
-                     <tr className="bg-[var(--ui-bg)] border-b border-white/5 text-slate-500 text-[10px] uppercase font-black tracking-widest">
+                     <tr className="bg-[var(--ui-bg)] border-b border-white/5 text-slate-500 text-xs uppercase font-semibold tracking-wide">
                         <th className="px-8 py-5 text-start">{t("admin.table.activity")}</th>
                         <th className="px-8 py-5 text-center">{t("admin.table.origin")}</th>
                         <th className="px-8 py-5 text-end">{t("admin.table.timestamp")}</th>
@@ -509,15 +509,15 @@ const AdminPage: React.FC = () => {
                               <div className="flex items-center gap-4 text-start">
                                  <div className="p-2 bg-[var(--ui-bg)] rounded-lg border border-white/5"><FileText className="w-3.5 h-3.5 text-slate-600" /></div>
                                  <div>
-                                    <p className="text-[11px] font-black text-white uppercase tracking-tight">{log.action}</p>
-                                    <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">{log.details || "SYSTEM-CORE"}</p>
+                                    <p className="text-xs font-semibold text-white">{log.action}</p>
+                                    <p className="text-xs text-slate-600 font-normal">{log.details || t("admin.table.system_origin")}</p>
                                  </div>
                               </div>
                            </td>
-                           <td className="px-8 py-6 text-center text-[var(--ui-accent)] font-black uppercase text-[10px] tracking-widest">
+                           <td className="px-8 py-6 text-center text-[var(--ui-accent)] font-semibold text-xs">
                               {log.userName}
                            </td>
-                           <td className="px-8 py-6 text-end text-slate-500 font-black uppercase text-[9px] tracking-widest">
+                           <td className="px-8 py-6 text-end text-slate-500 font-normal text-xs">
                               {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true, locale: dateLocale })}
                            </td>
                         </tr>

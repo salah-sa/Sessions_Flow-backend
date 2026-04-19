@@ -192,7 +192,7 @@ const StudentsPage: React.FC = () => {
         "rounded-xl flex items-center justify-center shrink-0 border border-white/10 shadow-xl bg-gradient-to-br from-[var(--ui-accent)]/20 to-black/20 text-[var(--ui-accent)]",
         isXl ? "w-20 h-20 text-2xl" : "w-12 h-12 text-sm"
       )}>
-        <span className="font-bold tracking-widest">{name.substring(0, 2).toUpperCase()}</span>
+        <span className="font-bold">{name.substring(0, 2).toUpperCase()}</span>
       </div>
     );
   };
@@ -208,13 +208,13 @@ const StudentsPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-white tracking-tight">
             {t("students.title_roster")}
           </h1>
-          <p className="text-slate-500 text-[10px] font-medium uppercase tracking-[0.2em]">
+           <p className="text-slate-500 text-xs font-medium">
              {t("students.subtitle_roster")}
           </p>
         </div>
         
         <div className="flex gap-4">
-          <button onClick={exportToCSV} className="h-12 px-6 rounded-xl bg-white/[0.02] border border-white/5 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white flex items-center gap-2 transition-all">
+           <button onClick={exportToCSV} className="h-12 px-6 rounded-xl bg-white/[0.02] border border-white/5 text-[13px] font-semibold text-slate-400 hover:text-white flex items-center gap-2 transition-all">
             <Download className="w-4 h-4" /> {t("students.export_csv_btn")}
           </button>
           <button 
@@ -236,8 +236,8 @@ const StudentsPage: React.FC = () => {
         ].map((stat, i) => (
           <div key={i} className="card-base p-6 bg-[var(--ui-sidebar-bg)]/80 backdrop-blur-3xl border-white/5 flex items-center justify-between group hover:border-[var(--ui-accent)]/20 transition-all shadow-xl">
             <div className="space-y-1 text-start">
-              <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">{stat.label}</p>
-              <p className="text-2xl font-bold text-white tracking-tighter tabular-nums">{stat.value}</p>
+               <p className="text-xs font-medium text-slate-600">{stat.label}</p>
+               <p className="text-2xl font-bold text-white tracking-tight tabular-nums">{stat.value}</p>
             </div>
             <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center border border-white/5 transition-all group-hover:scale-110", stat.bg)}>
               <stat.icon className={cn("w-4 h-4", stat.color)} />
@@ -254,30 +254,30 @@ const StudentsPage: React.FC = () => {
              placeholder={t("students.search_placeholder_roster")} 
              value={search}
              onChange={(e) => setSearch(e.target.value)}
-             className="w-full h-11 bg-black/40 border border-white/5 rounded-xl ps-12 pe-4 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-300 focus:outline-none focus:ring-1 focus:ring-[var(--ui-accent)]/30 transition-all shadow-inner"
+              className="w-full h-11 bg-black/40 border border-white/5 rounded-xl ps-12 pe-4 text-[13px] font-normal text-slate-300 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-[var(--ui-accent)]/30 transition-all shadow-inner"
            />
         </div>
         
         <div className="flex items-center gap-4">
            {selectedStudentIds.size > 0 ? (
               <div className="flex items-center gap-4 bg-[var(--ui-accent)]/10 px-4 py-2 rounded-xl border border-[var(--ui-accent)]/20 shadow-glow shadow-[var(--ui-accent)]/10 animate-fade-in">
-                <span className="text-[10px] font-bold text-[var(--ui-accent)] uppercase tracking-widest">{selectedStudentIds.size} Selected</span>
+                 <span className="text-xs font-semibold text-[var(--ui-accent)]">{selectedStudentIds.size} Selected</span>
                 <div className="w-px h-4 bg-[var(--ui-accent)]/20" />
-                <button onClick={() => setIsBulkDeleteModalOpen(true)} className="flex items-center gap-2 text-[10px] font-bold text-rose-500 hover:text-rose-400 uppercase tracking-widest transition-colors"><Trash2 className="w-3.5 h-3.5" /> {t("common.delete")}</button>
+                 <button onClick={() => setIsBulkDeleteModalOpen(true)} className="flex items-center gap-2 text-xs font-semibold text-rose-500 hover:text-rose-400 transition-colors"><Trash2 className="w-3.5 h-3.5" /> {t("common.delete")}</button>
               </div>
            ) : (
-             <button onClick={toggleAll} className="h-11 px-6 rounded-xl bg-white/[0.02] border border-white/5 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors flex items-center gap-2">
+             <button onClick={toggleAll} className="h-11 px-6 rounded-xl bg-white/[0.02] border border-white/5 text-[13px] font-semibold text-slate-400 hover:text-white transition-colors flex items-center gap-2">
                <CheckSquare className="w-4 h-4" /> {t("students.select_all")}
              </button>
            )}
            <select 
              value={filterGroup}
              onChange={(e) => setFilterGroup(e.target.value)}
-             className="h-11 rounded-xl bg-black/40 border border-white/5 px-6 text-[10px] font-bold uppercase tracking-widest text-slate-400 focus:outline-none focus:ring-1 focus:ring-[var(--ui-accent)]/30 transition-all font-bold"
+              className="h-11 rounded-xl bg-black/40 border border-white/5 px-6 text-[13px] font-normal text-slate-400 focus:outline-none focus:ring-1 focus:ring-[var(--ui-accent)]/30 transition-all"
            >
              <option value="all">{t("students.all_units")}</option>
              {groups.map((g: Group) => (
-               <option key={g.id} value={g.id} className="bg-[var(--ui-sidebar-bg)]">{g.name.toUpperCase()}</option>
+               <option key={g.id} value={g.id} className="bg-[var(--ui-sidebar-bg)]">{g.name}</option>
              ))}
            </select>
            <div className="w-px h-6 bg-white/5 mx-2" />
@@ -318,7 +318,7 @@ const StudentsPage: React.FC = () => {
          ) : filteredStudents.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center opacity-30 space-y-6">
                <Users className="w-24 h-24 text-slate-600" />
-               <p className="text-sm font-bold uppercase tracking-[0.3em]">{t("students.no_personnel")}</p>
+                <p className="text-sm font-semibold">{t("students.no_personnel")}</p>
             </div>
          ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 relative px-2 pb-20">
@@ -358,12 +358,12 @@ const StudentsPage: React.FC = () => {
                    
                    <div className="space-y-4 flex-1 text-start relative z-20 ps-1">
                       <div>
-                         <h3 className="text-lg font-bold text-white uppercase truncate tracking-tight">
+                          <h3 className="text-lg font-bold text-white truncate tracking-tight">
                            {student.name}
                          </h3>
                          <div className="flex items-center gap-2 mt-2">
                             <div className="px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg flex items-center gap-2 transition-all">
-                               <span className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest leading-none">{student.uniqueStudentCode || student.studentId || t("students.id_pending")}</span>
+                                <span className="text-xs font-mono font-medium text-slate-500 leading-none">{student.uniqueStudentCode || student.studentId || t("students.id_pending")}</span>
                                <button onClick={(e) => { e.stopPropagation(); copyStudentId(student.uniqueStudentCode || student.studentId || ""); }} className="text-slate-700 hover:text-[var(--ui-accent)] transition-colors">
                                   <Copy className="w-3 h-3" />
                                </button>
@@ -374,8 +374,8 @@ const StudentsPage: React.FC = () => {
 
                       <div className="p-4 bg-black/40 rounded-xl border border-white/5 flex items-center justify-between transition-all duration-500 hover:border-[var(--ui-accent)]/20">
                          <div className="space-y-0.5">
-                            <p className="text-[8px] font-bold text-slate-600 uppercase tracking-widest">{t("students.deployed_node")}</p>
-                            <p className="text-[10px] font-bold uppercase tracking-tight text-slate-300">
+                             <p className="text-xs font-medium text-slate-600">{t("students.deployed_node")}</p>
+                             <p className="text-xs font-semibold text-slate-300">
                               {student.group?.name || t("students.reserve")}
                             </p>
                          </div>
@@ -386,11 +386,11 @@ const StudentsPage: React.FC = () => {
                    </div>
                    
                    <div className="mt-8 pt-4 border-t border-white/5 flex items-center justify-between relative z-20">
-                      <div className="flex items-center gap-2 text-[8px] font-bold text-slate-600 uppercase tracking-widest">
+                       <div className="flex items-center gap-2 text-xs font-normal text-slate-600">
                          <Clock className="w-3 h-3" />
                          {format(new Date(student.createdAt), "MMM dd, yyyy")}
                       </div>
-                      <div className="h-5 px-3 rounded-md bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] text-[7px] font-bold uppercase tracking-widest flex items-center border border-[var(--ui-accent)]/20">
+                       <div className="h-5 px-3 rounded-md bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] text-xs font-medium flex items-center border border-[var(--ui-accent)]/20">
                          {t("students.operational")}
                       </div>
                    </div>
@@ -401,7 +401,7 @@ const StudentsPage: React.FC = () => {
             <div className="card-base !p-0 overflow-x-auto border-white/5 bg-[#0c0c0e]/80 backdrop-blur-3xl custom-scrollbar mb-20">
                <table className="w-full text-start min-w-[800px] border-collapse">
                   <thead>
-                     <tr className="bg-white/[0.02] border-b border-white/5 text-[10px] uppercase font-bold text-slate-500 tracking-[0.2em]">
+                      <tr className="bg-white/[0.02] border-b border-white/5 text-xs uppercase font-semibold text-slate-500 tracking-wide">
                          <th className="w-16 px-8 py-6 text-start">
                             <div onClick={toggleAll} className="cursor-pointer">
                               <div className={cn(
@@ -443,24 +443,24 @@ const StudentsPage: React.FC = () => {
                               <div className="flex items-center gap-4">
                                  <StudentAvatar name={student.name} color={student.group?.colorTag} />
                                  <div className="text-start">
-                                    <p className="text-[11px] font-bold text-white uppercase tracking-tight">{student.name}</p>
-                                    <p className="text-[9px] font-mono font-bold text-slate-600 uppercase tracking-[0.2em]">{student.uniqueStudentCode || student.studentId || t("students.id_pending")}</p>
+                                     <p className="text-xs font-semibold text-white">{student.name}</p>
+                                     <p className="text-xs font-mono font-normal text-slate-600">{student.uniqueStudentCode || student.studentId || t("students.id_pending")}</p>
                                  </div>
                               </div>
                            </td>
                            <td className="px-8 py-6 text-start">
                               <div className="flex flex-col gap-1">
-                                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                                  <span className="text-xs font-medium text-slate-300">
                                     {student.group?.name || t("students.idle")}
                                  </span>
-                                 <span className="text-[9px] font-bold text-slate-700 uppercase">LVL {student.group?.level || "N/A"}</span>
+                                  <span className="text-xs font-normal text-slate-700">Level {student.group?.level || "N/A"}</span>
                               </div>
                            </td>
                            <td className="px-8 py-6 text-center">
                               {student.userId ? (
-                                 <div className="inline-flex h-5 px-3 rounded-md bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] text-[8px] font-bold tracking-widest items-center border border-[var(--ui-accent)]/20">SYNCED</div>
+                                  <div className="inline-flex h-5 px-3 rounded-md bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] text-xs font-medium items-center border border-[var(--ui-accent)]/20">Synced</div>
                               ) : (
-                                 <div className="inline-flex h-5 px-3 rounded-md bg-white/[0.02] text-slate-600 text-[8px] font-bold tracking-widest items-center border border-white/5">OFFLINE</div>
+                                  <div className="inline-flex h-5 px-3 rounded-md bg-white/[0.02] text-slate-600 text-xs font-medium items-center border border-white/5">Offline</div>
                               )}
                            </td>
                             <td className="px-8 py-6 text-end">
@@ -481,7 +481,7 @@ const StudentsPage: React.FC = () => {
            <div className="flex justify-center py-6">
              <div className="flex items-center gap-3">
                <Loader2 className="w-5 h-5 text-[var(--ui-accent)] animate-spin" />
-               <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500">Accessing Cloud Records...</span>
+                <span className="text-xs font-medium text-slate-500">Accessing Cloud Records...</span>
              </div>
            </div>
          )}
@@ -497,10 +497,10 @@ const StudentsPage: React.FC = () => {
                      <div className="flex items-center gap-6">
                         <StudentAvatar name={drawerStudent.name} size="xl" color={drawerStudent.group?.colorTag} />
                         <div className="space-y-2 text-start">
-                           <h2 className="text-3xl font-bold text-white uppercase tracking-tight">{drawerStudent.name}</h2>
+                            <h2 className="text-3xl font-bold text-white tracking-tight">{drawerStudent.name}</h2>
                            <div className="flex items-center gap-2">
-                              <Badge className="bg-black/40 border-white/5 text-slate-500 text-[9px] px-3 font-mono">{drawerStudent.uniqueStudentCode || drawerStudent.studentId}</Badge>
-                              {drawerStudent.userId && <Badge className="bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] text-[8px] border-[var(--ui-accent)]/20">SYNCED</Badge>}
+                              <Badge className="bg-black/40 border-white/5 text-slate-500 text-xs px-3 font-mono">{drawerStudent.uniqueStudentCode || drawerStudent.studentId}</Badge>
+                              {drawerStudent.userId && <Badge className="bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] text-xs border-[var(--ui-accent)]/20">SYNCED</Badge>}
                            </div>
                         </div>
                      </div>
@@ -511,37 +511,37 @@ const StudentsPage: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-6 text-start">
                      <div className="card-base p-6 bg-white/[0.01] border-white/5">
-                        <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-4">{t("students.assigned_unit")}</p>
+                         <p className="text-xs font-medium text-slate-600 mb-4">{t("students.assigned_unit")}</p>
                         <div className="flex items-center gap-3">
                            <div className="w-10 h-10 rounded-lg bg-[var(--ui-accent)]/10 border border-[var(--ui-accent)]/20 flex items-center justify-center">
                               <ShieldCheck className="w-5 h-5 text-[var(--ui-accent)]" />
                            </div>
-                           <p className="text-lg font-bold text-white uppercase truncate">{drawerStudent.group?.name || t("students.idle")}</p>
+                            <p className="text-lg font-bold text-white truncate">{drawerStudent.group?.name || t("students.idle")}</p>
                         </div>
                      </div>
                      <div className="card-base p-6 bg-white/[0.01] border-white/5">
-                        <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-4">{t("students.sync_auth")}</p>
+                         <p className="text-xs font-medium text-slate-600 mb-4">{t("students.sync_auth")}</p>
                         <div className="flex items-center gap-3">
                            <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center border", drawerStudent.userId ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/20" : "bg-white/[0.02] border-white/5")}>
                               <Zap className={cn("w-5 h-5", drawerStudent.userId ? "text-[var(--ui-accent)]" : "text-slate-700")} />
                            </div>
-                           <p className="text-lg font-bold text-white uppercase">{drawerStudent.userId ? "AUTHORIZED" : "UNLINKED"}</p>
+                            <p className="text-lg font-bold text-white">{drawerStudent.userId ? "Authorized" : "Unlinked"}</p>
                         </div>
                      </div>
                   </div>
 
                   <div className="space-y-4">
-                     <h4 className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] flex items-center gap-2">
+                      <h4 className="text-xs font-medium text-slate-600 flex items-center gap-2">
                         <Database className="w-4 h-4 text-[var(--ui-accent)]" />
                         {t("students.system_telemetry")}
                      </h4>
                      <div className="grid grid-cols-2 gap-4">
                         <div className="p-4 bg-white/[0.01] rounded-xl border border-white/5 flex flex-col gap-1">
-                           <span className="text-[9px] text-slate-600 font-bold uppercase">{t("common.date")}</span>
+                            <span className="text-xs text-slate-600 font-medium">{t("common.date")}</span>
                            <span className="text-[11px] text-slate-300 font-bold tracking-tight">{format(new Date(drawerStudent.createdAt), "yyyy.MM.dd")}</span>
                         </div>
                         <div className="p-4 bg-white/[0.01] rounded-xl border border-white/5 flex flex-col gap-1 overflow-hidden">
-                           <span className="text-[9px] text-slate-600 font-bold uppercase">System ID</span>
+                            <span className="text-xs text-slate-600 font-medium">System ID</span>
                            <span className="text-[11px] text-slate-300 font-mono truncate">{drawerStudent.id}</span>
                         </div>
                      </div>
@@ -551,7 +551,7 @@ const StudentsPage: React.FC = () => {
                      <button onClick={() => { openEditModal(drawerStudent); setDrawerStudent(null); }} className="btn-primary flex-1 h-14">
                         {t("common.edit")}
                      </button>
-                     <button className="flex-1 h-14 rounded-xl bg-white/[0.02] border border-white/5 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-all">
+                      <button className="flex-1 h-14 rounded-xl bg-white/[0.02] border border-white/5 text-[13px] font-semibold text-slate-400 hover:text-white transition-all">
                         {t("students.view_deep_logs")}
                      </button>
                   </div>
@@ -565,35 +565,35 @@ const StudentsPage: React.FC = () => {
           <div className="space-y-8 p-2">
              <div className="p-5 bg-[var(--ui-accent)]/5 border border-[var(--ui-accent)]/10 rounded-xl flex items-center gap-4">
                 <div className="w-10 h-10 rounded-lg bg-[var(--ui-accent)]/10 flex items-center justify-center text-[var(--ui-accent)] border border-[var(--ui-accent)]/20 shadow-glow"><Zap className="w-5 h-5" /></div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">{t("students.modal.add_description")}</p>
+                 <p className="text-xs font-medium text-slate-400 leading-relaxed">{t("students.modal.add_description")}</p>
              </div>
              
              <div className="space-y-6">
                 <div className="space-y-3 text-start">
-                   <label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest ps-1">{t("students.modal.name_label")}</label>
+                    <label className="text-xs font-medium text-slate-600 ps-1">{t("students.modal.name_label")}</label>
                    <input 
                      value={formName} 
                      onChange={(e) => setFormName(e.target.value)}
-                     className="w-full h-14 bg-black/40 border border-white/5 rounded-xl px-4 text-xs font-bold text-white uppercase tracking-widest focus:ring-1 focus:ring-[var(--ui-accent)]/30 focus:outline-none transition-all"
-                     placeholder="CADET-NAME-ALPHA"
+                      className="w-full h-14 bg-black/40 border border-white/5 rounded-xl px-4 text-sm font-normal text-white focus:ring-1 focus:ring-[var(--ui-accent)]/30 focus:outline-none transition-all"
+                      placeholder="Enter student name"
                    />
                 </div>
                 <div className="space-y-3 text-start">
-                   <label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest ps-1">{t("students.modal.group_label")}</label>
+                    <label className="text-xs font-medium text-slate-600 ps-1">{t("students.modal.group_label")}</label>
                    <select 
                      value={formGroupId} 
                      onChange={(e) => setFormGroupId(e.target.value)}
-                     className="w-full h-14 bg-black/40 border border-white/5 rounded-xl px-4 text-xs font-bold text-slate-400 uppercase tracking-widest focus:ring-1 focus:ring-[var(--ui-accent)]/30 focus:outline-none transition-all"
+                      className="w-full h-14 bg-black/40 border border-white/5 rounded-xl px-4 text-sm font-normal text-slate-400 focus:ring-1 focus:ring-[var(--ui-accent)]/30 focus:outline-none transition-all"
                    >
                       {groups.map(g => (
-                        <option key={g.id} value={g.id} className="bg-[var(--ui-sidebar-bg)]">{g.name.toUpperCase()}</option>
+                        <option key={g.id} value={g.id} className="bg-[var(--ui-sidebar-bg)]">{g.name}</option>
                       ))}
                    </select>
                 </div>
              </div>
 
              <div className="flex gap-4 pt-4">
-                <button className="flex-1 h-12 rounded-xl bg-white/[0.02] border border-white/5 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-all" onClick={() => setIsAddModalOpen(false)}>
+                 <button className="flex-1 h-12 rounded-xl bg-white/[0.02] border border-white/5 text-[13px] font-semibold text-slate-400 hover:text-white transition-all" onClick={() => setIsAddModalOpen(false)}>
                    {t("common.cancel")}
                 </button>
                 <button disabled={createMutation.isPending || !formName.trim() || !formGroupId} className="btn-primary flex-1 h-12" onClick={handleCreateStudent}>
@@ -607,20 +607,20 @@ const StudentsPage: React.FC = () => {
          <div className="space-y-8 p-2 text-start">
             <div className="p-5 bg-white/[0.01] border border-white/5 rounded-xl flex items-center gap-4">
                <div className="w-10 h-10 rounded-lg bg-[var(--ui-accent)]/10 flex items-center justify-center text-[var(--ui-accent)] border border-[var(--ui-accent)]/20 shadow-glow"><ShieldCheck className="w-5 h-5" /></div>
-               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">Identity Auth: {selectedStudent?.uniqueStudentCode || t("students.id_unsaved")}</p>
+                <p className="text-xs font-medium text-slate-400 leading-relaxed">Identity Auth: {selectedStudent?.uniqueStudentCode || t("students.id_unsaved")}</p>
             </div>
             
             <div className="space-y-3">
-               <label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest ps-1">{t("students.modal.update_name_label")}</label>
+                <label className="text-xs font-medium text-slate-600 ps-1">{t("students.modal.update_name_label")}</label>
                <input 
                  value={formName} 
                  onChange={(e) => setFormName(e.target.value)}
-                 className="w-full h-14 bg-black/40 border border-white/5 rounded-xl px-4 text-xs font-bold text-white uppercase tracking-widest focus:ring-1 focus:ring-[var(--ui-accent)]/30 focus:outline-none transition-all"
+                 className="w-full h-14 bg-black/40 border border-white/5 rounded-xl px-4 text-xs font-bold text-white uppercase focus:ring-1 focus:ring-[var(--ui-accent)]/30 focus:outline-none transition-all"
                />
             </div>
 
             <div className="flex gap-4 pt-4">
-               <button className="flex-1 h-12 rounded-xl bg-white/[0.02] border border-white/5 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-all" onClick={() => setIsEditModalOpen(false)}>
+                <button className="flex-1 h-12 rounded-xl bg-white/[0.02] border border-white/5 text-[13px] font-semibold text-slate-400 hover:text-white transition-all" onClick={() => setIsEditModalOpen(false)}>
                   {t("common.cancel")}
                </button>
                <button disabled={updateMutation.isPending || !formName.trim()} className="btn-primary flex-1 h-12" onClick={handleUpdateStudent}>

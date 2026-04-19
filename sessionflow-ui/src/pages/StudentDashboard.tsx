@@ -102,7 +102,7 @@ export const StudentDashboard: React.FC = () => {
     return (
       <div className="w-full h-[50vh] flex flex-col items-center justify-center font-sans">
         <Loader2 className="w-8 h-8 animate-spin text-[var(--ui-accent)] mb-4" />
-        <p className="text-[var(--ui-accent)] font-bold uppercase tracking-[0.2em] text-xs animate-pulse">
+        <p className="text-[var(--ui-accent)] font-bold uppercase text-xs animate-pulse">
           Synchronizing Neural Environment...
         </p>
       </div>
@@ -128,7 +128,7 @@ export const StudentDashboard: React.FC = () => {
                <div className="absolute inset-0 bg-var(--ui-accent)/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
 
-            <h2 className="text-4xl font-sora font-black text-white uppercase tracking-tighter mb-4">
+            <h2 className="text-4xl font-sora font-semibold text-whiteer mb-4">
               Initialize Node
             </h2>
             <p className="text-slate-400 font-medium text-lg leading-relaxed mb-10 px-4">
@@ -140,7 +140,7 @@ export const StudentDashboard: React.FC = () => {
                   onClick={handleAutoDetect}
                   disabled={geoStatus === "detecting"}
                   className={cn(
-                    "h-16 w-full text-base font-black uppercase tracking-widest rounded-2xl shadow-xl active:scale-95 transition-all gap-3",
+                    "h-16 w-full text-base font-semibold rounded-2xl shadow-xl active:scale-95 transition-all gap-3",
                     geoStatus === "denied" ? "bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500/20" : "bg-white text-black hover:bg-slate-200"
                   )}
                 >
@@ -164,7 +164,7 @@ export const StudentDashboard: React.FC = () => {
 
                <div className="relative py-4">
                   <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5" /></div>
-                  <div className="relative flex justify-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-600"><span className="bg-var(--ui-sidebar-bg) px-4">Secure Override</span></div>
+                  <div className="relative flex justify-center text-xs font-semibold text-slate-600"><span className="bg-var(--ui-sidebar-bg) px-4">Secure Override</span></div>
                </div>
 
                <div className="flex gap-3">
@@ -173,7 +173,7 @@ export const StudentDashboard: React.FC = () => {
                      value={tempLocation}
                      onChange={(e) => setTempLocation(e.target.value)}
                      placeholder="ENTER CITY MANUALLY..."
-                     className="h-14 bg-white/5 border-white/5 focus:border-white/20 pl-6 rounded-xl font-bold tracking-widest uppercase text-xs"
+                     className="h-14 bg-white/5 border-white/5 focus:border-white/20 pl-6 rounded-xl font-bold uppercase text-xs"
                      onKeyDown={(e) => e.key === "Enter" && tempLocation.trim() && setStudentLocation(tempLocation.trim())}
                    />
                  </div>
@@ -181,14 +181,14 @@ export const StudentDashboard: React.FC = () => {
                    variant="outline"
                    disabled={!tempLocation.trim()}
                    onClick={() => setStudentLocation(tempLocation.trim())}
-                   className="h-14 px-6 border-white/10 hover:bg-white/5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white"
+                   className="h-14 px-6 border-white/10 hover:bg-white/5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white"
                  >
                    <CheckCircle className="w-5 h-5" />
                  </Button>
                </div>
             </div>
 
-            <p className="mt-10 text-[10px] font-bold text-slate-600 uppercase tracking-widest flex items-center justify-center gap-2">
+            <p className="mt-10 text-xs font-bold text-slate-600 uppercase flex items-center justify-center gap-2">
                <ShieldCheck className="w-3 h-3" />
                End-to-end encrypted telemetry link enabled
             </p>
@@ -203,7 +203,7 @@ export const StudentDashboard: React.FC = () => {
       <div className="p-6 max-w-4xl mx-auto font-sans">
         <Card className="p-8 border-red-500/20 bg-red-500/5 text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4 opacity-80" />
-          <h2 className="text-lg font-sora font-black text-white uppercase tracking-widest">
+          <h2 className="text-lg font-sora font-semibold text-white uppercase">
             Identity Resolution Failed
           </h2>
           <p className="text-slate-400 mt-2">
@@ -248,15 +248,15 @@ export const StudentDashboard: React.FC = () => {
             
             <div className="space-y-1 relative z-10">
               <div className="flex items-center gap-4 mb-1">
-                <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em]">
+                <p className="text-xs font-semibold text-emerald-500 uppercase">
                   Student Operator
                 </p>
                 <div className="h-4 px-2 rounded bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1.5">
                   <MapPin className="w-2.5 h-2.5 text-emerald-500" />
-                  <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">{studentLocation}</span>
+                  <span className="text-xs font-semibold text-emerald-400 uppercase">{studentLocation}</span>
                 </div>
               </div>
-              <h1 className="text-3xl lg:text-4xl font-sora font-black text-white uppercase tracking-tighter">
+              <h1 className="text-3xl lg:text-4xl font-sora font-semibold text-whiteer">
                 {identity.name}
               </h1>
               <div className="flex items-center gap-3 text-xs text-slate-400 font-bold tracking-wider">
@@ -279,10 +279,10 @@ export const StudentDashboard: React.FC = () => {
               
               <div className="relative z-10 space-y-6">
                 <div className="space-y-2">
-                  <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <h3 className="text-xs font-semibold text-emerald-500 uppercase flex items-center gap-2">
                     <Activity className="w-4 h-4" /> Priority Directive
                   </h3>
-                  <h2 className="text-2xl font-sora font-black text-white">
+                  <h2 className="text-2xl font-sora font-semibold text-white">
                     {primaryAction?.label}
                   </h2>
                 </div>
@@ -293,14 +293,14 @@ export const StudentDashboard: React.FC = () => {
                       const session = todaySession || nextSession;
                       if (session) navigate(`/sessions/${session.id}`);
                     }}
-                    className="h-12 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black uppercase tracking-widest text-[11px] shadow-lg shadow-emerald-500/20"
+                    className="h-12 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-semibold text-[11px] shadow-lg shadow-emerald-500/20"
                   >
                     Enter Operations <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 ) : (
                   <Button 
                     disabled
-                    className="h-12 px-6 rounded-xl bg-white/5 border border-white/10 text-slate-500 font-black uppercase tracking-widest text-[11px] cursor-not-allowed"
+                    className="h-12 px-6 rounded-xl bg-white/5 border border-white/10 text-slate-500 font-semibold text-[11px] cursor-not-allowed"
                   >
                     No Active Nodes
                   </Button>
@@ -314,17 +314,17 @@ export const StudentDashboard: React.FC = () => {
             <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
               <div className="flex items-center gap-6">
                  <div>
-                    <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Total Peer Load</p>
-                    <p className="text-lg font-mono font-black text-white tabular-nums">108</p>
+                    <p className="text-xs font-semibold text-slate-600 uppercase">Total Peer Load</p>
+                    <p className="text-lg font-mono font-semibold text-white tabular-nums">108</p>
                  </div>
                  <div>
-                    <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Cross-Node Latency</p>
-                    <p className="text-lg font-mono font-black text-emerald-500 tabular-nums">1.2ms</p>
+                    <p className="text-xs font-semibold text-slate-600 uppercase">Cross-Node Latency</p>
+                    <p className="text-lg font-mono font-semibold text-emerald-500 tabular-nums">1.2ms</p>
                  </div>
               </div>
               <div className="text-right">
-                 <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Sync Health</p>
-                 <p className="text-lg font-mono font-black text-cyan-400 tabular-nums">99.9%</p>
+                 <p className="text-xs font-semibold text-slate-600 uppercase">Sync Health</p>
+                 <p className="text-lg font-mono font-semibold text-cyan-400 tabular-nums">99.9%</p>
               </div>
             </div>
           </motion.div>
@@ -332,11 +332,11 @@ export const StudentDashboard: React.FC = () => {
           {/* Right Sidebar: Progress */}
           <motion.div initial="hidden" animate="visible" variants={itemVariants} className="col-span-1 space-y-6">
             <div className="card-aero p-6">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Course Trajectory</h3>
+              <h3 className="text-xs font-semibold text-slate-400 uppercase mb-6">Course Trajectory</h3>
               
               <div className="flex items-end justify-between mb-2">
-                <span className="text-4xl font-sora font-black text-white leading-none">{progress.percentage.toFixed(0)}<span className="text-xl text-emerald-500">%</span></span>
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{progress.completed} / {progress.total} Complete</span>
+                <span className="text-4xl font-sora font-semibold text-white leading-none">{progress.percentage.toFixed(0)}<span className="text-xl text-emerald-500">%</span></span>
+                <span className="text-xs font-bold text-slate-500 uppercase">{progress.completed} / {progress.total} Complete</span>
               </div>
               
               <div className="h-3 bg-var(--ui-surface) rounded-full overflow-hidden w-full p-0.5 border border-white/5">
@@ -350,19 +350,19 @@ export const StudentDashboard: React.FC = () => {
               
               <div className="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Remaining</p>
-                  <p className="text-xl font-sora font-black text-white mt-1">{progress.remaining}</p>
+                  <p className="text-xs font-bold text-slate-500 uppercase">Remaining</p>
+                  <p className="text-xl font-sora font-semibold text-white mt-1">{progress.remaining}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Target Edge</p>
-                  <p className="text-xl font-sora font-black text-white mt-1">S{progress.total}</p>
+                  <p className="text-xs font-bold text-slate-500 uppercase">Target Edge</p>
+                  <p className="text-xl font-sora font-semibold text-white mt-1">S{progress.total}</p>
                 </div>
               </div>
             </div>
 
             {/* Timeline View inside sidebar or below map for better layout? Leaving it here as per original */}
             <div className="card-aero p-6">
-              <h3 className="text-xs font-black text-white uppercase tracking-widest mb-6 flex items-center gap-2">
+              <h3 className="text-xs font-semibold text-white uppercase mb-6 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-emerald-500" /> Recent Sessions
               </h3>
               
@@ -373,8 +373,8 @@ export const StudentDashboard: React.FC = () => {
                       {session.status === "Ended" ? <CheckCircle className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-[10px] font-black text-white uppercase tracking-wide truncate">Session #{session.number}</h4>
-                      <p className="text-[8px] text-slate-500 mt-0.5">{format(new Date(session.scheduledAt), "MMM d")}</p>
+                      <h4 className="text-xs font-semibold text-white uppercase tracking-wide truncate">Session #{session.number}</h4>
+                      <p className="text-xs text-slate-500 mt-0.5">{format(new Date(session.scheduledAt), "MMM d")}</p>
                     </div>
                   </div>
                 ))}

@@ -58,8 +58,8 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
                 {theme === "dark" ? <Moon className="w-7 h-7" /> : <Sun className="w-7 h-7 text-amber-500" />}
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-black text-white uppercase tracking-tighter">{t("settings.theme_synthesis")}</p>
-                <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{t("settings.system.current_mode", { mode: theme.toUpperCase() })} {t("settings.protocol_active")}</p>
+                <p className="text-sm font-black text-white uppercase tracking-tighter">{t("settings.theme_mode", "Interface Mode")}</p>
+                <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{t("settings.system.current_mode", { mode: theme.toUpperCase() })} {t("settings.status_active", "Active")}</p>
               </div>
             </div>
             <button 
@@ -97,8 +97,8 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
         {/* UI Protocol Switcher */}
         <div className="space-y-6">
           <div className="flex flex-col gap-1.5 ps-5">
-            <p className="text-xs font-black text-white uppercase tracking-widest">{t("settings.ui_protocol")}</p>
-            <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em]">{t("settings.ui_protocol_desc")}</p>
+            <p className="text-xs font-black text-white uppercase tracking-widest">{t("settings.ui_interface", "Interface Style")}</p>
+            <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em]">{t("settings.ui_interface_desc", "Customize the application interaction model")}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -132,7 +132,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
                     activeStyle === styleName ? "bg-var(--ui-accent) shadow-glow" : "bg-var(--ui-surface)"
                   )} />
                   <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em]">
-                    {styleName === "Obsidian" ? "Style 33 - Active Protocol" : "Legacy Identity"}
+                    {styleName === "Obsidian" ? "Standard Style" : "Legacy Style"}
                   </span>
                 </div>
               </button>
@@ -145,9 +145,9 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
           <div className="flex flex-col gap-1.5 ps-5 border-t border-white/5 pt-8">
             <p className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
               <Terminal className="w-3.5 h-3.5 text-var(--ui-accent)" />
-              Zenith Color Overrides
+              System Color Management
             </p>
-            <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em]">Live architectural color synthesis</p>
+            <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em]">Live UI branding adjustments</p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -236,9 +236,9 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
         <div className="flex flex-col gap-2">
           <h2 className="text-lg font-sora font-black text-white uppercase tracking-tight flex items-center gap-3">
             <span className="w-1.5 h-6 bg-var(--ui-accent) rounded-full" />
-            {t("settings.billing_protocols")}
+            {t("settings.billing_config", "Billing Rates")}
           </h2>
-          <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] ps-5">{t("settings.billing_desc")}</p>
+          <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] ps-5">{t("settings.billing_desc", "Configure session pricing for different student levels")}</p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[

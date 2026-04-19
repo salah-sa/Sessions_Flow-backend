@@ -17,12 +17,12 @@ interface MarkerData {
 
 // Fallback operational data for visualization
 const DEFAULT_MARKERS: MarkerData[] = [
-  { name: "London Node", coordinates: [-0.1276, 51.5074], count: 124, level: 1 },
-  { name: "Dubai Hub", coordinates: [55.2708, 25.2048], count: 89, level: 2 },
-  { name: "New York Node", coordinates: [-74.006, 40.7128], count: 215, level: 1 },
-  { name: "Singapore Gateway", coordinates: [103.8198, 1.3521], count: 56, level: 3 },
-  { name: "Cairo Command", coordinates: [31.2357, 30.0444], count: 167, level: 1 },
-  { name: "Berlin Node", coordinates: [13.405, 52.52], count: 42, level: 4 },
+  { name: "London Office", coordinates: [-0.1276, 51.5074], count: 124, level: 1 },
+  { name: "Dubai Office", coordinates: [55.2708, 25.2048], count: 89, level: 2 },
+  { name: "New York Office", coordinates: [-74.006, 40.7128], count: 215, level: 1 },
+  { name: "Singapore Office", coordinates: [103.8198, 1.3521], count: 56, level: 3 },
+  { name: "Cairo Office", coordinates: [31.2357, 30.0444], count: 167, level: 1 },
+  { name: "Berlin Office", coordinates: [13.405, 52.52], count: 42, level: 4 },
 ];
 
 const WorldStudentMap: React.FC<{ compact?: boolean }> = ({ compact }) => {
@@ -55,16 +55,16 @@ const WorldStudentMap: React.FC<{ compact?: boolean }> = ({ compact }) => {
           <div className="w-8 h-8 rounded-lg bg-var(--ui-accent)/10 border border-white/10 flex items-center justify-center">
              <Globe className="w-4 h-4 text-var(--ui-accent)" />
           </div>
-          <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Student Map</h3>
+          <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">{t("dashboard.analytics.student_map")}</h3>
         </div>
         <div className="flex items-center gap-6">
            <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-glow shadow-emerald-500/50" />
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Live Distribution</span>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("dashboard.analytics.live_distribution")}</span>
            </div>
            <div className="flex items-center gap-2">
               <Users className="w-3 h-3 text-slate-600" />
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{totalStudents} Total Students</span>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{totalStudents} {t("dashboard.analytics.total_students")}</span>
            </div>
         </div>
       </div>
@@ -108,7 +108,7 @@ const WorldStudentMap: React.FC<{ compact?: boolean }> = ({ compact }) => {
                   <foreignObject x="10" y="-20" width="120" height="40" className="opacity-0 group-hover/marker:opacity-100 transition-opacity">
                     <div className="bg-black/80 backdrop-blur-md border border-white/10 rounded-lg p-2 flex flex-col pointer-events-none">
                        <span className="text-[9px] font-black text-white uppercase tracking-wider">{name}</span>
-                       <span className="text-[8px] font-bold text-slate-400 mt-0.5">{count} ACTIVE STUDENTS</span>
+                       <span className="text-[8px] font-bold text-slate-400 mt-0.5">{count} {t("dashboard.analytics.active_students")}</span>
                     </div>
                   </foreignObject>
                 )}
@@ -125,7 +125,7 @@ const WorldStudentMap: React.FC<{ compact?: boolean }> = ({ compact }) => {
               {[1, 2, 3, 4].map(l => (
                 <div key={l} className="flex items-center gap-2 bg-black/40 border border-white/5 rounded-full px-3 py-1.5 backdrop-blur-md">
                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: getLevelColor(l) }} />
-                   <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Level {l}</span>
+                   <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{t("sidebar.levels.level")} {l}</span>
                 </div>
               ))}
            </div>

@@ -43,7 +43,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   };
   const c = config[status] || config.Ended;
   return (
-    <div className={cn("inline-flex items-center gap-2 px-2.5 py-1 rounded-full border text-[10px] font-bold tracking-tight", c.bg, c.text)}>
+    <div className={cn("inline-flex items-center gap-2 px-2.5 py-1 rounded-full border text-xs font-bold tracking-tight", c.bg, c.text)}>
       <div className={cn("w-1.5 h-1.5 rounded-full shadow-[0_0_8px_currentColor]", c.dot, status === "Active" && "animate-pulse")} />
       {c.label}
     </div>
@@ -118,7 +118,7 @@ const SessionsListPage: React.FC = () => {
             <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight flex flex-wrap items-center gap-2 sm:gap-3">
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-[var(--ui-accent)] to-[#7e22ce]">Sessions</span>
               <span className="text-var(--ui-surface) text-2xl sm:text-3xl hidden sm:inline">/</span>
-              <span className="text-xs sm:text-sm font-bold text-slate-500 uppercase tracking-[0.2em] pt-1 sm:pt-1.5">Management</span>
+              <span className="text-xs sm:text-sm font-bold text-slate-500 uppercase pt-1 sm:pt-1.5">Management</span>
             </h1>
             <p className="text-slate-500 mt-1 max-w-md text-sm">Efficiently manage and track all learning sessions, live broadcasts, and historical records.</p>
           </div>

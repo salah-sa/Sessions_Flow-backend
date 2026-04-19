@@ -94,58 +94,58 @@ const ProfilePage: React.FC = () => {
       {/* Header */}
       <div className="p-8 border-b border-white/5 bg-var(--ui-bg)/50 backdrop-blur-3xl flex flex-col md:flex-row md:items-center justify-between gap-8 shrink-0">
         <div className="space-y-1">
-          <h1 className="text-3xl font-sora font-black text-white tracking-tighter uppercase flex items-center gap-4">
+          <h1 className="text-3xl font-sora font-semibold text-white tracking-tighter uppercase flex items-center gap-4">
             <div className="p-3 bg-var(--ui-accent)/10 rounded-2xl border border-var(--ui-accent)/20 shadow-glow shadow-var(--ui-accent)/5">
                <User className="w-8 h-8 text-var(--ui-accent)" />
             </div>
             {t("profile.title")}
           </h1>
-          <p className="text-slate-500 font-black text-[10px] uppercase tracking-[0.2em] opacity-80 ps-1">
-             {t("profile.subtitle")}
-          </p>
+            <span className="text-slate-500 font-semibold text-xs uppercase opacity-80 ps-1">
+               {t("profile.subtitle")}
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-4">
+             <div className="hidden lg:flex flex-col items-end pe-6 border-e border-white/5">
+                <p className="text-xs font-semibold text-slate-500 uppercase mb-1">{t("profile.clearance_level")}</p>
+                <div className="flex items-center gap-2">
+                   <ShieldCheck className="w-4 h-4 text-var(--ui-accent)" />
+                   <p className="text-xs font-semibold text-whiteer">{user?.role?.toUpperCase() || (user?.role === "Student" ? "STUDENT" : "STAFF")}</p>
+                </div>
+             </div>
+             <Badge variant="success" className="bg-emerald-500/10 text-emerald-500 border-none px-4 h-11 flex items-center text-xs font-semibold shadow-glow shadow-emerald-500/5">{t("profile.status_active")}</Badge>
+          </div>
         </div>
-        
-        <div className="flex items-center gap-4">
-           <div className="hidden lg:flex flex-col items-end pe-6 border-e border-white/5">
-              <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-1">{t("profile.clearance_level")}</p>
-              <div className="flex items-center gap-2">
-                 <ShieldCheck className="w-4 h-4 text-var(--ui-accent)" />
-                 <p className="text-xs font-black text-white uppercase tracking-tighter">{user?.role?.toUpperCase() || "CADET-ENGINEER"}</p>
-              </div>
-           </div>
-           <Badge variant="success" className="bg-emerald-500/10 text-emerald-500 border-none px-4 h-11 flex items-center text-[10px] font-black tracking-widest uppercase shadow-glow shadow-emerald-500/5">{t("profile.status_active")}</Badge>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-4 lg:p-10">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
-           {/* Primary Identity Card */}
-           <div className="lg:col-span-1 space-y-8">
-              <div className="card-base relative overflow-hidden group">
-                 <div className="absolute top-0 right-0 w-32 h-32 bg-var(--ui-accent)/10 blur-3xl rounded-full" />
-                 <div className="flex flex-col items-center text-center relative z-10">
-                    <div 
-                      onClick={() => !isUploading && fileInputRef.current?.click()}
-                      className="w-32 h-32 rounded-[2.5rem] bg-var(--ui-sidebar-bg) flex items-center justify-center text-4xl font-black text-white shadow-2xl border-4 border-white/10 mb-8 group/avatar relative overflow-hidden cursor-pointer"
-                    >
-                       {user?.avatarUrl ? (
-                         <img src={`${user.avatarUrl}${user.avatarUrl.includes('?') ? '&' : '?'}v=${Date.now()}`} alt="Avatar" className="w-full h-full object-cover" key={user.avatarUrl} />
-                       ) : (
-                         user?.name?.charAt(0).toUpperCase()
-                       )}
-                       <div className="absolute inset-0 bg-var(--ui-accent)/80 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
-                          {isUploading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Camera className="w-6 h-6" />}
-                          <span className="text-[8px] font-black uppercase tracking-widest">{isUploading ? "SYNCING" : "UPDATE"}</span>
-                       </div>
-                    </div>
-                    <input type="file" ref={fileInputRef} onChange={handleAvatarUpload} accept="image/*" className="hidden" />
-                    <h2 className="text-2xl font-sora font-black text-white uppercase tracking-tight mb-2">{user?.name}</h2>
-                    <Badge variant="primary" className="bg-var(--ui-accent)/10 text-var(--ui-accent) border-none px-6 py-1.5 font-black text-[10px] tracking-widest uppercase mb-8">{user?.role}</Badge>
+  
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 lg:p-10">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+             {/* Primary Identity Card */}
+             <div className="lg:col-span-1 space-y-8">
+                <div className="card-base relative overflow-hidden group">
+                   <div className="absolute top-0 right-0 w-32 h-32 bg-var(--ui-accent)/10 blur-3xl rounded-full" />
+                   <div className="flex flex-col items-center text-center relative z-10">
+                      <div 
+                        onClick={() => !isUploading && fileInputRef.current?.click()}
+                        className="w-32 h-32 rounded-[2.5rem] bg-var(--ui-sidebar-bg) flex items-center justify-center text-4xl font-semibold text-white shadow-2xl border-4 border-white/10 mb-8 group/avatar relative overflow-hidden cursor-pointer"
+                      >
+                         {user?.avatarUrl ? (
+                           <img src={`${user.avatarUrl}${user.avatarUrl.includes('?') ? '&' : '?'}v=${Date.now()}`} alt="Avatar" className="w-full h-full object-cover" key={user.avatarUrl} />
+                         ) : (
+                           user?.name?.charAt(0).toUpperCase()
+                         )}
+                         <div className="absolute inset-0 bg-var(--ui-accent)/80 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                            {isUploading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Camera className="w-6 h-6" />}
+                            <span className="text-xs font-semibold">{isUploading ? t("common.syncing") : t("common.change")}</span>
+                         </div>
+                      </div>
+                      <input type="file" ref={fileInputRef} onChange={handleAvatarUpload} accept="image/*" className="hidden" />
+                    <h2 className="text-2xl font-sora font-semibold text-white mb-2">{user?.name}</h2>
+                    <Badge variant="primary" className="bg-var(--ui-accent)/10 text-var(--ui-accent) border-none px-6 py-1.5 font-semibold text-xs uppercase mb-8">{user?.role}</Badge>
                     
                     <div className="w-full space-y-4 pt-8 border-t border-white/5">
                        <div 
                          onClick={() => copyToClipboard(user?.role === "Student" ? user?.studentId || "N/A" : user?.engineerCode || "N/A")}
-                         className="flex items-center justify-between text-[11px] font-black uppercase tracking-widest p-3 bg-white/5 rounded-xl border border-white/5 cursor-pointer hover:bg-white/10 transition-colors group/code"
+                         className="flex items-center justify-between text-[11px] font-semibold p-3 bg-white/5 rounded-xl border border-white/5 cursor-pointer hover:bg-white/10 transition-colors group/code"
                        >
                           <span className="text-slate-500">{user?.role === "Student" ? t("profile.student_id") : t("profile.engineer_code")}</span>
                           <div className="flex items-center gap-2">
@@ -153,11 +153,11 @@ const ProfilePage: React.FC = () => {
                             {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-slate-600 group-hover/code:text-var(--ui-accent) transition-colors" />}
                           </div>
                        </div>
-                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] font-black uppercase tracking-widest px-1">
+                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] font-semibold px-1">
                           <span className="text-slate-500">{t("profile.email_relay")}</span>
                           <span className="text-slate-300 truncate w-full sm:max-w-[150px] sm:text-right">{user?.email}</span>
                        </div>
-                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] font-black uppercase tracking-widest px-1">
+                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] font-semibold px-1">
                           <span className="text-slate-500">{t("profile.node_id")}</span>
                           <span className="text-white font-mono text-xs">SF-{user?.id?.substring(0,8).toUpperCase()}</span>
                        </div>
@@ -169,43 +169,43 @@ const ProfilePage: React.FC = () => {
               <div className="card-base p-8 bg-var(--ui-bg) border-white/10 space-y-6">
                  <div className="flex items-center gap-3">
                     <Lock className="w-4 h-4 text-var(--ui-accent)" />
-                    <h3 className="text-[11px] font-black text-white uppercase tracking-widest">{t("profile.security_title")}</h3>
+                    <h3 className="text-[11px] font-semibold text-white uppercase">{t("profile.security_title")}</h3>
                  </div>
                  <form onSubmit={handleUpdatePassword} className="space-y-4">
                     <div className="space-y-2">
-                       <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest ps-1">{t("profile.current_password")}</label>
+                       <label className="text-xs font-semibold text-slate-600 uppercase ps-1">{t("profile.current_password")}</label>
                        <input 
                          type="password" 
                          value={oldPassword} 
                          onChange={e => setOldPassword(e.target.value)}
-                         className="w-full h-11 bg-var(--ui-sidebar-bg) border border-white/10 rounded-xl px-4 text-xs font-black text-white focus:ring-2 focus:ring-var(--ui-accent)/20 focus:outline-none"
+                         className="w-full h-11 bg-var(--ui-sidebar-bg) border border-white/10 rounded-xl px-4 text-xs font-semibold text-white focus:ring-2 focus:ring-var(--ui-accent)/20 focus:outline-none"
                        />
                     </div>
                     <div className="space-y-2">
-                       <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest ps-1">{t("profile.new_password")}</label>
+                       <label className="text-xs font-semibold text-slate-600 uppercase ps-1">{t("profile.new_password")}</label>
                        <input 
                          type="password" 
                          value={newPassword} 
                          onChange={e => setNewPassword(e.target.value)}
-                         className="w-full h-11 bg-var(--ui-sidebar-bg) border border-white/10 rounded-xl px-4 text-xs font-black text-white focus:ring-2 focus:ring-var(--ui-accent)/20 focus:outline-none"
+                         className="w-full h-11 bg-var(--ui-sidebar-bg) border border-white/10 rounded-xl px-4 text-xs font-semibold text-white focus:ring-2 focus:ring-var(--ui-accent)/20 focus:outline-none"
                        />
                     </div>
                     <div className="space-y-2">
-                       <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest ps-1">{t("profile.confirm_password")}</label>
+                       <label className="text-xs font-semibold text-slate-600 uppercase ps-1">{t("profile.confirm_password")}</label>
                        <input 
                          type="password" 
                          value={confirmPassword} 
                          onChange={e => setConfirmPassword(e.target.value)}
-                         className="w-full h-11 bg-var(--ui-sidebar-bg) border border-white/10 rounded-xl px-4 text-xs font-black text-white focus:ring-2 focus:ring-var(--ui-accent)/20 focus:outline-none"
                        />
                     </div>
-                    <button 
+                    <Button 
                       type="submit" 
+                      className="w-full h-12" 
+                      variant="primary"
                       disabled={isSaving || !newPassword}
-                      className="w-full h-11 bg-var(--ui-accent) text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] shadow-glow shadow-var(--ui-accent)/20 mt-4"
                     >
-                       {isSaving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : t("profile.submit_password")}
-                    </button>
+                      {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : t("profile.submit_password")}
+                    </Button>
                  </form>
               </div>
            </div>
@@ -223,8 +223,8 @@ const ProfilePage: React.FC = () => {
                     ].map((metric, i) => (
                       <div key={i} className="card-base flex items-center justify-between group hover:bg-var(--ui-sidebar-bg) transition-all">
                           <div className="space-y-1">
-                            <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{metric.label}</p>
-                            <p className="text-xl font-sora font-black text-white tabular-nums">{metric.value}</p>
+                            <p className="text-xs font-semibold text-slate-600 uppercase">{metric.label}</p>
+                            <p className="text-xl font-sora font-semibold text-white tabular-nums">{metric.value}</p>
                           </div>
                           <metric.icon className={cn("w-5 h-5", metric.color)} />
                       </div>
@@ -236,9 +236,9 @@ const ProfilePage: React.FC = () => {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="w-1.5 h-6 bg-var(--ui-accent) rounded-full" />
-                          <h3 className="text-lg font-sora font-black text-white uppercase tracking-tight">{t("profile.activity_title")}</h3>
+                          <h3 className="text-lg font-sora font-semibold text-white">{t("profile.activity_title")}</h3>
                         </div>
-                        <Badge variant="outline" className="text-[9px] font-black border-white/5 text-slate-500 uppercase tracking-widest">{t("profile.live_feed")}</Badge>
+                        <Badge variant="outline" className="text-xs font-semibold border-white/5 text-slate-500 uppercase">{t("profile.live_feed")}</Badge>
                     </div>
 
                     <div className="card-base overflow-hidden border-white/5 bg-var(--ui-sidebar-bg)/20 p-0">
@@ -249,7 +249,7 @@ const ProfilePage: React.FC = () => {
                         ) : logs.length === 0 ? (
                           <div className="py-20 flex flex-col items-center justify-center opacity-20">
                               <History className="w-16 h-16 mb-4" />
-                              <p className="text-xs font-black uppercase tracking-widest">{t("profile.no_activity")}</p>
+                              <p className="text-xs font-semibold">{t("profile.no_activity")}</p>
                           </div>
                         ) : (
                           <div className="divide-y divide-white/5">
@@ -260,16 +260,16 @@ const ProfilePage: React.FC = () => {
                                           <Activity className="w-4 h-4" />
                                       </div>
                                       <div className="space-y-1">
-                                          <p className="text-xs font-black text-white uppercase tracking-tight">{log.action}</p>
-                                          <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">{log.details || "SYSTEM EXECUTION"}</p>
+                                          <p className="text-xs font-semibold text-white">{log.action}</p>
+                                          <p className="text-xs text-slate-600 font-bold uppercase">{log.details || t("profile.activity.system_action")}</p>
                                       </div>
                                     </div>
                                     <div className="text-right">
-                                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                      <p className="text-xs font-semibold text-slate-500 uppercase">
                                           {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })}
                                       </p>
                                       <div className="flex items-center justify-end gap-1 mt-1">
-                                          <Badge variant="outline" className="text-[7px] font-black border-none bg-emerald-500/10 text-emerald-500 px-1.5 h-4">SUCCESS</Badge>
+                                          <Badge variant="outline" className="text-[7px] font-semibold border-none bg-emerald-500/10 text-emerald-500 px-1.5 h-4">SUCCESS</Badge>
                                       </div>
                                     </div>
                                 </div>
@@ -286,8 +286,8 @@ const ProfilePage: React.FC = () => {
                       <Shield className="w-10 h-10 text-slate-600" />
                    </div>
                    <div className="space-y-2">
-                     <h3 className="text-xl font-sora font-black text-white uppercase tracking-widest">{t("profile.student_restricted")}</h3>
-                     <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t("profile.student_restricted_desc")}</p>
+                     <h3 className="text-xl font-sora font-semibold text-white uppercase">{t("profile.student_restricted")}</h3>
+                     <p className="text-xs font-bold text-slate-500 uppercase">{t("profile.student_restricted_desc")}</p>
                    </div>
                 </div>
               )}

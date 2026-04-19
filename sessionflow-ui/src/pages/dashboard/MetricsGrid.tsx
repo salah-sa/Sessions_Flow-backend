@@ -1,5 +1,4 @@
-import React from "react";
-import { Users, BookOpen, Clock, Activity, ArrowUpRight } from "lucide-react";
+import { Layers, Radio, GraduationCap, TrendingUp, ArrowUpRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Sparkline } from "../../components/viz/Charts";
 
@@ -36,28 +35,28 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({
     { 
       label: t("dashboard.stats.total_groups"), 
       value: stats.totalGroups, 
-      icon: Users, 
+      icon: Layers, 
       trend: calculateTrend(weeklyTrend), 
       data: weeklyTrend && weeklyTrend.length > 0 ? weeklyTrend : [0]
     },
     { 
       label: t("dashboard.stats.active_sessions"), 
       value: stats.activeSessions, 
-      icon: BookOpen, 
+      icon: Radio, 
       trend: "+0%", // Hard to trend active sessions without historical active count
       data: weeklyTrend && weeklyTrend.length > 0 ? weeklyTrend : [0]
     },
     { 
       label: t("dashboard.stats.total_students"), 
       value: stats.totalStudents, 
-      icon: Activity, 
+      icon: GraduationCap, 
       trend: calculateTrend(studentGrowth), 
       data: studentGrowth && studentGrowth.length > 0 ? studentGrowth : [0]
     },
     { 
       label: t("dashboard.stats.avg_attendance"), 
       value: `${stats.avgAttendance}%`, 
-      icon: Clock, 
+      icon: TrendingUp, 
       trend: calculateTrend(attendanceTrend), 
       data: attendanceTrend && attendanceTrend.length > 0 ? attendanceTrend : [0]
     },
@@ -73,7 +72,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({
         >
           {/* Icon + Trend — top right */}
           <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 flex flex-col items-end gap-1 z-10">
-             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center text-slate-400 group-hover:text-white transition-all group-hover:bg-[var(--ui-accent)] group-hover:border-[var(--ui-accent)]/20 group-hover:-rotate-12">
+             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center text-slate-400 group-hover:text-white transition-all group-hover:bg-[var(--ui-accent)] group-hover:border-[var(--ui-accent)]/20">
                <metric.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
              </div>
              <div className={metric.trend.startsWith("+") ? "text-emerald-500" : "text-rose-500"}>

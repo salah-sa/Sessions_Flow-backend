@@ -72,19 +72,20 @@ export const AnalyticsOverview: React.FC<AnalyticsOverviewProps> = ({
                  <p className="text-[9px] sm:text-[10px] font-bold text-slate-600 uppercase tracking-widest">{t("dashboard.analytics.peak_hours")}</p>
                  <p className="text-base sm:text-lg font-black text-white tracking-tighter tabular-nums">{peakHours}</p>
               </div>
-              <div className="space-y-0.5">
-                 <p className="text-[9px] sm:text-[10px] font-bold text-slate-600 uppercase tracking-widest">{t("dashboard.analytics.health_score")}</p>
-                 <p className={`text-base sm:text-lg font-black tracking-tighter uppercase ${
-                   healthScore === "OPTIMAL" ? "text-emerald-500" :
-                   healthScore === "STABLE" ? "text-blue-500" :
-                   healthScore === "DEGRADED" ? "text-amber-500" :
-                   healthScore === "CRITICAL" ? "text-rose-500" : "text-slate-500"
-                 }`}>{healthScore.replace("_", " ")}</p>
-              </div>
+               <div className="space-y-0.5">
+                  <p className="text-[9px] sm:text-[10px] font-bold text-slate-600 uppercase tracking-widest">{t("dashboard.analytics.health_score")}</p>
+                  <p className={`text-base sm:text-lg font-black tracking-tighter uppercase ${
+                    healthScore === "OPTIMAL" ? "text-emerald-500" :
+                    healthScore === "STABLE" ? "text-blue-500" :
+                    healthScore === "DEGRADED" ? "text-amber-500" :
+                    healthScore === "CRITICAL" ? "text-rose-500" : "text-slate-500"
+                  }`}>{t(`dashboard.ops.status_${healthScore.toLowerCase()}`)}</p>
+               </div>
             </div>
-           <button className="text-[9px] sm:text-[10px] font-bold text-slate-500 hover:text-[var(--ui-accent)] uppercase tracking-widest flex items-center gap-1.5 transition-colors">
-              {t("dashboard.analytics.view_full_report")} <HelpCircle className="w-3 h-3" />
-           </button>
+            <button className="text-[9px] sm:text-[10px] font-bold text-slate-500 hover:text-white uppercase tracking-[0.2em] flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-[var(--ui-accent)] hover:border-[var(--ui-accent)]/20 transition-all group/btn">
+               {t("dashboard.analytics.view_full_report")} 
+               <HelpCircle className="w-3.5 h-3.5 group-hover/btn:rotate-12 transition-transform" />
+            </button>
         </div>
       </div>
 

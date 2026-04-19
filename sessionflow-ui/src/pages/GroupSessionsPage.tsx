@@ -101,14 +101,14 @@ const GroupSessionsPage: React.FC = () => {
               {t("group_sessions.page_title")}
             </h1>
             <div className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20">
-              <span className="text-[9px] font-black text-emerald-400 tracking-widest uppercase">{t("sessions.status_live")}</span>
+              <span className="text-xs font-semibold text-emerald-400 uppercase">{t("sessions.status_live")}</span>
             </div>
           </div>
           <p className="text-sm text-slate-400 font-medium flex items-center gap-2">
             <Activity className="w-3.5 h-3.5 text-emerald-500" />
             <span className="text-slate-200 font-bold">{group?.name || "Target Node"}</span>
             <span className="text-slate-600 opacity-50">|</span>
-            <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">ID: {groupId?.slice(0, 8)}</span>
+            <span className="text-xs text-slate-500 font-semibold">ID: {groupId?.slice(0, 8)}</span>
           </p>
         </div>
         {group?.status && (
@@ -119,7 +119,7 @@ const GroupSessionsPage: React.FC = () => {
             "border-slate-700 bg-var(--ui-surface) text-slate-400"
           )}>
             <ShieldCheck className="w-4 h-4" />
-            <span className="text-xs font-black tracking-widest uppercase">{group.status}</span>
+            <span className="text-xs font-semibold">{group.status}</span>
           </div>
         )}
       </div>
@@ -134,8 +134,8 @@ const GroupSessionsPage: React.FC = () => {
             <Layers className="w-5 h-5 text-blue-400" />
           </div>
           <div>
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">{t("group_sessions.level")}</p>
-            <p className="text-xl font-sora font-black text-white">{group?.level || "—"}</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase mb-1">{t("group_sessions.level")}</p>
+            <p className="text-xl font-sora font-semibold text-white">{group?.level || "—"}</p>
           </div>
         </div>
 
@@ -147,8 +147,8 @@ const GroupSessionsPage: React.FC = () => {
             <Users className="w-5 h-5 text-emerald-400" />
           </div>
           <div>
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">{t("group_sessions.students")}</p>
-            <p className="text-xl font-sora font-black text-white">{group?.studentCount || "0"}</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase mb-1">{t("group_sessions.students")}</p>
+            <p className="text-xl font-sora font-semibold text-white">{group?.studentCount || "0"}</p>
           </div>
         </div>
 
@@ -160,14 +160,14 @@ const GroupSessionsPage: React.FC = () => {
             <Target className="w-5 h-5 text-purple-400" />
           </div>
           <div>
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">{t("group_sessions.current_session")}</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase mb-1">{t("group_sessions.current_session")}</p>
             <div className="flex items-center gap-2">
-              <span className="text-3xl font-sora font-black text-white leading-none">
+              <span className="text-3xl font-sora font-semibold text-white leading-none">
                 {String(group?.currentSessionNumber || 1).padStart(2, '0')}
               </span>
               <div className="flex flex-col -space-y-1">
-                <span className="text-[10px] text-slate-600 font-black uppercase tracking-widest">OF</span>
-                <span className="text-sm text-slate-400 font-black tabular-nums">{totalSessions}</span>
+                <span className="text-xs text-slate-600 font-semibold">OF</span>
+                <span className="text-sm text-slate-400 font-semibold tabular-nums">{totalSessions}</span>
               </div>
             </div>
           </div>
@@ -181,8 +181,8 @@ const GroupSessionsPage: React.FC = () => {
             <User className="w-5 h-5 text-amber-400" />
           </div>
           <div>
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">{t("group_sessions.engineer")}</p>
-            <p className="text-sm font-sora font-black text-white leading-tight truncate">{group?.engineerName || "—"}</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase mb-1">{t("group_sessions.engineer")}</p>
+            <p className="text-sm font-sora font-semibold text-white leading-tight truncate">{group?.engineerName || "—"}</p>
           </div>
         </div>
       </div>
@@ -196,8 +196,8 @@ const GroupSessionsPage: React.FC = () => {
 
         <div className="flex justify-between items-end">
           <div className="space-y-1">
-            <p className="text-[10px] font-black text-emerald-500/60 uppercase tracking-[0.2em]">{t("group_sessions.progress_label")}</p>
-            <h3 className="text-4xl font-sora font-black text-white flex items-baseline gap-2">
+            <p className="text-xs font-semibold text-emerald-500/60 uppercase">{t("group_sessions.progress_label")}</p>
+            <h3 className="text-4xl font-sora font-semibold text-white flex items-baseline gap-2">
               {progressPercent}%
               <span className="text-xs text-slate-600 font-bold tracking-normal italic uppercase">{t("group_sessions.sync_complete")}</span>
             </h3>
@@ -207,22 +207,22 @@ const GroupSessionsPage: React.FC = () => {
               <div className="absolute top-0 right-0 p-2 opacity-5">
                  <CheckCircle className="w-8 h-8 text-white" />
               </div>
-              <p className="text-2xl font-sora font-black text-white tabular-nums">{logicalCompleted}</p>
-              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mt-1">{t("group_sessions.completed")}</p>
+              <p className="text-2xl font-sora font-semibold text-white tabular-nums">{logicalCompleted}</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase mt-1">{t("group_sessions.completed")}</p>
             </div>
             <div className="text-start stat-card opacity-0 bg-emerald-500/5 p-4 rounded-2xl border border-emerald-500/10 min-w-[120px] relative overflow-hidden group/metric">
               <div className="absolute top-0 right-0 p-2 opacity-10">
                  <Clock className="w-8 h-8 text-emerald-500" />
               </div>
-              <p className="text-2xl font-sora font-black text-emerald-400 tabular-nums">{activeCount + scheduledCount}</p>
-              <p className="text-[8px] font-black text-emerald-500/40 uppercase tracking-widest mt-1">{t("group_sessions.upcoming")}</p>
+              <p className="text-2xl font-sora font-semibold text-emerald-400 tabular-nums">{activeCount + scheduledCount}</p>
+              <p className="text-xs font-semibold text-emerald-500/40 uppercase mt-1">{t("group_sessions.upcoming")}</p>
             </div>
             <div className="text-start stat-card opacity-0 bg-var(--ui-bg)/40 p-4 rounded-2xl border border-white/5 min-w-[120px] relative overflow-hidden group/metric">
               <div className="absolute top-0 right-0 p-2 opacity-5">
                  <Target className="w-8 h-8 text-white" />
               </div>
-              <p className="text-2xl font-sora font-black text-white tabular-nums">{totalSessions}</p>
-              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mt-1">{t("group_sessions.total")}</p>
+              <p className="text-2xl font-sora font-semibold text-white tabular-nums">{totalSessions}</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase mt-1">{t("group_sessions.total")}</p>
             </div>
           </div>
         </div>
@@ -230,14 +230,14 @@ const GroupSessionsPage: React.FC = () => {
         <div className="space-y-4 relative group/prog">
           <div className="flex justify-between items-end mb-1">
              <div className="space-y-0.5">
-                <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">{t("groups.card.progression")}</p>
-                <p className="text-3xl font-sora font-black text-white leading-none">
+                <p className="text-xs font-semibold text-slate-500 uppercase">{t("groups.card.progression")}</p>
+                <p className="text-3xl font-sora font-semibold text-white leading-none">
                   {progressPercent}<span className="text-sm text-emerald-500/50 ms-0.5">%</span>
                 </p>
              </div>
              <div className="text-end">
-                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">{t("dashboard.modal.level")}</p>
-                <div className="px-3 py-1 bg-var(--ui-accent)/10 border border-var(--ui-accent)/20 rounded-lg text-[10px] font-black text-var(--ui-accent) uppercase tracking-tighter">
+                <p className="text-xs font-semibold text-slate-500 uppercase leading-none mb-1">{t("dashboard.modal.level")}</p>
+                <div className="px-3 py-1 bg-var(--ui-accent)/10 border border-var(--ui-accent)/20 rounded-lg text-xs font-semibold text-var(--ui-accent) uppercase tracking-tighter">
                    Level {group?.level || "-"}
                 </div>
              </div>
@@ -256,7 +256,7 @@ const GroupSessionsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex justify-between text-[10px] font-black text-slate-500 uppercase tracking-widest pt-1">
+          <div className="flex justify-between text-xs font-semibold text-slate-500 uppercase pt-1">
             <span className="flex items-center gap-1.5 font-bold">
                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                {t("group_sessions.secure_log", { count: logicalCompleted })}
@@ -271,13 +271,13 @@ const GroupSessionsPage: React.FC = () => {
       <div className="flex-1 w-full h-full p-4 lg:p-8 space-y-8 animate-fade-in custom-scrollbar overflow-y-auto">
         <div className="max-w-5xl mx-auto px-8 py-10 pb-32 space-y-6">
           <div className="flex items-center justify-between border-b border-white/5 pb-4">
-            <h2 className="text-sm font-black text-white uppercase tracking-[0.3em] flex items-center gap-3">
+            <h2 className="text-sm font-semibold text-white uppercase flex items-center gap-3">
               <Calendar className="w-5 h-5 text-emerald-500" />
               {t("group_sessions.session_timeline")}
             </h2>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-              <span className="text-[10px] font-black text-emerald-500/80 uppercase tracking-widest">{t("group_sessions.realtime_stream")}</span>
+              <span className="text-xs font-semibold text-emerald-500/80 uppercase">{t("group_sessions.realtime_stream")}</span>
             </div>
           </div>
 
@@ -289,12 +289,12 @@ const GroupSessionsPage: React.FC = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <p className="text-lg font-sora font-black text-slate-300 uppercase tracking-[0.1em]">{t("group_sessions.no_sessions")}</p>
+              <p className="text-lg font-sora font-semibold text-slate-300 uppercase tracking-[0.1em]">{t("group_sessions.no_sessions")}</p>
               <p className="text-sm text-slate-500 max-w-sm mx-auto font-medium leading-relaxed">{t("group_sessions.no_sessions_hint")}</p>
             </div>
             <Button 
               onClick={() => navigate("/dashboard")}
-              className="bg-emerald-500 hover:bg-emerald-600 text-black font-black px-8 py-6 rounded-2xl shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all"
+              className="bg-emerald-500 hover:bg-emerald-600 text-black font-semibold px-8 py-6 rounded-2xl shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all"
             >
               {t("dashboard.quick_schedule.button")}
             </Button>
@@ -358,11 +358,11 @@ const GroupSessionsPage: React.FC = () => {
                     {/* Session Detail */}
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-center gap-3">
-                        <p className="text-lg font-sora font-black text-white leading-none">
+                        <p className="text-lg font-sora font-semibold text-white leading-none">
                           {t("group_sessions.session_number", { number: logicalNumber })}
                         </p>
-                        {isActive && <span className="text-[10px] font-black text-blue-400 animate-pulse uppercase tracking-widest bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">{t("group_sessions.live_node")}</span>}
-                        {isCurrentLogical && !isActive && <span className="text-[10px] font-black text-emerald-400 animate-pulse uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">CURRENT NODE</span>}
+                        {isActive && <span className="text-xs font-semibold text-blue-400 animate-pulse uppercase bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">{t("group_sessions.live_node")}</span>}
+                        {isCurrentLogical && !isActive && <span className="text-xs font-semibold text-emerald-400 animate-pulse uppercase bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">CURRENT NODE</span>}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-slate-500 font-bold uppercase tracking-wider">
                         <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> 
@@ -377,7 +377,7 @@ const GroupSessionsPage: React.FC = () => {
 
                     {/* Status Badge Tag */}
                     <div className={cn(
-                      "px-4 py-1.5 rounded-xl border text-[9px] font-black tracking-widest uppercase",
+                      "px-4 py-1.5 rounded-xl border text-xs font-semibold",
                       isCompleted ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" :
                       isActive ? "bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.3)]" :
                       isCurrentLogical ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]" :

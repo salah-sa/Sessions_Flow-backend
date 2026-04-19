@@ -244,7 +244,7 @@ public class AuthService
             var existingStudent = await _db.Students.Find(s => s.Id.ToString() == pending.StudentId || s.StudentId == pending.StudentId).FirstOrDefaultAsync();
             if (existingStudent != null)
             {
-                studentCode = existingStudent.UniqueStudentCode ?? existingStudent.StudentId;
+                studentCode = existingStudent.UniqueStudentCode ?? existingStudent.StudentId ?? "";
                 studentRecordId = existingStudent.Id;
             }
             else

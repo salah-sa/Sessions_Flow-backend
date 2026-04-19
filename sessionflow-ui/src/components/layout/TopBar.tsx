@@ -67,20 +67,15 @@ const TopBar: React.FC = () => {
 
   const [isMaximized, setIsMaximized] = React.useState(false);
 
-  React.useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsMaximized(!!document.fullscreenElement);
-    };
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, []);
+  // Helper to access the native host bridge
+  const getHost = () => (window as any).chrome?.webview?.hostObjects?.sessionFlowHost;
 
   const setMinimized = useUIStore((s) => s.setMinimized);
 
-  const handleMinimize = () => {
-    const electron = (window as any).electronAPI;
-    if (electron) {
-      electron.minimize();
+  const handleMinimize = async () => {
+    const host = getHost();
+    if (host) {
+      await host.minimizeWindow();
     } else {
       setMinimized(true);
       toast("UI Node Minimized", {
@@ -94,15 +89,15 @@ const TopBar: React.FC = () => {
     setShowExitConfirm(true);
   };
 
-  const onConfirmExit = () => {
+  const onConfirmExit = async () => {
     setIsExiting(true);
-    const electron = (window as any).electronAPI;
+    const host = getHost();
     
-    if (electron) {
-      electron.close();
+    if (host) {
+      await host.exitApp();
     } else {
       // Manual Close Instruction for Web
-      const closed = window.close();
+      window.close();
       
       // If window.close() is blocked (usual browser behavior)
       setTimeout(() => {
@@ -120,17 +115,21 @@ const TopBar: React.FC = () => {
   React.useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isExiting) return;
-      e.preventDefault();
-      e.returnValue = '';
+      // In a desktop environment with WebView2, beforeunload might be ignored 
+      // but we keep it for web parity.
+      // e.preventDefault();
+      // e.returnValue = '';
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isExiting]);
 
-  const toggleFullscreen = () => {
-    const electron = (window as any).electronAPI;
-    if (electron) {
-      electron.maximize();
+  const toggleFullscreen = async () => {
+    const host = getHost();
+    if (host) {
+      await host.maximizeWindow();
+      // Toggle local state (approximate since we don't have a reverse event yet)
+      setIsMaximized(!isMaximized);
     } else if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => {
          toast.error("Fullscreen protocol denied by host");
