@@ -8,7 +8,7 @@ import { AnalyticsOverview } from "./dashboard/AnalyticsOverview";
 import { OperationalIntelligence } from "./dashboard/OperationalIntelligence";
 import { QuickScheduleModal } from "./dashboard/QuickScheduleModal";
 import WorldStudentMap from "../components/dashboard/WorldStudentMap";
-import { GeoConsentBanner } from "../components/dashboard/GeoConsentBanner";
+import { GeoAuthorization } from "../components/dashboard/GeoAuthorization";
 import { Button } from "../components/ui";
 import { Plus } from "lucide-react";
 
@@ -27,19 +27,16 @@ const DashboardPage: React.FC = () => {
 
   const { t } = useTranslation();
   const { data, isLoading, isError } = useDashboardSummary();
-  const { setStudentLocationData, studentLocation, updateUser } = useAuthStore();
-  const { mutateAsync: fetchIPGeo } = useIPGeolocation();
-  const { mutate: updateBackendLocation } = useUpdateStudentLocation();
+  const { setStudentLocationData, studentLocation } = useAuthStore();
 
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [newSession, setNewSession] = useState({ name: "", time: "" });
   const [submitting, setSubmitting] = useState(false);
 
-  // Silent Geolocation & Store Hydration
+  // Hydrate store from backend user object if store is empty
   React.useEffect(() => {
     if (!user) return;
 
-    // 1. Hydrate store from backend user object if store is empty
     if (!studentLocation && user.latitude && user.longitude && user.city) {
       setStudentLocationData({
         city: user.city,
@@ -48,36 +45,8 @@ const DashboardPage: React.FC = () => {
         source: 'auto',
         timestamp: Date.now()
       });
-      return;
     }
-
-    // 2. Silent detection for Engineers/Admins with missing location
-    const needsDetection = !user.latitude || !user.longitude;
-    if (needsDetection && !studentLocation) {
-      fetchIPGeo().then(geo => {
-        setStudentLocationData({
-          city: geo.city,
-          lat: geo.lat,
-          lng: geo.lng,
-          source: 'auto',
-          timestamp: Date.now()
-        });
-        updateBackendLocation({ lat: geo.lat, lng: geo.lng, city: geo.city });
-        
-        // Final link: Update the user object in store so the effect doesn't re-trigger
-        updateUser({ 
-          ...user, 
-          latitude: geo.lat, 
-          longitude: geo.lng, 
-          city: geo.city 
-        });
-
-        console.log(`[Telemetry] Auto-synchronized node to ${geo.city}`);
-      }).catch(err => {
-        console.warn("[Telemetry] Silent synchronization failed:", err);
-      });
-    }
-  }, [user, studentLocation, setStudentLocationData, fetchIPGeo, updateBackendLocation]);
+  }, [user, studentLocation, setStudentLocationData]);
 
   const handleScheduleSession = async () => {
     setSubmitting(true);
@@ -151,7 +120,7 @@ const DashboardPage: React.FC = () => {
         studentGrowth={studentGrowth}
       />
 
-      <GeoConsentBanner />
+      <GeoAuthorization />
 
       <WorldStudentMap />
 
