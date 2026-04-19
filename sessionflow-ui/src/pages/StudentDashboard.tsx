@@ -25,6 +25,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../queries/keys";
 import { useAuthStore } from "../store/stores";
 import { cn } from "../lib/utils";
+import WorldStudentMap from "../components/dashboard/WorldStudentMap";
 import { useForwardGeocode } from "../queries/useGeoQueries";
 import { useUpdateStudentLocation } from "../queries/useStudentLocationQueries";
 import { GeoAuthorization } from "../components/dashboard/GeoAuthorization";
