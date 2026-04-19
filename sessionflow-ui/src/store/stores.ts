@@ -263,7 +263,7 @@ export const useChatStore = create<ChatState>()(
 );
 // App Store (Health & Sync + Degradation Engine)
 export type ConnectionMode = "full" | "hybrid" | "degraded";
-export type NetworkQuality = "strong" | "weak" | "offline";
+export type NetworkQuality = "excellent" | "good" | "weak" | "offline";
 
 
 interface AppState {
@@ -286,7 +286,7 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set) => ({
   isOnline: navigator.onLine,
-  networkQuality: navigator.onLine ? "strong" : "offline",
+  networkQuality: navigator.onLine ? "excellent" : "offline",
   connectionStatus: "Disconnected",
   connectionMode: "degraded",
   isSyncing: false,
