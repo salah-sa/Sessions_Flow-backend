@@ -10,6 +10,9 @@ export interface User {
   studentId?: string; // Unique student identifier
   engineerCode?: string; // Code used during registration
   avatarUrl?: string;
+  latitude?: number;
+  longitude?: number;
+  city?: string;
   createdAt: string;
 }
 

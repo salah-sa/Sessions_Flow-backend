@@ -14,6 +14,8 @@ import { Plus } from "lucide-react";
 
 import { useAuthStore } from "../store/stores";
 import { StudentDashboard } from "./StudentDashboard";
+import { useIPGeolocation } from "../queries/useGeoQueries";
+import { useUpdateStudentLocation } from "../queries/useStudentLocationQueries";
 
 const DashboardPage: React.FC = () => {
   const user = useAuthStore((s) => s.user);
@@ -25,10 +27,48 @@ const DashboardPage: React.FC = () => {
 
   const { t } = useTranslation();
   const { data, isLoading, isError } = useDashboardSummary();
+  const { setStudentLocationData, studentLocation } = useAuthStore();
+  const { mutateAsync: fetchIPGeo } = useIPGeolocation();
+  const { mutate: updateBackendLocation } = useUpdateStudentLocation();
 
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [newSession, setNewSession] = useState({ name: "", time: "" });
   const [submitting, setSubmitting] = useState(false);
+
+  // Silent Geolocation & Store Hydration
+  React.useEffect(() => {
+    if (!user) return;
+
+    // 1. Hydrate store from backend user object if store is empty
+    if (!studentLocation && user.latitude && user.longitude && user.city) {
+      setStudentLocationData({
+        city: user.city,
+        lat: user.latitude,
+        lng: user.longitude,
+        source: 'auto',
+        timestamp: Date.now()
+      });
+      return;
+    }
+
+    // 2. Silent detection for Engineers/Admins with missing location
+    const needsDetection = !user.latitude || !user.longitude;
+    if (needsDetection && !studentLocation) {
+      fetchIPGeo().then(geo => {
+        setStudentLocationData({
+          city: geo.city,
+          lat: geo.lat,
+          lng: geo.lng,
+          source: 'auto',
+          timestamp: Date.now()
+        });
+        updateBackendLocation({ lat: geo.lat, lng: geo.lng, city: geo.city });
+        console.log(`[Telemetry] Auto-synchronized node to ${geo.city}`);
+      }).catch(err => {
+        console.warn("[Telemetry] Silent synchronization failed:", err);
+      });
+    }
+  }, [user, studentLocation, setStudentLocationData, fetchIPGeo, updateBackendLocation]);
 
   const handleScheduleSession = async () => {
     setSubmitting(true);

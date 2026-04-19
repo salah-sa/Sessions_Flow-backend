@@ -9,14 +9,14 @@ import { useAuthStore } from "../../store/stores";
 import { toast } from "sonner";
 
 export const GeoConsentBanner: React.FC = () => {
-  const { studentLocation, setStudentLocationData } = useAuthStore();
+  const { studentLocation, setStudentLocationData, user } = useAuthStore();
   const [geoStatus, setGeoStatus] = useState<"idle" | "detecting" | "error">("idle");
   const { mutateAsync: reverseGeocode } = useReverseGeocode();
   const { mutateAsync: fetchIPGeo } = useIPGeolocation();
   const { mutate: updateBackendLocation } = useUpdateStudentLocation();
 
-  // Don't show if location is already set
-  if (studentLocation) return null;
+  // Don't show if location is already set in store or backend
+  if (studentLocation || user?.latitude) return null;
 
   const handleAutoDetect = async () => {
     setGeoStatus("detecting");
