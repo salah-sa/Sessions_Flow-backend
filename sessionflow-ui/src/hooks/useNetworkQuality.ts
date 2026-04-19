@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
-export type NetworkQuality = "strong" | "weak" | "offline";
+export type NetworkQuality = "excellent" | "good" | "weak" | "offline";
 
 interface NetworkInformation extends EventTarget {
   readonly effectiveType: "slow-2g" | "2g" | "3g" | "4g";
@@ -11,121 +11,102 @@ interface NetworkInformation extends EventTarget {
 
 export function useNetworkQuality() {
   const [quality, setQuality] = useState<NetworkQuality>(() => {
-    if (!navigator.onLine) return "offline";
-    // For initial state, try to look at Network Info API immediately if available
-    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
-    if (connection) {
-      if (connection.effectiveType === "slow-2g" || connection.effectiveType === "2g" || connection.downlink < 1.5) return "weak";
-    }
-    return "strong";
+    return navigator.onLine ? "good" : "offline";
   });
 
   const [details, setDetails] = useState<{
     effectiveType: string;
     downlink: number;
     rtt: number;
+    latency: number;
   }>({
     effectiveType: "unknown",
     downlink: 0,
     rtt: 0,
+    latency: 0,
   });
 
+  const checkCountRef = useRef(0);
+
   useEffect(() => {
-    const updateStatus = () => {
+    const measureLatency = async () => {
       if (!navigator.onLine) {
         setQuality("offline");
         return;
       }
 
-      const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
-      
-      if (connection) {
-        const { effectiveType, downlink, rtt } = connection;
-        setDetails({ effectiveType, downlink, rtt });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-        // Tighter thresholds for "weak" connection:
-        // - Effective type is 3G or lower
-        // - Downlink is less than 1.5 Mbps
-        // - RTT is greater than 400ms
-        if (effectiveType === "slow-2g" || effectiveType === "2g" || effectiveType === "3g" || downlink < 1.5 || rtt > 400) {
-          setQuality("weak");
-        } else {
-          setQuality("strong");
+      try {
+        const start = performance.now();
+        
+        // Ping Google's standard 204 No Content URL to test REAL internet egress latency
+        // Note: fetch will fail CORS if we don't do mode: 'no-cors'
+        await fetch("https://www.google.com/generate_204", { 
+          method: "HEAD", 
+          cache: "no-store",
+          mode: "no-cors",
+          signal: controller.signal 
+        });
+        
+        clearTimeout(timeoutId);
+        const latency = performance.now() - start;
+        
+        const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+        let downlink = 0;
+        let rtt = 0;
+        let effectiveType = "unknown";
+
+        if (connection) {
+          downlink = connection.downlink;
+          rtt = connection.rtt;
+          effectiveType = connection.effectiveType;
         }
-      } else {
-        // Fallback for browsers without Network Information API
-        if (navigator.onLine) {
-           // We'll let the heartbeat ping settle it
+
+        setDetails({ effectiveType, downlink, rtt, latency });
+
+        if (latency < 100) {
+          setQuality("excellent");
+        } else if (latency < 400) {
+          setQuality("good");
         } else {
-           setQuality("offline");
+          setQuality("weak");
+        }
+
+      } catch (e) {
+        clearTimeout(timeoutId);
+        if (navigator.onLine) {
+          setQuality("weak"); 
+        } else {
+          setQuality("offline");
         }
       }
     };
 
-    const handleOnline = () => updateStatus();
+    const handleOnline = () => {
+        setQuality("good");
+        measureLatency();
+    }
     const handleOffline = () => setQuality("offline");
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
-    if (connection) {
-      connection.addEventListener("change", updateStatus);
-    }
+    // Initial check
+    measureLatency();
 
-    // Periodic check for effective network status via ping
-    const interval = setInterval(async () => {
-      if (!navigator.onLine) return;
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-      try {
-        const start = Date.now();
-        // Lightweight HEAD request to check latency
-        await fetch("/favicon.ico", { 
-          method: "HEAD", 
-          cache: "no-store",
-          signal: controller.signal 
-        });
-        clearTimeout(timeoutId);
-        const latency = Date.now() - start;
-        
-        // Thresholds based on real-world perception
-        if (latency > 800) {
-          setQuality("weak");
-        } else {
-           // If we are here, latency is good. 
-           // Only update to strong if the connection API isn't telling us otherwise
-           if (connection) {
-             const { effectiveType, downlink, rtt } = connection;
-             if (!(effectiveType === "slow-2g" || effectiveType === "2g" || effectiveType === "3g" || downlink < 1.5 || rtt > 400)) {
-               setQuality("strong");
-             }
-           } else {
-             setQuality("strong");
-           }
-        }
-      } catch (e) {
-        clearTimeout(timeoutId);
-        // If fetch fails but navigator thinks we are online, it's likely offline or blocked
-        if (navigator.onLine) {
-          setQuality("weak"); // Could be an intermittent failure, or slow DNS
-        } else {
-          setQuality("offline");
-        }
-      }
+    // Periodic check
+    const intervalId = setInterval(() => {
+      checkCountRef.current++;
+      // Every 15 seconds ping the external server
+      measureLatency();
     }, 15000);
-
-    updateStatus();
 
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      if (connection) {
-        connection.removeEventListener("change", updateStatus);
-      }
-      clearInterval(interval);
+      clearInterval(intervalId);
     };
   }, []);
 

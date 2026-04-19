@@ -14,13 +14,15 @@ import {
   Clock,
   Archive,
   User,
-  UserCircle
+  UserCircle,
+  Lock
 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/stores";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 const LanguageBridge: React.FC = () => {
   const { i18n } = useTranslation();
@@ -52,42 +54,64 @@ const LanguageBridge: React.FC = () => {
   );
 };
 
-const NavItem = ({ to, icon: Icon, label, badge }: { to: string; icon: any; label: string; badge?: number }) => (
-  <NavLink
-    to={to}
-    className={({ isActive }) => cn(
-      "group relative flex items-center gap-4 px-6 py-4 rounded-xl transition-all duration-300 overflow-hidden",
-      isActive ? "bg-[var(--ui-accent)]/10 text-white" : "text-slate-500 hover:text-white hover:bg-white/[0.02]"
-    )}
-  >
-    {({ isActive }) => (
-      <>
-        {isActive && (
-          <motion.div 
-            layoutId="active-indicator"
-            className="absolute left-0 w-1 h-6 bg-[var(--ui-accent)] rounded-r-full shadow-glow shadow-[var(--ui-accent)]/40"
-          />
-        )}
-        <Icon className={cn("w-5 h-5 transition-all duration-300", isActive ? "text-[var(--ui-accent)]" : "group-hover:text-[var(--ui-accent)]")} />
-        <span className="text-[11px] font-bold uppercase tracking-[0.2em] flex-1">{label}</span>
-        {badge !== undefined && badge > 0 && (
-          <span className="px-2 py-0.5 rounded-md bg-[var(--ui-accent)] text-white text-[8px] font-bold shadow-glow shadow-[var(--ui-accent)]/20">
-            {badge}
-          </span>
-        )}
-        {isActive && (
-          <div className="absolute inset-0 bg-gradient-to-r from-[var(--ui-accent)]/5 to-transparent pointer-events-none" />
-        )}
-      </>
-    )}
-  </NavLink>
-);
+const NavItem = ({ to, icon: Icon, label, badge, locked }: { to: string; icon: any; label: string; badge?: number; locked?: boolean }) => {
+  const handleClick = (e: React.MouseEvent) => {
+    if (locked) {
+      e.preventDefault();
+      toast.error("Not allowed, only for engineer");
+    }
+  };
+
+  return (
+    <NavLink
+      to={to}
+      onClick={handleClick}
+      className={({ isActive }) => cn(
+        "group relative flex items-center gap-4 px-6 py-4 rounded-xl transition-all duration-300 overflow-hidden",
+        isActive && !locked ? "bg-[var(--ui-accent)]/10 text-white" : "text-slate-500 hover:text-white hover:bg-white/[0.02]",
+        locked && "opacity-75"
+      )}
+    >
+      {({ isActive }) => (
+        <>
+          {isActive && !locked && (
+            <motion.div 
+              layoutId="active-indicator"
+              className="absolute left-0 w-1 h-6 bg-[var(--ui-accent)] rounded-r-full shadow-glow shadow-[var(--ui-accent)]/40"
+            />
+          )}
+          <Icon className={cn("w-5 h-5 transition-all duration-300", 
+            isActive && !locked ? "text-[var(--ui-accent)]" : "group-hover:text-[var(--ui-accent)]",
+            locked && "text-rose-500 group-hover:text-rose-500"
+          )} />
+          <span className="text-[11px] font-bold uppercase tracking-[0.2em] flex-1">{label}</span>
+          
+          {locked ? (
+            <div className="w-6 h-6 rounded-md bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shadow-glow shadow-rose-500/10 backdrop-blur-md">
+               <Lock className="w-3 h-3 text-rose-500" />
+            </div>
+          ) : badge !== undefined && badge > 0 ? (
+            <span className="px-2 py-0.5 rounded-md bg-[var(--ui-accent)] text-white text-[8px] font-bold shadow-glow shadow-[var(--ui-accent)]/20">
+              {badge}
+            </span>
+          ) : null}
+          
+          {isActive && !locked && (
+            <div className="absolute inset-0 bg-gradient-to-r from-[var(--ui-accent)]/5 to-transparent pointer-events-none" />
+          )}
+        </>
+      )}
+    </NavLink>
+  );
+};
 
 const Sidebar: React.FC = () => {
   const { t } = useTranslation();
   const logout = useAuthStore((s) => s.logout);
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
+
+  const isStudent = user?.role === "Student";
 
   const handleLogout = () => {
     logout();
@@ -112,10 +136,10 @@ const Sidebar: React.FC = () => {
 
       <nav className="flex-1 px-4 space-y-2 overflow-y-auto custom-scrollbar">
         <NavItem to="/dashboard" icon={BarChart3} label={t("nav.dashboard")} />
-        <NavItem to="/groups" icon={Users} label={t("nav.groups") || "Groups"} />
-        <NavItem to="/sessions" icon={Target} label={t("nav.sessions") || "Sessions"} />
-        <NavItem to="/students" icon={User} label={t("nav.students")} />
-        <NavItem to="/timetable" icon={Calendar} label={t("nav.timetable")} />
+        <NavItem to="/groups" icon={Users} label={t("nav.groups") || "Groups"} locked={isStudent} />
+        <NavItem to="/sessions" icon={Target} label={t("nav.sessions") || "Sessions"} locked={isStudent} />
+        <NavItem to="/students" icon={User} label={t("nav.students")} locked={isStudent} />
+        <NavItem to="/timetable" icon={Calendar} label={t("nav.timetable")} locked={isStudent} />
         <NavItem to="/chat" icon={MessageSquare} label={t("nav.chat")} />
         <NavItem to="/history" icon={Clock} label={t("nav.history") || "History"} />
         
@@ -131,9 +155,9 @@ const Sidebar: React.FC = () => {
           <NavItem to="/staff" icon={Zap} label={t("staff.portal_title")} />
         )}
         
-        <NavItem to="/archive" icon={Archive} label={t("nav.archive") || "Archive"} />
+        <NavItem to="/archive" icon={Archive} label={t("nav.archive") || "Archive"} locked={isStudent} />
         <NavItem to="/profile" icon={UserCircle} label={t("nav.profile") || "Profile"} />
-        <NavItem to="/settings" icon={Settings} label={t("nav.settings")} />
+        <NavItem to="/settings" icon={Settings} label={t("nav.settings")} locked={isStudent} />
 
         <LanguageBridge />
       </nav>

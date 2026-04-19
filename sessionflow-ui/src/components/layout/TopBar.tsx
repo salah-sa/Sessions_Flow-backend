@@ -162,8 +162,10 @@ const TopBar: React.FC = () => {
                </div>
                 <div className="w-px h-3 bg-white/10" />
                 <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/[0.02] border border-white/5">
-                   {networkQuality === "strong" ? (
-                     <Wifi className="w-3 h-3 text-emerald-500 shadow-glow shadow-emerald-500/50" />
+                   {networkQuality === "excellent" ? (
+                     <Zap className="w-3 h-3 text-emerald-500 shadow-glow shadow-emerald-500/50" />
+                   ) : networkQuality === "good" ? (
+                     <Wifi className="w-3 h-3 text-[var(--ui-accent)] shadow-glow shadow-[var(--ui-accent)]/50" />
                    ) : networkQuality === "weak" ? (
                      <AlertTriangle className="w-3 h-3 text-amber-500 shadow-glow shadow-amber-500/50" />
                    ) : (
@@ -171,7 +173,8 @@ const TopBar: React.FC = () => {
                    )}
                    <span className={cn(
                      "text-[8px] font-black uppercase tracking-widest",
-                     networkQuality === "strong" ? "text-emerald-500" :
+                     networkQuality === "excellent" ? "text-emerald-500" :
+                     networkQuality === "good" ? "text-[var(--ui-accent)]" :
                      networkQuality === "weak" ? "text-amber-500" : "text-rose-500"
                    )}>
                       {networkQuality.toUpperCase()}
