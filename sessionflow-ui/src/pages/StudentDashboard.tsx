@@ -25,9 +25,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../queries/keys";
 import { useAuthStore } from "../store/stores";
 import { cn } from "../lib/utils";
-import WorldStudentMap from "../components/dashboard/WorldStudentMap";
-import { useReverseGeocode, useIPGeolocation, useForwardGeocode } from "../queries/useGeoQueries";
+import { useForwardGeocode } from "../queries/useGeoQueries";
 import { useUpdateStudentLocation } from "../queries/useStudentLocationQueries";
+import { GeoAuthorization } from "../components/dashboard/GeoAuthorization";
 import { toast } from "sonner";
 
 export const StudentDashboard: React.FC = () => {
@@ -35,15 +35,11 @@ export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const { studentLocation, setStudentLocation, setStudentLocationData } = useAuthStore();
-  const [tempLocation, setTempLocation] = useState("");
-  const [geoStatus, setGeoStatus] = useState<"idle" | "detecting" | "denied" | "error">("idle");
-  const { mutateAsync: reverseGeocode } = useReverseGeocode();
-  const { mutateAsync: fetchIPGeo } = useIPGeolocation();
+  const { studentLocation, setStudentLocation, setStudentLocationData, user, updateUser } = useAuthStore();
   const { mutateAsync: forwardGeocode } = useForwardGeocode();
   const { mutate: updateBackendLocation } = useUpdateStudentLocation();
 
-  // Hydrate location store from backend data if available and store is empty
+  // Hydrate store from backend data if available and store is empty
   React.useEffect(() => {
     if (data?.identity && !studentLocation) {
       const { city, latitude, longitude } = data.identity;
@@ -66,76 +62,16 @@ export const StudentDashboard: React.FC = () => {
             timestamp: Date.now()
           });
           updateBackendLocation({ lat: coords.lat, lng: coords.lng, city });
+          
+          if (user) {
+            updateUser({ ...user, latitude: coords.lat, longitude: coords.lng, city });
+          }
         }).catch(() => {
           setStudentLocation(city);
         });
       }
     }
-  }, [data?.identity, studentLocation, setStudentLocation, setStudentLocationData, forwardGeocode, updateBackendLocation]);
-
-  const handleAutoDetect = async () => {
-    setGeoStatus("detecting");
-    
-    const finalizeLocation = async (latitude: number, longitude: number, citySource: string) => {
-      try {
-        const city = citySource === 'auto' 
-          ? await reverseGeocode({ lat: latitude, lng: longitude })
-          : citySource;
-        
-        const locationData = {
-          city,
-          lat: latitude,
-          lng: longitude,
-          source: 'auto' as const,
-          timestamp: Date.now()
-        };
-
-        setStudentLocationData(locationData);
-        updateBackendLocation({ lat: latitude, lng: longitude, city });
-        
-        toast.success(`Node synchronized: ${city}`);
-        setGeoStatus("idle");
-      } catch (err) {
-        const fallbackCity = `${latitude.toFixed(2)}, ${longitude.toFixed(2)}`;
-        setStudentLocationData({
-          city: fallbackCity,
-          lat: latitude,
-          lng: longitude,
-          source: 'auto',
-          timestamp: Date.now()
-        });
-        updateBackendLocation({ lat: latitude, lng: longitude, city: fallbackCity });
-        setGeoStatus("idle");
-      }
-    };
-
-    const tryIPFallback = async () => {
-      try {
-        const data = await fetchIPGeo();
-        await finalizeLocation(data.lat, data.lng, data.city);
-      } catch (err) {
-        setGeoStatus("denied");
-        toast.error("Geolocation failed. Please enter city manually.");
-      }
-    };
-
-    if (!navigator.geolocation) {
-      await tryIPFallback();
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        await finalizeLocation(position.coords.latitude, position.coords.longitude, 'auto');
-      },
-      async (error) => {
-        console.error("Geo Error:", error);
-        // If denied or error, try IP fallback
-        await tryIPFallback();
-      },
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
-  };
+  }, [data?.identity, studentLocation, setStudentLocation, setStudentLocationData, forwardGeocode, updateBackendLocation, user, updateUser]);
 
   if (isLoading) {
     return (
@@ -153,142 +89,7 @@ export const StudentDashboard: React.FC = () => {
   const hasResolvedLocation = studentLocation || (data?.identity?.city && data.identity.latitude !== null);
   
   if (!hasResolvedLocation && !isLoading && !error && !data?.error) {
-    return (
-      <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-4">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9, y: 30 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          className="w-full max-w-xl bg-[var(--ui-sidebar-bg)] border border-white/5 rounded-[40px] p-12 relative overflow-hidden shadow-[0_0_150px_rgba(var(--ui-accent-rgb),0.15)]"
-        >
-          {/* Decorative Elements */}
-          <div className="absolute top-0 right-0 w-80 h-80 bg-[var(--ui-accent)]/10 blur-[120px] rounded-full translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/10 blur-[100px] rounded-full -translate-x-1/2 translate-y-1/2" />
-          
-          <div className="relative z-10 text-center">
-            <motion.div 
-              animate={geoStatus === "detecting" ? { rotate: 360 } : {}}
-              transition={geoStatus === "detecting" ? { repeat: Infinity, duration: 2, ease: "linear" } : {}}
-              className="w-24 h-24 rounded-[32px] bg-gradient-to-br from-[var(--ui-accent)]/20 to-transparent border border-white/10 flex items-center justify-center mx-auto mb-10 relative group"
-            >
-               <Navigation className={cn("w-12 h-12 text-[var(--ui-accent)] transition-all duration-700", geoStatus === "detecting" && "scale-75")} />
-               <div className="absolute -inset-4 bg-[var(--ui-accent)]/10 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-            </motion.div>
-
-            <h2 className="text-4xl font-sora font-bold text-white mb-6 uppercase tracking-tight">
-              Initialize <span className="text-[var(--ui-accent)]">Node</span>
-            </h2>
-            <p className="text-slate-400 font-medium text-lg leading-relaxed mb-12 px-6">
-              Establish your geographic coordinates to activate dashboard telemetry and synchronize with local operational clusters.
-            </p>
-
-            <div className="flex flex-col gap-5">
-                <Button 
-                  onClick={handleAutoDetect}
-                  disabled={geoStatus === "detecting"}
-                  className={cn(
-                    "h-20 w-full text-lg font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl active:scale-95 transition-all gap-4 border-0 relative overflow-hidden",
-                    geoStatus === "denied" 
-                      ? "bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500/20" 
-                      : "bg-white text-black hover:bg-slate-100 ring-1 ring-white/20"
-                  )}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer" />
-                  {geoStatus === "detecting" ? (
-                    <>
-                      <Loader2 className="w-6 h-6 animate-spin" />
-                      <span>Linking...</span>
-                    </>
-                  ) : geoStatus === "denied" ? (
-                    <>
-                      <AlertTriangle className="w-6 h-6" />
-                      <span>Permission Denied</span>
-                    </>
-                  ) : (
-                    <>
-                      <Crosshair className="w-6 h-6" />
-                      <span>Sync Telemetry</span>
-                    </>
-                  )}
-                </Button>
-
-                <div className="relative py-6">
-                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5" /></div>
-                  <div className="relative flex justify-center text-[10px] font-black text-slate-700 uppercase tracking-[0.4em]"><span className="bg-[var(--ui-sidebar-bg)] px-6">Manual Override</span></div>
-               </div>
-
-               <div className="flex gap-4">
-                 <div className="relative flex-1 group">
-                   <div className="absolute inset-0 bg-[var(--ui-accent)]/5 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
-                   <Input 
-                     value={tempLocation}
-                     onChange={(e) => setTempLocation(e.target.value)}
-                     placeholder="LOCATION CODE / CITY..."
-                     className="h-16 bg-white/[0.03] border-white/5 focus:border-[var(--ui-accent)]/30 focus:bg-white/[0.05] pl-8 rounded-2xl font-mono font-bold uppercase text-sm tracking-wider transition-all placeholder:text-slate-700"
-                     onKeyDown={async (e) => {
-                        if (e.key === "Enter" && tempLocation.trim()) {
-                            const loc = tempLocation.trim();
-                            try {
-                                const coords = await forwardGeocode(loc);
-                                setStudentLocationData({
-                                  city: loc,
-                                  lat: coords.lat,
-                                  lng: coords.lng,
-                                  source: 'auto',
-                                  timestamp: Date.now()
-                                });
-                                updateBackendLocation({ lat: coords.lat, lng: coords.lng, city: loc });
-                                toast.success(`Node synchronized: ${loc}`);
-                            } catch (err) {
-                                setStudentLocation(loc);
-                                updateBackendLocation({ lat: null as any, lng: null as any, city: loc });
-                                toast.success(`Manual sync: ${loc}`);
-                            }
-                        }
-                     }}
-                   />
-                 </div>
-                 <Button 
-                   variant="outline"
-                   disabled={!tempLocation.trim()}
-                    onClick={async () => {
-                       const loc = tempLocation.trim();
-                       try {
-                         const coords = await forwardGeocode(loc);
-                         setStudentLocationData({
-                           city: loc,
-                           lat: coords.lat,
-                           lng: coords.lng,
-                           source: 'auto',
-                           timestamp: Date.now()
-                         });
-                         updateBackendLocation({ lat: coords.lat, lng: coords.lng, city: loc });
-                         toast.success(`Node synchronized: ${loc}`);
-                       } catch (err) {
-                         setStudentLocation(loc);
-                         updateBackendLocation({ lat: null as any, lng: null as any, city: loc });
-                         toast.success(`Manual sync: ${loc}`);
-                       }
-                    }}
-                   className="h-16 px-8 border-white/5 bg-white/[0.02] hover:bg-white/10 hover:border-white/20 rounded-2xl text-[var(--ui-accent)] transition-all"
-                 >
-                    <ArrowRight className="w-6 h-6" />
-                 </Button>
-               </div>
-            </div>
-
-            <div className="mt-12 flex flex-col items-center gap-4">
-              <div className="flex items-center gap-3">
-                 <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">Encrypted Neural Handshake Active</span>
-              </div>
-              <p className="text-[9px] font-bold text-slate-700 uppercase tracking-tighter max-w-xs mx-auto leading-relaxed">
-                By initializing, you authorize telemetry sync for local session optimization and group distribution mapping.
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    );
+    return <GeoAuthorization />;
   }
 
   if (error || data?.error) {
