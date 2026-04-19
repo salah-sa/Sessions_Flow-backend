@@ -433,7 +433,7 @@ public static class StudentEndpoints
         }).RequireAuthorization();
 
         // GET /api/students/locations - Get all student and engineer locations for the world map
-        app.MapGet("/api/students/locations", async (MongoService db, IPresenceService presence) =>
+        app.MapGet("/api/students/locations", async (MongoService db, IPresenceService presence, HttpContext ctx) =>
         {
             // Only fetch students and engineers who have location data
             var usersWithLocation = await db.Users
