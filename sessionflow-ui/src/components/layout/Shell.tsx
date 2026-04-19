@@ -8,6 +8,7 @@ import ConnectionBanner from "./ConnectionBanner";
 import NotificationPopup from "../chat/NotificationPopup";
 import CallOverlay from "../call/CallOverlay";
 import OfflineNotification from "./OfflineNotification";
+import { GeoAuthorization } from "../dashboard/GeoAuthorization";
 
 import { useRealtimeNotifications } from "../../hooks/realtime";
 import { useHeartbeat } from "../../hooks/useHeartbeat";
@@ -77,6 +78,7 @@ const Shell: React.FC = () => {
       <NotificationPopup />
       <CallOverlay />
       <OfflineNotification />
+      <GeoAuthorization />
 
       
       {/* Zenith Central Horizon Lighting */}

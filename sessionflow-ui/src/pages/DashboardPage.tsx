@@ -8,7 +8,7 @@ import { AnalyticsOverview } from "./dashboard/AnalyticsOverview";
 import { OperationalIntelligence } from "./dashboard/OperationalIntelligence";
 import { QuickScheduleModal } from "./dashboard/QuickScheduleModal";
 import WorldStudentMap from "../components/dashboard/WorldStudentMap";
-import { GeoAuthorization } from "../components/dashboard/GeoAuthorization";
+
 import { Button } from "../components/ui";
 import { Plus } from "lucide-react";
 
@@ -103,7 +103,7 @@ const DashboardPage: React.FC = () => {
 
   return (
     <>
-    <GeoAuthorization />
+
     <div className="container-page pb-16 sm:pb-20 space-y-5 sm:space-y-8 lg:space-y-10 pt-4 sm:pt-6">
       {/* Offline banner */}
       {isError && (

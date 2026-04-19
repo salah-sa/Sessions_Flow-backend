@@ -27,7 +27,7 @@ const ArchivePage: React.FC = () => {
     isFetchingNextPage
   } = useInfiniteGroups({ 
     search: debouncedSearch, 
-    status: "Completed",
+    status: "Archived",
     pageSize: 12 
   });
 
