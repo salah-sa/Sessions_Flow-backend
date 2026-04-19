@@ -69,6 +69,8 @@ const diamondPath = (r: number): string => {
 interface MarkerData {
   id: string;
   name: string;
+  userName: string;
+  city: string;
   coordinates: [number, number];
   count: number;
   level: number;
@@ -94,7 +96,9 @@ const WorldStudentMap: React.FC<{ compact?: boolean }> = ({ compact }) => {
       if (!aggregation[key]) {
         aggregation[key] = {
           id: node.id,
-          name: node.city,
+          name: node.name,
+          userName: node.name,
+          city: node.city,
           coordinates: [node.lng, node.lat],
           count: 0,
           level: node.level,
@@ -292,7 +296,7 @@ const WorldStudentMap: React.FC<{ compact?: boolean }> = ({ compact }) => {
                         {/* Info */}
                         <div className="flex flex-col gap-1 pr-2">
                           <div className="flex flex-col">
-                            <span className="text-[12px] font-black text-white leading-tight">{node.name}</span>
+                            <span className="text-[12px] font-black text-white leading-tight">{node.count === 1 ? node.userName : `${node.city} Hub`}</span>
                             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
                               {online ? "● Online" : "○ Offline"}
                             </span>

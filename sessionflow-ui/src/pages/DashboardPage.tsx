@@ -102,6 +102,8 @@ const DashboardPage: React.FC = () => {
   });
 
   return (
+    <>
+    <GeoAuthorization />
     <div className="container-page pb-16 sm:pb-20 space-y-5 sm:space-y-8 lg:space-y-10 pt-4 sm:pt-6">
       {/* Offline banner */}
       {isError && (
@@ -120,7 +122,7 @@ const DashboardPage: React.FC = () => {
         studentGrowth={studentGrowth}
       />
 
-      <GeoAuthorization />
+
 
       <WorldStudentMap />
 
@@ -161,6 +163,7 @@ const DashboardPage: React.FC = () => {
         submitting={submitting}
       />
     </div>
+    </>
   );
 };
 export default DashboardPage;

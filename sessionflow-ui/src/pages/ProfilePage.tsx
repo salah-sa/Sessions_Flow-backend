@@ -110,7 +110,7 @@ const ProfilePage: React.FC = () => {
                 <p className="text-xs font-semibold text-slate-500 uppercase mb-1">{t("profile.clearance_level")}</p>
                 <div className="flex items-center gap-2">
                    <ShieldCheck className="w-4 h-4 text-var(--ui-accent)" />
-                   <p className="text-xs font-semibold text-whiteer">{user?.role?.toUpperCase() || (user?.role === "Student" ? "STUDENT" : "STAFF")}</p>
+                   <p className="text-xs font-semibold text-white">{user?.role?.toUpperCase() || (user?.role === "Student" ? "STUDENT" : "STAFF")}</p>
                 </div>
              </div>
              <Badge variant="success" className="bg-emerald-500/10 text-emerald-500 border-none px-4 h-11 flex items-center text-xs font-semibold shadow-glow shadow-emerald-500/5">{t("profile.status_active")}</Badge>
