@@ -8,6 +8,7 @@ import { AnalyticsOverview } from "./dashboard/AnalyticsOverview";
 import { OperationalIntelligence } from "./dashboard/OperationalIntelligence";
 import { QuickScheduleModal } from "./dashboard/QuickScheduleModal";
 import WorldStudentMap from "../components/dashboard/WorldStudentMap";
+import { GeoConsentBanner } from "../components/dashboard/GeoConsentBanner";
 import { Button } from "../components/ui";
 import { Plus } from "lucide-react";
 
@@ -100,6 +101,8 @@ const DashboardPage: React.FC = () => {
         attendanceTrend={attendanceTrend}
         studentGrowth={studentGrowth}
       />
+
+      <GeoConsentBanner />
 
       <WorldStudentMap />
 

@@ -15,11 +15,11 @@ public static class TimetableEndpoints
         var group = app.MapGroup("/api/timetable").RequireAuthorization();
 
         // GET /api/timetable — weekly schedule
-        group.MapGet("/", async (MongoService db, HttpContext ctx) =>
+        group.MapGet("/", async (MongoService db, AuthService auth, HttpContext ctx) =>
         {
             var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
-            Guid.TryParse(userIdStr, out var uid);
+            if (!Guid.TryParse(userIdStr, out var uid)) return Results.Unauthorized();
 
             var now = DateTimeOffset.UtcNow;
             var cairoOffset = TimeSpan.FromHours(2);
@@ -34,8 +34,25 @@ public static class TimetableEndpoints
                                sessionBuilder.Lt(s => s.ScheduledAt, weekEnd) &
                                sessionBuilder.Eq(s => s.IsDeleted, false);
 
-            if (role != "Admin")
+            List<Guid> studentGroupIds = new();
+            if (role == "Student")
+            {
+                var user = await db.Users.Find(u => u.Id == uid).FirstOrDefaultAsync();
+                if (user != null)
+                {
+                    var studentInfos = await auth.ResolveAllStudentsForUser(user);
+                    studentGroupIds = studentInfos?.Select(s => s.GroupId).ToList() ?? new();
+                }
+                
+                if (!studentGroupIds.Any())
+                    return Results.Ok(new { sessions = new List<object>(), availability = new List<object>(), groupSchedules = new List<object>(), weekStart, weekEnd });
+
+                sessionFilter &= sessionBuilder.In(s => s.GroupId, studentGroupIds);
+            }
+            else if (role == "Engineer")
+            {
                 sessionFilter &= sessionBuilder.Eq(s => s.EngineerId, uid);
+            }
 
             var sessions = await db.Sessions.Find(sessionFilter).SortBy(s => s.ScheduledAt).ToListAsync();
             
@@ -72,15 +89,34 @@ public static class TimetableEndpoints
 
             var availabilityBuilder = Builders<TimetableEntry>.Filter;
             var availabilityFilter = availabilityBuilder.Empty;
-            if (role != "Admin")
+            
+            if (role == "Student")
+            {
+                // Availability isn't relevant for students in the same way, return empty or keep as is? 
+                // Actually, availability is per engineer. Students don't have availability entries.
+                availabilityFilter &= availabilityBuilder.Eq(t => t.Id, Guid.Empty); 
+            }
+            else if (role == "Engineer")
+            {
                 availabilityFilter &= availabilityBuilder.Eq(t => t.EngineerId, uid);
+            }
 
             var availability = await db.TimetableEntries.Find(availabilityFilter).ToListAsync();
 
-            // Fetch all GroupSchedules for the groups managed by this engineer
-            var activeGroupIds = await db.Groups.Find(g => 
-                (role == "Admin" || g.EngineerId == uid) && !g.IsDeleted
-            ).Project(g => g.Id).ToListAsync();
+            // Resolve which groups to show schedules for
+            List<Guid> activeGroupIds;
+            if (role == "Student")
+            {
+                activeGroupIds = studentGroupIds;
+            }
+            else if (role == "Admin")
+            {
+                activeGroupIds = await db.Groups.Find(g => !g.IsDeleted).Project(g => g.Id).ToListAsync();
+            }
+            else // Engineer
+            {
+                activeGroupIds = await db.Groups.Find(g => g.EngineerId == uid && !g.IsDeleted).Project(g => g.Id).ToListAsync();
+            }
 
             var schedules = await db.GroupSchedules.Find(gs => activeGroupIds.Contains(gs.GroupId)).ToListAsync();
 
