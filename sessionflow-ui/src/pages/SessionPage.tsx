@@ -152,7 +152,7 @@ const SessionPage: React.FC = () => {
 
   if (!activeSession && !id) return (
     <div className="h-full flex flex-col items-center justify-center p-8 space-y-6 animate-fade-in opacity-50">
-       <Users className="w-16 h-16 text-text-slate-500" />
+       <Users className="w-16 h-16 text-slate-500" />
        <div className="text-center">
          <h2 className="text-xl font-sora font-extrabold text-white uppercase tracking-tight">{t("sessions.select_active")}</h2>
          <p className="text-sm text-slate-400 font-medium max-w-xs mx-auto">{t("sessions.select_active_subtitle")}</p>
@@ -185,8 +185,8 @@ const SessionPage: React.FC = () => {
               <div className={cn(
                 "px-3 py-1 rounded-full text-xs font-semibold border",
                 activeSession.status === "Active" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" :
-                activeSession.status === "Ended" ? "bg-var(--ui-surface) border-white/5 text-slate-400" :
-                "bg-var(--ui-accent)/10 border-var(--ui-accent)/20 text-var(--ui-accent)"
+                activeSession.status === "Ended" ? "bg-[var(--ui-surface)] border-white/5 text-slate-400" :
+                "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/20 text-[var(--ui-accent)]"
               )}>
                 {activeSession.status === "Active" ? t("sessions.status_live") : activeSession.status === "Ended" ? t("sessions.status_archived") : t("sessions.status_standby")}
               </div>
@@ -226,7 +226,7 @@ const SessionPage: React.FC = () => {
                      "h-12 px-8 rounded-xl font-semibold text-xs transition-all flex items-center gap-3",
                      (activeSession as any).canStart 
                         ? "bg-emerald-500 text-black shadow-glow shadow-emerald-500/20 hover:scale-105" 
-                        : "bg-var(--ui-sidebar-bg) text-text-slate-500 opacity-50 cursor-not-allowed border border-white/5"
+                        : "bg-[var(--ui-sidebar-bg)] text-slate-500 opacity-50 cursor-not-allowed border border-white/5"
                    )}
                  >
                    <Play className="w-4 h-4 fill-current" /> {t("sessions.start")}
@@ -238,12 +238,12 @@ const SessionPage: React.FC = () => {
                </Button>
              ) : (
                <div className="flex items-center gap-3">
-                  <div className="px-4 py-2 bg-var(--ui-sidebar-bg) border border-white/5 rounded-xl text-xs font-semibold text-slate-500 uppercase">
+                  <div className="px-4 py-2 bg-[var(--ui-sidebar-bg)] border border-white/5 rounded-xl text-xs font-semibold text-slate-500 uppercase">
                       {t("sessions.node_locked")}
                   </div>
                </div>
              )}
-             <button className="w-12 h-12 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all">
+             <button className="w-12 h-12 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all hidden">
                <Settings className="w-5 h-5" />
              </button>
            </div>
@@ -257,13 +257,13 @@ const SessionPage: React.FC = () => {
            <div className="flex items-center justify-between">
               <div className="space-y-1">
                  <h2 className="text-lg font-sora font-semibold text-white flex items-center gap-3">
-                    <Users className="w-5 h-5 text-var(--ui-accent)" />
+                    <Users className="w-5 h-5 text-[var(--ui-accent)]" />
                     {t("sessions.roster_title")}
                  </h2>
-                 <p className="text-xs text-text-slate-500 font-semibold ps-8">{t("sessions.roster_subtitle")}</p>
+                 <p className="text-xs text-slate-500 font-semibold ps-8">{t("sessions.roster_subtitle")}</p>
               </div>
               <div className="flex gap-3">
-                 <button className="btn-ghost h-9 px-4 rounded-xl text-xs font-semibold border border-white/5">
+                 <button className="btn-ghost h-9 px-4 rounded-xl text-xs font-semibold border border-white/5 hidden">
                     <Save className="w-3.5 h-3.5 me-2" /> {t("sessions.force_save")}
                  </button>
               </div>
@@ -341,7 +341,7 @@ const SessionPage: React.FC = () => {
                           {Math.round((records.filter(r => r.status === "Present" || r.status === "Late").length / (students.length || 1)) * 100)}%
                        </span>
                     </div>
-                    <div className="h-1 w-full bg-var(--ui-sidebar-bg) rounded-full overflow-hidden">
+                    <div className="h-1 w-full bg-[var(--ui-sidebar-bg)] rounded-full overflow-hidden">
                        <div 
                           className="h-full bg-emerald-500 shadow-glow transition-all duration-1000 relative" 
                           style={{ width: `${(records.filter(r => r.status === "Present" || r.status === "Late").length / (students.length || 1)) * 100}%` }}
@@ -356,13 +356,13 @@ const SessionPage: React.FC = () => {
            {/* Deployment Notes */}
            <div className="flex-1 flex flex-col space-y-4 min-h-0">
                <div className="flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-var(--ui-accent)" />
+                  <MessageSquare className="w-4 h-4 text-[var(--ui-accent)]" />
                   <span className="text-xs font-semibold text-white uppercase">{t("sessions.deployment_log")}</span>
                </div>
-               <div className="flex-1 card-base p-0 bg-var(--ui-bg)/50 border-white/5 overflow-hidden flex flex-col">
+               <div className="flex-1 card-base p-0 bg-[var(--ui-bg)]/50 border-white/5 overflow-hidden flex flex-col">
                   {activeSession.status === "Active" ? (
                     <textarea 
-                      className="flex-1 w-full bg-transparent p-4 text-xs font-medium text-slate-300 focus:outline-none resize-none placeholder:text-var(--ui-surface)"
+                      className="flex-1 w-full bg-transparent p-4 text-xs font-medium text-slate-300 focus:outline-none resize-none placeholder:text-[var(--ui-surface)]"
                       placeholder={t("sessions.observations_placeholder")}
                       value={sessionNotes}
                       onChange={(e) => setSessionNotes(e.target.value)}
@@ -373,8 +373,8 @@ const SessionPage: React.FC = () => {
                     </div>
                   )}
                   <div className="px-4 py-3 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
-                     <span className="text-xs font-semibold text-text-slate-500 uppercase">{t("sessions.auto_save")}</span>
-                     <Save className="w-3 h-3 text-var(--ui-surface)" />
+                     <span className="text-xs font-semibold text-slate-500 uppercase">{t("sessions.saved_on_end", "Saved on session end")}</span>
+                     <Save className="w-3 h-3 text-[var(--ui-surface)]" />
                   </div>
                </div>
            </div>
@@ -382,8 +382,8 @@ const SessionPage: React.FC = () => {
            {/* Tactical Information */}
            <div className="space-y-3">
               <div className="flex items-center gap-2">
-                 <AlertCircle className="w-4 h-4 text-text-slate-500" />
-                 <span className="text-xs font-semibold text-text-slate-500 uppercase">{t("sessions.system_info")}</span>
+                 <AlertCircle className="w-4 h-4 text-slate-500" />
+                 <span className="text-xs font-semibold text-slate-500 uppercase">{t("sessions.system_info")}</span>
               </div>
               <div className="p-4 bg-white/[0.02] rounded-2xl border border-white/5 space-y-4">
                  <div className="flex justify-between items-center">
@@ -392,7 +392,7 @@ const SessionPage: React.FC = () => {
                  </div>
                  <div className="flex justify-between items-center">
                     <span className="text-xs font-semibold text-slate-500 uppercase">{t("sessions.encryption")}</span>
-                    <span className="text-xs font-semibold text-whiteer">{t("sessions.encryption_value")}</span>
+                    <span className="text-xs font-semibold text-white">{t("sessions.encryption_value")}</span>
                  </div>
               </div>
            </div>
@@ -428,14 +428,14 @@ const SessionPage: React.FC = () => {
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-500 uppercase ms-1">{t("sessions.modal.notes_label")}</label>
             <textarea 
-              className="w-full min-h-[120px] rounded-lg border border-var(--ui-surface) bg-var(--ui-bg) p-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-var(--ui-accent)/30 font-medium"
+              className="w-full min-h-[120px] rounded-lg border border-[var(--ui-surface)] bg-[var(--ui-bg)] p-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-[var(--ui-accent)]/30 font-medium"
               placeholder={t("sessions.modal.notes_placeholder")}
               value={sessionNotes}
               onChange={(e) => setSessionNotes(e.target.value)}
             />
           </div>
 
-          <div className="flex gap-3 pt-4 border-t border-var(--ui-surface)">
+          <div className="flex gap-3 pt-4 border-t border-[var(--ui-surface)]">
              <Button variant="ghost" className="flex-1" onClick={() => setIsEndingOpen(false)}>{t("sessions.modal.abort")}</Button>
              <Button 
                 disabled={isConcluding} 

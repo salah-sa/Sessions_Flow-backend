@@ -211,7 +211,7 @@ const SettingsPage: React.FC = () => {
               <p className="text-xs font-semibold text-slate-500 uppercase mb-1">{t("admin.stats.status_optimal")}</p>
               <div className="flex items-center gap-2">
                  <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-glow" />
-                 <p className="text-xs font-semibold text-whiteer">{t("settings.status_online")}</p>
+                 <p className="text-xs font-semibold text-white">{t("settings.status_online")}</p>
               </div>
            </div>
            
