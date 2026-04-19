@@ -194,7 +194,7 @@ export const studentApi = {
 
 // Student Location Module
 export const studentLocationApi = {
-  getAll: () => fetchWithAuth<{ id: string; name: string; lat: number; lng: number; city: string; level: number; role: string; isOnline: boolean }[]>("/students/locations"),
+  getAll: () => fetchWithAuth<{ id: string; name: string; lat: number; lng: number; city: string; level: number; role: string; avatarUrl?: string; isOnline: boolean }[]>("/students/locations"),
   update: (data: { lat: number; lng: number; city: string }) =>
     fetchWithAuth<void>("/student/location", {
       method: "PUT",

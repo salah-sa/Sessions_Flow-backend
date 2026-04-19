@@ -469,6 +469,7 @@ public static class StudentEndpoints
                     city = u.City,
                     level = level,
                     role = u.Role.ToString().ToLower(),
+                    avatarUrl = AuthEndpoints.ResolveAvatarUrl(u.AvatarUrl, ctx.Request),
                     isOnline = onlineUserIds.Contains(u.Id.ToString())
                 };
             }).ToList();
