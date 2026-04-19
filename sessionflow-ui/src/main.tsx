@@ -11,11 +11,11 @@ import "./lib/i18n";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 2 * 60 * 1000, // 2 minutes fresh — reduced from 5 to improve freshness
-      gcTime: 30 * 60 * 1000, // 30 minutes garbage collection
-      refetchOnWindowFocus: true, // Refetch stale data when user returns to tab
-      refetchOnMount: true, // Refetch stale data when component mounts (navigation)
-      refetchOnReconnect: true, // Refetch on network reconnect
+      staleTime: 2 * 60 * 1000, // 2 minutes fresh
+      gcTime: 10 * 60 * 1000, // 10 minutes garbage collection (was 30 — reduced to cut memory bloat)
+      refetchOnWindowFocus: true,
+      refetchOnMount: true,
+      refetchOnReconnect: true,
       retry: 1,
     },
   },
@@ -26,17 +26,21 @@ const persister = createSyncStoragePersister({
   key: "sf_query_cache",
 });
 
+// Volatile/large queries that should NEVER be persisted to localStorage
+const VOLATILE_QUERY_PREFIXES = ["chat", "sessions", "students", "timetable", "student-locations"];
+
 const persistOptions = {
   persister,
-  buster: "v3-fix-key-collision",
+  maxAge: 10 * 60 * 1000, // Max 10 minutes of cached data persisted
+  buster: "v4-perf-fix",
   dehydrateOptions: {
     shouldDehydrateQuery: (query: any) => {
-      // Never persist chat messages — they use useInfiniteQuery
-      // and must always be fetched fresh from the server.
       const key = query.queryKey;
-      if (Array.isArray(key) && key[0] === "chat" && key[1] === "messages") {
-        return false;
-      }
+      if (!Array.isArray(key)) return false;
+
+      // Exclude volatile/large queries from persistence entirely
+      if (VOLATILE_QUERY_PREFIXES.includes(key[0])) return false;
+
       return query.state.status === "success";
     },
   },

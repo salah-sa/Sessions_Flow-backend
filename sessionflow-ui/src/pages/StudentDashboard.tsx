@@ -28,7 +28,7 @@ import { cn } from "../lib/utils";
 import WorldStudentMap from "../components/dashboard/WorldStudentMap";
 import { useForwardGeocode } from "../queries/useGeoQueries";
 import { useUpdateStudentLocation } from "../queries/useStudentLocationQueries";
-import { GeoAuthorization } from "../components/dashboard/GeoAuthorization";
+
 import { toast } from "sonner";
 
 export const StudentDashboard: React.FC = () => {
@@ -85,13 +85,7 @@ export const StudentDashboard: React.FC = () => {
     );
   }
 
-  // Mandatory Location Check - Cinematic Consent Flow
-  // Only show if we are NOT loading AND we don't have a location in store OR in the recently fetched identity
-  const hasResolvedLocation = studentLocation || (data?.identity?.city && data.identity.latitude !== null);
-  
-  if (!hasResolvedLocation && !isLoading && !error && !data?.error) {
-    return <GeoAuthorization />;
-  }
+
 
   if (error || data?.error) {
     return (
