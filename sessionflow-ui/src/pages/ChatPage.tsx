@@ -184,7 +184,7 @@ const ChatPage: React.FC = () => {
               <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
                 {t("chat.title")}
               </h1>
-              <p className="text-[var(--ui-accent)] text-[9px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
+              <p className="text-[var(--ui-accent)] text-xs font-bold uppercase flex items-center gap-2">
                 <Zap className="w-3.5 h-3.5" /> {connectionMode === "full" ? "Neural Link Active" : "Disconnected"}
               </p>
             </div>
@@ -197,7 +197,7 @@ const ChatPage: React.FC = () => {
               placeholder={t("chat.search_placeholder")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-12 ps-12 rounded-xl border border-white/5 bg-black/40 text-[10px] font-bold uppercase tracking-widest text-white focus:ring-1 focus:ring-[var(--ui-accent)]/30 focus:outline-none transition-all"
+              className="w-full h-12 ps-12 rounded-xl border border-white/5 bg-black/40 text-xs font-bold uppercase text-white focus:ring-1 focus:ring-[var(--ui-accent)]/30 focus:outline-none transition-all"
             />
           </div>
         </div>
@@ -209,7 +209,7 @@ const ChatPage: React.FC = () => {
             <>
               {filteredActive.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest ps-3 py-2">Operational Nodes</p>
+                  <p className="text-xs font-bold text-slate-500 uppercase ps-3 py-2">Operational Nodes</p>
                   {filteredActive.map((group) => {
                     const lastMsg = lastMessages[group.id];
                     const unread = unreadCounts[group.id] || 0;
@@ -233,12 +233,12 @@ const ChatPage: React.FC = () => {
                           <Hash className="w-4 h-4" />
                         </div>
                         <div className="flex-1 text-start min-w-0 relative z-10">
-                          <p className="text-[11px] font-bold truncate uppercase tracking-widest text-white">{group.name}</p>
-                          <p className={cn("text-[8px] font-bold truncate uppercase mt-0.5 tracking-wider", isSelected ? "text-[var(--ui-accent)]/70" : "text-slate-600")}>
+                          <p className="text-[11px] font-bold truncate uppercase text-white">{group.name}</p>
+                          <p className={cn("text-xs font-bold truncate uppercase mt-0.5 tracking-wider", isSelected ? "text-[var(--ui-accent)]/70" : "text-slate-600")}>
                             {lastMsg ? `${lastMsg.senderName}: ${lastMsg.text}` : `L${group.level} Matrix`}
                           </p>
                         </div>
-                        {unread > 0 && !isSelected && <div className="ms-2 w-5 h-5 flex items-center justify-center bg-[var(--ui-accent)] text-white text-[9px] font-bold rounded-full shadow-glow animate-pulse">{unread}</div>}
+                        {unread > 0 && !isSelected && <div className="ms-2 w-5 h-5 flex items-center justify-center bg-[var(--ui-accent)] text-white text-xs font-bold rounded-full shadow-glow animate-pulse">{unread}</div>}
                       </button>
                     );
                   })}
@@ -247,7 +247,7 @@ const ChatPage: React.FC = () => {
 
               {archivedGroups.length > 0 && (
                 <div className="space-y-2 pt-6">
-                  <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest ps-3 py-2 flex items-center gap-2">
+                  <p className="text-xs font-bold text-slate-500 uppercase ps-3 py-2 flex items-center gap-2">
                     <Clock className="w-3.5 h-3.5" /> Records
                   </p>
                   {archivedGroups.map((group) => {
@@ -265,8 +265,8 @@ const ChatPage: React.FC = () => {
                           <Hash className="w-4 h-4" />
                         </div>
                         <div className="flex-1 text-start min-w-0">
-                          <p className="text-[11px] font-bold truncate uppercase tracking-widest text-slate-400">{group.name}</p>
-                          <p className="text-[8px] font-bold truncate uppercase mt-0.5 text-slate-700 tracking-wider">Historical Archive</p>
+                          <p className="text-[11px] font-bold truncate uppercase text-slate-400">{group.name}</p>
+                          <p className="text-xs font-bold truncate uppercase mt-0.5 text-slate-700 tracking-wider">Historical Archive</p>
                         </div>
                       </button>
                     );
@@ -287,8 +287,8 @@ const ChatPage: React.FC = () => {
               <div className="absolute -bottom-0.5 -end-0.5 w-3 h-3 rounded-full bg-[var(--ui-accent)] border border-[#060608] shadow-glow" />
             </div>
             <div className="flex flex-col flex-1 min-w-0 relative z-10">
-              <span className="text-[10px] font-bold text-white uppercase tracking-widest truncate">{user?.name}</span>
-              <span className="text-[8px] font-bold text-slate-600 uppercase tracking-widest truncate">{user?.role} Unit</span>
+              <span className="text-xs font-bold text-white uppercase truncate">{user?.name}</span>
+              <span className="text-xs font-bold text-slate-600 uppercase truncate">{user?.role} Unit</span>
             </div>
           </div>
         </div>
@@ -343,8 +343,8 @@ const ChatPage: React.FC = () => {
                 </div>
              </div>
              <div className="text-center space-y-3 relative z-10">
-                <h2 className="text-2xl font-bold text-white tracking-widest uppercase">Select Frequency</h2>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.4em]">Establish direct neural link to begin.</p>
+                <h2 className="text-2xl font-bold text-white uppercase">Select Frequency</h2>
+                <p className="text-xs text-slate-500 font-bold uppercase">Establish direct neural link to begin.</p>
              </div>
           </div>
         )}

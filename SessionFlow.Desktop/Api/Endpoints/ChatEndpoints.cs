@@ -160,7 +160,7 @@ public static class ChatEndpoints
                     // Use purely GridFS storage instead of local disk to prevent Docker volume wipes
                     using (var readStream = file.OpenReadStream()) 
                     {
-                        var gridFsId = await storage.UploadFileAsync(readStream, file.FileName, file.ContentType);
+                        var gridFsId = await storage.UploadFileAsync(readStream, file.FileName, file.ContentType ?? "application/octet-stream");
                         
                         var host = ctx.Request.Headers["X-Forwarded-Host"].FirstOrDefault() ?? ctx.Request.Host.Value;
                         var proto = ctx.Request.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? ctx.Request.Scheme;

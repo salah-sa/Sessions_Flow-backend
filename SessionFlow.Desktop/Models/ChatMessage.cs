@@ -19,6 +19,8 @@ public class ChatMessage
     public string? FileUrl { get; set; }
     public string? FileName { get; set; }
     public string? FileType { get; set; } // MIME type for media preview
+    public bool IsDeleted { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
     public DateTimeOffset SentAt { get; set; } = DateTimeOffset.UtcNow;
 
     // Navigation (Ignored)

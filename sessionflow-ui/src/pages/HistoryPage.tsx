@@ -157,16 +157,16 @@ const HistoryPage: React.FC = () => {
       <div className="p-8 border-b border-white/5 bg-[var(--ui-sidebar-bg)]/40 backdrop-blur-3xl z-10 flex flex-col gap-8">
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
           <div className="space-y-2">
-            <h1 className="text-4xl font-sora font-black text-white tracking-tighter uppercase flex items-center gap-4">
+            <h1 className="text-3xl font-sora font-bold text-white tracking-tight flex items-center gap-4">
               <div className="p-2.5 rounded-2xl bg-[var(--ui-accent)]/10 border border-[var(--ui-accent)]/20 shadow-glow shadow-[var(--ui-accent)]/5">
                 <History className="w-8 h-8 text-[var(--ui-accent)]" />
               </div>
               {t("history.title", "Session History")}
             </h1>
-            <div className="flex items-center gap-4 text-slate-500 font-black text-[9px] uppercase tracking-[0.25em] ps-1">
-               <span className="flex items-center gap-1.5"><Layers className="w-3 h-3 text-[var(--ui-accent)]" /> {t("history.archival", "Archival Logs")}</span>
+            <div className="flex items-center gap-4 text-slate-500 font-medium text-xs ps-1">
+               <span className="flex items-center gap-1.5"><Layers className="w-3 h-3 text-[var(--ui-accent)]" /> {t("history.archival", "Session Archive")}</span>
                <span className="w-1 h-1 rounded-full bg-var(--ui-surface)" />
-               <span className="flex items-center gap-1.5"><Zap className="w-3 h-3 text-amber-500" /> {t("history.telemetry", "Operational Telemetry")}</span>
+               <span className="flex items-center gap-1.5"><Zap className="w-3 h-3 text-amber-500" /> {t("history.telemetry", "System Logs")}</span>
             </div>
           </div>
           
@@ -178,7 +178,7 @@ const HistoryPage: React.FC = () => {
                    key={mode}
                    onClick={() => setViewMode(mode)}
                    className={cn(
-                     "px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300",
+                     "px-6 py-2 rounded-xl text-[13px] font-semibold transition-all duration-300",
                      viewMode === mode 
                        ? "bg-[var(--ui-accent)] text-white shadow-lg shadow-[var(--ui-accent)]/20 scale-105" 
                        : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
@@ -195,8 +195,8 @@ const HistoryPage: React.FC = () => {
                  <ChevronLeft className="w-5 h-5" />
                </button>
                <div className="px-8 min-w-[200px] text-center">
-                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">{t("history.filters.focus_range", "Focus Range")}</p>
-                 <p className="text-sm font-sora font-black text-white uppercase tracking-tighter tabular-nums">
+                 <p className="text-xs font-medium text-slate-500 mb-0.5">{t("history.filters.focus_range", "Date Range")}</p>
+                 <p className="text-sm font-sora font-bold text-white tabular-nums">
                     {viewMode === "year" ? format(currentDate, "yyyy") : 
                      viewMode === "month" ? format(currentDate, "MMMM yyyy") : 
                      `${format(range.start, "MMM dd")} - ${format(range.end, "MMM dd")}`}
@@ -214,10 +214,10 @@ const HistoryPage: React.FC = () => {
                   <Wallet className="w-6 h-6" />
                </div>
                <div>
-                  <p className="text-[9px] font-black uppercase tracking-[0.25em] text-emerald-400 mb-0.5 opacity-70">{t("history.net_revenue")}</p>
-                  <p className="text-2xl font-black text-white font-sora tabular-nums tracking-tighter">
+                  <p className="text-xs font-medium text-emerald-400 mb-0.5 opacity-70">{t("history.net_revenue")}</p>
+                  <p className="text-2xl font-bold text-white font-sora tabular-nums tracking-tight">
                      {filteredSessions.reduce((sum, s) => sum + (s.stampedRevenue || 0), 0).toLocaleString()} 
-                     <span className="text-emerald-500/50 text-xs ms-1.5 tracking-widest font-normal">EGP</span>
+                     <span className="text-emerald-500/50 text-xs ms-1.5 font-normal">EGP</span>
                   </p>
                </div>
             </div>
@@ -265,7 +265,7 @@ const HistoryPage: React.FC = () => {
                      {/* Hover Status Node */}
                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-var(--ui-sidebar-bg) border border-white/10 px-3 py-1.5 rounded-lg opacity-0 -translate-y-2 group-hover/bar:opacity-100 group-hover/bar:translate-y-0 shadow-xl transition-all duration-300 pointer-events-none whitespace-nowrap z-20 flex items-center gap-2">
                        <span className={cn("w-1.5 h-1.5 rounded-full", count > 0 ? "bg-var(--ui-accent) shadow-glow" : "bg-slate-600")} />
-                       <p className="text-[9px] font-black uppercase text-white tracking-widest">{format(day, "MMM dd")} <span className="text-slate-500 ms-1">[{count} DATA_POINTS]</span></p>
+                        <p className="text-xs font-medium text-white">{format(day, "MMM dd")} <span className="text-slate-500 ms-1">[{count} sessions]</span></p>
                      </div>
                    </div>
                  );
@@ -283,12 +283,12 @@ const HistoryPage: React.FC = () => {
         <div className="w-full lg:w-80 border-b lg:border-b-0 lg:border-e border-white/5 bg-var(--ui-sidebar-bg)/20 backdrop-blur-2xl p-4 lg:p-8 space-y-8 flex flex-col shrink-0 overflow-y-auto custom-scrollbar max-h-[40vh] lg:max-h-full">
            <div className="space-y-6">
               <div className="space-y-2">
-                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ps-1">{t("history.search_placeholder")}</p>
+                 <p className="text-xs font-medium text-slate-500 ps-1">{t("history.search_placeholder")}</p>
                  <div className="relative group">
                     <Search className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 transition-colors group-focus-within:text-[var(--ui-accent)]" />
                     <input 
-                      placeholder="TAG-SEARCH..." 
-                      className="w-full h-12 bg-black/40 border border-white/5 rounded-2xl ps-12 pe-4 text-[10px] font-black uppercase tracking-widest text-slate-300 focus:outline-none focus:ring-2 focus:ring-[var(--ui-accent)]/20 transition-all border-glow"
+                      placeholder="Search..." 
+                      className="w-full h-12 bg-black/40 border border-white/5 rounded-2xl ps-12 pe-4 text-[13px] font-normal text-slate-300 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-[var(--ui-accent)]/20 transition-all border-glow"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                     />
@@ -296,24 +296,24 @@ const HistoryPage: React.FC = () => {
               </div>
 
               <div className="space-y-4">
-                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ps-1">{t("history.filters.protocols", "Protocols")}</p>
-                 {[
-                   { id: "group", label: t("history.filters.all_groups", "Groups"), value: groupIdFilter, setter: setGroupIdFilter, options: ["all", ...uniqueGroups.map(g => g.id)] },
-                   { id: "level", label: t("history.filters.all_levels"), value: levelFilter, setter: setLevelFilter, options: ["all", 1, 2, 3, 4] },
-                   { id: "engineer", label: t("history.filters.all_engineers"), value: engineerFilter, setter: setEngineerFilter, options: ["all", ...Array.from(new Set(sessions.map(s => s.engineerId))).filter(Boolean)] }
-                 ].map((filter) => (
+                 <p className="text-xs font-medium text-slate-500 ps-1">{t("history.filters.protocols", "Filters")}</p>
+                   {[
+                    { id: "group", label: t("history.filters.all_groups", "Groups"), value: groupIdFilter, setter: setGroupIdFilter, options: ["all", ...uniqueGroups.map(g => g.id)] },
+                    { id: "level", label: t("history.filters.all_levels", "Levels"), value: levelFilter, setter: setLevelFilter, options: ["all", 1, 2, 3, 4] },
+                    { id: "engineer", label: t("history.filters.all_engineers", "Staff"), value: engineerFilter, setter: setEngineerFilter, options: ["all", ...Array.from(new Set(sessions.map(s => s.engineerId))).filter(Boolean)] }
+                  ].map((filter) => (
                    <div key={filter.id} className="space-y-2">
                       <select 
-                        className="w-full h-12 rounded-2xl bg-var(--ui-bg)/60 border border-white/5 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 focus:outline-none focus:ring-2 focus:ring-var(--ui-accent)/20 transition-all"
+                        className="w-full h-12 rounded-2xl bg-var(--ui-bg)/60 border border-white/5 px-6 text-[13px] font-normal text-slate-400 focus:outline-none focus:ring-2 focus:ring-var(--ui-accent)/20 transition-all"
                         value={filter.value}
                         onChange={(e) => filter.setter(e.target.value === "all" ? "all" : e.target.value as any)}
                       >
-                        <option value="all">ALL-{filter.label.replace(" ", "-").toUpperCase()}</option>
+                        <option value="all">All {filter.label}</option>
                          {filter.options.slice(1).map(opt => {
                            let label = String(opt);
-                           if (filter.id === "level") label = `SECTOR-${opt}`;
-                           else if (filter.id === "group") label = uniqueGroups.find(g => g.id === opt)?.name?.toUpperCase() || label;
-                           else if (filter.id === "engineer") label = (sessions.find(s => s.engineerId === opt)?.engineerName || label).toUpperCase();
+                           if (filter.id === "level") label = `Level ${opt}`;
+                           else if (filter.id === "group") label = uniqueGroups.find(g => g.id === opt)?.name || label;
+                           else if (filter.id === "engineer") label = sessions.find(s => s.engineerId === opt)?.engineerName || label;
                            
                            return (
                              <option key={String(opt)} value={String(opt)}>
@@ -328,18 +328,18 @@ const HistoryPage: React.FC = () => {
            </div>
 
            <div className="mt-auto pt-8 border-t border-white/5 space-y-4">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ps-1">{t("history.export.export_label", "Export Telemetry")}</p>
+              <p className="text-xs font-medium text-slate-500 ps-1">{t("history.export.export_label", "Export Data")}</p>
               <div className="grid grid-cols-2 gap-3">
                  <button onClick={handleExportCal} className="btn-ghost py-4 flex flex-col items-center gap-2 rounded-2xl border border-white/5 bg-var(--ui-bg)/40 hover:bg-var(--ui-accent)/5 hover:border-var(--ui-accent)/20 transition-all group/btn">
                     <CalendarIcon className="w-5 h-5 text-slate-600 group-hover/btn:text-var(--ui-accent) transition-colors" />
-                    <span className="text-[8px] font-black uppercase tracking-widest">{t("history.export.cal")}</span>
+                    <span className="text-xs font-medium">{t("history.export.cal")}</span>
                  </button>
                  <button className="btn-ghost py-4 flex flex-col items-center gap-2 rounded-2xl border border-white/5 bg-var(--ui-bg)/40 hover:bg-emerald-500/5 hover:border-emerald-500/20 transition-all group/btn">
                     <Download className="w-5 h-5 text-slate-600 group-hover/btn:text-emerald-500 transition-colors" />
-                    <span className="text-[8px] font-black uppercase tracking-widest">{t("history.export.csv")}</span>
+                    <span className="text-xs font-medium">{t("history.export.csv")}</span>
                  </button>
               </div>
-              <button className="w-full h-14 bg-white text-black font-black uppercase text-[10px] tracking-[0.2em] rounded-2xl hover:scale-[1.02] shadow-2xl active:scale-95 transition-all">
+              <button className="w-full h-14 bg-white text-black font-semibold text-sm rounded-2xl hover:scale-[1.02] shadow-2xl active:scale-95 transition-all">
                  {t("history.export.generate_report", "Generate Global Report")}
               </button>
            </div>
@@ -350,7 +350,7 @@ const HistoryPage: React.FC = () => {
            {loading ? (
              <div className="flex flex-col items-center justify-center h-full space-y-6 opacity-20 animate-pulse">
                 <Loader2 className="w-16 h-16 animate-spin text-var(--ui-accent)" />
-                <p className="text-[10px] font-black uppercase tracking-[0.5em] text-var(--ui-accent)">Initiating Temporal Sync</p>
+                  <p className="text-sm font-medium text-var(--ui-accent)">{t("history.loading")}</p>
              </div>
            ) : groupedSessions.length === 0 ? (
              <div className="flex flex-col items-center justify-center h-full space-y-8 py-20">
@@ -359,8 +359,8 @@ const HistoryPage: React.FC = () => {
                    <Archive className="w-16 h-16 text-var(--ui-surface) relative z-10" />
                 </div>
                 <div className="text-center space-y-2">
-                   <p className="text-2xl font-sora font-black text-slate-700 uppercase tracking-tighter">{t("history.empty_title", "Sector is Empty")}</p>
-                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest opacity-60">{t("history.no_records")}</p>
+                   <p className="text-2xl font-sora font-bold text-slate-700 tracking-tight">{t("history.empty_title", "Archive is Empty")}</p>
+                   <p className="text-sm text-slate-400 font-normal opacity-60">{t("history.no_records")}</p>
                 </div>
              </div>
            ) : (
@@ -371,7 +371,7 @@ const HistoryPage: React.FC = () => {
                        <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/5" />
                        <div className="flex items-center gap-3">
                           <span className="w-2 h-2 rounded-full bg-var(--ui-accent) shadow-glow" />
-                          <span className="text-[11px] font-black text-white uppercase tracking-[0.3em] tabular-nums">
+                          <span className="text-sm font-bold text-white tabular-nums">
                              {viewMode === "year" ? format(new Date(dateKey + "-01"), "MMMM yyyy") : format(new Date(dateKey), "EEEE • dd MMMM")}
                           </span>
                        </div>
@@ -406,30 +406,30 @@ const HistoryPage: React.FC = () => {
                                           session.groupColorTag === "rose" ? "bg-rose-500/80 shadow-rose-500/20" :
                                           "bg-var(--ui-accent)/80 shadow-var(--ui-accent)/20"
                                         )} />
-                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Protocol-{session.sessionNumber}</p>
+                                        <p className="text-xs font-medium text-slate-500">Session {session.sessionNumber}</p>
                                      </div>
-                                     <h3 className="text-xl font-sora font-black text-white uppercase tracking-tighter truncate leading-none">
+                                     <h3 className="text-lg font-sora font-bold text-white truncate leading-none">
                                         {session.groupName || session.group?.name}
                                      </h3>
                                   </div>
                                   <div className="flex flex-col items-end shrink-0">
-                                     <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-white/5 bg-var(--ui-bg)/50 h-7 px-3 rounded-lg text-slate-400">
-                                        LVL-{session.group?.level || 1}
+                                     <Badge variant="outline" className="text-xs font-medium border-white/5 bg-var(--ui-bg)/50 h-7 px-3 rounded-lg text-slate-400">
+                                        Level {session.group?.level || 1}
                                      </Badge>
                                   </div>
                                </div>
 
                                <div className="grid grid-cols-2 gap-3 mb-6">
                                   <div className="bg-var(--ui-bg)/40 rounded-2xl p-4 border border-white/[0.02] flex flex-col justify-between">
-                                     <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-2 flex items-center gap-1.5 shrink-0">
+                                     <p className="text-xs font-semibold text-slate-600 uppercase mb-2 flex items-center gap-1.5 shrink-0">
                                         <Clock className="w-3 h-3" /> {t("common.time")}
                                      </p>
-                                     <p className="text-xs font-black text-white tabular-nums tracking-tighter">
+                                     <p className="text-sm font-semibold text-white tabular-nums">
                                         {format(new Date(session.scheduledAt), "hh:mm a")}
                                      </p>
                                   </div>
                                   <div className="bg-var(--ui-bg)/40 rounded-2xl p-4 border border-white/[0.02] flex flex-col justify-between">
-                                     <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-2 flex items-center gap-1.5 shrink-0">
+                                     <p className="text-xs font-semibold text-slate-600 uppercase mb-2 flex items-center gap-1.5 shrink-0">
                                         <TrendingUp className="w-3 h-3" /> {isStudent ? t("history.status", "Status") : t("sessions.label_performance")}
                                      </p>
                                      <div className="flex items-baseline gap-1.5">
@@ -440,24 +440,24 @@ const HistoryPage: React.FC = () => {
                                           return (
                                             <>
                                               <span className={cn(
-                                                "text-sm font-black tabular-nums tracking-tighter",
+                                                "text-sm font-semibold tabular-nums",
                                                 attended ? "text-emerald-400" : "text-rose-400"
                                               )}>
                                                 {attended ? "ATTENDED" : "MISSED"}
                                               </span>
-                                              <span className="text-[7px] font-black text-slate-500 uppercase tracking-[0.2em]">{myRecord?.status || "PENDING"}</span>
+                                              <span className="text-xs font-normal text-slate-500">{myRecord?.status || "Pending"}</span>
                                             </>
                                           );
                                         })()
                                       ) : (
                                         <>
                                           <span className={cn(
-                                            "text-sm font-black tabular-nums tracking-tighter",
+                                            "text-sm font-semibold tabular-nums tracking-tighter",
                                             (session.attendanceRate || 0) >= 0.8 ? "text-emerald-400" : (session.attendanceRate || 0) >= 0.5 ? "text-amber-400" : "text-rose-400"
                                           )}>
                                             {Math.round((session.attendanceRate || 0) * 100)}%
                                           </span>
-                                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Efficiency</span>
+                                          <span className="text-xs font-normal text-slate-500 ms-1">Efficiency</span>
                                         </>
                                       )}
                                      </div>
@@ -466,16 +466,16 @@ const HistoryPage: React.FC = () => {
                                   {/* Multi-data Breakdown Row */}
                                   <div className="col-span-2 grid grid-cols-3 gap-2">
                                     <div className="bg-var(--ui-bg)/20 rounded-xl p-3 border border-white/5 text-center">
-                                      <p className="text-[8px] font-black text-slate-600 uppercase mb-1">Total</p>
-                                      <p className="text-xs font-black text-white">{session.totalStudents || 0}</p>
+                                      <p className="text-xs font-medium text-slate-600 mb-1">Total</p>
+                                      <p className="text-sm font-semibold text-white">{session.totalStudents || 0}</p>
                                     </div>
                                     <div className="bg-emerald-500/5 rounded-xl p-3 border border-emerald-500/10 text-center">
-                                      <p className="text-[8px] font-black text-emerald-600/80 uppercase mb-1">Present</p>
-                                      <p className="text-xs font-black text-emerald-400">{session.presentCount || 0}</p>
+                                      <p className="text-xs font-medium text-emerald-600/80 mb-1">Present</p>
+                                      <p className="text-sm font-semibold text-emerald-400">{session.presentCount || 0}</p>
                                     </div>
                                     <div className="bg-rose-500/5 rounded-xl p-3 border border-rose-500/10 text-center">
-                                      <p className="text-[8px] font-black text-rose-600/80 uppercase mb-1">Absent</p>
-                                      <p className="text-xs font-black text-rose-400">{session.absentCount || 0}</p>
+                                      <p className="text-xs font-medium text-rose-600/80 mb-1">Absent</p>
+                                      <p className="text-sm font-semibold text-rose-400">{session.absentCount || 0}</p>
                                     </div>
                                   </div>
 
@@ -484,10 +484,10 @@ const HistoryPage: React.FC = () => {
                                       <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20">
                                         <Wallet className="w-4 h-4" />
                                       </div>
-                                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Session Revenue</p>
+                                      <p className="text-xs font-medium text-slate-500">Session Revenue</p>
                                     </div>
-                                    <p className="font-sora font-black text-white tabular-nums tracking-tighter">
-                                      {session.stampedRevenue?.toLocaleString() || 0} <span className="text-[9px] text-slate-600 ms-1">EGP</span>
+                                    <p className="font-sora font-bold text-white tabular-nums tracking-tight">
+                                      {session.stampedRevenue?.toLocaleString() || 0} <span className="text-xs text-slate-600 ms-1">EGP</span>
                                     </p>
                                   </div>
                                </div>
@@ -495,17 +495,17 @@ const HistoryPage: React.FC = () => {
                                <div className="flex items-center justify-between mt-auto">
                                   <div className="flex items-center gap-3">
                                      <div className="w-8 h-8 rounded-xl bg-var(--ui-bg) border border-white/5 flex items-center justify-center">
-                                        <span className="text-[10px] font-black text-slate-600">{session.engineerName?.substring(0, 1) || "S"}</span>
+                                        <span className="text-xs font-semibold text-slate-600">{session.engineerName?.substring(0, 1) || "S"}</span>
                                      </div>
                                      <div className="space-y-0.5">
-                                        <p className="text-[8px] font-black text-slate-600 uppercase tracking-[0.2em]">{t("history.deployment_unit", "Deployment Unit")}</p>
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{session.engineerName || "SYSTEM-OP"}</p>
+                                        <p className="text-xs font-normal text-slate-600">{t("history.deployment_unit", "Instructor")}</p>
+                                        <p className="text-sm font-medium text-slate-400">{session.engineerName || t("common.staff")}</p>
                                      </div>
                                   </div>
                                   <div className="flex gap-2">
                                      <button 
                                        onClick={(e) => { e.stopPropagation(); navigate(`/groups/${session.groupId}/sessions`); }}
-                                       className="h-10 px-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/10 transition-all font-sora"
+                                       className="h-10 px-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[13px] font-medium text-slate-400 hover:text-white hover:bg-white/10 transition-all"
                                      >
                                         {t("common.details", "Details")}
                                      </button>

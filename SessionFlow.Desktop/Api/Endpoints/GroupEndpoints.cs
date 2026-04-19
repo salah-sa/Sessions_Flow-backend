@@ -448,7 +448,7 @@ public static class GroupEndpoints
             return Results.Ok(new { message = $"Successfully deleted {groupIds.Count} groups and all associated data." });
         });
 
-        // DELETE /api/groups/{id} — soft delete
+        // DELETE /api/groups/{id} — soft delete / archive
         group.MapDelete("/{id:guid}", async (Guid id, MongoService db, HttpContext ctx) =>
         {
             var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -463,6 +463,7 @@ public static class GroupEndpoints
 
             var update = Builders<Group>.Update
                 .Set(g => g.IsDeleted, true)
+                .Set(g => g.Status, GroupStatus.Archived)
                 .Set(g => g.DeletedAt, DateTimeOffset.UtcNow)
                 .Set(g => g.UpdatedAt, DateTimeOffset.UtcNow);
             
@@ -475,13 +476,23 @@ public static class GroupEndpoints
                 Builders<Student>.Update.Set(s => s.IsDeleted, true).Set(s => s.UpdatedAt, DateTimeOffset.UtcNow)
             );
 
-            // Cascade soft-delete to upcoming sessions
+            // Cascade soft-delete to ALL sessions (Scheduled, Active, or Ended)
+            // This ensures they vanish from all UI list views.
             await db.Sessions.UpdateManyAsync(
-                s => s.GroupId == id && s.Status == SessionStatus.Scheduled && !s.IsDeleted,
+                s => s.GroupId == id && !s.IsDeleted,
                 Builders<Session>.Update.Set(s => s.IsDeleted, true).Set(s => s.UpdatedAt, DateTimeOffset.UtcNow)
             );
 
-            return Results.Ok(new { message = "Group and its active resources deleted." });
+            // Cascade soft-delete to chat messages
+            await db.ChatMessages.UpdateManyAsync(
+                m => m.GroupId == id && !m.IsDeleted,
+                Builders<ChatMessage>.Update.Set(m => m.IsDeleted, true).Set(m => m.UpdatedAt, DateTimeOffset.UtcNow)
+            );
+
+            // Cleanup recurring schedules (no longer needed once group is archived)
+            await db.GroupSchedules.DeleteManyAsync(s => s.GroupId == id);
+
+            return Results.Ok(new { message = "Group archived and its associated sessions, students, and chat history hidden." });
         });
 
         // GET /api/groups/{id}/students — list students in group

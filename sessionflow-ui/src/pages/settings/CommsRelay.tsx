@@ -42,16 +42,16 @@ const CommsRelay: React.FC<CommsRelayProps> = ({
               <Mail className="w-8 h-8" />
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-black text-white uppercase tracking-tighter">Gmail SMTP Direct</p>
+              <p className="text-sm font-black text-white uppercase tracking-tighter">{t("settings.gmail_direct")}</p>
               <p className={cn("text-[9px] font-black uppercase tracking-widest", adminEmail && adminAppPassword ? "text-emerald-500" : "text-slate-500")}>
-                {adminEmail && adminAppPassword ? "BRIDGE ONLINE — " + adminEmail : "BRIDGE OFFLINE — Configure below"}
+                {adminEmail && adminAppPassword ? t("settings.status_online") + " — " + adminEmail : t("settings.status_offline")}
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ms-2">Admin Gmail Address</label>
+              <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ms-2">{t("settings.admin_email")}</label>
               <div className="relative">
                 <Mail className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-var(--ui-accent)" />
                 <input
@@ -64,7 +64,7 @@ const CommsRelay: React.FC<CommsRelayProps> = ({
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ms-2">App Password</label>
+              <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ms-2">{t("settings.app_password")}</label>
               <div className="relative">
                 <Key className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-var(--ui-accent)" />
                 <input
@@ -81,9 +81,9 @@ const CommsRelay: React.FC<CommsRelayProps> = ({
           <div className="p-4 bg-var(--ui-accent)/5 border border-var(--ui-accent)/10 rounded-2xl flex gap-4">
             <Info className="w-5 h-5 text-var(--ui-accent) shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <p className="text-[10px] font-black text-var(--ui-accent) uppercase tracking-widest">How to get an App Password</p>
+              <p className="text-[10px] font-black text-var(--ui-accent) uppercase tracking-widest">{t("settings.how_to_password")}</p>
               <p className="text-[9px] text-slate-400 font-bold leading-relaxed">
-                Go to Google Account → Security → 2-Step Verification → App Passwords. Generate a password for "Mail" and paste it above.
+                {t("settings.how_to_password_step")}
               </p>
             </div>
           </div>
@@ -95,7 +95,7 @@ const CommsRelay: React.FC<CommsRelayProps> = ({
               className="h-12 px-10 bg-var(--ui-accent) text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-glow shadow-var(--ui-accent)/20 flex items-center justify-center gap-3 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Save Email Config
+              {t("settings.save_config")}
             </button>
             <button
               onClick={async () => {
@@ -114,7 +114,7 @@ const CommsRelay: React.FC<CommsRelayProps> = ({
               className="h-12 px-10 bg-var(--ui-sidebar-bg) text-white border border-white/5 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-var(--ui-surface) transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {testEmail.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
-              Send Test Message
+              {t("settings.send_test")}
             </button>
           </div>
         </div>

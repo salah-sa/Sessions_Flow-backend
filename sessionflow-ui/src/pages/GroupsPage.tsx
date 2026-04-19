@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Download, Filter, Terminal } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Button } from "../components/ui";
 import { toast } from "sonner";
 import { 
   useGroupQueries, 
@@ -113,27 +114,27 @@ const GroupsPage: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-30">
         <div className="space-y-4 animate-in fade-in slide-in-from-left-8 duration-1000">
           <div className="flex items-center gap-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] text-[9px] font-black uppercase tracking-[0.2em] border border-[var(--ui-accent)]/20 shadow-glow shadow-[var(--ui-accent)]/5">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] text-xs font-semibold border border-[var(--ui-accent)]/20 shadow-glow shadow-[var(--ui-accent)]/5">
               <Terminal className="w-3 h-3" />
               {t("groups.system_active")}
             </div>
             <div className="h-px w-8 bg-white/10" />
-            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest tabular-nums">{groups.length} NODES INITIALIZED</span>
+            <span className="text-xs font-semibold text-slate-600 uppercase tabular-nums">{groups.length} {t("groups.card.groups_registered")}</span>
           </div>
-          <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter uppercase leading-[0.85]">
+          <h1 className="text-5xl md:text-7xl font-semibold text-white tracking-tighter uppercase leading-[0.85]">
             {t("groups.title")}
           </h1>
         </div>
 
         <div className="flex gap-4 animate-in fade-in slide-in-from-right-8 duration-1000">
-          <button className="btn-secondary !h-14 !px-8 hover:!bg-white/[0.03] active:scale-95 transition-transform group">
+          <Button variant="secondary" size="lg" className="!h-14 !px-8 group">
              <Download className="w-5 h-5 me-2 text-slate-500 group-hover:text-white transition-colors" />
              {t("common.export")}
-          </button>
-          <button onClick={handleOpenCreate} className="btn-primary !h-14 !px-8 shadow-glow shadow-[var(--ui-accent)]/20 active:scale-95 transition-transform">
+          </Button>
+          <Button onClick={handleOpenCreate} variant="primary" size="lg" className="!h-14 !px-8 !shadow-glow !shadow-[var(--ui-accent)]/20">
              <Plus className="w-6 h-6 me-2" />
              {t("groups.action_create")}
-          </button>
+          </Button>
         </div>
       </div>
 

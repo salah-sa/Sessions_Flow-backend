@@ -238,7 +238,7 @@ const TimetablePage: React.FC = () => {
           <h1 className="text-3xl font-bold text-white tracking-tight">
             {t("timetable.title")}
           </h1>
-          <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-2">
+          <p className="text-slate-500 text-xs font-bold uppercase flex items-center gap-2">
              <Zap className="w-3.5 h-3.5 text-[var(--ui-accent)]" />
              {t("timetable.subtitle") || "Projection Matrix Alpha"}
           </p>
@@ -250,7 +250,7 @@ const TimetablePage: React.FC = () => {
              <button onClick={handlePrevWeek} className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 transition-all">
                <ChevronLeft className="w-5 h-5 rtl:rotate-180" />
              </button>
-             <button onClick={handleToday} className="px-5 text-[10px] font-bold text-slate-300 uppercase tracking-widest hover:text-[var(--ui-accent)] transition-colors min-w-[160px]">
+             <button onClick={handleToday} className="px-5 text-xs font-bold text-slate-300 uppercase hover:text-[var(--ui-accent)] transition-colors min-w-[160px]">
                {format(currentDate, "MMMM yyyy")}
              </button>
              <button onClick={handleNextWeek} className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 transition-all">
@@ -269,12 +269,12 @@ const TimetablePage: React.FC = () => {
                     toast.error(err.message || t("timetable.sync_failure") || "Sync Failure", { id: loadingToast });
                   }
                 }} 
-               className="h-12 px-6 rounded-xl bg-[var(--ui-accent)]/5 border border-[var(--ui-accent)]/20 text-[10px] font-bold uppercase tracking-widest text-[var(--ui-accent)] hover:bg-[var(--ui-accent)]/10 transition-all flex items-center gap-2"
+               className="h-12 px-6 rounded-xl bg-[var(--ui-accent)]/5 border border-[var(--ui-accent)]/20 text-xs font-bold uppercase text-[var(--ui-accent)] hover:bg-[var(--ui-accent)]/10 transition-all flex items-center gap-2"
              >
                <Activity className="w-4 h-4" /> {t("timetable.controls.sync") || "SYNC NODES"}
              </button>
 
-             <button onClick={() => setIsAvailOpen(true)} className="h-12 px-6 rounded-xl bg-white/[0.02] border border-white/5 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center gap-2">
+             <button onClick={() => setIsAvailOpen(true)} className="h-12 px-6 rounded-xl bg-white/[0.02] border border-white/5 text-xs font-bold uppercase text-slate-400 hover:text-white transition-all flex items-center gap-2">
                <Clock className="w-4 h-4 text-[var(--ui-accent)]" /> {t("timetable.modal.avail_title")}
              </button>
 
@@ -292,7 +292,7 @@ const TimetablePage: React.FC = () => {
              <div className="h-full w-full flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                    <Loader2 className="w-8 h-8 text-[var(--ui-accent)] animate-spin" />
-                   <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500">Accessing Matrix...</span>
+                   <span className="text-xs font-bold uppercase text-slate-500">{t("timetable.loading")}</span>
                 </div>
              </div>
            ) : (
@@ -311,18 +311,18 @@ const TimetablePage: React.FC = () => {
           <div className="flex items-center gap-10">
              <div className="flex items-center gap-3">
                 <div className="w-2.5 h-2.5 rounded-full bg-[var(--ui-accent)] shadow-[0_0_10px_rgba(var(--ui-accent-rgb),0.5)]" />
-                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t("timetable.legend.projected") || "PROJECTED"}</span>
+                <span className="text-xs font-bold text-slate-500 uppercase">{t("timetable.legend.projected") || "PROJECTED"}</span>
              </div>
              <div className="flex items-center gap-3">
                 <div className="w-2.5 h-2.5 rounded-full bg-[#7c3aed] shadow-[0_0_10px_rgba(124,58,237,0.5)]" />
-                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t("timetable.legend.live_deploy") || "OPERATIONAL"}</span>
+                <span className="text-xs font-bold text-slate-500 uppercase">{t("timetable.legend.live_deploy") || "OPERATIONAL"}</span>
              </div>
              <div className="flex items-center gap-3 opacity-40">
                 <div className="w-2.5 h-2.5 rounded-full bg-var(--ui-surface)" />
-                <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">{t("timetable.legend.archive") || "ARCHIVE"}</span>
+                <span className="text-xs font-bold text-slate-600 uppercase">{t("timetable.legend.archive") || "ARCHIVE"}</span>
              </div>
           </div>
-          <button onClick={handleExportICS} className="h-10 px-6 rounded-xl bg-white/[0.02] border border-white/5 text-[9px] font-bold uppercase tracking-widest text-slate-500 hover:text-white transition-all flex items-center gap-3">
+          <button onClick={handleExportICS} className="h-10 px-6 rounded-xl bg-white/[0.02] border border-white/5 text-xs font-bold uppercase text-slate-500 hover:text-white transition-all flex items-center gap-3">
             <Download className="w-4 h-4 opacity-50" /> {t("timetable.controls.export") || "EXPORT GRID"}
           </button>
       </div>
@@ -332,12 +332,12 @@ const TimetablePage: React.FC = () => {
         <div className="space-y-8 p-2 text-start">
           <div className="p-5 bg-[var(--ui-accent)]/5 border border-[var(--ui-accent)]/10 rounded-xl flex items-center gap-4">
              <div className="w-10 h-10 rounded-lg bg-[var(--ui-accent)]/10 flex items-center justify-center text-[var(--ui-accent)] border border-[var(--ui-accent)]/20 shadow-glow"><Info className="w-5 h-5" /></div>
-             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">{t("timetable.modal.select_group_desc") || "Select the target unit for deployment."}</p>
+             <p className="text-xs font-bold text-slate-400 uppercase leading-relaxed">{t("timetable.modal.select_group_desc") || "Select the target unit for deployment."}</p>
           </div>
 
           <div className="space-y-6">
             <div className="space-y-3">
-              <label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest ps-1">{t("timetable.modal.select_group")}</label>
+              <label className="text-xs font-bold text-slate-600 uppercase ps-1">{t("timetable.modal.select_group")}</label>
               <select 
                 className="w-full h-14 rounded-xl border border-white/5 bg-black/40 px-5 text-xs font-bold uppercase text-white focus:ring-1 focus:ring-[var(--ui-accent)]/30 focus:outline-none transition-all"
                 value={newSessionGroupId}
@@ -352,7 +352,7 @@ const TimetablePage: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-3">
-                <label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest ps-1">{t("timetable.modal.launch_date")}</label>
+                <label className="text-xs font-bold text-slate-600 uppercase ps-1">{t("timetable.modal.launch_date")}</label>
                 <input 
                   type="date" 
                   value={newSessionDate}
@@ -361,7 +361,7 @@ const TimetablePage: React.FC = () => {
                 />
               </div>
               <div className="space-y-3">
-                <label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest ps-1">{t("timetable.modal.launch_time")}</label>
+                <label className="text-xs font-bold text-slate-600 uppercase ps-1">{t("timetable.modal.launch_time")}</label>
                 <select 
                   value={newSessionTime}
                   onChange={(e) => setNewSessionTime(e.target.value)}
@@ -378,7 +378,7 @@ const TimetablePage: React.FC = () => {
           </div>
 
           <div className="flex gap-4 pt-4">
-              <button className="flex-1 h-12 rounded-xl bg-white/[0.02] border border-white/5 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-all" onClick={() => setIsCreateOpen(false)}>{t("common.cancel")}</button>
+              <button className="flex-1 h-12 rounded-xl bg-white/[0.02] border border-white/5 text-xs font-bold uppercase text-slate-400 hover:text-white transition-all" onClick={() => setIsCreateOpen(false)}>{t("common.cancel")}</button>
               <button disabled={submitting || !newSessionGroupId} className="btn-primary flex-1 h-12" onClick={handleCreateSession}>
                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t("timetable.modal.confirm")}
               </button>
@@ -394,8 +394,8 @@ const TimetablePage: React.FC = () => {
                 <Clock className="w-6 h-6" />
              </div>
              <div>
-                <p className="text-[12px] font-bold text-white uppercase tracking-widest mb-1">{t("timetable.modal.duty_window")}</p>
-                <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest leading-tight">{t("timetable.modal.duty_desc")}</p>
+                <p className="text-[12px] font-bold text-white uppercase mb-1">{t("timetable.modal.duty_window")}</p>
+                <p className="text-xs text-slate-500 font-medium uppercase leading-tight">{t("timetable.modal.duty_desc")}</p>
              </div>
           </div>
           
@@ -420,10 +420,10 @@ const TimetablePage: React.FC = () => {
                       >
                         <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-xl", isActive ? "translate-x-7" : "translate-x-1")} />
                       </button>
-                      <span className="text-sm font-bold text-white uppercase tracking-widest w-24">{day}</span>
+                      <span className="text-sm font-bold text-white uppercase w-24">{day}</span>
                     </div>
                     {isActive && (
-                      <button onClick={() => addSegment(i)} className="h-9 px-4 text-[9px] font-bold uppercase tracking-widest text-[var(--ui-accent)] bg-[var(--ui-accent)]/5 border border-[var(--ui-accent)]/20 hover:bg-[var(--ui-accent)]/10 rounded-lg flex items-center gap-2 transition-all">
+                      <button onClick={() => addSegment(i)} className="h-9 px-4 text-xs font-bold uppercase text-[var(--ui-accent)] bg-[var(--ui-accent)]/5 border border-[var(--ui-accent)]/20 hover:bg-[var(--ui-accent)]/10 rounded-lg flex items-center gap-2 transition-all">
                          <Plus className="w-3.5 h-3.5" /> {t("timetable.modal.add_slot") || "ADD SLOT"}
                       </button>
                     )}
@@ -463,7 +463,7 @@ const TimetablePage: React.FC = () => {
           </div>
 
           <div className="flex gap-4 pt-4">
-              <button className="flex-1 h-12 rounded-xl bg-white/[0.02] border border-white/5 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-all" onClick={() => setIsAvailOpen(false)}>{t("common.cancel")}</button>
+              <button className="flex-1 h-12 rounded-xl bg-white/[0.02] border border-white/5 text-xs font-bold uppercase text-slate-400 hover:text-white transition-all" onClick={() => setIsAvailOpen(false)}>{t("common.cancel")}</button>
               <button disabled={savingAvail} className="btn-primary flex-1 h-12" onClick={handleUpdateAvailability}>
                  {savingAvail ? <Loader2 className="w-5 h-5 animate-spin" /> : t("timetable.modal.save")}
               </button>

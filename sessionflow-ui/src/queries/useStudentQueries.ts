@@ -16,12 +16,12 @@ export const useInfiniteStudents = (filters: { search?: string; groupId?: string
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage: any) => {
-      if (lastPage.page < lastPage.totalPages) {
-        return lastPage.page + 1;
+      if (lastPage.hasMore) {
+        return (lastPage.page || 1) + 1;
       }
       return undefined;
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
   });
 };
 

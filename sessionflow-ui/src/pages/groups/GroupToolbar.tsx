@@ -1,5 +1,6 @@
 import React from "react";
 import { Search, LayoutGrid, List } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../../lib/utils";
 import { useTranslation } from "react-i18next";
 
@@ -36,18 +37,25 @@ export const GroupToolbar: React.FC<GroupToolbarProps> = ({
 
       <div className="h-6 w-px bg-white/5 hidden md:block" />
 
-      <div className="flex bg-black/40 p-1 rounded-xl border border-white/5">
+      <div className="flex bg-white/[0.03] p-1.5 rounded-2xl border border-white/5 relative overflow-hidden">
         {["All", "Active", "Completed", "Archived"].map((status) => (
           <button
             key={status}
             onClick={() => onStatusFilterChange(status)}
             className={cn(
-              "px-4 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-[0.2em] transition-all",
+              "px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all relative z-10",
               statusFilter === status 
-                ? "bg-[var(--ui-accent)] text-white shadow-[0_0_20px_rgba(var(--ui-accent-rgb),0.3)]" 
+                ? "text-white" 
                 : "text-slate-500 hover:text-slate-300"
             )}
           >
+            {statusFilter === status && (
+              <motion.div 
+                layoutId="status-bg"
+                className="absolute inset-0 bg-[var(--ui-accent)] rounded-lg shadow-glow shadow-[var(--ui-accent)]/20 z-[-1]"
+                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+              />
+            )}
             {t(`groups.status.${status.toLowerCase()}`, status)}
           </button>
         ))}
@@ -55,18 +63,30 @@ export const GroupToolbar: React.FC<GroupToolbarProps> = ({
       
       <div className="h-6 w-px bg-white/5" />
       
-      <div className="flex gap-1">
+      <div className="flex gap-1.5 bg-white/[0.03] p-1 rounded-xl border border-white/5">
         <button 
           onClick={() => onViewModeChange("grid")}
-          className={cn("w-9 h-9 rounded-lg flex items-center justify-center transition-all", viewMode === "grid" ? "bg-[var(--ui-accent)]/10 text-[var(--ui-accent)]" : "text-slate-600 hover:text-slate-400")}
+          className={cn(
+            "w-9 h-9 rounded-lg flex items-center justify-center transition-all relative", 
+            viewMode === "grid" ? "text-[var(--ui-accent)]" : "text-slate-600 hover:text-slate-400"
+          )}
         >
-          <LayoutGrid className="w-4 h-4" />
+          {viewMode === "grid" && (
+             <motion.div layoutId="view-bg" className="absolute inset-0 bg-[var(--ui-accent)]/10 rounded-lg border border-[var(--ui-accent)]/20 shadow-[inset_0_0_10px_rgba(var(--ui-accent-rgb),0.1)]" />
+          )}
+          <LayoutGrid className="w-4 h-4 relative z-10" />
         </button>
         <button 
           onClick={() => onViewModeChange("list")}
-          className={cn("w-9 h-9 rounded-lg flex items-center justify-center transition-all", viewMode === "list" ? "bg-[var(--ui-accent)]/10 text-[var(--ui-accent)]" : "text-slate-600 hover:text-slate-400")}
+          className={cn(
+            "w-9 h-9 rounded-lg flex items-center justify-center transition-all relative", 
+            viewMode === "list" ? "text-[var(--ui-accent)]" : "text-slate-600 hover:text-slate-400"
+          )}
         >
-          <List className="w-4 h-4" />
+          {viewMode === "list" && (
+             <motion.div layoutId="view-bg" className="absolute inset-0 bg-[var(--ui-accent)]/10 rounded-lg border border-[var(--ui-accent)]/20 shadow-[inset_0_0_10px_rgba(var(--ui-accent-rgb),0.1)]" />
+          )}
+          <List className="w-4 h-4 relative z-10" />
         </button>
       </div>
     </div>

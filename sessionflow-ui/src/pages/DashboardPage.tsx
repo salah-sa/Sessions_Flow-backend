@@ -8,6 +8,8 @@ import { AnalyticsOverview } from "./dashboard/AnalyticsOverview";
 import { OperationalIntelligence } from "./dashboard/OperationalIntelligence";
 import { QuickScheduleModal } from "./dashboard/QuickScheduleModal";
 import WorldStudentMap from "../components/dashboard/WorldStudentMap";
+import { Button } from "../components/ui";
+import { Plus } from "lucide-react";
 
 const DashboardPage: React.FC = () => {
   const { t } = useTranslation();
@@ -37,8 +39,8 @@ const DashboardPage: React.FC = () => {
         <div className="relative flex flex-col items-center gap-6">
            <div className="w-16 h-16 border-2 border-[var(--ui-accent)]/20 border-t-[var(--ui-accent)] rounded-full animate-spin shadow-glow shadow-[var(--ui-accent)]/20" />
            <div className="space-y-1.5 text-center">
-              <p className="text-sm font-black text-white uppercase tracking-wider animate-pulse">{t("common.initializing")}</p>
-              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t("dashboard.syncing_telemetry")}</p>
+              <p className="text-sm font-semibold text-white uppercase tracking-wider animate-pulse">{t("common.initializing")}</p>
+              <p className="text-xs font-bold text-slate-500 uppercase">{t("dashboard.syncing_telemetry")}</p>
            </div>
         </div>
       </div>
@@ -74,7 +76,7 @@ const DashboardPage: React.FC = () => {
     <div className="container-page pb-16 sm:pb-20 space-y-5 sm:space-y-8 lg:space-y-10 pt-4 sm:pt-6">
       {/* Offline banner */}
       {isError && (
-        <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest">
+        <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs sm:text-[11px] font-bold uppercase">
           <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
           {t("dashboard.offline_mode", "Offline — cached data")}
         </div>
@@ -98,20 +100,25 @@ const DashboardPage: React.FC = () => {
         recentActivity={data?.recentActivity ?? []}
       />
 
-      <OperationalIntelligence recentActivity={data?.recentActivity ?? []} />
+      <OperationalIntelligence 
+        recentActivity={data?.recentActivity ?? []} 
+        activeSessions={data?.activeSessions ?? 0}
+        avgSessionDuration={data?.avgSessionDuration ?? 0}
+        completionRate={data?.completionRate ?? 0}
+      />
 
 
       {/* FAB — responsive positioning */}
       <div className="fixed bottom-5 right-5 sm:bottom-8 sm:right-8 lg:bottom-10 lg:right-10 z-50">
-         <button
+         <Button
            onClick={() => setIsScheduleModalOpen(true)}
-           className="h-12 sm:h-14 px-5 sm:px-7 rounded-2xl bg-[var(--ui-accent)] text-white shadow-glow shadow-[var(--ui-accent)]/40 hover:scale-105 active:scale-95 transition-all flex items-center gap-3 group"
+           className="!h-12 sm:!h-14 !px-5 sm:!px-7 !rounded-2xl !bg-[var(--ui-accent)] !text-white !shadow-glow !shadow-[var(--ui-accent)]/40 group"
          >
-            <div className="p-1.5 rounded-lg bg-white/20 group-hover:rotate-12 transition-transform">
-               <PlusIcon className="w-4 h-4" />
+            <div className="p-1.5 rounded-lg bg-white/20 group-hover:rotate-12 transition-transform me-3">
+               <Plus className="w-4 h-4" />
             </div>
-            <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest hidden sm:inline">{t("dashboard.schedule.quick_action")}</span>
-         </button>
+            <span className="text-xs sm:text-[11px] font-semibold hidden sm:inline">{t("dashboard.schedule.quick_action")}</span>
+         </Button>
       </div>
 
       <QuickScheduleModal

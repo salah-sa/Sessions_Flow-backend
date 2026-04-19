@@ -129,7 +129,7 @@
   }
 
   .btn-primary {
-    @apply text-white font-black uppercase tracking-[0.3em] text-[10px] py-4 px-10 active:scale-[0.95] transition-all;
+    @apply text-white font-semibold text-[13px] py-3 px-8 active:scale-[0.95] transition-all;
     background: linear-gradient(90deg, var(--ui-accent-secondary), var(--ui-accent)) !important;
     background-size: 200% auto !important;
     animation: refraction-sweep 5s ease infinite !important;
@@ -144,8 +144,31 @@
     transform: translateY(-1px);
   }
 
+  .btn-secondary {
+    @apply text-slate-300 font-semibold text-[13px] py-3 px-8 active:scale-[0.95] transition-all border border-white/10;
+    background: rgba(255, 255, 255, 0.03) !important;
+    backdrop-filter: blur(24px) !important;
+    border-radius: var(--ui-radius-btn) !important;
+  }
+
+  .btn-secondary:hover {
+    @apply border-white/20 bg-white/5 text-white;
+    transform: translateY(-1px);
+  }
+
+  .btn-danger {
+    @apply text-rose-500 font-semibold text-[13px] py-3 px-8 active:scale-[0.95] transition-all border border-rose-500/20;
+    background: rgba(244, 63, 94, 0.1) !important;
+    border-radius: var(--ui-radius-btn) !important;
+  }
+
+  .btn-danger:hover {
+    @apply border-rose-500/40 bg-rose-500/20 text-rose-400;
+    transform: translateY(-1px);
+  }
+
   .btn-ghost {
-    @apply text-slate-400 hover:text-white font-black uppercase tracking-widest text-[10px] py-2 px-6 transition-all border border-transparent hover:border-white/10;
+    @apply text-slate-400 hover:text-white font-semibold text-[13px] py-2 px-6 transition-all border border-transparent hover:border-white/10;
     background: transparent !important;
   }
 
@@ -162,7 +185,7 @@
   }
 
   .badge-base {
-    @apply text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 border;
+    @apply text-[11px] font-medium px-3 py-1 border;
     background: rgba(var(--ui-accent-rgb), 0.1);
     border-color: rgba(var(--ui-accent-rgb), 0.2);
     color: var(--ui-accent);

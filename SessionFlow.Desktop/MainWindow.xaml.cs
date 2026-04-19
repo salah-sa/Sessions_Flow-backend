@@ -121,21 +121,18 @@ public partial class MainWindow : Window
 
     private void MainWindow_StateChanged(object? sender, EventArgs e)
     {
-        // When minimized, hide to tray
-        if (WindowState == WindowState.Minimized)
-        {
-            Hide();
-        }
+        // Standalone minimize to taskbar (prevents confusing hide-to-tray behavior)
     }
 
     private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
-        // Don't close, minimize to tray instead
-        e.Cancel = true;
-        WindowState = WindowState.Minimized;
-        Hide();
-        TrayIcon.ShowBalloonTip("SessionFlow", "SessionFlow is still running in the system tray.",
-            Hardcodet.Wpf.TaskbarNotification.BalloonIcon.Info);
+        // Default behavior for manual window close (Alt+F4 or manual X)
+        // If we want to allow the confirm dialog in JS to handle exit, we let it call exitApp()
+        // but for safety, we preserve the tray backup here unless explicit exit is called.
+        
+        // If the JS layer hasn't confirmed exit, we hide to tray as a safety net.
+        // However, the user specifically requested (X) to terminate.
+        // To respect the JS confirm flow, we will let HostBridge handle the hard exit.
     }
 
     private void ShowFromTray()
@@ -162,14 +159,15 @@ public partial class MainWindow : Window
 
     private void TrayQuit_Click(object sender, RoutedEventArgs e)
     {
-        // Actually quit the application
+        ExecuteFullExit();
+    }
+
+    public void ExecuteFullExit()
+    {
         TrayIcon.Dispose();
-
-        // Cancel the closing prevention
         Closing -= MainWindow_Closing;
-        Close();
-
         (Application.Current as App)?.StopAndExit();
+        Environment.Exit(0);
     }
 }
 
@@ -210,8 +208,8 @@ public class HostBridge
     {
         _window.Dispatcher.Invoke(() =>
         {
-            _window.WindowState = WindowState.Minimized;
-            _window.Hide();
+            // The user wants (X) to terminate. HostBridge.closeWindow is called by the UI.
+            _window.ExecuteFullExit();
         });
     }
 
@@ -253,10 +251,8 @@ public class HostBridge
     {
         _window.Dispatcher.Invoke(() =>
         {
-            _window.TrayIcon.Dispose();
-            _window.Close();
-            (Application.Current as App)?.StopAndExit();
-            Environment.Exit(0);
+            _window.ExecuteFullExit();
         });
     }
 }
+

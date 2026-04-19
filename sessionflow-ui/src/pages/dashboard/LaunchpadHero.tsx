@@ -34,7 +34,7 @@ export const LaunchpadHero: React.FC = () => {
                 {t("dashboard.welcome_back")},
               </span>
               <span className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl text-[var(--ui-accent)] drop-shadow-[0_0_20px_rgba(var(--ui-accent-rgb),0.25)]">
-                {userName || "OPERATIVE"}
+                {userName || t("common.user")}
               </span>
            </h1>
         </div>
@@ -42,13 +42,13 @@ export const LaunchpadHero: React.FC = () => {
 
       {/* Power Level — condensed on mobile */}
       <div className="flex flex-row md:flex-col items-center md:items-end gap-4 md:gap-3 animate-in fade-in slide-in-from-right-8 duration-1000 w-full md:w-auto">
-         <div className="flex items-center gap-4 sm:gap-6 bg-black/30 p-3 sm:p-3.5 rounded-2xl border border-white/5 backdrop-blur-xl group hover:border-[var(--ui-accent)]/30 transition-all duration-500 flex-1 md:flex-initial">
+         <div className="flex items-center gap-4 sm:gap-6 bg-white/[0.03] p-3 sm:p-3.5 rounded-2xl border border-white/5 backdrop-blur-xl group hover:border-[var(--ui-accent)]/30 transition-all duration-500 flex-1 md:flex-initial shadow-[inset_0_0_20px_rgba(255,255,255,0.01)]">
              <div className="space-y-0.5 text-end flex-1 md:flex-initial">
-                <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("dashboard.power_level")}</p>
-                <p className="text-lg sm:text-xl font-black text-white tracking-tighter tabular-nums">1.21 <span className="text-[10px] text-[var(--ui-accent)]">GW</span></p>
+                <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("dashboard.sync_status")}</p>
+                <p className="text-lg sm:text-xl font-black text-white tracking-tighter tabular-nums uppercase">{t("dashboard.status_online")}</p>
              </div>
-             <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--ui-accent)] flex items-center justify-center shadow-glow shadow-[var(--ui-accent)]/30 group-hover:scale-110 transition-transform shrink-0">
-                <Zap className="w-5 h-5 text-white fill-white" />
+             <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--ui-accent)] flex items-center justify-center shadow-glow shadow-[var(--ui-accent)]/30 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 shrink-0">
+                 <Zap className="w-5 h-5 text-white fill-white" />
              </div>
          </div>
          <p className="text-[9px] sm:text-[10px] font-bold text-slate-600 uppercase tracking-wider pe-1 hidden md:block">{t("dashboard.last_sync")}: {new Date().toLocaleTimeString()}</p>
