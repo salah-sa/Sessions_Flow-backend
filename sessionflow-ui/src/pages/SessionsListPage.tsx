@@ -117,7 +117,7 @@ const SessionsListPage: React.FC = () => {
           <div>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight flex flex-wrap items-center gap-2 sm:gap-3">
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-[var(--ui-accent)] to-[#7e22ce]">Sessions</span>
-              <span className="text-var(--ui-surface) text-2xl sm:text-3xl hidden sm:inline">/</span>
+              <span className="text-[var(--ui-surface)] text-2xl sm:text-3xl hidden sm:inline">/</span>
               <span className="text-xs sm:text-sm font-bold text-slate-500 uppercase pt-1 sm:pt-1.5">Management</span>
             </h1>
             <p className="text-slate-500 mt-1 max-w-md text-sm">Efficiently manage and track all learning sessions, live broadcasts, and historical records.</p>
@@ -197,7 +197,7 @@ const SessionsListPage: React.FC = () => {
               className="flex flex-col items-center justify-center py-32 text-center"
             >
               <div className="w-24 h-24 rounded-[2.5rem] bg-white/[0.02] border border-white/[0.05] flex items-center justify-center mb-8 relative">
-                 <Box className="w-10 h-10 text-var(--ui-surface)" />
+                 <Box className="w-10 h-10 text-[var(--ui-surface)]" />
                  <div className="absolute inset-0 bg-blue-500/5 blur-2xl rounded-full" />
               </div>
               <h3 className="text-xl font-bold text-white mb-2">No Records Found</h3>

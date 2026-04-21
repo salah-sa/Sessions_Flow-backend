@@ -338,16 +338,16 @@ const LoginMascot: React.FC<LoginMascotProps> = ({ state, passwordStrength = 0 }
       {/* Floating particles around mascot when watching */}
       {isWatching && (
         <>
-          <div className="absolute top-2 right-0 w-1.5 h-1.5 bg-var(--ui-accent)/40 rounded-full animate-float-slow" />
-          <div className="absolute top-6 left-0 w-1 h-1 bg-var(--ui-accent)/30 rounded-full animate-float-medium" />
-          <div className="absolute bottom-4 right-4 w-1 h-1 bg-var(--ui-accent)/50 rounded-full animate-float-fast" />
+          <div className="absolute top-2 right-0 w-1.5 h-1.5 bg-[var(--ui-accent)]/40 rounded-full animate-float-slow" />
+          <div className="absolute top-6 left-0 w-1 h-1 bg-[var(--ui-accent)]/30 rounded-full animate-float-medium" />
+          <div className="absolute bottom-4 right-4 w-1 h-1 bg-[var(--ui-accent)]/50 rounded-full animate-float-fast" />
         </>
       )}
 
       {/* Success sparkles */}
       {isSuccess && (
         <>
-          <div className="absolute -top-2 left-1/2 w-2 h-2 bg-var(--ui-accent) rounded-full animate-ping" />
+          <div className="absolute -top-2 left-1/2 w-2 h-2 bg-[var(--ui-accent)] rounded-full animate-ping" />
           <div className="absolute top-0 left-4 w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping delay-100" />
           <div className="absolute top-0 right-4 w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping delay-200" />
         </>

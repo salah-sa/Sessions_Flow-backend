@@ -26,12 +26,12 @@ export const SocialButtons: React.FC<SocialButtonsProps> = ({
   const btnClass = mode === "icon-only"
     ? `w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 shadow-md cursor-pointer ${
         isDark 
-          ? 'bg-var(--ui-bg)/60 border border-white/[0.06] hover:bg-white/[0.06] hover:border-emerald-500/20 hover:shadow-[0_0_12px_rgba(16,185,129,0.1)]' 
+          ? 'bg-[var(--ui-bg)]/60 border border-white/[0.06] hover:bg-white/[0.06] hover:border-emerald-500/20 hover:shadow-[0_0_12px_rgba(16,185,129,0.1)]' 
           : 'bg-white border border-slate-200 hover:bg-slate-50 hover:shadow-slate-200'
       }`
     : `w-full h-11 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 shadow-md font-bold text-[10px] uppercase tracking-widest cursor-pointer ${
         isDark 
-          ? 'bg-var(--ui-bg)/60 border border-white/[0.06] text-slate-400 hover:bg-white/[0.06] hover:text-white hover:border-emerald-500/20 hover:shadow-[0_0_12px_rgba(16,185,129,0.1)]' 
+          ? 'bg-[var(--ui-bg)]/60 border border-white/[0.06] text-slate-400 hover:bg-white/[0.06] hover:text-white hover:border-emerald-500/20 hover:shadow-[0_0_12px_rgba(16,185,129,0.1)]' 
           : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:shadow-slate-200'
       }`;
 

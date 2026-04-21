@@ -24,14 +24,14 @@ public class ReportingService
         QuestPDF.Settings.License = LicenseType.Community;
     }
 
-    public async Task<byte[]> GenerateSessionReportAsync(Guid sessionId)
+    public async Task<byte[]> GenerateSessionReportAsync(Guid sessionId, CancellationToken ct = default)
     {
-        var session = await _db.Sessions.Find(s => s.Id == sessionId).FirstOrDefaultAsync();
+        var session = await _db.Sessions.Find(s => s.Id == sessionId, cancellationToken: ct).FirstOrDefaultAsync(ct);
         if (session == null) throw new Exception("Session not found.");
 
-        var group = await _db.Groups.Find(g => g.Id == session.GroupId).FirstOrDefaultAsync();
-        var students = await _db.Students.Find(s => s.GroupId == session.GroupId && !s.IsDeleted).ToListAsync();
-        var attendance = await _db.AttendanceRecords.Find(ar => ar.SessionId == sessionId).ToListAsync();
+        var group = await _db.Groups.Find(g => g.Id == session.GroupId, cancellationToken: ct).FirstOrDefaultAsync(ct);
+        var students = await _db.Students.Find(s => s.GroupId == session.GroupId && !s.IsDeleted, cancellationToken: ct).ToListAsync(ct);
+        var attendance = await _db.AttendanceRecords.Find(ar => ar.SessionId == sessionId, cancellationToken: ct).ToListAsync(ct);
         var studentDict = students.ToDictionary(s => s.Id);
 
         var document = Document.Create(container =>

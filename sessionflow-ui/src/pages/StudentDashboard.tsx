@@ -79,7 +79,7 @@ export const StudentDashboard: React.FC = () => {
       <div className="w-full h-[50vh] flex flex-col items-center justify-center font-sans">
         <Loader2 className="w-8 h-8 animate-spin text-[var(--ui-accent)] mb-4" />
         <p className="text-[var(--ui-accent)] font-bold uppercase text-xs animate-pulse">
-          Synchronizing Neural Environment...
+          {t("student_dashboard.sync_neural", "Synchronizing Neural Environment...")}
         </p>
       </div>
     );
@@ -93,16 +93,16 @@ export const StudentDashboard: React.FC = () => {
         <Card className="p-8 border-red-500/20 bg-red-500/5 text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4 opacity-80" />
           <h2 className="text-lg font-sora font-semibold text-white uppercase">
-            Identity Resolution Failed
+            {t("student_dashboard.identity_failed", "Identity Resolution Failed")}
           </h2>
           <p className="text-slate-400 mt-2">
-            {(error as any)?.message || data?.error?.message || "Your student records could not be verified."}
+            {error instanceof Error ? error.message : (data?.error?.message || t("student_dashboard.verify_error", "Your student records could not be verified."))}
           </p>
           <Button 
             className="mt-6 bg-red-500 hover:bg-red-400 text-white"
             onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.data })}
           >
-            Retry Validation
+            {t("common.retry_validation", "Retry Validation")}
           </Button>
         </Card>
       </div>
@@ -138,7 +138,7 @@ export const StudentDashboard: React.FC = () => {
             <div className="space-y-1 relative z-10">
               <div className="flex items-center gap-4 mb-1">
                 <p className="text-xs font-semibold text-emerald-500 uppercase">
-                  Student Operator
+                  {t("common.student_operator", "Student Operator")}
                 </p>
                 <div className="h-4 px-2 rounded bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1.5">
                   <MapPin className="w-2.5 h-2.5 text-emerald-500" />
@@ -149,11 +149,11 @@ export const StudentDashboard: React.FC = () => {
                 {identity.name}
               </h1>
               <div className="flex items-center gap-3 text-xs text-slate-400 font-bold tracking-wider">
-                <span className="flex items-center gap-1.5"><Activity className="w-3.5 h-3.5 text-emerald-500" /> Node: {identity.groupName}</span>
+                <span className="flex items-center gap-1.5"><Activity className="w-3.5 h-3.5 text-emerald-500" /> {t("common.node", "Node")}: {identity.groupName}</span>
                 <span className="w-1 h-1 rounded-full bg-slate-700" />
-                <span>Level {identity.level}</span>
+                <span>{t("common.level", "Level")} {identity.level}</span>
                 <span className="w-1 h-1 rounded-full bg-slate-700" />
-                <span>ID: {identity.studentId}</span>
+                <span>{t("common.id", "ID")}: {identity.studentId}</span>
               </div>
             </div>
           </div>
@@ -169,7 +169,7 @@ export const StudentDashboard: React.FC = () => {
               <div className="relative z-10 space-y-6">
                 <div className="space-y-2">
                   <h3 className="text-xs font-semibold text-emerald-500 uppercase flex items-center gap-2">
-                    <Activity className="w-4 h-4" /> Priority Directive
+                    <Activity className="w-4 h-4" /> {t("student_dashboard.priority_directive", "Priority Directive")}
                   </h3>
                   <h2 className="text-2xl font-sora font-semibold text-white">
                     {primaryAction?.label}
@@ -184,14 +184,14 @@ export const StudentDashboard: React.FC = () => {
                     }}
                     className="h-12 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-semibold text-[11px] shadow-lg shadow-emerald-500/20"
                   >
-                    Enter Operations <ArrowRight className="w-4 h-4 ml-2" />
+                    {t("student_dashboard.enter_operations", "Enter Operations")} <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 ) : (
                   <Button 
                     disabled
                     className="h-12 px-6 rounded-xl bg-white/5 border border-white/10 text-slate-500 font-semibold text-[11px] cursor-not-allowed"
                   >
-                    No Active Nodes
+                    {t("student_dashboard.no_active_nodes", "No Active Nodes")}
                   </Button>
                 )}
               </div>
@@ -201,9 +201,9 @@ export const StudentDashboard: React.FC = () => {
             <WorldStudentMap compact />
 
             <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
-               <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                   <Activity className="w-3 h-3 text-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Neural Link Active</span>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("student_dashboard.neural_link_active", "Neural Link Active")}</span>
                </div>
             </div>
           </motion.div>
@@ -211,11 +211,11 @@ export const StudentDashboard: React.FC = () => {
           {/* Right Sidebar: Progress */}
           <motion.div initial="hidden" animate="visible" variants={itemVariants} className="col-span-1 space-y-6">
             <div className="card-aero p-6">
-              <h3 className="text-xs font-semibold text-slate-400 uppercase mb-6">Course Trajectory</h3>
+              <h3 className="text-xs font-semibold text-slate-400 uppercase mb-6">{t("student_dashboard.course_trajectory", "Course Trajectory")}</h3>
               
               <div className="flex items-end justify-between mb-2">
                 <span className="text-4xl font-sora font-semibold text-white leading-none">{progress.percentage.toFixed(0)}<span className="text-xl text-emerald-500">%</span></span>
-                <span className="text-xs font-bold text-slate-500 uppercase">{progress.completed} / {progress.total} Complete</span>
+                <span className="text-xs font-bold text-slate-500 uppercase">{progress.completed} / {progress.total} {t("common.complete", "Complete")}</span>
               </div>
               
               <div className="h-3 bg-[var(--ui-surface)] rounded-full overflow-hidden w-full p-0.5 border border-white/5">
@@ -229,11 +229,11 @@ export const StudentDashboard: React.FC = () => {
               
               <div className="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase">Remaining</p>
+                  <p className="text-xs font-bold text-slate-500 uppercase">{t("student_dashboard.remaining", "Remaining")}</p>
                   <p className="text-xl font-sora font-semibold text-white mt-1">{progress.remaining}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase">Target Edge</p>
+                  <p className="text-xs font-bold text-slate-500 uppercase">{t("student_dashboard.target_edge", "Target Edge")}</p>
                   <p className="text-xl font-sora font-semibold text-white mt-1">S{progress.total}</p>
                 </div>
               </div>
@@ -242,7 +242,7 @@ export const StudentDashboard: React.FC = () => {
             {/* Timeline View inside sidebar or below map for better layout? Leaving it here as per original */}
             <div className="card-aero p-6">
               <h3 className="text-xs font-semibold text-white uppercase mb-6 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-emerald-500" /> Recent Sessions
+                <Calendar className="w-4 h-4 text-emerald-500" /> {t("student_dashboard.recent_sessions", "Recent Sessions")}
               </h3>
               
               <div className="space-y-4">
@@ -252,7 +252,7 @@ export const StudentDashboard: React.FC = () => {
                       {session.status === "Ended" ? <CheckCircle className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-xs font-semibold text-white uppercase tracking-wide truncate">Session #{session.number}</h4>
+                      <h4 className="text-xs font-semibold text-white uppercase tracking-wide truncate">{t("common.session", "Session")} #{session.number}</h4>
                       <p className="text-xs text-slate-500 mt-0.5">{format(new Date(session.scheduledAt), "MMM d")}</p>
                     </div>
                   </div>

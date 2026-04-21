@@ -16,11 +16,11 @@ public class SessionService
         _config = config;
     }
 
-    public async Task AutoGenerateSessionsAsync(Group group)
+    public async Task AutoGenerateSessionsAsync(Group group, CancellationToken ct = default)
     {
         var schedules = await _db.GroupSchedules
             .Find(gs => gs.GroupId == group.Id)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         if (schedules.Count == 0)
             return;
@@ -40,23 +40,24 @@ public class SessionService
                 DurationMinutes = gs.DurationMinutes
             }).ToList();
 
-            await _db.Sessions.InsertManyAsync(sessionsToInsert);
+            await _db.Sessions.InsertManyAsync(sessionsToInsert, cancellationToken: ct);
         }
     }
 
-    public async Task MaintainAllGroupsSessionsAsync()
+    public async Task MaintainAllGroupsSessionsAsync(CancellationToken ct = default)
     {
-        var activeGroups = await _db.Groups.Find(g => g.Status == GroupStatus.Active && !g.IsDeleted).ToListAsync();
+        var activeGroups = await _db.Groups.Find(g => g.Status == GroupStatus.Active && !g.IsDeleted).ToListAsync(ct);
         foreach (var group in activeGroups)
         {
-            await MaintainSessionsAsync(group);
+            if (ct.IsCancellationRequested) break;
+            await MaintainSessionsAsync(group, ct);
         }
     }
 
-    public async Task MaintainSessionsAsync(Group group)
+    public async Task MaintainSessionsAsync(Group group, CancellationToken ct = default)
     {
         // Ensure at least 4 future sessions exist
-        var futureCount = await _db.Sessions.CountDocumentsAsync(s => s.GroupId == group.Id && s.ScheduledAt > DateTimeOffset.UtcNow && !s.IsDeleted);
+        var futureCount = await _db.Sessions.CountDocumentsAsync(s => s.GroupId == group.Id && s.ScheduledAt > DateTimeOffset.UtcNow && !s.IsDeleted, cancellationToken: ct);
         if (futureCount >= 4) return;
 
         var lastSession = await _db.Sessions

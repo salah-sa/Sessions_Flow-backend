@@ -7,7 +7,7 @@ import { SocialButtons } from "../SocialButtons";
 
 export const StyleMinimalClean: React.FC<LoginStyleProps> = (props) => {
   return (
-    <div className="absolute inset-0 bg-[#fafafa] flex flex-col items-center justify-center p-6 text-var(--ui-sidebar-bg) font-sans">
+    <div className="absolute inset-0 bg-[#fafafa] flex flex-col items-center justify-center p-6 text-[var(--ui-sidebar-bg)] font-sans">
       <motion.div
         className="w-full max-w-[400px]"
         initial={{ opacity: 0, y: 10 }}
@@ -22,13 +22,13 @@ export const StyleMinimalClean: React.FC<LoginStyleProps> = (props) => {
         <div className="flex bg-slate-100 rounded-lg p-1 mb-8">
           <button
             onClick={() => props.setLoginMode("engineer")}
-            className={`flex-1 py-1.5 text-[13px] font-medium rounded-md transition-all ${props.loginMode === "engineer" ? "bg-white shadow-sm text-black" : "text-slate-500 hover:text-var(--ui-surface)"}`}
+            className={`flex-1 py-1.5 text-[13px] font-medium rounded-md transition-all ${props.loginMode === "engineer" ? "bg-white shadow-sm text-black" : "text-slate-500 hover:text-[var(--ui-surface)]"}`}
           >
             Engineer
           </button>
           <button
             onClick={() => props.setLoginMode("student")}
-            className={`flex-1 py-1.5 text-[13px] font-medium rounded-md transition-all ${props.loginMode === "student" ? "bg-white shadow-sm text-black" : "text-slate-500 hover:text-var(--ui-surface)"}`}
+            className={`flex-1 py-1.5 text-[13px] font-medium rounded-md transition-all ${props.loginMode === "student" ? "bg-white shadow-sm text-black" : "text-slate-500 hover:text-[var(--ui-surface)]"}`}
           >
             Student
           </button>
@@ -39,7 +39,7 @@ export const StyleMinimalClean: React.FC<LoginStyleProps> = (props) => {
              <Input
                {...props.register("identifier")}
                placeholder={props.loginMode === "engineer" ? "Email address" : "Username"}
-               className="w-full h-12 bg-white border-slate-200 text-var(--ui-sidebar-bg) rounded-lg shadow-sm focus:border-slate-400 focus:ring-1 focus:ring-slate-200 transition-all text-[15px]"
+               className="w-full h-12 bg-white border-slate-200 text-[var(--ui-sidebar-bg)] rounded-lg shadow-sm focus:border-slate-400 focus:ring-1 focus:ring-slate-200 transition-all text-[15px]"
                onFocus={() => props.handleFieldFocus("text")}
                onBlur={props.handleFieldBlur}
              />
@@ -49,7 +49,7 @@ export const StyleMinimalClean: React.FC<LoginStyleProps> = (props) => {
                {...props.register("password")}
                type="password"
                placeholder="Password"
-               className="w-full h-12 bg-white border-slate-200 text-var(--ui-sidebar-bg) rounded-lg shadow-sm focus:border-slate-400 focus:ring-1 focus:ring-slate-200 transition-all text-[15px]"
+               className="w-full h-12 bg-white border-slate-200 text-[var(--ui-sidebar-bg)] rounded-lg shadow-sm focus:border-slate-400 focus:ring-1 focus:ring-slate-200 transition-all text-[15px]"
                onFocus={() => props.handleFieldFocus("password")}
                onBlur={props.handleFieldBlur}
                onChange={(e) => {
@@ -70,7 +70,7 @@ export const StyleMinimalClean: React.FC<LoginStyleProps> = (props) => {
           <Button
              type="submit"
              disabled={props.loading}
-             className="w-full h-12 bg-black hover:bg-var(--ui-surface) text-white font-medium rounded-lg mt-4 transition-colors text-[15px]"
+             className="w-full h-12 bg-black hover:bg-[var(--ui-surface)] text-white font-medium rounded-lg mt-4 transition-colors text-[15px]"
           >
              {props.loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Continue"}
           </Button>

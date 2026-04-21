@@ -130,7 +130,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
               </div>
 
               {/* ═══ Role Switcher ═══ */}
-              <div className="relative flex p-[3px] bg-var(--ui-bg)/60 rounded-xl mb-4 border border-white/[0.05]">
+              <div className="relative flex p-[3px] bg-[var(--ui-bg)]/60 rounded-xl mb-4 border border-white/[0.05]">
                 <motion.div
                   className="absolute top-[3px] bottom-[3px] rounded-[11px] bg-[var(--ui-accent)]/15 border border-[var(--ui-accent)]/25 shadow-[0_0_12px_rgba(var(--ui-accent-rgb),0.15)]"
                   animate={{
@@ -178,7 +178,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                         <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-[var(--ui-accent)]" />
                         <Input
                           {...props.register("groupName")}
-                          className="w-full h-[42px] pl-10 bg-var(--ui-bg)/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] focus:border-[var(--ui-accent)]/30 transition-all text-[13px] placeholder:text-slate-600 font-medium normal-case tracking-normal"
+                          className="w-full h-[42px] pl-10 bg-[var(--ui-bg)]/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] focus:border-[var(--ui-accent)]/30 transition-all text-[13px] placeholder:text-slate-600 font-medium normal-case tracking-normal"
                           placeholder="Exact group name (e.g. Math-101)"
                           onFocus={() => { setFocusedField("groupName"); props.handleFieldFocus("text"); }}
                           onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
@@ -236,7 +236,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                               key={student.id}
                               type="button"
                               onClick={() => props.onSelectStudent?.(student)}
-                              className="w-full px-4 py-2.5 bg-var(--ui-bg)/40 hover:bg-[var(--ui-accent)]/10 border border-white/5 hover:border-[var(--ui-accent)]/30 rounded-xl text-start transition-all group flex items-center justify-between"
+                              className="w-full px-4 py-2.5 bg-[var(--ui-bg)]/40 hover:bg-[var(--ui-accent)]/10 border border-white/5 hover:border-[var(--ui-accent)]/30 rounded-xl text-start transition-all group flex items-center justify-between"
                             >
                               <span className="text-[11px] text-slate-400 group-hover:text-white font-bold uppercase transition-colors">{student.name}</span>
                               <div className="w-5 h-5 rounded-full bg-white/5 group-hover:bg-[var(--ui-accent)] flex items-center justify-center transition-all">
@@ -280,7 +280,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                             <Input
                               {...props.register("name")}
                               readOnly={!!(isStudent && props.selectedStudent)}
-                              className={`w-full h-[42px] pl-10 bg-var(--ui-bg)/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] text-[13px] ${isStudent && props.selectedStudent ? "cursor-not-allowed text-slate-400" : ""}`}
+                              className={`w-full h-[42px] pl-10 bg-[var(--ui-bg)]/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] text-[13px] ${isStudent && props.selectedStudent ? "cursor-not-allowed text-slate-400" : ""}`}
                               placeholder="Enter your full name"
                               onFocus={() => { setFocusedField("name"); props.handleFieldFocus("text"); }}
                               onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
@@ -305,7 +305,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                         {isStudent ? <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" /> : <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />}
                         <Input
                           {...props.register("identifier")}
-                          className="w-full h-[42px] pl-10 bg-var(--ui-bg)/60 border-white/[0.05] text-white rounded-xl text-[13px]"
+                          className="w-full h-[42px] pl-10 bg-[var(--ui-bg)]/60 border-white/[0.05] text-white rounded-xl text-[13px]"
                           placeholder={isStudent ? "Enter your username" : "username@gmail.com"}
                           onFocus={() => { setFocusedField("identifier"); props.handleFieldFocus("text"); }}
                           onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
@@ -322,7 +322,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                         <Input
                           {...props.register("password")}
                           type={showPassword ? "text" : "password"}
-                          className="w-full h-[42px] pl-10 pr-10 bg-var(--ui-bg)/60 border-white/[0.05] text-white rounded-xl text-[13px]"
+                          className="w-full h-[42px] pl-10 pr-10 bg-[var(--ui-bg)]/60 border-white/[0.05] text-white rounded-xl text-[13px]"
                           placeholder="••••••••"
                           onFocus={() => { setFocusedField("password"); props.handleFieldFocus("password"); }}
                           onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
@@ -349,7 +349,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                       {/* Strength Meter */}
                       {isRegister && props.passwordStrength > 0 && (
                         <div className="pt-1 px-1 flex items-center gap-2">
-                          <div className="flex-1 h-[3px] bg-var(--ui-surface) rounded-full overflow-hidden">
+                          <div className="flex-1 h-[3px] bg-[var(--ui-surface)] rounded-full overflow-hidden">
                             <motion.div
                               className={`h-full ${strengthIdx >= 0 ? strengthConfig[strengthIdx].color : ""}`}
                               initial={{ width: 0 }}
@@ -376,7 +376,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                             <Input
                               {...props.register("confirmPassword")}
                               type={showConfirmPassword ? "text" : "password"}
-                              className="w-full h-[42px] pl-10 pr-10 bg-var(--ui-bg)/60 border-white/[0.05] text-white rounded-xl text-[13px]"
+                              className="w-full h-[42px] pl-10 pr-10 bg-[var(--ui-bg)]/60 border-white/[0.05] text-white rounded-xl text-[13px]"
                               placeholder="••••••••"
                               onFocus={() => { setFocusedField("confirmPassword"); props.handleFieldFocus("password"); }}
                               onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
@@ -399,7 +399,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                             <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
                           <Input
                             {...props.register("email")}
-                            className="w-full h-[42px] pl-10 bg-var(--ui-bg)/60 border-white/[0.05] text-white rounded-xl text-[13px]"
+                            className="w-full h-[42px] pl-10 bg-[var(--ui-bg)]/60 border-white/[0.05] text-white rounded-xl text-[13px]"
                             placeholder="yourname@gmail.com"
                             onFocus={() => { setFocusedField("email"); props.handleFieldFocus("text"); }}
                             onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
@@ -422,7 +422,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                             <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
                             <Input
                               {...props.register("studentId")}
-                              className="w-full h-[42px] pl-10 bg-var(--ui-bg)/60 border-white/[0.05] text-white rounded-xl text-[13px]"
+                              className="w-full h-[42px] pl-10 bg-[var(--ui-bg)]/60 border-white/[0.05] text-white rounded-xl text-[13px]"
                               placeholder="STU-2025-XXXXX"
                               onFocus={() => { setFocusedField("studentId"); props.handleFieldFocus("text"); }}
                               onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
@@ -435,7 +435,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                             <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
                             <Input
                               {...props.register("engineerCode")}
-                              className="w-full h-[42px] pl-10 bg-var(--ui-bg)/60 border-white/[0.05] text-white rounded-xl text-[13px]"
+                              className="w-full h-[42px] pl-10 bg-[var(--ui-bg)]/60 border-white/[0.05] text-white rounded-xl text-[13px]"
                               placeholder="Enter engineer code"
                               onFocus={() => { setFocusedField("engineerCode"); props.handleFieldFocus("text"); }}
                               onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}

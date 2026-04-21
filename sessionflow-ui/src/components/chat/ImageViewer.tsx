@@ -90,7 +90,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ src, alt, isOpen, onCl
 
   return (
     <div 
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-var(--ui-bg)/90 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-[var(--ui-bg)]/90 backdrop-blur-sm animate-fade-in"
       onClick={onClose}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -102,7 +102,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ src, alt, isOpen, onCl
         className="absolute top-4 right-4 rtl:left-4 rtl:right-auto flex items-center gap-3 z-[110]"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center gap-1 bg-var(--ui-sidebar-bg) border border-white/10 p-1.5 rounded-2xl shadow-2xl">
+        <div className="flex items-center gap-1 bg-[var(--ui-sidebar-bg)] border border-white/10 p-1.5 rounded-2xl shadow-2xl">
           <button onClick={handleZoomOut} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
             <ZoomOut className="w-5 h-5" />
           </button>
@@ -116,7 +116,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ src, alt, isOpen, onCl
             <Maximize className="w-5 h-5" />
           </button>
           <div className="w-px h-6 bg-white/10 mx-1" />
-          <a href={src} download target="_blank" rel="noreferrer" className="p-2 text-slate-400 hover:text-var(--ui-accent) hover:bg-var(--ui-accent)/10 rounded-xl transition-colors">
+          <a href={src} download target="_blank" rel="noreferrer" className="p-2 text-slate-400 hover:text-[var(--ui-accent)] hover:bg-[var(--ui-accent)]/10 rounded-xl transition-colors">
             <Download className="w-5 h-5" />
           </a>
         </div>

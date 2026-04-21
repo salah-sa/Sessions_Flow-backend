@@ -66,18 +66,18 @@ const GroupSessionsPage: React.FC = () => {
     return (
       <div className="p-8 max-w-5xl mx-auto space-y-8 h-full bg-[#030712]/50">
         <div className="flex items-center gap-4 animate-pulse">
-          <div className="w-10 h-10 bg-var(--ui-surface)/50 rounded-xl" />
+          <div className="w-10 h-10 bg-[var(--ui-surface)]/50 rounded-xl" />
           <div className="flex-1 space-y-2">
-            <div className="h-6 w-48 bg-var(--ui-surface)/50 rounded-lg" />
-            <div className="h-4 w-32 bg-var(--ui-surface)/30 rounded-lg" />
+            <div className="h-6 w-48 bg-[var(--ui-surface)]/50 rounded-lg" />
+            <div className="h-4 w-32 bg-[var(--ui-surface)]/30 rounded-lg" />
           </div>
         </div>
         <div className="grid grid-cols-4 gap-4">
-          {[1,2,3,4].map(i => <div key={i} className="h-24 bg-var(--ui-surface)/20 rounded-2xl animate-pulse" style={{ animationDelay: `${i*100}ms` }} />)}
+          {[1,2,3,4].map(i => <div key={i} className="h-24 bg-[var(--ui-surface)]/20 rounded-2xl animate-pulse" style={{ animationDelay: `${i*100}ms` }} />)}
         </div>
-        <div className="h-32 bg-var(--ui-surface)/10 rounded-2xl animate-pulse" />
+        <div className="h-32 bg-[var(--ui-surface)]/10 rounded-2xl animate-pulse" />
         <div className="space-y-4">
-          {[1,2,3].map(i => <div key={i} className="h-16 bg-var(--ui-surface)/10 rounded-xl animate-pulse" />)}
+          {[1,2,3].map(i => <div key={i} className="h-16 bg-[var(--ui-surface)]/10 rounded-xl animate-pulse" />)}
         </div>
       </div>
     );
@@ -116,7 +116,7 @@ const GroupSessionsPage: React.FC = () => {
             "px-6 py-2 rounded-2xl border-2 flex items-center gap-2 shadow-lg",
             group.status === "Active" ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400 shadow-emerald-500/10" : 
             group.status === "Completed" ? "border-blue-500/40 bg-blue-500/10 text-blue-400 shadow-blue-500/10" : 
-            "border-slate-700 bg-var(--ui-surface) text-slate-400"
+            "border-slate-700 bg-[var(--ui-surface)] text-slate-400"
           )}>
             <ShieldCheck className="w-4 h-4" />
             <span className="text-xs font-semibold">{group.status}</span>
@@ -188,7 +188,7 @@ const GroupSessionsPage: React.FC = () => {
       </div>
 
       {/* Progress Section */}
-      <div ref={statsRef} className="card-aero p-8 space-y-6 border-var(--ui-surface)/50 backdrop-blur-xl bg-var(--ui-sidebar-bg)/10 relative overflow-hidden">
+      <div ref={statsRef} className="card-aero p-8 space-y-6 border-[var(--ui-surface)]/50 backdrop-blur-xl bg-[var(--ui-sidebar-bg)]/10 relative overflow-hidden">
         {/* Neural Scan Beam */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute top-0 left-[-100%] w-[200%] h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent animate-scan z-20" />
@@ -203,7 +203,7 @@ const GroupSessionsPage: React.FC = () => {
             </h3>
           </div>
           <div className="flex gap-4">
-            <div className="text-start stat-card opacity-0 bg-var(--ui-bg)/40 p-4 rounded-2xl border border-white/5 min-w-[120px] relative overflow-hidden group/metric">
+            <div className="text-start stat-card opacity-0 bg-[var(--ui-bg)]/40 p-4 rounded-2xl border border-white/5 min-w-[120px] relative overflow-hidden group/metric">
               <div className="absolute top-0 right-0 p-2 opacity-5">
                  <CheckCircle className="w-8 h-8 text-white" />
               </div>
@@ -217,7 +217,7 @@ const GroupSessionsPage: React.FC = () => {
               <p className="text-2xl font-sora font-semibold text-emerald-400 tabular-nums">{activeCount + scheduledCount}</p>
               <p className="text-xs font-semibold text-emerald-500/40 uppercase mt-1">{t("group_sessions.upcoming")}</p>
             </div>
-            <div className="text-start stat-card opacity-0 bg-var(--ui-bg)/40 p-4 rounded-2xl border border-white/5 min-w-[120px] relative overflow-hidden group/metric">
+            <div className="text-start stat-card opacity-0 bg-[var(--ui-bg)]/40 p-4 rounded-2xl border border-white/5 min-w-[120px] relative overflow-hidden group/metric">
               <div className="absolute top-0 right-0 p-2 opacity-5">
                  <Target className="w-8 h-8 text-white" />
               </div>
@@ -237,13 +237,13 @@ const GroupSessionsPage: React.FC = () => {
              </div>
              <div className="text-end">
                 <p className="text-xs font-semibold text-slate-500 uppercase leading-none mb-1">{t("dashboard.modal.level")}</p>
-                <div className="px-3 py-1 bg-var(--ui-accent)/10 border border-var(--ui-accent)/20 rounded-lg text-xs font-semibold text-var(--ui-accent) uppercase tracking-tighter">
+                <div className="px-3 py-1 bg-[var(--ui-accent)]/10 border border-[var(--ui-accent)]/20 rounded-lg text-xs font-semibold text-[var(--ui-accent)] uppercase tracking-tighter">
                    Level {group?.level || "-"}
                 </div>
              </div>
           </div>
 
-          <div className="h-4 w-full bg-var(--ui-bg)/80 rounded-full p-1 border border-var(--ui-surface) shadow-inner relative overflow-hidden group-hover/prog:border-emerald-500/30 transition-colors">
+          <div className="h-4 w-full bg-[var(--ui-bg)]/80 rounded-full p-1 border border-[var(--ui-surface)] shadow-inner relative overflow-hidden group-hover/prog:border-emerald-500/30 transition-colors">
             {/* Neural Scan Line Effect */}
             <div className="absolute top-0 bottom-0 w-2 bg-emerald-400/20 blur-md animate-scan pointer-events-none z-10" />
             
@@ -282,8 +282,8 @@ const GroupSessionsPage: React.FC = () => {
           </div>
 
         {sessions.length === 0 ? (
-          <div className="card-aero p-20 text-center space-y-6 border-dashed border-var(--ui-surface)">
-            <div className="w-20 h-20 rounded-3xl bg-var(--ui-sidebar-bg) flex items-center justify-center mx-auto border border-var(--ui-surface) shadow-xl group hover:border-emerald-500/30 transition-all duration-500">
+          <div className="card-aero p-20 text-center space-y-6 border-dashed border-[var(--ui-surface)]">
+            <div className="w-20 h-20 rounded-3xl bg-[var(--ui-sidebar-bg)] flex items-center justify-center mx-auto border border-[var(--ui-surface)] shadow-xl group hover:border-emerald-500/30 transition-all duration-500">
               <div className="p-4 rounded-2xl bg-white/5 opacity-40 group-hover:opacity-100 transition-opacity">
                 <Calendar className="w-8 h-8 text-slate-600 group-hover:text-emerald-400" />
               </div>
@@ -302,7 +302,7 @@ const GroupSessionsPage: React.FC = () => {
         ) : (
           <div ref={timelineRef} className="relative pl-10 space-y-6">
             {/* Timeline Backbone */}
-            <div className="absolute left-[19px] top-6 bottom-6 w-[2px] bg-var(--ui-surface) shadow-[0_0_10px_rgba(0,0,0,0.5)]" />
+            <div className="absolute left-[19px] top-6 bottom-6 w-[2px] bg-[var(--ui-surface)] shadow-[0_0_10px_rgba(0,0,0,0.5)]" />
 
             {sessions.map((session, index) => {
               const logicalNumber = session.sessionNumber ?? (startingOffset + index + 1);
@@ -320,11 +320,11 @@ const GroupSessionsPage: React.FC = () => {
                   {/* Timeline Hub */}
                   <div className={cn(
                     "absolute -left-[30px] top-5 w-5 h-5 rounded-full border-[3px] z-10 transition-all duration-500",
-                    isCompleted ? "bg-emerald-500 border-var(--ui-sidebar-bg) shadow-[0_0_15px_rgba(16,185,129,0.5)]" :
-                    isActive ? "bg-blue-500 border-var(--ui-sidebar-bg) animate-pulse shadow-[0_0_20px_rgba(59,130,246,0.8)] scale-125" :
-                    isCurrentLogical ? "bg-emerald-400 border-var(--ui-sidebar-bg) shadow-[0_0_20px_rgba(16,185,129,0.8)] scale-110" :
-                    isPast ? "bg-red-500 border-var(--ui-sidebar-bg)" :
-                    "bg-var(--ui-surface) border-var(--ui-sidebar-bg)"
+                    isCompleted ? "bg-emerald-500 border-[var(--ui-sidebar-bg)] shadow-[0_0_15px_rgba(16,185,129,0.5)]" :
+                    isActive ? "bg-blue-500 border-[var(--ui-sidebar-bg)] animate-pulse shadow-[0_0_20px_rgba(59,130,246,0.8)] scale-125" :
+                    isCurrentLogical ? "bg-emerald-400 border-[var(--ui-sidebar-bg)] shadow-[0_0_20px_rgba(16,185,129,0.8)] scale-110" :
+                    isPast ? "bg-red-500 border-[var(--ui-sidebar-bg)]" :
+                    "bg-[var(--ui-surface)] border-[var(--ui-sidebar-bg)]"
                   )} />
 
                   <div
@@ -334,7 +334,7 @@ const GroupSessionsPage: React.FC = () => {
                       isActive ? "bg-blue-500/[0.05] border-blue-500/30 hover:border-blue-500/60 shadow-2xl shadow-blue-500/10 scale-[1.01]" :
                       isCurrentLogical ? "bg-emerald-500/[0.08] border-emerald-500/40 hover:border-emerald-500/60 shadow-[0_0_30px_rgba(16,185,129,0.15)] scale-[1.01]" :
                       isPast ? "bg-red-500/[0.02] border-red-500/10 opacity-70" :
-                      "bg-var(--ui-sidebar-bg)/40 border-var(--ui-surface) hover:border-slate-700 hover:bg-var(--ui-sidebar-bg)/60"
+                      "bg-[var(--ui-sidebar-bg)]/40 border-[var(--ui-surface)] hover:border-slate-700 hover:bg-[var(--ui-sidebar-bg)]/60"
                     )}
                     onClick={() => session.id && navigate(`/sessions/${session.id}`)}
                   >
@@ -347,7 +347,7 @@ const GroupSessionsPage: React.FC = () => {
                       isCompleted ? "bg-emerald-500/10 border-emerald-500/20 shadow-inner" :
                       isActive ? "bg-blue-500/20 border-blue-500/40 animate-pulse" :
                       isCurrentLogical ? "bg-emerald-500/20 border-emerald-500/40 animate-emerald-pulse" :
-                      "bg-var(--ui-surface)/50 border-slate-700"
+                      "bg-[var(--ui-surface)]/50 border-slate-700"
                     )}>
                       {isCompleted ? <CheckCircle className="w-7 h-7 text-emerald-400" /> :
                        isActive ? <Circle className="w-6 h-6 text-blue-400 fill-blue-400" /> :
@@ -382,12 +382,12 @@ const GroupSessionsPage: React.FC = () => {
                       isActive ? "bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.3)]" :
                       isCurrentLogical ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]" :
                       isPast ? "bg-red-500/10 border-red-500/30 text-red-400" :
-                      "bg-var(--ui-surface)/50 border-slate-700 text-slate-500"
+                      "bg-[var(--ui-surface)]/50 border-slate-700 text-slate-500"
                     )}>
                       {isCompleted ? t("group_sessions.status.archived") : isActive ? t("group_sessions.status.live") : isCurrentLogical ? "PREPPED" : isPast ? t("group_sessions.status.expired") : t("group_sessions.status.standby")}
                     </div>
 
-                    <div className="w-10 h-10 rounded-xl bg-var(--ui-surface)/10 flex items-center justify-center opacity-0 group-hover/session:opacity-100 group-hover/session:bg-white/5 transition-all duration-300">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--ui-surface)]/10 flex items-center justify-center opacity-0 group-hover/session:opacity-100 group-hover/session:bg-white/5 transition-all duration-300">
                       <ChevronRight className="w-5 h-5 text-emerald-500 rtl:rotate-180" />
                     </div>
                   </div>

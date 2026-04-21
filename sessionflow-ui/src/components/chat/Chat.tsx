@@ -68,7 +68,7 @@ const ProfileImage: React.FC<{ url?: string | null; initial?: string; isMe: bool
   return (
     <div className={cn(
       "w-9 h-9 rounded-full flex items-center justify-center shrink-0 relative overflow-hidden ring-1 ring-white/10",
-      isMe ? "bg-[var(--ui-accent)]/20" : "bg-var(--ui-sidebar-bg)"
+      isMe ? "bg-[var(--ui-accent)]/20" : "bg-[var(--ui-sidebar-bg)]"
     )}>
       {url ? (
         <img src={url} alt="Profile" className="w-full h-full object-cover" />
@@ -278,7 +278,7 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
               <div className="p-3 border-b border-white/5 bg-white/[0.02] text-[9px] font-bold text-slate-500 uppercase tracking-widest">Establish Point-to-Point Mention</div>
               {filteredMembers.map((m, i) => (
                 <button key={m.id} onClick={() => insertMention(m)} className={cn("w-full flex items-center gap-4 px-5 py-4 transition-all text-left", i === mentionIndex ? "bg-[var(--ui-accent)]/10 text-[var(--ui-accent)]" : "text-slate-400 hover:bg-white/5")}>
-                  <div className="w-8 h-8 rounded-full bg-var(--ui-sidebar-bg) border border-white/5 flex items-center justify-center text-[10px] font-bold">{m.name.charAt(0)}</div>
+                  <div className="w-8 h-8 rounded-full bg-[var(--ui-sidebar-bg)] border border-white/5 flex items-center justify-center text-[10px] font-bold">{m.name.charAt(0)}</div>
                   <div className="flex flex-col"><span className="text-sm font-bold tracking-tight">{m.name}</span><span className="text-[9px] font-bold opacity-40 uppercase tracking-widest">{m.role}</span></div>
                 </button>
               ))}

@@ -24,7 +24,7 @@ interface MemberEntry {
 }
 
 const StatusDot: React.FC<{ status: PresenceStatus; confidence: number }> = ({ status, confidence }) => {
-  let bg = "bg-var(--ui-surface)";
+  let bg = "bg-[var(--ui-surface)]";
   let shadow = "";
   let label = "Offline";
   let pulse = false;
@@ -86,12 +86,12 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
       <div className="relative shrink-0">
         <div className={cn(
           "w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold uppercase overflow-hidden border",
-          member.role === "Engineer" ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/40 text-white shadow-glow shadow-[var(--ui-accent)]/10" : "bg-var(--ui-sidebar-bg) border-white/10 text-slate-500"
+          member.role === "Engineer" ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/40 text-white shadow-glow shadow-[var(--ui-accent)]/10" : "bg-[var(--ui-sidebar-bg)] border-white/10 text-slate-500"
         )}>
           {member.avatarUrl ? <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" /> : member.name?.charAt(0)}
         </div>
         <div className="absolute -bottom-0.5 -right-0.5">
-          <div className={cn("w-3 h-3 rounded-full border border-[var(--ui-bg)]", status === "online" ? "bg-[var(--ui-accent)]" : "bg-var(--ui-surface)")} />
+          <div className={cn("w-3 h-3 rounded-full border border-[var(--ui-bg)]", status === "online" ? "bg-[var(--ui-accent)]" : "bg-[var(--ui-surface)]")} />
         </div>
       </div>
 

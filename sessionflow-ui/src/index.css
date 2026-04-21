@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap');
 
 :root {
   /* ZENITH PROTOCOL TOKENS — SOFTER DARK PALETTE */
@@ -10,7 +11,8 @@
   --ui-accent-rgb: 167, 139, 250;
   --ui-accent-secondary: #8b5cf6;
   --ui-border-color: rgba(255, 255, 255, 0.06);
-  --ui-font-family: 'Inter', system-ui, sans-serif;
+  --ui-font-family: 'Inter', 'Sora', system-ui, sans-serif;
+  --ui-font-sora: 'Sora', sans-serif;
   --ui-radius-card: 16px; /* Boundless geometry */
   --ui-radius-btn: 12px;
   --ui-glass-blur: 32px;

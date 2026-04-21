@@ -40,7 +40,7 @@ export const StudentCard: React.FC<StudentCardProps> = ({ student, record, onSta
             "w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 border border-white/10 transition-all duration-700",
             status === "Present" ? "bg-emerald-500 shadow-glow-emerald" : 
             status === "Late" ? "bg-amber-500 shadow-glow-amber" : 
-            status === "Absent" ? "bg-red-500 shadow-glow-red" : "bg-var(--ui-surface)"
+            status === "Absent" ? "bg-red-500 shadow-glow-red" : "bg-[var(--ui-surface)]"
           )}>
             <span className="text-xs font-black uppercase tracking-tighter">{student.name.substring(0, 2)}</span>
           </div>
@@ -92,7 +92,7 @@ export const StudentCard: React.FC<StudentCardProps> = ({ student, record, onSta
 
       <div className={cn(
         "px-4 py-2 border-t border-white/5 flex items-center justify-between",
-        status === "Unmarked" ? "bg-var(--ui-bg)/20" : "bg-white/[0.01]"
+        status === "Unmarked" ? "bg-[var(--ui-bg)]/20" : "bg-white/[0.01]"
       )}>
          <span className={cn(
            "text-[8px] font-black uppercase tracking-widest",
