@@ -1,7 +1,10 @@
 import { useAuthStore } from "../store/stores";
 import { apiMonitor } from "../lib/apiMonitor";
 
-const BASE_URL = "/api";
+// In dev: Vite proxy forwards /api → Railway (BASE_URL = "")
+// In Electron build: VITE_API_URL = full Railway origin, so fetch hits it directly
+const BASE_URL = (import.meta.env.VITE_API_URL ?? "") + "/api";
+
 
 export async function fetchPublic<T>(
   endpoint: string,
