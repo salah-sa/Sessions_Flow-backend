@@ -19,12 +19,6 @@ import { useUpdateStudentLocation } from "../queries/useStudentLocationQueries";
 
 const DashboardPage: React.FC = () => {
   const user = useAuthStore((s) => s.user);
-
-  // Route students to their dedicated dashboard
-  if (user?.role === "Student") {
-    return <StudentDashboard />;
-  }
-
   const { t } = useTranslation();
   const { data, isLoading, isError } = useDashboardSummary();
   const { setStudentLocationData, studentLocation } = useAuthStore();
@@ -32,6 +26,11 @@ const DashboardPage: React.FC = () => {
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [newSession, setNewSession] = useState({ name: "", time: "" });
   const [submitting, setSubmitting] = useState(false);
+
+  // Route students to their dedicated dashboard (AFTER all hooks)
+  if (user?.role === "Student") {
+    return <StudentDashboard />;
+  }
 
   // Hydrate store from backend user object if store is empty
   React.useEffect(() => {

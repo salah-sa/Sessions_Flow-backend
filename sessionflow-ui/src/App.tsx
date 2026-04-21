@@ -12,16 +12,24 @@ const App: React.FC = () => {
   const [showSplash, setShowSplash] = useState(true);
   const token = useAuthStore((s) => s.token);
 
-  // Obsidian Protocol: Universal Mouse Refraction Tracking
+  // Obsidian Protocol: Universal Mouse Refraction Tracking (RAF-throttled)
   useEffect(() => {
+    let rafId: number | null = null;
     const handleMouseMove = (e: MouseEvent) => {
-      const x = (e.clientX / window.innerWidth) * 100;
-      const y = (e.clientY / window.innerHeight) * 100;
-      document.documentElement.style.setProperty('--mouse-x', `${x}%`);
-      document.documentElement.style.setProperty('--mouse-y', `${y}%`);
+      if (rafId !== null) return; // Skip if a frame is already pending
+      rafId = requestAnimationFrame(() => {
+        const x = (e.clientX / window.innerWidth) * 100;
+        const y = (e.clientY / window.innerHeight) * 100;
+        document.documentElement.style.setProperty('--mouse-x', `${x}%`);
+        document.documentElement.style.setProperty('--mouse-y', `${y}%`);
+        rafId = null;
+      });
     };
     window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
   }, []);
 
   // Initialize UI Style System

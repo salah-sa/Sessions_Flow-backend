@@ -80,6 +80,11 @@ public class MongoService
         await ChatMessages.Indexes.CreateOneAsync(new CreateIndexModel<ChatMessage>(
             Builders<ChatMessage>.IndexKeys.Ascending(cm => cm.GroupId).Descending(cm => cm.SentAt)));
 
+        // Phase 9: TTL Index — Auto-delete chat messages older than 90 days
+        await ChatMessages.Indexes.CreateOneAsync(new CreateIndexModel<ChatMessage>(
+            Builders<ChatMessage>.IndexKeys.Ascending(cm => cm.SentAt),
+            new CreateIndexOptions { ExpireAfter = TimeSpan.FromDays(90) }));
+
         // Notifications: User + Date
         await Notifications.Indexes.CreateOneAsync(new CreateIndexModel<Notification>(
             Builders<Notification>.IndexKeys.Ascending(n => n.UserId).Descending(n => n.CreatedAt)));
@@ -88,7 +93,19 @@ public class MongoService
         await AuditLogs.Indexes.CreateOneAsync(new CreateIndexModel<AuditLog>(
             Builders<AuditLog>.IndexKeys.Descending(al => al.Timestamp)));
 
-        // Seed Default Pricing & Curriculum Settings
+        // Phase 10: TTL Index — Auto-archive audit logs older than 365 days
+        await AuditLogs.Indexes.CreateOneAsync(new CreateIndexModel<AuditLog>(
+            Builders<AuditLog>.IndexKeys.Ascending(al => al.Timestamp),
+            new CreateIndexOptions { ExpireAfter = TimeSpan.FromDays(365) }));
+
+        // Phase 11: Compound indexes for soft-delete queries
+        await Groups.Indexes.CreateOneAsync(new CreateIndexModel<Group>(
+            Builders<Group>.IndexKeys.Ascending(g => g.IsDeleted).Ascending(g => g.EngineerId)));
+
+        await Students.Indexes.CreateOneAsync(new CreateIndexModel<Student>(
+            Builders<Student>.IndexKeys.Ascending(s => s.IsDeleted).Ascending(s => s.GroupId)));
+
+        // Phase 12: Batch seed — check all keys at once, insert only missing
         var itemsToSeed = new List<(string Key, string Value)>
         {
             (BusinessConstants.Settings.PriceLevel1, "100"),
@@ -101,17 +118,21 @@ public class MongoService
             (BusinessConstants.Settings.LengthLevel4, "16")
         };
 
-        foreach (var item in itemsToSeed)
+        var allKeys = itemsToSeed.Select(i => i.Key).ToList();
+        var existingKeys = await Settings
+            .Find(s => allKeys.Contains(s.Key))
+            .Project(s => s.Key)
+            .ToListAsync();
+        var existingSet = existingKeys.ToHashSet();
+
+        var missingSettings = itemsToSeed
+            .Where(i => !existingSet.Contains(i.Key))
+            .Select(i => new Setting { Key = i.Key, Value = i.Value, UpdatedAt = DateTimeOffset.UtcNow })
+            .ToList();
+
+        if (missingSettings.Count > 0)
         {
-            var exists = await Settings.Find(s => s.Key == item.Key).AnyAsync();
-            if (!exists)
-            {
-                await Settings.InsertOneAsync(new Setting { 
-                    Key = item.Key, 
-                    Value = item.Value, 
-                    UpdatedAt = DateTimeOffset.UtcNow 
-                });
-            }
+            await Settings.InsertManyAsync(missingSettings);
         }
 
         // PasswordResetTokens: Email lookup + TTL

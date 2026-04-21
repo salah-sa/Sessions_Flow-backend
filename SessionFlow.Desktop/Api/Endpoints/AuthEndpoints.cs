@@ -13,6 +13,22 @@ namespace SessionFlow.Desktop.Api.Endpoints;
 
 public static class AuthEndpoints
 {
+    /// <summary>
+    /// Validates password complexity: min 8 chars, 1 uppercase, 1 digit, 1 special character.
+    /// </summary>
+    private static string? ValidatePasswordStrength(string password)
+    {
+        if (password.Length < 8)
+            return "Password must be at least 8 characters.";
+        if (!password.Any(char.IsUpper))
+            return "Password must contain at least one uppercase letter.";
+        if (!password.Any(char.IsDigit))
+            return "Password must contain at least one digit.";
+        if (!password.Any(c => !char.IsLetterOrDigit(c)))
+            return "Password must contain at least one special character.";
+        return null;
+    }
+
     public static void Map(WebApplication app)
     {
         var group = app.MapGroup("/api/auth");
@@ -57,8 +73,9 @@ public static class AuthEndpoints
                 string.IsNullOrWhiteSpace(req.Password))
                 return Results.BadRequest(new { error = "All fields are required." });
 
-            if (req.Password.Length < 6)
-                return Results.BadRequest(new { error = "Password must be at least 6 characters." });
+            var pwError = ValidatePasswordStrength(req.Password);
+            if (pwError != null)
+                return Results.BadRequest(new { error = pwError });
 
             var (pending, error) = await auth.RegisterAsync(
                 req.Name.Trim(), req.Email.Trim().ToLowerInvariant(), req.Password);
@@ -85,8 +102,9 @@ public static class AuthEndpoints
                 string.IsNullOrWhiteSpace(req.EngineerCode))
                 return Results.BadRequest(new { error = "All fields are required." });
 
-            if (req.Password.Length < 6)
-                return Results.BadRequest(new { error = "Password must be at least 6 characters." });
+            var pwError = ValidatePasswordStrength(req.Password);
+            if (pwError != null)
+                return Results.BadRequest(new { error = pwError });
 
             var (user, error) = await auth.RegisterStudentAsync(
                 req.Name.Trim(), req.Username.Trim().ToLowerInvariant(), req.Password, req.StudentId.Trim(), req.EngineerCode.Trim());
@@ -145,8 +163,9 @@ public static class AuthEndpoints
                 string.IsNullOrWhiteSpace(req.Email))
                 return Results.BadRequest(new { error = "All fields are required." });
 
-            if (req.Password.Length < 6)
-                return Results.BadRequest(new { error = "Password must be at least 6 characters." });
+            var pwError = ValidatePasswordStrength(req.Password);
+            if (pwError != null)
+                return Results.BadRequest(new { error = pwError });
 
             var (pending, error) = await auth.QueueStudentRequestAsync(
                 req.Name.Trim(), req.Username.Trim().ToLowerInvariant(), req.Email.Trim().ToLowerInvariant(), req.Password, req.GroupName.Trim(), req.StudentId?.Trim());
@@ -208,12 +227,15 @@ public static class AuthEndpoints
                 .Where(s => !pendingStudentNames.Contains(s.Name))
                 .ToList();
 
+            // SECURITY: Only return names (not IDs) for the student picker.
+            // Full student details require authentication.
             return Results.Ok(new
             {
                 groupName = groupObj.Name,
                 engineerName = engineer?.Name ?? "Unknown Engineer",
                 level = groupObj.Level,
-                students = availableStudents.Select(s => new { id = s.Id, name = s.Name }).ToList()
+                availableSlots = availableStudents.Count,
+                students = availableStudents.Select(s => new { name = s.Name }).ToList()
             });
         }).AllowAnonymous(); // Allow pre-registration group discovery
 

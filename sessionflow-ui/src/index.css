@@ -240,7 +240,7 @@
     transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
 
     &::placeholder {
-      color: #334155; /* slate-700 */
+      color: #94a3b8; /* slate-400 — WCAG AA compliant on dark bg */
     }
 
     &:focus {

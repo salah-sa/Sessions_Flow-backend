@@ -83,7 +83,8 @@ public static class ApiHost
 
         // 1. Core Services - Singletons/Scoped
         builder.Services.AddHealthChecks()
-            .AddCheck("MongoDB", new MongoHealthCheck(builder.Configuration));
+            .AddCheck("MongoDB", new MongoHealthCheck(builder.Configuration))
+            .AddCheck("Redis", new RedisHealthCheck(builder.Configuration));
             
         builder.Services.ConfigureHttpJsonOptions(options =>
         {
@@ -94,7 +95,6 @@ public static class ApiHost
         builder.Services.AddSingleton<StorageService>();
         
         // ── Redis Infrastructure (Graceful Fallback) ──────────────────
-        Console.WriteLine(">>> [STG 4] Initializing Redis Connection...");
         var redisConnectionString = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
         
         // Ensure connection doesn't block startup in containers
@@ -209,23 +209,52 @@ public static class ApiHost
         {
             options.AddPolicy("LocalOnly", policy =>
             {
-                // In production troubleshooting mode, allow any origin but respect SignalR credentials
-                policy.SetIsOriginAllowed(_ => true) 
-                      .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH")
+                var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                    ?? new[] { "http://localhost:5174", "http://127.0.0.1:5174", "http://localhost:5180", "http://127.0.0.1:5180" };
+                
+                if (isContainer)
+                {
+                    // In container mode, also allow the Railway/deployed domain
+                    policy.SetIsOriginAllowed(origin =>
+                    {
+                        if (allowedOrigins.Any(o => origin.StartsWith(o, StringComparison.OrdinalIgnoreCase))) return true;
+                        // Allow same-origin requests (no Origin header = same origin)
+                        return false;
+                    });
+                }
+                else
+                {
+                    policy.WithOrigins(allowedOrigins);
+                }
+                
+                policy.WithMethods("GET", "POST", "PUT", "DELETE", "PATCH")
                       .AllowAnyHeader()
                       .AllowCredentials();
             });
         });
 
-        Console.WriteLine(">>> [STG 7] Building Application...");
         var app = builder.Build();
 
-        // ── DIAGNOSTIC: Log every incoming request ──────────────────────
+        // ── CSRF: Validate X-Requested-With on mutating requests ──────
         app.Use(async (context, next) =>
         {
-            Console.WriteLine($">>> [REQ] {context.Request.Method} {context.Request.Path} from {context.Connection.RemoteIpAddress}");
+            var method = context.Request.Method;
+            var isMutating = method == "POST" || method == "PUT" || method == "DELETE" || method == "PATCH";
+            var path = context.Request.Path.Value ?? "";
+            
+            // Skip CSRF for SignalR hub, health checks, and file uploads
+            var isExempt = path.StartsWith("/hub", StringComparison.OrdinalIgnoreCase) ||
+                           path == "/ping" ||
+                           path.StartsWith("/uploads", StringComparison.OrdinalIgnoreCase);
+            
+            if (isMutating && !isExempt && !context.Request.Headers.ContainsKey("X-Requested-With"))
+            {
+                context.Response.StatusCode = 403;
+                await context.Response.WriteAsJsonAsync(new { error = "Missing CSRF header." });
+                return;
+            }
+            
             await next();
-            Console.WriteLine($">>> [RES] {context.Request.Method} {context.Request.Path} → {context.Response.StatusCode}");
         });
 
         // ── BARE-MINIMUM health ping (bypasses all auth/CORS) ──────────
@@ -267,14 +296,19 @@ public static class ApiHost
             ResponseWriter = async (context, report) =>
             {
                 context.Response.ContentType = "application/json";
-                var mongoEntry = report.Entries.Values.FirstOrDefault();
-                var mongoStatus = report.Entries.Count > 0 && mongoEntry.Status == HealthStatus.Healthy;
                 var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0";
+                
+                // Build per-service status map dynamically
+                var services = new Dictionary<string, string>();
+                foreach (var entry in report.Entries)
+                {
+                    services[entry.Key.ToLowerInvariant()] = entry.Value.Status == HealthStatus.Healthy ? "connected" : "disconnected";
+                }
                 
                 var response = new
                 {
                     status = report.Status == HealthStatus.Healthy ? "ok" : "degraded",
-                    database = mongoStatus ? "connected" : "disconnected",
+                    services,
                     version,
                     time = DateTimeOffset.UtcNow,
                     cairoTime = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(2))

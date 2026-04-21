@@ -303,41 +303,62 @@ public class AuthService
             .Set(p => p.UpdatedAt, DateTimeOffset.UtcNow);
         await _db.PendingStudentRequests.UpdateOneAsync(p => p.Id == pendingId, updatePending);
 
-        // Send Email Async
-        _ = Task.Run(async () => {
-            try {
-                using var scope = _serviceProvider.CreateScope();
-                var mail = scope.ServiceProvider.GetRequiredService<SmtpEmailService>();
-                var (emailSuccess, emailError) = await mail.SendEmailAsync(
-                    user.Email,
-                    "SessionFlow: Student Activation Completed",
-                    $@"<div style='font-family: sans-serif; background: #020617; color: white; padding: 40px; border-radius: 20px;'>
-                        <h2 style='color: #22c55e;'>Access Granted</h2>
-                        <p>Welcome, <strong>{user.Name}</strong>. Your request to join <strong>{pending.GroupName}</strong> has been approved.</p>
-                        <div style='background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;'>
-                            <p style='font-size: 12px; color: #64748b; margin: 0;'>Your Generated Student ID:</p>
-                            <p style='font-size: 20px; font-weight: bold; color: #3b82f6; margin: 5px 0;'>{studentCode}</p>
-                            <br/>
-                            <p style='font-size: 12px; color: #64748b; margin: 0;'>Engineer Clearance Code:</p>
-                            <p style='font-size: 20px; font-weight: bold; color: #10b981; margin: 5px 0;'>{engineer.EngineerCode}</p>
-                        </div>
-                        <p>You can now log in using your Username and Password.</p>
-                    </div>"
-                );
-
-                if (!emailSuccess)
+        // Send activation email (scoped background task with error logging)
+        _ = Task.Run(async () =>
+        {
+            const int maxRetries = 3;
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
+            {
+                try
                 {
-                    // Notify engineer that email failed
-                    var notifService = scope.ServiceProvider.GetRequiredService<NotificationService>();
-                    await notifService.CreateNotificationAsync(
-                        pending.EngineerId,
-                        "Email Delivery Failed",
-                        $"Could not send activation email to {user.Email}: {emailError}. Please notify the student manually with their Student ID {studentCode}.",
-                        NotificationType.Warning
+                    using var scope = _serviceProvider.CreateScope();
+                    var mail = scope.ServiceProvider.GetRequiredService<SmtpEmailService>();
+                    var (emailSuccess, emailError) = await mail.SendEmailAsync(
+                        user.Email,
+                        "SessionFlow: Student Activation Completed",
+                        $@"<div style='font-family: sans-serif; background: #020617; color: white; padding: 40px; border-radius: 20px;'>
+                            <h2 style='color: #22c55e;'>Access Granted</h2>
+                            <p>Welcome, <strong>{user.Name}</strong>. Your request to join <strong>{pending.GroupName}</strong> has been approved.</p>
+                            <div style='background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;'>
+                                <p style='font-size: 12px; color: #64748b; margin: 0;'>Your Generated Student ID:</p>
+                                <p style='font-size: 20px; font-weight: bold; color: #3b82f6; margin: 5px 0;'>{studentCode}</p>
+                                <br/>
+                                <p style='font-size: 12px; color: #64748b; margin: 0;'>Engineer Clearance Code:</p>
+                                <p style='font-size: 20px; font-weight: bold; color: #10b981; margin: 5px 0;'>{engineer.EngineerCode}</p>
+                            </div>
+                            <p>You can now log in using your Username and Password.</p>
+                        </div>"
                     );
+
+                    if (emailSuccess) break; // Success — exit retry loop
+
+                    if (attempt == maxRetries && !emailSuccess)
+                    {
+                        // Final attempt failed — notify engineer
+                        var notifService = scope.ServiceProvider.GetRequiredService<NotificationService>();
+                        await notifService.CreateNotificationAsync(
+                            pending.EngineerId,
+                            "Email Delivery Failed",
+                            $"Could not send activation email to {user.Email}: {emailError}. Please notify the student manually with their Student ID {studentCode}.",
+                            NotificationType.Warning
+                        );
+                    }
+
+                    // Wait before retry (exponential backoff: 2s, 4s, 8s)
+                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
                 }
-            } catch (Exception ex) {
-                System.Diagnostics.Debug.WriteLine($"Email dispatch exception: {ex.Message}");
+                catch (Exception ex)
+                {
+                    if (attempt == maxRetries)
+                    {
+                        // Log to structured logging instead of Debug.WriteLine
+                        Console.Error.WriteLine($"[EMAIL] Failed after {maxRetries} retries for {user.Email}: {ex.Message}");
+                    }
+                    else
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+                    }
+                }
             }
         });
 
