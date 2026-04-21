@@ -114,7 +114,7 @@ const GroupsPage: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-30">
         <div className="space-y-4 animate-in fade-in slide-in-from-left-8 duration-1000">
           <div className="flex items-center gap-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] text-xs font-semibold border border-[var(--ui-accent)]/20 shadow-glow shadow-[var(--ui-accent)]/5">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ui-accent/10 text-ui-accent text-xs font-semibold border border-ui-accent/20 shadow-glow shadow-ui-accent/5">
               <Terminal className="w-3 h-3" />
               {t("groups.system_active")}
             </div>
@@ -131,7 +131,7 @@ const GroupsPage: React.FC = () => {
              <Download className="w-5 h-5 me-2 text-slate-500 group-hover:text-white transition-colors" />
              {t("common.export")}
           </Button>
-          <Button onClick={handleOpenCreate} variant="primary" size="lg" className="!h-14 !px-8 !shadow-glow !shadow-[var(--ui-accent)]/20">
+          <Button onClick={handleOpenCreate} variant="primary" size="lg" className="!h-14 !px-8 !shadow-glow !shadow-ui-accent/20">
              <Plus className="w-6 h-6 me-2" />
              {t("groups.action_create")}
           </Button>
