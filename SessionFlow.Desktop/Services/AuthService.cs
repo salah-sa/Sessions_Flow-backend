@@ -151,7 +151,17 @@ public class AuthService
 
     public async Task<(PendingStudentRequest? pending, string? error)> QueueStudentRequestAsync(string name, string username, string email, string password, string groupName, string? studentId = null, CancellationToken ct = default)
     {
-        // 1. Check if username exists
+        // 1. Check rate limits (max 3 requests per day)
+        var startOfDay = DateTimeOffset.UtcNow.Date;
+        var requestCount = await _db.PendingStudentRequests
+            .Find(p => (p.Email.ToLower() == email.ToLower() || p.Username.ToLower() == username.ToLower()) 
+                  && p.RequestedAt >= startOfDay)
+            .CountDocumentsAsync(ct);
+
+        if (requestCount >= 3)
+            return (null, "You have reached the maximum of 3 requests per day.");
+
+        // 2. Check if username exists
         var usernameFilter = Builders<User>.Filter.Regex(u => u.Username, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(username)}$", "i"));
         var usernameExists = await _db.Users.Find(usernameFilter).AnyAsync(ct);
         if (usernameExists) return (null, "Username is already taken.");
