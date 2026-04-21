@@ -201,8 +201,10 @@ public static class AuthEndpoints
             if (string.IsNullOrWhiteSpace(name))
                 return Results.BadRequest(new { error = "Group name is required." });
 
-            var normalizedName = name.Trim().ToLowerInvariant();
-            var groupObj = await db.Groups.Find(g => g.Name.ToLower() == normalizedName && !g.IsDeleted).FirstOrDefaultAsync();
+            var normalizedName = name.Trim();
+            var groupFilter = Builders<Group>.Filter.Regex(g => g.Name, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(normalizedName)}$", "i"))
+                            & Builders<Group>.Filter.Eq(g => g.IsDeleted, false);
+            var groupObj = await db.Groups.Find(groupFilter).FirstOrDefaultAsync();
             if (groupObj == null)
                 return Results.NotFound(new { error = "Group not found." });
 
