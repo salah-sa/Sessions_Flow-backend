@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate, useBlocker } from "react-router-dom";
-import { useUIStore, useAuthStore } from "../store/stores";
+import { useUIStore, useAuthStore, UIState, AuthState } from "../store/stores";
 import { useActiveUIStyle } from "../styles/UIStyleManager";
 import { useBeforeUnload } from "../hooks/useBeforeUnload";
 import { Setting } from "../types";
@@ -44,10 +44,10 @@ const SettingsPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const theme = useUIStore((s: any) => s.theme);
-  const setTheme = useUIStore((s: any) => s.setTheme);
-  const customTheme = useUIStore((s: any) => s.customTheme);
-  const updateCustomTheme = useUIStore((s: any) => s.updateCustomTheme);
-  const currentUser = useAuthStore((s: any) => s.user);
+  const setTheme = useUIStore((s: UIState) => s.setTheme);
+  const customTheme = useUIStore((s: UIState) => s.customTheme);
+  const updateCustomTheme = useUIStore((s: UIState) => s.updateCustomTheme);
+  const currentUser = useAuthStore((s: AuthState) => s.user);
   const isAdmin = currentUser?.role === "Admin";
   const language = i18n.language;
   const activeStyle = useActiveUIStyle();
@@ -106,7 +106,7 @@ const SettingsPage: React.FC = () => {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
     toast(t("settings.theme_switched", { mode: next }), { 
-      icon: next === "dark" ? <Moon className="w-4 h-4 text-var(--ui-accent)" /> : <Sun className="w-4 h-4 text-amber-500" />
+      icon: next === "dark" ? <Moon className="w-4 h-4 text-[var(--ui-accent)]" /> : <Sun className="w-4 h-4 text-amber-500" />
     });
   };
 
@@ -181,23 +181,23 @@ const SettingsPage: React.FC = () => {
   );
 
   return (
-    <div className="h-full flex flex-col bg-var(--ui-bg) animate-fade-in overflow-hidden relative">
+    <div className="h-full flex flex-col bg-[var(--ui-bg)] animate-fade-in overflow-hidden relative">
       <ConfirmDialog
         isOpen={blocker.state === "blocked"}
         onClose={() => blocker.reset?.()}
-        title="Unsaved Changes Detected"
-        description="Your configuration holds unsaved changes. Leaving now will reset these values to the last synchronized state. Continue?"
-        confirmLabel="Abandon Changes"
+        title={t("settings.unsaved_changes_title", "Unsaved Changes Detected")}
+        description={t("settings.unsaved_changes_desc", "Your configuration holds unsaved changes. Leaving now will reset these values to the last synchronized state. Continue?")}
+        confirmLabel={t("settings.abandon_changes", "Abandon Changes")}
         variant="danger"
         onConfirm={() => blocker.proceed?.()}
       />
 
       {/* Header */}
-      <div className="p-8 border-b border-white/5 bg-var(--ui-bg)/50 backdrop-blur-3xl flex flex-col md:flex-row md:items-center justify-between gap-8 shrink-0">
+      <div className="p-8 border-b border-white/5 bg-[var(--ui-bg)]/50 backdrop-blur-3xl flex flex-col md:flex-row md:items-center justify-between gap-8 shrink-0">
         <div className="space-y-1 text-start">
           <h1 className="text-3xl font-sora font-semibold text-white tracking-tighter uppercase flex items-center gap-4">
-            <div className="p-3 bg-var(--ui-accent)/10 rounded-2xl border border-var(--ui-accent)/20 shadow-glow shadow-var(--ui-accent)/5">
-               <SettingsIcon className="w-8 h-8 text-var(--ui-accent)" />
+            <div className="p-3 bg-[var(--ui-accent)]/10 rounded-2xl border border-[var(--ui-accent)]/20 shadow-glow shadow-[var(--ui-accent)]/5">
+               <SettingsIcon className="w-8 h-8 text-[var(--ui-accent)]" />
             </div>
             {t("settings.header_title")}
           </h1>
@@ -221,7 +221,7 @@ const SettingsPage: React.FC = () => {
              className={cn(
                "h-12 px-10 rounded-2xl font-semibold text-xs uppercase transition-all flex items-center gap-3",
                hasUnsavedChanges 
-                 ? "bg-var(--ui-accent) text-white shadow-[0_0_20px_rgba(var(--ui-accent-rgb),0.3)] hover:scale-105" 
+                 ? "bg-[var(--ui-accent)] text-white shadow-[0_0_20px_rgba(var(--ui-accent-rgb),0.3)] hover:scale-105" 
                  : "bg-white text-black opacity-50 cursor-not-allowed"
              )}
            >
@@ -240,14 +240,14 @@ const SettingsPage: React.FC = () => {
             className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 w-full max-w-xl px-6"
           >
             <div className="bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 shadow-2xl flex items-center justify-between gap-6 overflow-hidden relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-var(--ui-accent)/5 to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-r from-[var(--ui-accent)]/5 to-transparent pointer-events-none" />
               <div className="flex items-center gap-4 relative z-10">
-                <div className="p-2 bg-var(--ui-accent)/20 rounded-lg">
-                  <AlertCircle className="w-5 h-5 text-var(--ui-accent)" />
+                <div className="p-2 bg-[var(--ui-accent)]/20 rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-[var(--ui-accent)]" />
                 </div>
                 <div className="text-start">
-                  <p className="text-[11px] font-semibold text-white uppercase tracking-wider leading-none mb-1">Unsaved Changes</p>
-                  <p className="text-xs font-bold text-slate-400">Environment configuration has unsaved modifications</p>
+                  <p className="text-[11px] font-semibold text-white uppercase tracking-wider leading-none mb-1">{t("settings.unsaved_changes_label", "Unsaved Changes")}</p>
+                  <p className="text-xs font-bold text-slate-400">{t("settings.unsaved_changes_sub", "Environment configuration has unsaved modifications")}</p>
                 </div>
               </div>
               
@@ -270,16 +270,16 @@ const SettingsPage: React.FC = () => {
                   }}
                   className="text-xs font-semibold text-slate-400 hover:text-white"
                 >
-                  <RotateCcw className="w-3 h-3 mr-2" /> Discard
+                  <RotateCcw className="w-3 h-3 mr-2" /> {t("common.discard", "Discard")}
                 </Button>
                 <Button 
                   size="sm" 
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="bg-var(--ui-accent) hover:bg-var(--ui-accent)/90 text-white text-xs font-semibold h-9 px-6"
+                  className="bg-[var(--ui-accent)] hover:bg-[var(--ui-accent)]/90 text-white text-xs font-semibold h-9 px-6"
                 >
                   {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-2" />}
-                  Save Changes
+                  {t("common.save_changes", "Save Changes")}
                 </Button>
               </div>
             </div>
@@ -289,21 +289,31 @@ const SettingsPage: React.FC = () => {
 
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
          {/* Hexagonal Command Hive Nav */}
-         <div className="w-full md:w-[340px] border-b md:border-b-0 md:border-e border-white/5 bg-var(--ui-sidebar-bg)/40 p-6 md:p-10 flex flex-col shrink-0 relative z-10 before:absolute before:inset-0 before:bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PHBhdGggZD0ibTEyIDBsMTAuMzkgNnYxMmwtMTAuMzkgNi0xMC4zOS02di0xMnoiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjAyKSIvPjwvc3ZnPg==')] before:opacity-50">
+         <div className="w-full md:w-[340px] border-b md:border-b-0 md:border-e border-white/5 bg-[var(--ui-sidebar-bg)]/40 p-6 md:p-10 flex flex-col shrink-0 relative z-10 before:absolute before:inset-0 before:bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PHBhdGggZD0ibTEyIDBsMTAuMzkgNnYxMmwtMTAuMzkgNi0xMC4zOS02di0xMnoiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjAyKSIvPjwvc3ZnPg==')] before:opacity-50">
             <div className="relative z-10">
               <p className="mb-4 md:mb-8 text-xs font-semibold text-slate-500 uppercase flex items-center gap-3">
-                <span className="w-2 h-2 rounded-full bg-var(--ui-accent) shadow-glow" />
-                Settings Navigation
+                <span className="w-2 h-2 rounded-full bg-[var(--ui-accent)] shadow-glow" />
+                {t("settings.nav_label", "Settings Navigation")}
               </p>
               
               <div className="flex flex-row md:flex-col gap-4 md:gap-6 overflow-x-auto hide-scrollbar md:overflow-visible pb-2 md:pb-0">
-                {[ 
+interface SettingsTab {
+  id: "system" | "notifications" | "security" | "codes" | "import";
+  name: string;
+  icon: React.ElementType;
+  color: string;
+  hidden?: boolean;
+}
+
+                const tabs: SettingsTab[] = [ 
                   { id: "system", name: t("settings.tabs.system_config"), icon: Terminal, color: "brand" },
                   { id: "codes", name: t("settings.tabs.engineer_access"), icon: Key, color: "emerald", hidden: !isAdmin },
                   { id: "import", name: t("settings.tabs.external_bridge"), icon: Globe, color: "blue" },
                   { id: "notifications", name: t("settings.tabs.comms_relay"), icon: Bell, color: "amber" },
                   { id: "security", name: t("settings.tabs.firewall_keys"), icon: Shield, color: "rose" }
-                ].filter(i => !i.hidden).map((item: any) => (
+                ];
+                
+                tabs.filter(i => !i.hidden).map((item) => (
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id as any)}
@@ -318,12 +328,12 @@ const SettingsPage: React.FC = () => {
                           "absolute inset-0 transition-colors duration-500",
                           activeTab === item.id 
                             ? `bg-${item.color}-500 shadow-glow` 
-                            : "bg-var(--ui-sidebar-bg) border border-white/10 group-hover:bg-var(--ui-surface)"
+                            : "bg-[var(--ui-sidebar-bg)] border border-white/10 group-hover:bg-[var(--ui-surface)]"
                         )}
                         style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
                       />
                       <div 
-                        className={cn("absolute inset-[2px] transition-colors duration-500", activeTab === item.id ? `bg-${item.color}-600` : "bg-var(--ui-bg)")}
+                        className={cn("absolute inset-[2px] transition-colors duration-500", activeTab === item.id ? `bg-${item.color}-600` : "bg-[var(--ui-bg)]")}
                         style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
                       />
                       <item.icon className={cn(
@@ -345,7 +355,7 @@ const SettingsPage: React.FC = () => {
                 ))}
               </div>
               
-              <div className="hidden md:block mt-16 p-5 bg-var(--ui-bg)/80 backdrop-blur-md border border-white/5 space-y-4 shadow-xl" style={{ clipPath: 'polygon(10% 0, 100% 0, 90% 100%, 0 100%)' }}>
+              <div className="hidden md:block mt-16 p-5 bg-[var(--ui-bg)]/80 backdrop-blur-md border border-white/5 space-y-4 shadow-xl" style={{ clipPath: 'polygon(10% 0, 100% 0, 90% 100%, 0 100%)' }}>
                   <p className="text-xs font-semibold text-slate-600 uppercase text-center">{t("settings.env_info")}</p>
                   <div className="space-y-3 px-4">
                      <div className="flex justify-between items-center text-xs font-semibold">

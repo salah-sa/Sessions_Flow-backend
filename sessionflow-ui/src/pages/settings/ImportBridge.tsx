@@ -40,7 +40,7 @@ const ImportBridge: React.FC<ImportBridgeProps> = ({
       <section className="space-y-8">
         <div className="flex flex-col gap-2">
           <h2 className="text-lg font-sora font-black text-white uppercase tracking-tight flex items-center gap-3">
-            <span className="w-1.5 h-6 bg-var(--ui-accent) rounded-full" />
+            <span className="w-1.5 h-6 bg-[var(--ui-accent)] rounded-full" />
             {t("settings.external_bridge")}
           </h2>
           <div className="space-y-1">
@@ -49,7 +49,7 @@ const ImportBridge: React.FC<ImportBridgeProps> = ({
           </div>
         </div>
 
-        <div className="p-4 bg-var(--ui-sidebar-bg)/50 rounded-2xl border border-white/5 space-y-4">
+        <div className="p-4 bg-[var(--ui-sidebar-bg)]/50 rounded-2xl border border-white/5 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ms-2">{t("settings.import.email")}</label>
@@ -57,7 +57,7 @@ const ImportBridge: React.FC<ImportBridgeProps> = ({
                 value={importEmail}
                 onChange={(e) => setImportEmail(e.target.value)}
                 placeholder="admin@3cschool.local"
-                className="h-11 bg-var(--ui-bg) border-white/5 text-[10px] font-black uppercase tracking-widest"
+                className="h-11 bg-[var(--ui-bg)] border-white/5 text-[10px] font-black uppercase tracking-widest"
               />
             </div>
             <div className="space-y-1.5">
@@ -67,7 +67,7 @@ const ImportBridge: React.FC<ImportBridgeProps> = ({
                 value={importPassword}
                 onChange={(e) => setImportPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="h-11 bg-var(--ui-bg) border-white/5 text-[10px] font-black uppercase tracking-widest"
+                className="h-11 bg-[var(--ui-bg)] border-white/5 text-[10px] font-black uppercase tracking-widest"
               />
             </div>
           </div>
@@ -91,7 +91,7 @@ const ImportBridge: React.FC<ImportBridgeProps> = ({
                 "h-12 px-8 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-3 border",
                 connectionStatus === "success" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" :
                 connectionStatus === "error" ? "bg-red-500/10 border-red-500/20 text-red-500" :
-                "bg-var(--ui-bg) border-white/5 text-slate-400 hover:bg-var(--ui-sidebar-bg)"
+                "bg-[var(--ui-bg)] border-white/5 text-slate-400 hover:bg-[var(--ui-sidebar-bg)]"
               )}
             >
               {testConnection.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 
@@ -109,7 +109,7 @@ const ImportBridge: React.FC<ImportBridgeProps> = ({
                 }
               }}
               disabled={preview.isPending || !importEmail}
-              className="h-12 px-10 bg-var(--ui-accent) text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-glow shadow-var(--ui-accent)/20 flex items-center justify-center gap-3"
+              className="h-12 px-10 bg-[var(--ui-accent)] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-glow shadow-[var(--ui-accent)]/20 flex items-center justify-center gap-3"
             >
               {preview.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Terminal className="w-4 h-4" />}
               {t("settings.import.scan")}
@@ -140,13 +140,13 @@ const ImportBridge: React.FC<ImportBridgeProps> = ({
             <div className="grid grid-cols-1 gap-3">
               {importPreviewData.groups.map((group: any, i: number) => (
                 <div key={i} className={cn(
-                  "p-4 rounded-2xl border bg-var(--ui-bg)/40 flex items-center justify-between group",
-                  group.alreadyExists ? "border-amber-500/10 opacity-70" : "border-white/5 hover:border-var(--ui-accent)/20"
+                  "p-4 rounded-2xl border bg-[var(--ui-bg)]/40 flex items-center justify-between group",
+                  group.alreadyExists ? "border-amber-500/10 opacity-70" : "border-white/5 hover:border-[var(--ui-accent)]/20"
                 )}>
                   <div className="flex items-center gap-4">
                     <div className={cn(
                       "w-10 h-10 rounded-xl flex items-center justify-center",
-                      group.alreadyExists ? "bg-amber-500/10 text-amber-500" : "bg-var(--ui-accent)/10 text-var(--ui-accent)"
+                      group.alreadyExists ? "bg-amber-500/10 text-amber-500" : "bg-[var(--ui-accent)]/10 text-[var(--ui-accent)]"
                     )}>
                       <Users className="w-5 h-5" />
                     </div>

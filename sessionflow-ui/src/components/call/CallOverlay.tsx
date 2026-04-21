@@ -210,7 +210,7 @@ const CallOverlay: React.FC = () => {
                   {remoteAvatar ? (
                     <img src={remoteAvatar} alt={remoteName || ""} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-slate-700 to-var(--ui-surface) flex items-center justify-center">
+                    <div className="w-full h-full bg-gradient-to-br from-slate-700 to-[var(--ui-surface)] flex items-center justify-center">
                       <span className="text-4xl font-black text-white/50">{initial}</span>
                     </div>
                   )}
@@ -328,7 +328,7 @@ const CallOverlay: React.FC = () => {
                   initial={{ scale: 0, rotate: -30 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: "spring", damping: 15 }}
-                  className="w-16 h-16 rounded-full bg-var(--ui-surface)/80 text-red-400 flex items-center justify-center ring-2 ring-red-500/20"
+                  className="w-16 h-16 rounded-full bg-[var(--ui-surface)]/80 text-red-400 flex items-center justify-center ring-2 ring-red-500/20"
                 >
                   <PhoneMissed className="w-7 h-7" />
                 </motion.div>

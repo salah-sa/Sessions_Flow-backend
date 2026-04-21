@@ -165,7 +165,7 @@ const HistoryPage: React.FC = () => {
             </h1>
             <div className="flex items-center gap-4 text-slate-500 font-medium text-xs ps-1">
                <span className="flex items-center gap-1.5"><Layers className="w-3 h-3 text-[var(--ui-accent)]" /> {t("history.archival", "Session Archive")}</span>
-               <span className="w-1 h-1 rounded-full bg-var(--ui-surface)" />
+               <span className="w-1 h-1 rounded-full bg-[var(--ui-surface)]" />
                <span className="flex items-center gap-1.5"><Zap className="w-3 h-3 text-amber-500" /> {t("history.telemetry", "System Logs")}</span>
             </div>
           </div>
@@ -190,7 +190,7 @@ const HistoryPage: React.FC = () => {
             </div>
 
             {/* Date Navigation */}
-            <div className="flex items-center bg-var(--ui-sidebar-bg)/40 rounded-2xl border border-white/10 p-1">
+            <div className="flex items-center bg-[var(--ui-sidebar-bg)]/40 rounded-2xl border border-white/10 p-1">
                <button onClick={() => navigateRange("prev")} className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-all">
                  <ChevronLeft className="w-5 h-5" />
                </button>
@@ -254,7 +254,7 @@ const HistoryPage: React.FC = () => {
                      <div 
                        className={cn(
                          "w-full rounded-t-sm transition-all duration-500",
-                         isToday ? "bg-white" : count > 0 ? "bg-var(--ui-accent)" : "bg-var(--ui-surface)"
+                         isToday ? "bg-white" : count > 0 ? "bg-[var(--ui-accent)]" : "bg-[var(--ui-surface)]"
                        )}
                        style={{ 
                          height: count > 0 ? `${Math.max(20, intensity * 100)}%` : '4px',
@@ -263,8 +263,8 @@ const HistoryPage: React.FC = () => {
                        }}
                      />
                      {/* Hover Status Node */}
-                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-var(--ui-sidebar-bg) border border-white/10 px-3 py-1.5 rounded-lg opacity-0 -translate-y-2 group-hover/bar:opacity-100 group-hover/bar:translate-y-0 shadow-xl transition-all duration-300 pointer-events-none whitespace-nowrap z-20 flex items-center gap-2">
-                       <span className={cn("w-1.5 h-1.5 rounded-full", count > 0 ? "bg-var(--ui-accent) shadow-glow" : "bg-slate-600")} />
+                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-[var(--ui-sidebar-bg)] border border-white/10 px-3 py-1.5 rounded-lg opacity-0 -translate-y-2 group-hover/bar:opacity-100 group-hover/bar:translate-y-0 shadow-xl transition-all duration-300 pointer-events-none whitespace-nowrap z-20 flex items-center gap-2">
+                       <span className={cn("w-1.5 h-1.5 rounded-full", count > 0 ? "bg-[var(--ui-accent)] shadow-glow" : "bg-slate-600")} />
                         <p className="text-xs font-medium text-white">{format(day, "MMM dd")} <span className="text-slate-500 ms-1">[{count} sessions]</span></p>
                      </div>
                    </div>
@@ -272,15 +272,15 @@ const HistoryPage: React.FC = () => {
                });
             })()}
             {/* Overlay Gradient for Slider effect */}
-            <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-var(--ui-bg)/80 to-transparent pointer-events-none z-10" />
-            <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-var(--ui-bg)/80 to-transparent pointer-events-none z-10" />
+            <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-[var(--ui-bg)]/80 to-transparent pointer-events-none z-10" />
+            <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-[var(--ui-bg)]/80 to-transparent pointer-events-none z-10" />
         </div>
       </div>
 
       {/* Main Matrix Surface */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
         {/* Left Column: Filter & Summary */}
-        <div className="w-full lg:w-80 border-b lg:border-b-0 lg:border-e border-white/5 bg-var(--ui-sidebar-bg)/20 backdrop-blur-2xl p-4 lg:p-8 space-y-8 flex flex-col shrink-0 overflow-y-auto custom-scrollbar max-h-[40vh] lg:max-h-full">
+        <div className="w-full lg:w-80 border-b lg:border-b-0 lg:border-e border-white/5 bg-[var(--ui-sidebar-bg)]/20 backdrop-blur-2xl p-4 lg:p-8 space-y-8 flex flex-col shrink-0 overflow-y-auto custom-scrollbar max-h-[40vh] lg:max-h-full">
            <div className="space-y-6">
               <div className="space-y-2">
                  <p className="text-xs font-medium text-slate-500 ps-1">{t("history.search_placeholder")}</p>
@@ -304,7 +304,7 @@ const HistoryPage: React.FC = () => {
                   ].map((filter) => (
                    <div key={filter.id} className="space-y-2">
                       <select 
-                        className="w-full h-12 rounded-2xl bg-var(--ui-bg)/60 border border-white/5 px-6 text-[13px] font-normal text-slate-400 focus:outline-none focus:ring-2 focus:ring-var(--ui-accent)/20 transition-all"
+                        className="w-full h-12 rounded-2xl bg-[var(--ui-bg)]/60 border border-white/5 px-6 text-[13px] font-normal text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--ui-accent)]/20 transition-all"
                         value={filter.value}
                         onChange={(e) => filter.setter(e.target.value === "all" ? "all" : e.target.value as any)}
                       >
@@ -330,11 +330,11 @@ const HistoryPage: React.FC = () => {
            <div className="mt-auto pt-8 border-t border-white/5 space-y-4">
               <p className="text-xs font-medium text-slate-500 ps-1">{t("history.export.export_label", "Export Data")}</p>
               <div className="grid grid-cols-2 gap-3">
-                 <button onClick={handleExportCal} className="btn-ghost py-4 flex flex-col items-center gap-2 rounded-2xl border border-white/5 bg-var(--ui-bg)/40 hover:bg-var(--ui-accent)/5 hover:border-var(--ui-accent)/20 transition-all group/btn">
-                    <CalendarIcon className="w-5 h-5 text-slate-600 group-hover/btn:text-var(--ui-accent) transition-colors" />
+                 <button onClick={handleExportCal} className="btn-ghost py-4 flex flex-col items-center gap-2 rounded-2xl border border-white/5 bg-[var(--ui-bg)]/40 hover:bg-[var(--ui-accent)]/5 hover:border-[var(--ui-accent)]/20 transition-all group/btn">
+                    <CalendarIcon className="w-5 h-5 text-slate-600 group-hover/btn:text-[var(--ui-accent)] transition-colors" />
                     <span className="text-xs font-medium">{t("history.export.cal")}</span>
                  </button>
-                 <button className="btn-ghost py-4 flex flex-col items-center gap-2 rounded-2xl border border-white/5 bg-var(--ui-bg)/40 hover:bg-emerald-500/5 hover:border-emerald-500/20 transition-all group/btn">
+                 <button className="btn-ghost py-4 flex flex-col items-center gap-2 rounded-2xl border border-white/5 bg-[var(--ui-bg)]/40 hover:bg-emerald-500/5 hover:border-emerald-500/20 transition-all group/btn">
                     <Download className="w-5 h-5 text-slate-600 group-hover/btn:text-emerald-500 transition-colors" />
                     <span className="text-xs font-medium">{t("history.export.csv")}</span>
                  </button>
@@ -346,17 +346,17 @@ const HistoryPage: React.FC = () => {
         </div>
 
         {/* Dynamic Matrix Area */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-10 bg-var(--ui-bg)/20">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-10 bg-[var(--ui-bg)]/20">
            {loading ? (
              <div className="flex flex-col items-center justify-center h-full space-y-6 opacity-20 animate-pulse">
-                <Loader2 className="w-16 h-16 animate-spin text-var(--ui-accent)" />
-                  <p className="text-sm font-medium text-var(--ui-accent)">{t("history.loading")}</p>
+                <Loader2 className="w-16 h-16 animate-spin text-[var(--ui-accent)]" />
+                  <p className="text-sm font-medium text-[var(--ui-accent)]">{t("history.loading")}</p>
              </div>
            ) : groupedSessions.length === 0 ? (
              <div className="flex flex-col items-center justify-center h-full space-y-8 py-20">
-                <div className="p-8 rounded-full bg-var(--ui-sidebar-bg)/40 border border-white/5 relative">
-                   <div className="absolute inset-0 bg-var(--ui-accent)/5 blur-3xl rounded-full" />
-                   <Archive className="w-16 h-16 text-var(--ui-surface) relative z-10" />
+                <div className="p-8 rounded-full bg-[var(--ui-sidebar-bg)]/40 border border-white/5 relative">
+                   <div className="absolute inset-0 bg-[var(--ui-accent)]/5 blur-3xl rounded-full" />
+                   <Archive className="w-16 h-16 text-[var(--ui-surface)] relative z-10" />
                 </div>
                 <div className="text-center space-y-2">
                    <p className="text-2xl font-sora font-bold text-slate-700 tracking-tight">{t("history.empty_title", "Archive is Empty")}</p>
@@ -367,10 +367,10 @@ const HistoryPage: React.FC = () => {
              <div className="space-y-16">
                 {groupedSessions.map(([dateKey, dailySessions]: [string, Session[]]) => (
                   <div key={dateKey} className="space-y-6">
-                    <div className="flex items-center gap-6 sticky top-0 py-4 bg-var(--ui-bg)/40 backdrop-blur-md z-[5]">
+                    <div className="flex items-center gap-6 sticky top-0 py-4 bg-[var(--ui-bg)]/40 backdrop-blur-md z-[5]">
                        <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/5" />
                        <div className="flex items-center gap-3">
-                          <span className="w-2 h-2 rounded-full bg-var(--ui-accent) shadow-glow" />
+                          <span className="w-2 h-2 rounded-full bg-[var(--ui-accent)] shadow-glow" />
                           <span className="text-sm font-bold text-white tabular-nums">
                              {viewMode === "year" ? format(new Date(dateKey + "-01"), "MMMM yyyy") : format(new Date(dateKey), "EEEE • dd MMMM")}
                           </span>
@@ -387,7 +387,7 @@ const HistoryPage: React.FC = () => {
                           return (
                             <div 
                               key={session.id} 
-                              className="history-item group/card bg-var(--ui-sidebar-bg)/40 border border-white/5 rounded-[2rem] p-6 hover:bg-var(--ui-sidebar-bg) transition-all hover:scale-[1.02] active:scale-95 cursor-pointer relative overflow-hidden shadow-2xl shadow-black/40"
+                              className="history-item group/card bg-[var(--ui-sidebar-bg)]/40 border border-white/5 rounded-[2rem] p-6 hover:bg-[var(--ui-sidebar-bg)] transition-all hover:scale-[1.02] active:scale-95 cursor-pointer relative overflow-hidden shadow-2xl shadow-black/40"
                               onClick={() => navigate(`/sessions/${session.id}`)}
                             >
                                {/* Archive Stamp for Completed Groups */}
@@ -404,7 +404,7 @@ const HistoryPage: React.FC = () => {
                                           "w-3 h-3 rounded-full shadow-glow",
                                           session.groupColorTag === "emerald" ? "bg-emerald-500/80 shadow-emerald-500/20" :
                                           session.groupColorTag === "rose" ? "bg-rose-500/80 shadow-rose-500/20" :
-                                          "bg-var(--ui-accent)/80 shadow-var(--ui-accent)/20"
+                                          "bg-[var(--ui-accent)]/80 shadow-[var(--ui-accent)]/20"
                                         )} />
                                         <p className="text-xs font-medium text-slate-500">Session {session.sessionNumber}</p>
                                      </div>
@@ -413,14 +413,14 @@ const HistoryPage: React.FC = () => {
                                      </h3>
                                   </div>
                                   <div className="flex flex-col items-end shrink-0">
-                                     <Badge variant="outline" className="text-xs font-medium border-white/5 bg-var(--ui-bg)/50 h-7 px-3 rounded-lg text-slate-400">
+                                     <Badge variant="outline" className="text-xs font-medium border-white/5 bg-[var(--ui-bg)]/50 h-7 px-3 rounded-lg text-slate-400">
                                         Level {session.group?.level || 1}
                                      </Badge>
                                   </div>
                                </div>
 
                                <div className="grid grid-cols-2 gap-3 mb-6">
-                                  <div className="bg-var(--ui-bg)/40 rounded-2xl p-4 border border-white/[0.02] flex flex-col justify-between">
+                                  <div className="bg-[var(--ui-bg)]/40 rounded-2xl p-4 border border-white/[0.02] flex flex-col justify-between">
                                      <p className="text-xs font-semibold text-slate-600 uppercase mb-2 flex items-center gap-1.5 shrink-0">
                                         <Clock className="w-3 h-3" /> {t("common.time")}
                                      </p>
@@ -428,7 +428,7 @@ const HistoryPage: React.FC = () => {
                                         {format(new Date(session.scheduledAt), "hh:mm a")}
                                      </p>
                                   </div>
-                                  <div className="bg-var(--ui-bg)/40 rounded-2xl p-4 border border-white/[0.02] flex flex-col justify-between">
+                                  <div className="bg-[var(--ui-bg)]/40 rounded-2xl p-4 border border-white/[0.02] flex flex-col justify-between">
                                      <p className="text-xs font-semibold text-slate-600 uppercase mb-2 flex items-center gap-1.5 shrink-0">
                                         <TrendingUp className="w-3 h-3" /> {isStudent ? t("history.status", "Status") : t("sessions.label_performance")}
                                      </p>
@@ -465,7 +465,7 @@ const HistoryPage: React.FC = () => {
                                   
                                   {/* Multi-data Breakdown Row */}
                                   <div className="col-span-2 grid grid-cols-3 gap-2">
-                                    <div className="bg-var(--ui-bg)/20 rounded-xl p-3 border border-white/5 text-center">
+                                    <div className="bg-[var(--ui-bg)]/20 rounded-xl p-3 border border-white/5 text-center">
                                       <p className="text-xs font-medium text-slate-600 mb-1">Total</p>
                                       <p className="text-sm font-semibold text-white">{session.totalStudents || 0}</p>
                                     </div>
@@ -479,7 +479,7 @@ const HistoryPage: React.FC = () => {
                                     </div>
                                   </div>
 
-                                  <div className="col-span-2 bg-var(--ui-bg)/60 rounded-xl p-4 border border-white/5 flex items-center justify-between">
+                                  <div className="col-span-2 bg-[var(--ui-bg)]/60 rounded-xl p-4 border border-white/5 flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                       <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20">
                                         <Wallet className="w-4 h-4" />
@@ -494,7 +494,7 @@ const HistoryPage: React.FC = () => {
 
                                <div className="flex items-center justify-between mt-auto">
                                   <div className="flex items-center gap-3">
-                                     <div className="w-8 h-8 rounded-xl bg-var(--ui-bg) border border-white/5 flex items-center justify-center">
+                                     <div className="w-8 h-8 rounded-xl bg-[var(--ui-bg)] border border-white/5 flex items-center justify-center">
                                         <span className="text-xs font-semibold text-slate-600">{session.engineerName?.substring(0, 1) || "S"}</span>
                                      </div>
                                      <div className="space-y-0.5">

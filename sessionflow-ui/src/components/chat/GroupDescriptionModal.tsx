@@ -111,7 +111,7 @@ const GroupDescriptionModal: React.FC<GroupDescriptionModalProps> = ({ group, is
 
               {/* Character counter + progress bar */}
               <div className="space-y-2">
-                <div className="h-1 rounded-full bg-var(--ui-sidebar-bg) overflow-hidden">
+                <div className="h-1 rounded-full bg-[var(--ui-sidebar-bg)] overflow-hidden">
                   <div
                     className={cn(
                       "h-full rounded-full transition-all duration-300",
@@ -146,7 +146,7 @@ const GroupDescriptionModal: React.FC<GroupDescriptionModalProps> = ({ group, is
             <div className="px-8 py-5 border-t border-white/5 flex items-center justify-end gap-3">
               <button
                 onClick={onClose}
-                className="h-10 px-6 rounded-xl bg-var(--ui-surface) text-slate-300 font-black text-[10px] uppercase tracking-widest hover:bg-slate-700 transition-all"
+                className="h-10 px-6 rounded-xl bg-[var(--ui-surface)] text-slate-300 font-black text-[10px] uppercase tracking-widest hover:bg-slate-700 transition-all"
               >
                 {t("common.cancel", "Cancel")}
               </button>
@@ -157,7 +157,7 @@ const GroupDescriptionModal: React.FC<GroupDescriptionModalProps> = ({ group, is
                   "h-10 px-6 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2",
                   hasChanged && !isOverLimit
                     ? "bg-[var(--ui-accent)] text-white hover:opacity-90 shadow-lg shadow-[var(--ui-accent)]/20"
-                    : "bg-var(--ui-surface) text-slate-600 cursor-not-allowed"
+                    : "bg-[var(--ui-surface)] text-slate-600 cursor-not-allowed"
                 )}
               >
                 {updateMutation.isPending && <Loader2 className="w-3 h-3 animate-spin" />}

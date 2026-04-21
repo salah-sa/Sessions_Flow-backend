@@ -37,21 +37,21 @@ public class EmailService
             .Build();
     }
 
-    private async Task<Dictionary<string, string>> GetSmtpSettingsAsync()
+    private async Task<Dictionary<string, string>> GetSmtpSettingsAsync(CancellationToken ct = default)
     {
         var keys = new[] { "smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_enabled", "smtp_from" };
         var settingsList = await _db.Settings
             .Find(s => keys.Contains(s.Key))
-            .ToListAsync();
+            .ToListAsync(ct);
         
         return settingsList.ToDictionary(s => s.Key, s => s.Value);
     }
 
-    public async Task<(bool success, string? error)> SendEmailAsync(string to, string subject, string body)
+    public async Task<(bool success, string? error)> SendEmailAsync(string to, string subject, string body, CancellationToken ct = default)
     {
         try
         {
-            var smtp = await GetSmtpSettingsAsync();
+            var smtp = await GetSmtpSettingsAsync(ct);
 
             if (!smtp.TryGetValue("smtp_enabled", out var enabled) || enabled != "true")
             {
@@ -75,21 +75,25 @@ public class EmailService
             message.Body = new TextPart("html") { Text = body };
 
             using var client = new SmtpClient();
-            await client.ConnectAsync(host, port, port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls);
-            await client.AuthenticateAsync(user, password);
-            await _retryPipeline.ExecuteAsync(async ct => await client.SendAsync(message, ct));
-            await client.DisconnectAsync(true);
+            await client.ConnectAsync(host, port, port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls, ct);
+            await client.AuthenticateAsync(user, password, ct);
+            await _retryPipeline.ExecuteAsync(async token => await client.SendAsync(message, token), ct);
+            await client.DisconnectAsync(true, ct);
 
-            await LogEmailAsync(to, subject, "sent");
+            await LogEmailAsync(to, subject, "sent", ct);
             _logger.LogInformation("Email sent to {To}: {Subject}", to, subject);
             return (true, null);
+        }
+        catch (OperationCanceledException)
+        {
+            return (false, "Email send operation was canceled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to send email to {To}", to);
             try
             {
-                await LogEmailAsync(to, subject, $"failed: {ex.Message}");
+                await LogEmailAsync(to, subject, $"failed: {ex.Message}", ct);
             }
             catch { /* Ignore logging errors */ }
             return (false, ex.Message);
@@ -103,7 +107,7 @@ public class EmailService
             $"<p><small>Sent at: {DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss} UTC</small></p>");
     }
 
-    private async Task LogEmailAsync(string to, string subject, string status)
+    private async Task LogEmailAsync(string to, string subject, string status, CancellationToken ct = default)
     {
         var logEntry = new
         {
@@ -113,7 +117,7 @@ public class EmailService
             timestamp = DateTimeOffset.UtcNow.ToString("o")
         };
 
-        var logSetting = await _db.Settings.Find(s => s.Key == "email_log").FirstOrDefaultAsync();
+        var logSetting = await _db.Settings.Find(s => s.Key == "email_log", cancellationToken: ct).FirstOrDefaultAsync(ct);
         List<object> logEntries;
 
         if (logSetting != null)
@@ -131,7 +135,7 @@ public class EmailService
         {
             logEntries = new List<object>();
             logSetting = new Setting { Key = "email_log", Value = "[]" };
-            await _db.Settings.InsertOneAsync(logSetting);
+            await _db.Settings.InsertOneAsync(logSetting, cancellationToken: ct);
         }
 
         logEntries.Insert(0, logEntry);
@@ -143,7 +147,7 @@ public class EmailService
             .Set(s => s.Value, JsonSerializer.Serialize(logEntries))
             .Set(s => s.UpdatedAt, DateTimeOffset.UtcNow);
         
-        await _db.Settings.UpdateOneAsync(s => s.Id == logSetting.Id, update);
+        await _db.Settings.UpdateOneAsync(s => s.Id == logSetting.Id, update, cancellationToken: ct);
     }
 }
 
@@ -168,8 +172,12 @@ public class EmailReminderService : BackgroundService
         {
             try
             {
-                await CheckAndSendRemindersAsync();
-                await CheckAndSendDailySummaryAsync();
+                await CheckAndSendRemindersAsync(stoppingToken);
+                await CheckAndSendDailySummaryAsync(stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("EmailReminderService stopping due to cancellation.");
             }
             catch (Exception ex)
             {
@@ -180,7 +188,7 @@ public class EmailReminderService : BackgroundService
         }
     }
 
-    private async Task CheckAndSendRemindersAsync()
+    private async Task CheckAndSendRemindersAsync(CancellationToken ct)
     {
         using var scope = _serviceProvider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MongoService>();
@@ -193,23 +201,24 @@ public class EmailReminderService : BackgroundService
             .Find(s => s.Status == SessionStatus.Scheduled
                         && s.ScheduledAt > now
                         && s.ScheduledAt <= cutoff)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         foreach (var session in upcomingSessions)
         {
+            if (ct.IsCancellationRequested) break;
             if (_sentReminders.Contains(session.Id))
                 continue;
 
-            var engineer = await db.Users.Find(u => u.Id == session.EngineerId).FirstOrDefaultAsync();
+            var engineer = await db.Users.Find(u => u.Id == session.EngineerId).FirstOrDefaultAsync(ct);
             if (engineer == null || string.IsNullOrEmpty(engineer.Email))
                 continue;
 
-            var group = await db.Groups.Find(g => g.Id == session.GroupId).FirstOrDefaultAsync();
+            var group = await db.Groups.Find(g => g.Id == session.GroupId).FirstOrDefaultAsync(ct);
             var cairoTime = session.ScheduledAt.ToOffset(TimeSpan.FromHours(2));
             var minutesUntil = (int)(session.ScheduledAt - now).TotalMinutes;
 
             var body = $@"
-                <h2>â° Session Reminder</h2>
+                <h2>â ° Session Reminder</h2>
                 <p>Your session is starting in <strong>{minutesUntil} minutes</strong>!</p>
                 <table style='border-collapse:collapse;'>
                     <tr><td style='padding:4px 12px;font-weight:bold;'>Group:</td><td style='padding:4px 12px;'>{group?.Name ?? "N/A"}</td></tr>
@@ -221,7 +230,8 @@ public class EmailReminderService : BackgroundService
             var (success, _) = await emailService.SendEmailAsync(
                 engineer.Email,
                 $"Session Reminder: {group?.Name ?? "Session"} starts in {minutesUntil} min",
-                body);
+                body,
+                ct);
 
             if (success)
             {
@@ -238,7 +248,7 @@ public class EmailReminderService : BackgroundService
         }
     }
 
-    private async Task CheckAndSendDailySummaryAsync()
+    private async Task CheckAndSendDailySummaryAsync(CancellationToken ct)
     {
         var cairoOffset = TimeSpan.FromHours(2);
         var cairoNow = DateTimeOffset.UtcNow.ToOffset(cairoOffset);
@@ -259,13 +269,14 @@ public class EmailReminderService : BackgroundService
         var tomorrowSessions = await db.Sessions
             .Find(s => s.ScheduledAt >= tomorrowStart && s.ScheduledAt < tomorrowEnd
                         && s.Status == SessionStatus.Scheduled)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var byEngineer = tomorrowSessions.GroupBy(s => s.EngineerId);
 
         foreach (var group in byEngineer)
         {
-            var engineer = await db.Users.Find(u => u.Id == group.Key).FirstOrDefaultAsync();
+            if (ct.IsCancellationRequested) break;
+            var engineer = await db.Users.Find(u => u.Id == group.Key).FirstOrDefaultAsync(ct);
             if (engineer == null || string.IsNullOrEmpty(engineer.Email))
                 continue;
 
@@ -273,7 +284,8 @@ public class EmailReminderService : BackgroundService
             var sessionsHtmlList = new List<string>();
             foreach (var s in sessionList)
             {
-                var groupInfo = await db.Groups.Find(g => g.Id == s.GroupId).FirstOrDefaultAsync();
+                if (ct.IsCancellationRequested) break;
+                var groupInfo = await db.Groups.Find(g => g.Id == s.GroupId).FirstOrDefaultAsync(ct);
                 var time = s.ScheduledAt.ToOffset(cairoOffset);
                 sessionsHtmlList.Add($"<tr><td style='padding:4px 12px;'>{time:hh:mm tt}</td><td style='padding:4px 12px;'>{groupInfo?.Name ?? "N/A"}</td></tr>");
             }
@@ -293,7 +305,8 @@ public class EmailReminderService : BackgroundService
             await emailService.SendEmailAsync(
                 engineer.Email,
                 $"SessionFlow: Your schedule for {tomorrowStart:MMMM dd}",
-                body);
+                body,
+                ct);
         }
     }
 }

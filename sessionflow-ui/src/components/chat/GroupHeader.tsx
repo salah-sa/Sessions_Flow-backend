@@ -20,7 +20,7 @@ const PresenceDot: React.FC<{ userId: string; size?: "sm" | "md" }> = ({ userId,
   const status = usePresenceStore((s) => s.getPresence(userId).status);
   const dotSize = size === "sm" ? "w-2.5 h-2.5" : "w-3 h-3";
   
-  let bgColor = "bg-var(--ui-surface)"; // offline
+  let bgColor = "bg-[var(--ui-surface)]"; // offline
   let shadow = "";
   
   if (status === "online") {
@@ -51,7 +51,7 @@ const MemberAvatar: React.FC<{
     <div className="relative group/avatar" title={name}>
       <div className={cn(
         "w-8 h-8 rounded-full flex items-center justify-center text-[9px] font-bold uppercase overflow-hidden transition-all duration-300 hover:scale-110 hover:z-20 border",
-        isEngineer ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/40 text-white" : "bg-var(--ui-sidebar-bg) border-white/10 text-slate-500"
+        isEngineer ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/40 text-white" : "bg-[var(--ui-sidebar-bg)] border-white/10 text-slate-500"
       )}>
         {avatarUrl ? <img src={avatarUrl} alt={name} className="w-full h-full object-cover" /> : name?.charAt(0)}
       </div>
@@ -132,7 +132,7 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
               <span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">
                 {members.length} USERS
               </span>
-              <div className="w-1 h-1 rounded-full bg-var(--ui-surface)" />
+              <div className="w-1 h-1 rounded-full bg-[var(--ui-surface)]" />
               <div className="flex items-center gap-1.5 text-[9px] font-bold text-[var(--ui-accent)] uppercase tracking-[0.2em]">
                 <Activity className="w-3 h-3" />
                 {onlineCount} ACTIVE

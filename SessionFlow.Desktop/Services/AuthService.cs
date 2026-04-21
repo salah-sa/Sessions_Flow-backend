@@ -32,7 +32,7 @@ public class AuthService
         _generatedAdminPassword = _config["Security:DefaultAdminPassword"] ?? "Admin1234!";
     }
 
-    public async Task<(User? user, string? token, string? error)> LoginAsync(string identifier, string password, Api.Endpoints.AuthEndpoints.LoginPortal portal, string? studentId = null, string? engineerCode = null)
+    public async Task<(User? user, string? token, string? error)> LoginAsync(string identifier, string password, Api.Endpoints.AuthEndpoints.LoginPortal portal, string? studentId = null, string? engineerCode = null, CancellationToken ct = default)
     {
         User? user;
         if (portal == Api.Endpoints.AuthEndpoints.LoginPortal.Student)
@@ -45,14 +45,14 @@ public class AuthService
                        & Builders<User>.Filter.Eq(u => u.StudentId, studentId)
                        & Builders<User>.Filter.Eq(u => u.EngineerCode, engineerCode);
             user = await _db.Users.Find(filter, new FindOptions { Collation = new Collation("en", strength: CollationStrength.Secondary) })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
         }
         else
         {
             // Admin/Engineer Login
             var filter = Builders<User>.Filter.Eq(u => u.Email, identifier);
             user = await _db.Users.Find(filter, new FindOptions { Collation = new Collation("en", strength: CollationStrength.Secondary) })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
 
             if (user != null && user.Role == UserRole.Student)
                 return (null, null, "Access Denied: Students are not permitted to access the Operations portal.");
@@ -71,17 +71,17 @@ public class AuthService
         return (user, token, null);
     }
 
-    public async Task<(PendingEngineer? pending, string? error)> RegisterAsync(string name, string email, string password)
+    public async Task<(PendingEngineer? pending, string? error)> RegisterAsync(string name, string email, string password, CancellationToken ct = default)
     {
         // Check if email already exists in Users or PendingEngineers
         var userFilter = Builders<User>.Filter.Regex(u => u.Email, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(email)}$", "i"));
-        var existingUser = await _db.Users.Find(userFilter).AnyAsync();
+        var existingUser = await _db.Users.Find(userFilter, cancellationToken: ct).AnyAsync(ct);
         if (existingUser)
             return (null, "An account with this email already exists.");
 
         var pendingFilter = Builders<PendingEngineer>.Filter.Regex(p => p.Email, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(email)}$", "i"))
                           & Builders<PendingEngineer>.Filter.Eq(p => p.Status, PendingStatus.Pending);
-        var existingPending = await _db.PendingEngineers.Find(pendingFilter).AnyAsync();
+        var existingPending = await _db.PendingEngineers.Find(pendingFilter, cancellationToken: ct).AnyAsync(ct);
         if (existingPending)
             return (null, "A registration request with this email is already pending.");
 
@@ -107,19 +107,19 @@ public class AuthService
         return (pending, null);
     }
 
-    public async Task<(User? user, string? error)> RegisterStudentAsync(string name, string username, string password, string studentId, string engineerCode)
+    public async Task<(User? user, string? error)> RegisterStudentAsync(string name, string username, string password, string studentId, string engineerCode, CancellationToken ct = default)
     {
         // ... legacy signup ... 
         var usernameFilter = Builders<User>.Filter.Regex(u => u.Username, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(username)}$", "i"));
-        var usernameExists = await _db.Users.Find(usernameFilter).AnyAsync();
+        var usernameExists = await _db.Users.Find(usernameFilter, cancellationToken: ct).AnyAsync(ct);
         if (usernameExists) return (null, "Username already taken.");
 
-        var sidExists = await _db.Users.Find(u => u.StudentId == studentId).AnyAsync();
+        var sidExists = await _db.Users.Find(u => u.StudentId == studentId, cancellationToken: ct).AnyAsync(ct);
         if (sidExists) return (null, "An account with this Student ID already exists.");
 
         var codeFilter = Builders<EngineerCode>.Filter.Regex(c => c.Code, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(engineerCode)}$", "i"))
                        & Builders<EngineerCode>.Filter.Eq(c => c.IsUsed, true);
-        var code = await _db.EngineerCodes.Find(codeFilter).FirstOrDefaultAsync();
+        var code = await _db.EngineerCodes.Find(codeFilter, cancellationToken: ct).FirstOrDefaultAsync(ct);
         if (code == null || !code.UsedByEngineerId.HasValue)
             return (null, "Invalid Engineer Code.");
 
@@ -149,18 +149,18 @@ public class AuthService
         return (user, null);
     }
 
-    public async Task<(PendingStudentRequest? pending, string? error)> QueueStudentRequestAsync(string name, string username, string email, string password, string groupName, string? studentId = null)
+    public async Task<(PendingStudentRequest? pending, string? error)> QueueStudentRequestAsync(string name, string username, string email, string password, string groupName, string? studentId = null, CancellationToken ct = default)
     {
         // 1. Check if username exists
         var usernameFilter = Builders<User>.Filter.Regex(u => u.Username, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(username)}$", "i"));
-        if (await _db.Users.Find(usernameFilter).AnyAsync())
-            return (null, "Username is already taken.");
+        var usernameExists = await _db.Users.Find(usernameFilter, cancellationToken: ct).AnyAsync(ct);
+        if (usernameExists) return (null, "Username is already taken.");
 
         // 2. Find groups that match this name (case-insensitive)
         var groupFilter = Builders<Group>.Filter.Regex(g => g.Name, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(groupName)}$", "i"))
                         & Builders<Group>.Filter.Eq(g => g.IsDeleted, false);
         
-        var groups = await _db.Groups.Find(groupFilter).ToListAsync();
+        var groups = await _db.Groups.Find(groupFilter, cancellationToken: ct).ToListAsync(ct);
         if (groups.Count == 0)
             return (null, "Group not found. Please ensure you entered the exact correct group name.");
 
@@ -213,9 +213,9 @@ public class AuthService
         return new List<PendingStudentRequest>();
     }
 
-    public async Task<(User? user, string? error)> ApproveStudentRequestAsync(Guid pendingId, User executor)
+    public async Task<(User? user, string? error)> ApproveStudentRequestAsync(Guid pendingId, User executor, CancellationToken ct = default)
     {
-        var pending = await _db.PendingStudentRequests.Find(p => p.Id == pendingId).FirstOrDefaultAsync();
+        var pending = await _db.PendingStudentRequests.Find(p => p.Id == pendingId, cancellationToken: ct).FirstOrDefaultAsync(ct);
         if (pending == null) return (null, "Request not found.");
         
         // Strict Scoping Enforcement
@@ -226,11 +226,11 @@ public class AuthService
 
         // Double check username availability
         var usernameFilter = Builders<User>.Filter.Regex(u => u.Username, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(pending.Username)}$", "i"));
-        if (await _db.Users.Find(usernameFilter).AnyAsync())
+        if (await _db.Users.Find(usernameFilter, cancellationToken: ct).AnyAsync(ct))
             return (null, "The requested username is no longer available.");
 
         // Look up the engineer to get their EngineerCode
-        var engineer = await _db.Users.Find(u => u.Id == pending.EngineerId).FirstOrDefaultAsync();
+        var engineer = await _db.Users.Find(u => u.Id == pending.EngineerId, cancellationToken: ct).FirstOrDefaultAsync(ct);
         if (engineer == null || string.IsNullOrEmpty(engineer.EngineerCode))
             return (null, "Managing engineer is not fully configured. Code missing.");
 
@@ -373,7 +373,7 @@ public class AuthService
         return (user, null);
     }
 
-    public async Task<(bool success, string? error)> DenyStudentRequestAsync(Guid pendingId, User executor)
+    public async Task<(bool success, string? error)> DenyStudentRequestAsync(Guid pendingId, User executor, CancellationToken ct = default)
     {
         var pending = await _db.PendingStudentRequests.Find(p => p.Id == pendingId).FirstOrDefaultAsync();
         if (pending == null) return (false, "Request not found.");
@@ -399,7 +399,7 @@ public class AuthService
         return (true, null);
     }
 
-    public async Task<(User? user, string? error)> ApproveEngineerAsync(Guid pendingId)
+    public async Task<(User? user, string? error)> ApproveEngineerAsync(Guid pendingId, CancellationToken ct = default)
     {
         var pending = await _db.PendingEngineers.Find(p => p.Id == pendingId).FirstOrDefaultAsync();
         if (pending == null)
@@ -493,7 +493,7 @@ public class AuthService
         return (user, null);
     }
 
-    public async Task<(bool success, string? error)> DenyEngineerAsync(Guid pendingId)
+    public async Task<(bool success, string? error)> DenyEngineerAsync(Guid pendingId, CancellationToken ct = default)
     {
         var update = Builders<PendingEngineer>.Update
             .Set(p => p.Status, PendingStatus.Denied)
@@ -525,7 +525,7 @@ public class AuthService
     /// Resolves the Student record linked to a User, checking both StudentId and UniqueStudentCode.
     /// Returns ONLY the first one. Use ResolveAllStudentsForUser to get all enrolled groups.
     /// </summary>
-    public async Task<Student?> ResolveStudentForUser(User user)
+    public async Task<Student?> ResolveStudentForUser(User user, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(user.StudentId)) return null;
         return await _db.Students.Find(s =>
@@ -538,7 +538,7 @@ public class AuthService
     /// Resolves all Student records linked to a User.
     /// Use this to authorize multi-group access for a student.
     /// </summary>
-    public async Task<List<Student>> ResolveAllStudentsForUser(User user)
+    public async Task<List<Student>> ResolveAllStudentsForUser(User user, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(user.StudentId)) return new List<Student>();
         
@@ -579,14 +579,14 @@ public class AuthService
     /// <summary>
     /// Resolves the Student record from a userId directly.
     /// </summary>
-    public async Task<Student?> ResolveStudentForUserId(Guid userId)
+    public async Task<Student?> ResolveStudentForUserId(Guid userId, CancellationToken ct = default)
     {
         var user = await GetUserByIdAsync(userId);
         if (user == null || user.Role != UserRole.Student) return null;
-        return await ResolveStudentForUser(user);
+        return await ResolveStudentForUser(user, ct);
     }
 
-    public async Task<string> UpdateAvatarAsync(Guid userId, string avatarPayload, string webRootPath)
+    public async Task<string> UpdateAvatarAsync(Guid userId, string avatarPayload, string webRootPath, CancellationToken ct = default)
     {
         string avatarUrl;
 
@@ -626,7 +626,7 @@ public class AuthService
         return avatarUrl;
     }
 
-    public async Task<(bool success, string? error)> UpdatePasswordAsync(Guid userId, string currentPassword, string newPassword)
+    public async Task<(bool success, string? error)> UpdatePasswordAsync(Guid userId, string currentPassword, string newPassword, CancellationToken ct = default)
     {
         var user = await GetUserByIdAsync(userId);
         if (user == null) return (false, "User not found.");
@@ -636,9 +636,12 @@ public class AuthService
             return (false, "Protocol Mismatch: Current password validation failed.");
         }
 
-        if (newPassword.Length < 6)
+        if (newPassword.Length < 8 || 
+            !newPassword.Any(char.IsUpper) || 
+            !newPassword.Any(char.IsDigit) || 
+            !newPassword.Any(c => !char.IsLetterOrDigit(c)))
         {
-            return (false, "Security Constraint: Password must be at least 6 characters.");
+            return (false, "Security Constraint: Password must be at least 8 characters and contain uppercase, digit, and special characters.");
         }
 
         var newHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
@@ -793,7 +796,7 @@ public class AuthService
         }
     }
 
-    public async Task<(bool success, string? error)> RequestPasswordResetAsync(string email)
+    public async Task<(bool success, string? error)> RequestPasswordResetAsync(string email, CancellationToken ct = default)
     {
         // 1. Find user
         var user = await _db.Users.Find(u => u.Email == email, new FindOptions { Collation = new Collation("en", strength: CollationStrength.Secondary) }).FirstOrDefaultAsync();
@@ -852,7 +855,7 @@ public class AuthService
         return (true, null);
     }
 
-    public async Task<(Guid? tokenId, string? error)> VerifyResetCodeAsync(string email, string code)
+    public async Task<(Guid? tokenId, string? error)> VerifyResetCodeAsync(string email, string code, CancellationToken ct = default)
     {
         var token = await _db.PasswordResetTokens
             .Find(t => t.Email == email && !t.IsUsed && t.ExpiresAt > DateTimeOffset.UtcNow)
@@ -878,7 +881,7 @@ public class AuthService
         }
     }
 
-    public async Task<(bool success, string? error)> ResetPasswordAsync(Guid tokenId, string newPassword)
+    public async Task<(bool success, string? error)> ResetPasswordAsync(Guid tokenId, string newPassword, CancellationToken ct = default)
     {
         var token = await _db.PasswordResetTokens.Find(t => t.Id == tokenId && !t.IsUsed && t.ExpiresAt > DateTimeOffset.UtcNow).FirstOrDefaultAsync();
         if (token == null)

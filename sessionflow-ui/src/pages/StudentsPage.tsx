@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Search, Plus, Download, ArrowUpRight, Loader2, Trash2, Edit2, Users, ShieldCheck, ChevronRight, LayoutGrid, List, Copy, CheckSquare, X, Activity, Clock, Database, CheckCircle2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Button, Badge, Modal, ConfirmDialog } from "../components/ui";
+import { PaginatedResponse } from "../types";
 import { Drawer, DrawerContent } from "../components/ui/drawer";
 import { useInfiniteStudents, useStudentMutations } from "../queries/useStudentQueries";
 import { useGroups } from "../queries/useGroupQueries";
@@ -46,8 +47,8 @@ const StudentsPage: React.FC = () => {
 
   const students = React.useMemo(() => {
     if (!data) return [];
-    return data.pages.flatMap((p: any) => {
-      const list = p.items || p.data || (Array.isArray(p) ? p : []);
+    return data.pages.flatMap((p: PaginatedResponse<Student>) => {
+      const list = p.items || (Array.isArray(p) ? p : []);
       return Array.isArray(list) ? list : [];
     });
   }, [data]);
@@ -106,7 +107,7 @@ const StudentsPage: React.FC = () => {
       toast.success(t("students.bulk_delete_success", { count: selectedStudentIds.size }));
       setSelectedStudentIds(new Set());
       setIsBulkDeleteModalOpen(false);
-    } catch(err: any) {
+    } catch(err: unknown) {
       toast.error(t("students.bulk_delete_error"));
     }
   };
@@ -135,8 +136,8 @@ const StudentsPage: React.FC = () => {
       await createMutation.mutateAsync({ groupId: formGroupId, name: formName.trim() });
       toast.success(t("students.registration_success", { name: formName }));
       setIsAddModalOpen(false);
-    } catch (err: any) {
-      toast.error(err.message || t("common.error"));
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
     }
   };
 
@@ -147,8 +148,8 @@ const StudentsPage: React.FC = () => {
       toast.success(t("students.identity_updated"));
       setIsEditModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ["students"] });
-    } catch (err: any) {
-      toast.error(err.message || t("common.error"));
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
     }
   };
 
@@ -158,8 +159,8 @@ const StudentsPage: React.FC = () => {
       await deleteMutation.mutateAsync(selectedStudent.id);
       toast.success(t("students.record_terminated"));
       setIsDeleteModalOpen(false);
-    } catch (err: any) {
-      toast.error(err.message || t("common.error"));
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
     }
   };
 

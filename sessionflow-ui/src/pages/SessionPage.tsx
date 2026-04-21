@@ -62,8 +62,8 @@ const SessionPage: React.FC = () => {
     if (activeSession?.notes) {
       setSessionNotes(activeSession.notes);
     }
-    if ((activeSession as any)?.attendance) {
-      setAttendanceRecords((activeSession as any).attendance);
+    if (activeSession?.attendance) {
+      setAttendanceRecords(activeSession.attendance);
     }
   }, [activeSession, setAttendanceRecords]);
 
@@ -102,8 +102,8 @@ const SessionPage: React.FC = () => {
     try {
       await startMutation.mutateAsync(activeSession.id);
       toast.success(t("sessions.start_success"));
-    } catch (err: any) {
-      toast.error(err.message || t("common.error"));
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
     }
   };
 
@@ -123,8 +123,8 @@ const SessionPage: React.FC = () => {
       setIsEndingOpen(false);
       toast.success(t("sessions.end_success"));
       navigate("/dashboard");
-    } catch (err: any) {
-      toast.error(err.message || t("common.error"));
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
     } finally {
       setIsConcluding(false);
     }
@@ -165,7 +165,7 @@ const SessionPage: React.FC = () => {
     <div className="h-full flex items-center justify-center text-red-500">{t("common.not_found")}</div>
   );
 
-  const students = (activeSession as any).students || [];
+  const students = activeSession.students || [];
   const records = Object.values(attendanceRecords);
 
   return (
@@ -181,7 +181,7 @@ const SessionPage: React.FC = () => {
           </button>
           <div className="space-y-1">
             <h1 className="text-2xl font-sora font-semibold text-white tracking-tighter uppercase flex items-center gap-3">
-              {activeSession.groupName || (activeSession as any).group?.name}
+              {activeSession.groupName || activeSession.group?.name}
               <div className={cn(
                 "px-3 py-1 rounded-full text-xs font-semibold border",
                 activeSession.status === "Active" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" :
@@ -194,9 +194,9 @@ const SessionPage: React.FC = () => {
             <p className="text-xs text-slate-500 font-semibold flex items-center gap-3 opacity-80">
               <Clock className="w-3.5 h-3.5 text-[var(--ui-accent)]" /> 
               {safeFormat(activeSession.scheduledAt, "EEEE - d MMM yyyy - hh:mm a")}
-              {(activeSession as any).sessionNumber && (
+              {activeSession.sessionNumber && (
                 <span className="text-[var(--ui-accent)]">
-                   • {t("sessions.session_orbital")} {(activeSession as any).sessionNumber}
+                   • {t("sessions.session_orbital")} {activeSession.sessionNumber}
                 </span>
               )}
             </p>
@@ -214,17 +214,17 @@ const SessionPage: React.FC = () => {
            <div className="flex gap-3 items-center">
              {activeSession.status === "Scheduled" ? (
                <div className="flex items-center gap-4">
-                 {!(activeSession as any).canStart && (
+                 {!activeSession.canStart && (
                    <span className="text-xs font-semibold text-amber-500 uppercase px-3 py-2 bg-amber-500/5 rounded-xl border border-amber-500/10">
                       {t("sessions.locked_standby")}
                    </span>
                  )}
                  <button 
                    onClick={handleStartSession} 
-                   disabled={!(activeSession as any).canStart}
+                   disabled={!activeSession.canStart}
                    className={cn(
                      "h-12 px-8 rounded-xl font-semibold text-xs transition-all flex items-center gap-3",
-                     (activeSession as any).canStart 
+                     activeSession.canStart 
                         ? "bg-emerald-500 text-black shadow-glow shadow-emerald-500/20 hover:scale-105" 
                         : "bg-[var(--ui-sidebar-bg)] text-slate-500 opacity-50 cursor-not-allowed border border-white/5"
                    )}
@@ -273,7 +273,7 @@ const SessionPage: React.FC = () => {
              students={students}
              records={attendanceRecords}
              onMarkStatus={handleMarkAttendance}
-             disabled={!(activeSession as any).isEditable}
+             disabled={!activeSession.isEditable}
            />
         </div>
 

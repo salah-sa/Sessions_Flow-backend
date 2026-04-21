@@ -330,7 +330,7 @@ const TimetablePage: React.FC = () => {
                 <span className="text-xs font-bold text-slate-500 uppercase">{t("timetable.legend.live_deploy") || "OPERATIONAL"}</span>
              </div>
              <div className="flex items-center gap-3 opacity-40">
-                <div className="w-2.5 h-2.5 rounded-full bg-var(--ui-surface)" />
+                <div className="w-2.5 h-2.5 rounded-full bg-[var(--ui-surface)]" />
                 <span className="text-xs font-bold text-slate-600 uppercase">{t("timetable.legend.archive") || "ARCHIVE"}</span>
              </div>
           </div>

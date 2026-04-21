@@ -220,9 +220,8 @@ public static class ChatEndpoints
             {
                 await eventBus.PublishAsync(Services.EventBus.Events.MessageReceive, Services.EventBus.EventTargetType.Group, $"chat_{groupId}", new { groupId = groupId.ToString(), message = msgData });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"[EventBus Error] {ex.Message}");
                 // We still return Created because it's in DB, but logs help debug infrastructure issues
             }
 

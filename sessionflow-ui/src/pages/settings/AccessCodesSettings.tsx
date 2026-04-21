@@ -29,7 +29,7 @@ const AccessCodesSettings: React.FC<AccessCodesSettingsProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex flex-col gap-2">
             <h2 className="text-lg font-sora font-black text-white uppercase tracking-tight flex items-center gap-3">
-              <span className="w-1.5 h-6 bg-var(--ui-accent) rounded-full" />
+              <span className="w-1.5 h-6 bg-[var(--ui-accent)] rounded-full" />
               {t("settings.engineer_clearance")}
             </h2>
             <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] ps-5">{t("settings.engineer_clearance_desc")}</p>
@@ -37,7 +37,7 @@ const AccessCodesSettings: React.FC<AccessCodesSettingsProps> = ({
           <button 
             disabled={isGenerating} 
             onClick={handleGenerateCode}
-            className="h-12 px-8 bg-var(--ui-accent) text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-glow shadow-var(--ui-accent)/20 flex items-center gap-3 hover:scale-105 transition-all"
+            className="h-12 px-8 bg-[var(--ui-accent)] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-glow shadow-[var(--ui-accent)]/20 flex items-center gap-3 hover:scale-105 transition-all"
           >
             {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             {t("settings.authorize_node")}
@@ -52,8 +52,8 @@ const AccessCodesSettings: React.FC<AccessCodesSettingsProps> = ({
             </div>
           ) : codes.map(code => (
             <div key={code.id} className={cn(
-              "card-base p-6 bg-var(--ui-sidebar-bg)/50 border-white/5 relative overflow-hidden group",
-              code.isUsed ? "opacity-60 border-emerald-500/10" : "border-var(--ui-accent)/10"
+              "card-base p-6 bg-[var(--ui-sidebar-bg)]/50 border-white/5 relative overflow-hidden group",
+              code.isUsed ? "opacity-60 border-emerald-500/10" : "border-[var(--ui-accent)]/10"
             )}>
               <div className="flex items-start justify-between relative z-10">
                 <div className="space-y-4">
@@ -65,7 +65,7 @@ const AccessCodesSettings: React.FC<AccessCodesSettingsProps> = ({
                     {code.isUsed ? (
                       <Badge variant="success" className="bg-emerald-500/10 text-emerald-500 border-none text-[8px] font-black px-2">{t("settings.redeemed")}</Badge>
                     ) : (
-                      <Badge variant="primary" className="bg-var(--ui-accent)/10 text-var(--ui-accent) border-none text-[8px] font-black px-2">{t("settings.valid")}</Badge>
+                      <Badge variant="primary" className="bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] border-none text-[8px] font-black px-2">{t("settings.valid")}</Badge>
                     )}
                     <span className="text-[9px] font-black text-slate-700 uppercase">{format(new Date(code.createdAt), "MMM dd, yyyy")}</span>
                   </div>
@@ -79,10 +79,10 @@ const AccessCodesSettings: React.FC<AccessCodesSettingsProps> = ({
                 <div className="flex gap-2">
                   {!code.isUsed && (
                      <>
-                        <button onClick={() => copyToClipboard(code.code, "Token")} className="w-10 h-10 bg-var(--ui-bg) rounded-xl border border-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all">
+                        <button onClick={() => copyToClipboard(code.code, "Token")} className="w-10 h-10 bg-[var(--ui-bg)] rounded-xl border border-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all">
                            <Copy className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleRevokeCode(code.id)} className="w-10 h-10 bg-var(--ui-bg) rounded-xl border border-white/5 flex items-center justify-center text-slate-500 hover:text-red-500 transition-all">
+                        <button onClick={() => handleRevokeCode(code.id)} className="w-10 h-10 bg-[var(--ui-bg)] rounded-xl border border-white/5 flex items-center justify-center text-slate-500 hover:text-red-500 transition-all">
                            <Trash2 className="w-4 h-4" />
                         </button>
                      </>

@@ -26,7 +26,7 @@ public static class ApiHost
 {
     public static WebApplication BuildAndConfigure(string[] args)
     {
-        Console.WriteLine(">>> [STG 1] Initializing WebApplicationBuilder...");
+        Log.Information("[Bootstrap] Stage 1: Initializing WebApplicationBuilder...");
         var isContainer = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
         var baseDir = AppDomain.CurrentDomain.BaseDirectory;
 
@@ -38,7 +38,7 @@ public static class ApiHost
             WebRootPath = Path.Combine(baseDir, "wwwroot")
         });
 
-        Console.WriteLine(">>> [STG 2] Configuring Middleware & Environment...");
+        Log.Information("[Bootstrap] Stage 2: Configuring Middleware & Environment...");
         // Ensure appsettings.json is loaded from the executable directory
         builder.Configuration.SetBasePath(baseDir);
         builder.Configuration.AddJsonFile("appsettings.json", optional: isContainer, reloadOnChange: true);
@@ -54,8 +54,8 @@ public static class ApiHost
             var railwayPort = Environment.GetEnvironmentVariable("RAILWAY_PORT");
             var httpPorts = Environment.GetEnvironmentVariable("HTTP_PORTS");
             var aspnetUrls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS");
-            Console.WriteLine($">>> [PORT DEBUG] PORT={port}, RAILWAY_PORT={railwayPort}, HTTP_PORTS={httpPorts}, ASPNETCORE_URLS={aspnetUrls}");
-            Console.WriteLine($">>> [STG 2] Container Mode detected. Binding to 0.0.0.0:{port}");
+            Log.Debug("[Bootstrap] PORT={Port}, RAILWAY_PORT={RailwayPort}, HTTP_PORTS={HttpPorts}, ASPNETCORE_URLS={AspnetUrls}", port, railwayPort, httpPorts, aspnetUrls);
+            Log.Information("[Bootstrap] Container mode detected. Binding to 0.0.0.0:{Port}", port);
             builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
         }
         else
@@ -69,7 +69,7 @@ public static class ApiHost
             builder.WebHost.UseUrls(kestrelUrl);
         }
 
-        Console.WriteLine(">>> [STG 3] Registering Core Services...");
+        Log.Information("[Bootstrap] Stage 3: Registering Core Services...");
         // Configure Serilog
         builder.Host.UseSerilog((context, services, configuration) => configuration
             .ReadFrom.Configuration(context.Configuration)
@@ -113,7 +113,7 @@ public static class ApiHost
         }
         catch (Exception ex)
         {
-            Console.WriteLine($">>> [WRN] Redis initialization skipped (not fatal): {ex.Message}");
+            // Serilog warning is already logged on the next line
             Serilog.Log.Warning(ex, "Redis connection failed ({Conn}) — running in local-only mode", redisConnectionString);
         }
 
@@ -156,7 +156,7 @@ public static class ApiHost
         builder.Services.AddLogging();
 
         // 2. JWT Authentication
-        Console.WriteLine(">>> [STG 5] Configuring JWT & Auth...");
+        Log.Information("[Bootstrap] Stage 5: Configuring JWT & Auth...");
         var secretKey = builder.Configuration["Jwt:SecretKey"]
             ?? throw new InvalidOperationException("JWT SecretKey is not configured. Set SESSIONFLOW_JWT_SECRET environment variable.");
         var issuer = builder.Configuration["Jwt:Issuer"] ?? "SessionFlow";
@@ -204,7 +204,7 @@ public static class ApiHost
         });
 
         // 3. CORS — Production Hardening
-        Console.WriteLine(">>> [STG 6] Configuring CORS...");
+        Log.Information("[Bootstrap] Stage 6: Configuring CORS...");
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("LocalOnly", policy =>

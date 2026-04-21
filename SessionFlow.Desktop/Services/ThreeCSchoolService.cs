@@ -92,6 +92,7 @@ public class ThreeCSchoolService
     /// </summary>
     public async Task<(HttpClient? client, string? error)> LoginAsync(string email, string password)
     {
+        HttpClient? client = null;
         try
         {
             var cookieContainer = new CookieContainer();
@@ -102,7 +103,7 @@ public class ThreeCSchoolService
                 UseCookies = true
             };
 
-            var client = new HttpClient(handler)
+            client = new HttpClient(handler)
             {
                 BaseAddress = new Uri("https://3cschool.net"),
                 Timeout = TimeSpan.FromSeconds(30)
@@ -124,7 +125,7 @@ public class ThreeCSchoolService
 
             if (string.IsNullOrEmpty(csrfToken))
             {
-                _logger.LogWarning("Could not find CSRF token on login page. Trying without it...");
+                _logger.LogWarning("Could find CSRF token on login page. Trying without it...");
             }
 
             // Step 2: POST login credentials
@@ -148,6 +149,7 @@ public class ThreeCSchoolService
 
             if (finalUrl.Contains("/login") || responseBody.Contains("These credentials do not match"))
             {
+                client.Dispose();
                 return (null, "Invalid 3cschool.net credentials. Please check your email and password.");
             }
 
@@ -157,6 +159,7 @@ public class ThreeCSchoolService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to login to 3cschool.net");
+            client?.Dispose();
             return (null, $"Connection failed: {ex.Message}");
         }
     }
@@ -503,30 +506,36 @@ public class ThreeCSchoolService
 
     // ─── Import to Database ─────────────────────────────────────────
 
+    // ─── Import to Database ─────────────────────────────────────────
+ 
     /// <summary>
     /// Full import pipeline: login → scrape → import to MongoDB.
     /// </summary>
-    public async Task<ImportResult> ImportAllAsync(string email, string password, Guid engineerId)
+    public async Task<ImportResult> ImportAllAsync(string email, string password, Guid engineerId, CancellationToken ct = default)
     {
         // Step 1: Login
         var (client, loginError) = await LoginAsync(email, password);
         if (client == null)
             return new ImportResult { Error = loginError };
-
-        // Step 2: Fetch groups preview
-        var result = await FetchGroupsPreviewAsync(client);
-        if (!result.Success)
-            return result;
-
+ 
+        using (client)
+        {
+            // Step 2: Fetch groups preview
+            var result = await FetchGroupsPreviewAsync(client, ct);
+            if (!result.Success)
+                return result;
+ 
         // Step 3: Fetch details for each group
         for (int i = 0; i < result.Groups.Count; i++)
         {
-            result.Groups[i] = await FetchGroupDetailAsync(client, result.Groups[i]);
+            if (ct.IsCancellationRequested) break;
+            result.Groups[i] = await FetchGroupDetailAsync(client, result.Groups[i], ct);
         }
-
+ 
         // Step 4: Import to database
         foreach (var groupPreview in result.Groups)
         {
+            if (ct.IsCancellationRequested) break;
             if (groupPreview.AlreadyExists) continue;
             if (string.IsNullOrWhiteSpace(groupPreview.Name)) continue;
             
@@ -539,7 +548,7 @@ public class ThreeCSchoolService
             
             // Parse the raw title into structured data
             var parsed = GroupNameParser.Parse(groupPreview.Raw3cTitle);
-
+ 
             try
             {
                 // Create Group — Map DTO to domain model with smart parser output.
@@ -572,10 +581,10 @@ public class ThreeCSchoolService
                     ParsedTime = parsed.ParsedTime,
                     ParsedCode = parsed.Code
                 };
-
-                await _db.Groups.InsertOneAsync(group);
+ 
+                await _db.Groups.InsertOneAsync(group, cancellationToken: ct);
                 result.GroupsImported++;
-
+ 
                 // Create GroupSchedule if found
                 if (!string.IsNullOrEmpty(groupPreview.ScheduleDay) && !string.IsNullOrEmpty(groupPreview.ScheduleTime))
                 {
@@ -585,7 +594,7 @@ public class ThreeCSchoolService
                         {
                             {"Sunday", 0}, {"Monday", 1}, {"Tuesday", 2}, {"Wednesday", 3}, {"Thursday", 4}, {"Friday", 5}, {"Saturday", 6}
                         };
-
+ 
                         if (dayMap.TryGetValue(groupPreview.ScheduleDay, out var dayOfWeek))
                         {
                             var schedule = new GroupSchedule
@@ -595,7 +604,7 @@ public class ThreeCSchoolService
                                 StartTime = DateTime.Parse(groupPreview.ScheduleTime).TimeOfDay,
                                 DurationMinutes = groupPreview.DurationMinutes ?? 60
                             };
-                            await _db.GroupSchedules.InsertOneAsync(schedule);
+                            await _db.GroupSchedules.InsertOneAsync(schedule, cancellationToken: ct);
                             result.SchedulesImported++;
                         }
                     }
@@ -604,79 +613,94 @@ public class ThreeCSchoolService
                         _logger.LogWarning(ex, "Failed to parse schedule for group: {Name}", groupPreview.Name);
                     }
                 }
-
+ 
                 // TRIGGER: Auto-generate sessions immediately after schedule/student insertion
-                await _sessionService.AutoGenerateSessionsAsync(group);
-
-                // Create Students
+                await _sessionService.AutoGenerateSessionsAsync(group, ct);
+ 
+                // Create Students in batch
+                var studentsToInsert = new List<Student>();
                 foreach (var sp in groupPreview.Students)
                 {
                     if (string.IsNullOrWhiteSpace(sp.Name)) continue;
-
-                    var student = new Student
+ 
+                    studentsToInsert.Add(new Student
                     {
                         Name = sp.Name,
                         GroupId = group.Id,
                         StudentId = !string.IsNullOrWhiteSpace(sp.StudentId) ? sp.StudentId : sp.OptionValue,
                         UniqueStudentCode = Student.GenerateCode(sp.Name, group.Id)
-                    };
-                    await _db.Students.InsertOneAsync(student);
-                    result.StudentsImported++;
+                    });
                 }
+                
+                if (studentsToInsert.Any())
+                {
+                    await _db.Students.InsertManyAsync(studentsToInsert, cancellationToken: ct);
+                    result.StudentsImported += studentsToInsert.Count;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("Import operation was canceled.");
+                throw;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to import group: {Name}", groupPreview.Name);
             }
         }
-
+ 
         result.Success = true;
         
-        // Save last import timestamp
         await _db.Settings.UpdateOneAsync(
             Builders<Setting>.Filter.Eq(s => s.Key, "3c_last_import"),
             Builders<Setting>.Update
                 .Set(s => s.Value, DateTimeOffset.UtcNow.ToString("o"))
                 .Set(s => s.UpdatedAt, DateTimeOffset.UtcNow),
-            new UpdateOptions { IsUpsert = true }
+            new UpdateOptions { IsUpsert = true },
+            cancellationToken: ct
         );
-
-        client.Dispose();
+ 
+        }
+ 
         return result;
     }
-
+ 
     /// <summary>
     /// Test connection only — login and check if we can access the panel.
     /// </summary>
-    public async Task<(bool success, string? error, string? rawPreview)> TestConnectionAsync(string email, string password)
+    public async Task<(bool success, string? error, string? rawPreview)> TestConnectionAsync(string email, string password, CancellationToken ct = default)
     {
         var (client, loginError) = await LoginAsync(email, password);
         if (client == null)
             return (false, loginError, null);
-
-        try
+ 
+        using (client)
         {
-            var response = await client.GetAsync("/panel/my-sessions");
-            var html = await response.Content.ReadAsStringAsync();
-
-            // Save raw HTML for debugging
-            await _db.Settings.UpdateOneAsync(
-                Builders<Setting>.Filter.Eq(s => s.Key, "3c_last_panel_html"),
-                Builders<Setting>.Update
-                    .Set(s => s.Value, html.Substring(0, Math.Min(html.Length, 50000)))
-                    .Set(s => s.UpdatedAt, DateTimeOffset.UtcNow),
-                new UpdateOptions { IsUpsert = true }
-            );
-
-            var preview = html.Length > 500 ? html.Substring(0, 500) + "..." : html;
-            client.Dispose();
-
-            return (true, null, $"Connected successfully! Page length: {html.Length} characters.");
-        }
-        catch (Exception ex)
-        {
-            client.Dispose();
-            return (false, $"Connected to 3cschool but failed to access panel: {ex.Message}", null);
+            try
+            {
+                var response = await client.GetAsync("/panel/my-sessions", ct);
+                var html = await response.Content.ReadAsStringAsync(ct);
+ 
+                // Save raw HTML for debugging
+                await _db.Settings.UpdateOneAsync(
+                    Builders<Setting>.Filter.Eq(s => s.Key, "3c_last_panel_html"),
+                    Builders<Setting>.Update
+                        .Set(s => s.Value, html.Substring(0, Math.Min(html.Length, 50000)))
+                        .Set(s => s.UpdatedAt, DateTimeOffset.UtcNow),
+                    new UpdateOptions { IsUpsert = true },
+                    cancellationToken: ct
+                );
+ 
+                return (true, null, $"Connected successfully! Page length: {html.Length} characters.");
+            }
+            catch (OperationCanceledException)
+            {
+                return (false, "Operation canceled.", null);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Connected to 3cschool but failed to access panel: {ex.Message}", null);
+            }
         }
     }
 

@@ -44,7 +44,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div className="min-h-[400px] h-full w-full flex items-center justify-center p-6 animate-fade-in text-white">
-          <Card className="max-w-md w-full p-8 bg-var(--ui-sidebar-bg) border-red-500/20 text-center space-y-6 shadow-2xl relative overflow-hidden">
+          <Card className="max-w-md w-full p-8 bg-[var(--ui-sidebar-bg)] border-red-500/20 text-center space-y-6 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-orange-500" />
             <div className="mx-auto w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center border border-red-500/20">
               <AlertTriangle className="w-8 h-8 text-red-500" />
@@ -66,7 +66,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
             <Button
               onClick={this.handleRetry}
-              className="w-full bg-var(--ui-surface) hover:bg-slate-700 text-white border border-white/10 mt-4"
+              className="w-full bg-[var(--ui-surface)] hover:bg-slate-700 text-white border border-white/10 mt-4"
             >
               <RefreshCcw className="w-4 h-4 mr-2" />
               {i18n.t("error_boundary.retry")}
