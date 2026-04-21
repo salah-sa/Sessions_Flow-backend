@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-type PandaState = "idle" | "watching" | "password" | "success" | "error";
+type PandaState = "idle" | "watching" | "password" | "success" | "error" | "thinking";
 
 interface RealisticPandaMascotProps {
   state: PandaState;
@@ -34,9 +34,10 @@ const RealisticPandaMascot: React.FC<RealisticPandaMascotProps> = ({
   const targetRef = useRef({ x: 0, y: 0 });
 
   const isIdle = state === "idle" || state === "watching";
-  const isPeek = state === "password";
+  const isPeek = state === "password" || state === "thinking";
   const isSuccess = state === "success";
   const isError = state === "error";
+  const isThinking = state === "thinking";
 
   /* ─── Smooth eye tracking via rAF ─── */
   const handleMouseMove = useCallback((e: MouseEvent) => {
@@ -571,9 +572,9 @@ const RealisticPandaMascot: React.FC<RealisticPandaMascotProps> = ({
         <path d="M112 40 Q114 36 116 40" stroke="#d8d4d0" strokeWidth="0.6" fill="none" opacity="0.4" />
       </svg>
 
-      {/* ═══ Curiosity indicator — "?" ═══ */}
+      {/* ═══ Curiosity / Thinking indicator — "?" or "..." ═══ */}
       <AnimatePresence>
-        {isPeek && (
+        {(isPeek || isThinking) && (
           <motion.div
             className="absolute -top-2 -right-1"
             initial={{ opacity: 0, y: 6, scale: 0.3, rotate: -15 }}
@@ -581,7 +582,9 @@ const RealisticPandaMascot: React.FC<RealisticPandaMascotProps> = ({
             exit={{ opacity: 0, y: -6, scale: 0.3 }}
             transition={{ type: "spring", stiffness: 200, damping: 12 }}
           >
-            <span className="text-2xl font-black text-[var(--ui-accent)] drop-shadow-[0_0_8px_rgba(var(--ui-accent-rgb),0.6)]">?</span>
+            <span className="text-2xl font-black text-[var(--ui-accent)] drop-shadow-[0_0_8px_rgba(var(--ui-accent-rgb),0.6)]">
+              {isThinking ? "..." : "?"}
+            </span>
           </motion.div>
         )}
       </AnimatePresence>

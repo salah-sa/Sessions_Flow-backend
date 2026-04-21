@@ -1,6 +1,6 @@
 import { UseFormRegister, FieldErrors, UseFormSetValue, UseFormWatch } from "react-hook-form";
 
-export type MascotState = "idle" | "watching" | "password" | "success" | "error";
+export type MascotState = "idle" | "watching" | "password" | "success" | "error" | "thinking";
 export type AuthMode = "engineer" | "student";
 
 export interface SharedAuthProps {
@@ -30,6 +30,7 @@ export interface LoginStyleProps extends SharedAuthProps {
     engineerName: string;
     level: number;
     students: { id: string; name: string }[];
+    suggestions?: string[];
   } | null;
   onDiscover?: (groupName: string) => Promise<void>;
   selectedStudent?: { id: string; name: string } | null;
