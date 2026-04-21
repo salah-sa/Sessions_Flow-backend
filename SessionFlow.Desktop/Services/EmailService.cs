@@ -117,7 +117,7 @@ public class EmailService
             timestamp = DateTimeOffset.UtcNow.ToString("o")
         };
 
-        var logSetting = await _db.Settings.Find(s => s.Key == "email_log", cancellationToken: ct).FirstOrDefaultAsync(ct);
+        var logSetting = await _db.Settings.Find(s => s.Key == "email_log").FirstOrDefaultAsync(ct);
         List<object> logEntries;
 
         if (logSetting != null)

@@ -28,17 +28,17 @@ public class SmtpEmailService
     /// Gets the configured admin email and app password from MongoDB settings.
     /// Settings keys: "admin_email" and "admin_email_app_password"
     /// </summary>
-    private async Task<(string? email, string? appPassword)> GetCredentialsAsync()
+    private async Task<(string? email, string? appPassword)> GetCredentialsAsync(CancellationToken ct = default)
     {
         var email = await _db.Settings
             .Find(s => s.Key == "admin_email")
             .Project(s => s.Value)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         var appPassword = await _db.Settings
             .Find(s => s.Key == "admin_email_app_password")
             .Project(s => s.Value)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         return (email, appPassword);
     }
@@ -46,11 +46,11 @@ public class SmtpEmailService
     /// <summary>
     /// Send an email from the admin's Gmail account via SMTP.
     /// </summary>
-    public async Task<(bool success, string? error)> SendEmailAsync(string to, string subject, string htmlBody)
+    public async Task<(bool success, string? error)> SendEmailAsync(string to, string subject, string htmlBody, CancellationToken ct = default)
     {
         try
         {
-            var (email, appPassword) = await GetCredentialsAsync();
+            var (email, appPassword) = await GetCredentialsAsync(ct);
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(appPassword))
             {
                 return (false, "Admin email or App Password not configured. Go to Central Command → Comms & Relay to set them up.");
@@ -63,10 +63,10 @@ public class SmtpEmailService
             message.Body = new TextPart("html") { Text = htmlBody };
 
             using var client = new SmtpClient();
-            await client.ConnectAsync("smtp.gmail.com", 587, SecureSocketOptions.StartTls);
-            await client.AuthenticateAsync(email, appPassword);
-            await client.SendAsync(message);
-            await client.DisconnectAsync(true);
+            await client.ConnectAsync("smtp.gmail.com", 587, SecureSocketOptions.StartTls, ct);
+            await client.AuthenticateAsync(email, appPassword, ct);
+            await client.SendAsync(message, ct);
+            await client.DisconnectAsync(true, ct);
 
             _logger.LogInformation("Email sent via Gmail SMTP to {To}: {Subject}", to, subject);
             return (true, null);

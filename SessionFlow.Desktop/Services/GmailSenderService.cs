@@ -58,7 +58,7 @@ public class GmailSenderService
         }
     }
 
-    public async Task<(bool success, string? error)> SendEmailAsync(string to, string subject, string body)
+    public async Task<(bool success, string? error)> SendEmailAsync(string to, string subject, string body, CancellationToken ct = default)
     {
         try
         {
@@ -83,9 +83,9 @@ public class GmailSenderService
                 .Replace("=", "");
 
             var msg = new Message { Raw = resultRaw };
-            await service.Users.Messages.Send(msg, "me").ExecuteAsync();
+            await service.Users.Messages.Send(msg, "me").ExecuteAsync(ct);
 
-            await LogEmailAsync(to, subject, "sent via Gmail API");
+            await LogEmailAsync(to, subject, "sent via Gmail API", ct);
             _logger.LogInformation("Email sent via Gmail to {To}: {Subject}", to, subject);
             
             return (true, null);
@@ -93,7 +93,7 @@ public class GmailSenderService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to send email via Gmail to {To}", to);
-            try { await LogEmailAsync(to, subject, $"failed: {ex.Message}"); } catch { }
+            try { await LogEmailAsync(to, subject, $"failed: {ex.Message}", ct); } catch { }
             return (false, ex.Message);
         }
     }
@@ -105,7 +105,7 @@ public class GmailSenderService
             $"<p><small>Sent at: {DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss} UTC</small></p>");
     }
 
-    private async Task LogEmailAsync(string to, string subject, string status)
+    private async Task LogEmailAsync(string to, string subject, string status, CancellationToken ct = default)
     {
         var logEntry = new
         {
@@ -115,7 +115,7 @@ public class GmailSenderService
             timestamp = DateTimeOffset.UtcNow.ToString("o")
         };
 
-        var logSetting = await _db.Settings.Find(s => s.Key == "email_log").FirstOrDefaultAsync();
+        var logSetting = await _db.Settings.Find(s => s.Key == "email_log").FirstOrDefaultAsync(ct);
         List<object> logEntries;
 
         if (logSetting != null)
@@ -127,7 +127,7 @@ public class GmailSenderService
         {
             logEntries = new List<object>();
             logSetting = new Setting { Key = "email_log", Value = "[]" };
-            await _db.Settings.InsertOneAsync(logSetting);
+            await _db.Settings.InsertOneAsync(logSetting, cancellationToken: ct);
         }
 
         logEntries.Insert(0, logEntry);
@@ -137,6 +137,6 @@ public class GmailSenderService
             .Set(s => s.Value, JsonSerializer.Serialize(logEntries))
             .Set(s => s.UpdatedAt, DateTimeOffset.UtcNow);
         
-        await _db.Settings.UpdateOneAsync(s => s.Id == logSetting.Id, update);
+        await _db.Settings.UpdateOneAsync(s => s.Id == logSetting.Id, update, cancellationToken: ct);
     }
 }
