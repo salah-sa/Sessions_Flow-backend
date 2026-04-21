@@ -44,11 +44,12 @@
 | State | Zustand, TanStack Query |
 | Real-time | ASP.NET Core SignalR |
 | API | ASP.NET Core Minimal API (in-process Kestrel) |
-| Database | SQLite via EF Core 9 |
+| Database | MongoDB (Atlas or local) |
+| Cache/Events | Redis (EventBus, distributed cache) |
 | Auth | JWT (HS256, 7-day expiry) |
 | Email | MailKit (SMTP) |
 | Icons | Lucide React |
-| Animations | Framer Motion |
+| Animations | Framer Motion, GSAP |
 
 ## Architecture
 
@@ -63,18 +64,18 @@
 │  │  │   TopBar + Sidebar + Page Content        │  │  │
 │  │  └──────────────┬───────────────────────────┘  │  │
 │  └─────────────────┼──────────────────────────────┘  │
-│                    │ HTTP/WS localhost:5173           │
+│                    │ HTTP/WS localhost:5180           │
 │  ┌─────────────────▼──────────────────────────────┐  │
-│  │   In-Process ASP.NET Core (Kestrel :5173)      │  │
+│  │   In-Process ASP.NET Core (Kestrel :5180)      │  │
 │  │   ├── /api/* Minimal API Endpoints             │  │
 │  │   ├── /hub   SignalR WebSocket Hub             │  │
 │  │   ├── JWT Authentication Middleware            │  │
 │  │   └── Embedded File Provider (React dist)      │  │
-│  └─────────────────┬──────────────────────────────┘  │
-│                    │ EF Core                         │
-│  ┌─────────────────▼──────────────────────────────┐  │
-│  │   SQLite  (%APPDATA%\SessionFlow\sessionflow.db)│  │
-│  └────────────────────────────────────────────────┘  │
+│  └──────────────┬───────────────┬─────────────────┘  │
+│                 │               │                     │
+│  ┌──────────────▼────┐  ┌──────▼──────────────────┐  │
+│  │  MongoDB (Atlas)  │  │  Redis (EventBus/Cache) │  │
+│  └───────────────────┘  └─────────────────────────┘  │
 │  System Tray Icon (Hardcodet.NotifyIcon.Wpf)         │
 └──────────────────────────────────────────────────────┘
 ```

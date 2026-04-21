@@ -1,9 +1,33 @@
-﻿.git/
+.git/
 .github/
 .vscode/
+.agents/
+.testsprite/
 bin/
 obj/
 node_modules/
 dist/
 sessionflow-ui/node_modules/
 sessionflow-ui/dist/
+
+# Build artifacts and logs
+*.log
+build_out.txt
+build_output.log
+build_output.txt
+out.txt
+test_out*
+build.log
+scratch/
+
+# IDE and OS
+.vs/
+.idea/
+*.suo
+*.user
+Thumbs.db
+.DS_Store
+
+# Environment secrets
+.env
+*.env.local

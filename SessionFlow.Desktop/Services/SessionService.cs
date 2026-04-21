@@ -1,4 +1,5 @@
 using MongoDB.Driver;
+using Microsoft.Extensions.Configuration;
 using SessionFlow.Desktop.Data;
 using SessionFlow.Desktop.Models;
 
@@ -7,10 +8,12 @@ namespace SessionFlow.Desktop.Services;
 public class SessionService
 {
     private readonly MongoService _db;
+    private readonly IConfiguration? _config;
 
-    public SessionService(MongoService db)
+    public SessionService(MongoService db, IConfiguration? config = null)
     {
         _db = db;
+        _config = config;
     }
 
     public async Task AutoGenerateSessionsAsync(Group group)
@@ -69,7 +72,7 @@ public class SessionService
         var schedules = await _db.GroupSchedules.Find(gs => gs.GroupId == group.Id).ToListAsync();
         if (schedules.Count == 0) return;
 
-        var cairoTz = GetCairoTimeZone();
+        var cairoTz = GetConfiguredTimeZone();
         var sessionsToGenerate = Math.Min(4, group.TotalSessions - lastSessionNum);
         var newSessions = new List<Session>();
 
@@ -326,7 +329,7 @@ public class SessionService
 
     public async Task<List<Session>> GetTodaysSessionsAsync()
     {
-        var cairoTz = GetCairoTimeZone();
+        var cairoTz = GetConfiguredTimeZone();
         var cairoNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, cairoTz);
         var todayStart = new DateTimeOffset(cairoNow.Date, cairoTz.GetUtcOffset(cairoNow));
         var todayEnd = todayStart.AddDays(1);
@@ -357,7 +360,7 @@ public class SessionService
 
     public async Task<List<Session>> GetTomorrowsSessionsAsync()
     {
-        var cairoTz = GetCairoTimeZone();
+        var cairoTz = GetConfiguredTimeZone();
         var cairoNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, cairoTz);
         var tomorrowStart = new DateTimeOffset(cairoNow.Date.AddDays(1), cairoTz.GetUtcOffset(cairoNow.AddDays(1)));
         var tomorrowEnd = tomorrowStart.AddDays(1);
@@ -437,7 +440,7 @@ public class SessionService
         var sessionsToGenerate = group.TotalSessions - (startFromNum - 1);
         if (sessionsToGenerate <= 0) return;
 
-        var cairoTz = GetCairoTimeZone();
+        var cairoTz = GetConfiguredTimeZone();
         var lastDate = lastCompletedSession?.ScheduledAt ?? DateTimeOffset.UtcNow;
         var currentRefDate = TimeZoneInfo.ConvertTime(lastDate, cairoTz);
         
@@ -485,22 +488,23 @@ public class SessionService
         }
     }
 
-    private static TimeZoneInfo GetCairoTimeZone()
+    /// <summary>
+    /// Resolves the configured timezone with fallback chain: Windows ID → IANA ID → UTC+2 custom.
+    /// Reads from Application:Timezone in appsettings.json (default: "Africa/Cairo").
+    /// </summary>
+    private TimeZoneInfo GetConfiguredTimeZone()
     {
-        try
-        {
-            return TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
-        }
-        catch (TimeZoneNotFoundException)
-        {
-            try
-            {
-                return TimeZoneInfo.FindSystemTimeZoneById("Africa/Cairo");
-            }
-            catch (TimeZoneNotFoundException)
-            {
-                return TimeZoneInfo.CreateCustomTimeZone("Cairo", TimeSpan.FromHours(2), "Cairo", "Cairo");
-            }
-        }
+        var tzId = _config?.GetValue<string>("Application:Timezone") ?? "Africa/Cairo";
+        
+        // Try the configured value first (supports both Windows and IANA IDs)
+        try { return TimeZoneInfo.FindSystemTimeZoneById(tzId); }
+        catch (TimeZoneNotFoundException) { }
+        
+        // Fallback: try Windows-style "Egypt Standard Time"
+        try { return TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time"); }
+        catch (TimeZoneNotFoundException) { }
+        
+        // Final fallback: UTC+2
+        return TimeZoneInfo.CreateCustomTimeZone("Cairo", TimeSpan.FromHours(2), "Cairo", "Cairo");
     }
 }

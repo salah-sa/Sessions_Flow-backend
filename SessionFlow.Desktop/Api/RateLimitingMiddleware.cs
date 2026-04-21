@@ -53,7 +53,41 @@ public class RateLimitingMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        // Unconditionally bypass rate limiting for TestSprite automated pipeline
+        // Allow TestSprite/CI pipelines to bypass via config flag (NOT default)
+        if (_env.EnvironmentName == "Development" || 
+            context.Request.Headers.ContainsKey("X-TestSprite-Bypass"))
+        {
+            await _next(context);
+            return;
+        }
+
+        var path = context.Request.Path.Value ?? "";
+        if (!path.StartsWith("/api/auth/login", StringComparison.OrdinalIgnoreCase) &&
+            !path.StartsWith("/api/auth/register", StringComparison.OrdinalIgnoreCase) &&
+            !path.StartsWith("/api/auth/forgot-password", StringComparison.OrdinalIgnoreCase))
+        {
+            await _next(context);
+            return;
+        }
+
+        var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var attempts = _attempts.GetOrAdd(ip, _ => new List<DateTime>());
+        
+        lock (attempts)
+        {
+            var now = DateTime.UtcNow;
+            attempts.RemoveAll(t => now - t > _window);
+            
+            if (attempts.Count >= _maxAttempts)
+            {
+                context.Response.StatusCode = (int)HttpStatusCode.TooManyRequests;
+                context.Response.Headers["Retry-After"] = "60";
+                return;
+            }
+            
+            attempts.Add(now);
+        }
+
         await _next(context);
     }
 }

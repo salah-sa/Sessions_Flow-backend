@@ -48,8 +48,7 @@ const LoginPage: React.FC = () => {
           import("../store/stores").then((m) => {
             const authStore = m.useAuthStore.getState();
             authStore.setStudentLocation(""); 
-            // @ts-ignore - we know it's there
-            authStore.setStudentLocationData(null as any);
+            authStore.setStudentLocationData(undefined as any);
           });
         }
         
