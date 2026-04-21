@@ -51,20 +51,24 @@ const RegisterPage: React.FC = () => {
       const result = await authApi.discoverGroup(targetName);
       
       if (result.groupName) {
+        // Exact match found
         setDiscoveredGroup(result);
         setDiscoveryStep('pick-student');
         sharedAuth.setMascotState("watching");
         toast.success("Group found! Please select your name.");
       } else if (result.suggestions && result.suggestions.length > 0) {
-        setDiscoveredGroup(result); // Will contain suggestions
+        // No exact match but we have suggestions
+        setDiscoveredGroup(result);
         sharedAuth.setMascotState("thinking");
         toast.info("Group not found exactly. Did you mean one of these?");
       } else {
-        toast.error("Group not found. Please check the name.");
+        // Nothing found at all
+        toast.error("Group not found. Please check the name and try again.");
         sharedAuth.setMascotState("error");
+        setTimeout(() => sharedAuth.setMascotState("idle"), 2000);
       }
     } catch (err: any) {
-      toast.error(err.message || "Group not found. Check the name.");
+      toast.error(err.message || "Failed to search. Please try again.");
       sharedAuth.setMascotState("error");
       setTimeout(() => sharedAuth.setMascotState("idle"), 1000);
     } finally {
