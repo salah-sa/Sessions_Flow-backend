@@ -169,14 +169,14 @@ public class ThreeCSchoolService
     /// <summary>
     /// Fetches the "My Sessions" panel page and extracts group listings.
     /// </summary>
-    public async Task<ImportResult> FetchGroupsPreviewAsync(HttpClient client)
+    public async Task<ImportResult> FetchGroupsPreviewAsync(HttpClient client, CancellationToken ct = default)
     {
         var result = new ImportResult();
 
         try
         {
-            var response = await client.GetAsync("/panel/my-sessions");
-            var html = await response.Content.ReadAsStringAsync();
+            var response = await client.GetAsync("/panel/my-sessions", ct);
+            var html = await response.Content.ReadAsStringAsync(ct);
 
             _logger.LogInformation("Fetched panel page ({Length} bytes)", html.Length);
 
@@ -258,7 +258,7 @@ public class ThreeCSchoolService
                 var existingGroup = await _db.Groups.Find(g => 
                     (g.SourceGroupId != null && g.SourceGroupId == preview.SourceGroupId && !g.IsDeleted) || 
                     (g.SourceUrl != null && g.SourceUrl == preview.SourceUrl && !g.IsDeleted) || 
-                    (g.Raw3cTitle != null && g.Raw3cTitle == preview.Raw3cTitle && !g.IsDeleted)).FirstOrDefaultAsync();
+                    (g.Raw3cTitle != null && g.Raw3cTitle == preview.Raw3cTitle && !g.IsDeleted)).FirstOrDefaultAsync(ct);
                 
                 preview.AlreadyExists = existingGroup != null;
 
@@ -313,7 +313,7 @@ public class ThreeCSchoolService
     /// <summary>
     /// Authoritative source for group details and student list via the ticket-create page.
     /// </summary>
-    public async Task<GroupPreview> FetchGroupDetailAsync(HttpClient client, GroupPreview group)
+    public async Task<GroupPreview> FetchGroupDetailAsync(HttpClient client, GroupPreview group, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(group.SourceGroupId)) 
         {
@@ -325,8 +325,8 @@ public class ThreeCSchoolService
         {
             // The authoritative route for students
             var ticketUrl = $"/panel/course-group-tickets/{group.SourceGroupId}/create";
-            var response = await client.GetAsync(ticketUrl);
-            var html = await response.Content.ReadAsStringAsync();
+            var response = await client.GetAsync(ticketUrl, ct);
+            var html = await response.Content.ReadAsStringAsync(ct);
 
             var doc = new HtmlDocument();
             doc.LoadHtml(html);
@@ -513,6 +513,8 @@ public class ThreeCSchoolService
     /// </summary>
     public async Task<ImportResult> ImportAllAsync(string email, string password, Guid engineerId, CancellationToken ct = default)
     {
+        var result = new ImportResult();
+        
         // Step 1: Login
         var (client, loginError) = await LoginAsync(email, password);
         if (client == null)
@@ -521,7 +523,7 @@ public class ThreeCSchoolService
         using (client)
         {
             // Step 2: Fetch groups preview
-            var result = await FetchGroupsPreviewAsync(client, ct);
+            result = await FetchGroupsPreviewAsync(client, ct);
             if (!result.Success)
                 return result;
  

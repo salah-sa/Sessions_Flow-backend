@@ -75,13 +75,13 @@ public class AuthService
     {
         // Check if email already exists in Users or PendingEngineers
         var userFilter = Builders<User>.Filter.Regex(u => u.Email, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(email)}$", "i"));
-        var existingUser = await _db.Users.Find(userFilter, cancellationToken: ct).AnyAsync(ct);
+        var existingUser = await _db.Users.Find(userFilter).AnyAsync(ct);
         if (existingUser)
             return (null, "An account with this email already exists.");
 
         var pendingFilter = Builders<PendingEngineer>.Filter.Regex(p => p.Email, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(email)}$", "i"))
                           & Builders<PendingEngineer>.Filter.Eq(p => p.Status, PendingStatus.Pending);
-        var existingPending = await _db.PendingEngineers.Find(pendingFilter, cancellationToken: ct).AnyAsync(ct);
+        var existingPending = await _db.PendingEngineers.Find(pendingFilter).AnyAsync(ct);
         if (existingPending)
             return (null, "A registration request with this email is already pending.");
 
@@ -111,15 +111,15 @@ public class AuthService
     {
         // ... legacy signup ... 
         var usernameFilter = Builders<User>.Filter.Regex(u => u.Username, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(username)}$", "i"));
-        var usernameExists = await _db.Users.Find(usernameFilter, cancellationToken: ct).AnyAsync(ct);
+        var usernameExists = await _db.Users.Find(usernameFilter).AnyAsync(ct);
         if (usernameExists) return (null, "Username already taken.");
 
-        var sidExists = await _db.Users.Find(u => u.StudentId == studentId, cancellationToken: ct).AnyAsync(ct);
+        var sidExists = await _db.Users.Find(u => u.StudentId == studentId).AnyAsync(ct);
         if (sidExists) return (null, "An account with this Student ID already exists.");
 
         var codeFilter = Builders<EngineerCode>.Filter.Regex(c => c.Code, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(engineerCode)}$", "i"))
                        & Builders<EngineerCode>.Filter.Eq(c => c.IsUsed, true);
-        var code = await _db.EngineerCodes.Find(codeFilter, cancellationToken: ct).FirstOrDefaultAsync(ct);
+        var code = await _db.EngineerCodes.Find(codeFilter).FirstOrDefaultAsync(ct);
         if (code == null || !code.UsedByEngineerId.HasValue)
             return (null, "Invalid Engineer Code.");
 
@@ -153,14 +153,14 @@ public class AuthService
     {
         // 1. Check if username exists
         var usernameFilter = Builders<User>.Filter.Regex(u => u.Username, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(username)}$", "i"));
-        var usernameExists = await _db.Users.Find(usernameFilter, cancellationToken: ct).AnyAsync(ct);
+        var usernameExists = await _db.Users.Find(usernameFilter).AnyAsync(ct);
         if (usernameExists) return (null, "Username is already taken.");
 
         // 2. Find groups that match this name (case-insensitive)
         var groupFilter = Builders<Group>.Filter.Regex(g => g.Name, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(groupName)}$", "i"))
                         & Builders<Group>.Filter.Eq(g => g.IsDeleted, false);
         
-        var groups = await _db.Groups.Find(groupFilter, cancellationToken: ct).ToListAsync(ct);
+        var groups = await _db.Groups.Find(groupFilter).ToListAsync(ct);
         if (groups.Count == 0)
             return (null, "Group not found. Please ensure you entered the exact correct group name.");
 
@@ -215,7 +215,7 @@ public class AuthService
 
     public async Task<(User? user, string? error)> ApproveStudentRequestAsync(Guid pendingId, User executor, CancellationToken ct = default)
     {
-        var pending = await _db.PendingStudentRequests.Find(p => p.Id == pendingId, cancellationToken: ct).FirstOrDefaultAsync(ct);
+        var pending = await _db.PendingStudentRequests.Find(p => p.Id == pendingId).FirstOrDefaultAsync(ct);
         if (pending == null) return (null, "Request not found.");
         
         // Strict Scoping Enforcement
@@ -226,11 +226,11 @@ public class AuthService
 
         // Double check username availability
         var usernameFilter = Builders<User>.Filter.Regex(u => u.Username, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(pending.Username)}$", "i"));
-        if (await _db.Users.Find(usernameFilter, cancellationToken: ct).AnyAsync(ct))
+        if (await _db.Users.Find(usernameFilter).AnyAsync(ct))
             return (null, "The requested username is no longer available.");
 
         // Look up the engineer to get their EngineerCode
-        var engineer = await _db.Users.Find(u => u.Id == pending.EngineerId, cancellationToken: ct).FirstOrDefaultAsync(ct);
+        var engineer = await _db.Users.Find(u => u.Id == pending.EngineerId).FirstOrDefaultAsync(ct);
         if (engineer == null || string.IsNullOrEmpty(engineer.EngineerCode))
             return (null, "Managing engineer is not fully configured. Code missing.");
 
