@@ -409,10 +409,7 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl(`/hub?access_token=${token}`, {
-        skipNegotiation: true,
-        transport: signalR.HttpTransportType.WebSockets,
-      })
+      .withUrl(`/hub?access_token=${token}`)
       .withAutomaticReconnect([0, 1000, 3000, 5000, 10000])
       .configureLogging(signalR.LogLevel.Warning)
       .build();
