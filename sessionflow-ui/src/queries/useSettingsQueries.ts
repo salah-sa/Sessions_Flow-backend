@@ -29,7 +29,7 @@ export const useSettingsMutations = () => {
   const queryClient = useQueryClient();
 
   const updateSettings = useMutation({
-    mutationFn: (settings: Setting[]) => settingsApi.update(settings),
+    mutationFn: (settings: Record<string, string>) => settingsApi.update(settings),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.settings.all });
     },
