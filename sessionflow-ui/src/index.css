@@ -1,5 +1,14 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-ui-bg: var(--ui-bg);
+  --color-ui-sidebar-bg: var(--ui-sidebar-bg);
+  --color-ui-surface: var(--ui-surface);
+  --color-ui-surface-hover: var(--ui-surface-hover);
+  --color-ui-accent: var(--ui-accent);
+  --color-ui-accent-secondary: var(--ui-accent-secondary);
+}
 
 :root {
   /* ZENITH PROTOCOL TOKENS — SOFTER DARK PALETTE */

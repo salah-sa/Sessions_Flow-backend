@@ -28,13 +28,13 @@ interface ButtonProps extends Omit<HTMLMotionProps<"button">, "ref"> {
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "primary", size = "md", ...props }, ref) => {
     const variants = {
-      primary: "bg-[var(--ui-accent)] text-white shadow-xl hover:opacity-90 shadow-[var(--ui-accent)]/20 active:scale-[0.98]",
-      secondary: "bg-[var(--ui-bg)] text-slate-100 border border-white/5 hover:bg-white/[0.05] hover:border-white/10",
-      outline: "bg-transparent border border-white/10 text-slate-300 hover:text-white hover:border-[var(--ui-accent)]/50 hover:bg-[var(--ui-accent)]/10",
+      primary: "bg-ui-accent text-white shadow-xl hover:opacity-90 shadow-ui-accent/20 active:scale-[0.98]",
+      secondary: "bg-ui-bg text-slate-100 border border-white/5 hover:bg-white/[0.05] hover:border-white/10",
+      outline: "bg-transparent border border-white/10 text-slate-300 hover:text-white hover:border-ui-accent/50 hover:bg-ui-accent/10",
       ghost: "bg-transparent text-slate-400 hover:text-white hover:bg-white/5",
       danger: "bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20",
-      success: "bg-[var(--ui-accent)]/10 text-white border border-[var(--ui-accent)]/20 hover:bg-[var(--ui-accent)]/20",
-      glow: "bg-[var(--ui-accent)] text-white shadow-glow shadow-[var(--ui-accent)]/40",
+      success: "bg-ui-accent/10 text-white border border-ui-accent/20 hover:bg-ui-accent/20",
+      glow: "bg-ui-accent text-white shadow-glow shadow-ui-accent/40",
     };
     const sizes = {
       sm: "px-4 py-1.5 text-[12px] font-semibold tracking-wide",
@@ -73,7 +73,7 @@ export const Card = ({ className, children, ...props }: React.HTMLAttributes<HTM
   <motion.div
     transition={{ duration: 0.3, ease: "easeOut" }}
     className={cn(
-      "group relative bg-[var(--ui-sidebar-bg)]/80 backdrop-blur-3xl border border-white/5 rounded-xl overflow-hidden shadow-2xl",
+      "group relative bg-ui-sidebar-bg/80 backdrop-blur-3xl border border-white/5 rounded-xl overflow-hidden shadow-2xl",
       className
     )}
     {...props}
@@ -95,12 +95,12 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <input
           ref={ref}
           className={cn(
-            "flex h-12 w-full rounded-xl border border-white/10 bg-black/40 px-5 py-2 text-white text-[13px] font-normal placeholder:text-slate-500 placeholder:font-normal placeholder:tracking-normal focus:outline-none focus:border-[var(--ui-accent)]/50 focus:bg-black/60 transition-all",
+            "flex h-12 w-full rounded-xl border border-white/10 bg-black/40 px-5 py-2 text-white text-[13px] font-normal placeholder:text-slate-500 placeholder:font-normal placeholder:tracking-normal focus:outline-none focus:border-ui-accent/50 focus:bg-black/60 transition-all",
             className
           )}
           {...props}
         />
-        <div className="absolute bottom-0 inset-x-1/2 -translate-x-1/2 w-0 h-px bg-[var(--ui-accent)] group-focus-within/input:w-[90%] transition-all duration-500" />
+        <div className="absolute bottom-0 inset-x-1/2 -translate-x-1/2 w-0 h-px bg-ui-accent group-focus-within/input:w-[90%] transition-all duration-500" />
       </div>
     );
   }
@@ -115,13 +115,13 @@ interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 export const Badge = ({ className, variant = "default", ...props }: BadgeProps) => {
   const variants: Record<string, string> = {
       default: "bg-white/[0.02] text-slate-500 border border-white/5",
-      primary: "bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] border border-[var(--ui-accent)]/20 shadow-glow shadow-[var(--ui-accent)]/5",
-      success: "bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] border border-[var(--ui-accent)]/20",
+      primary: "bg-ui-accent/10 text-ui-accent border border-ui-accent/20 shadow-glow shadow-ui-accent/5",
+      success: "bg-ui-accent/10 text-ui-accent border border-ui-accent/20",
       warning: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
       danger: "bg-rose-500/10 text-rose-400 border border-rose-500/20",
       outline: "bg-transparent border border-white/10 text-slate-500",
       secondary: "bg-black/40 text-slate-400 border border-white/5",
-      glow: "bg-[var(--ui-accent)]/20 text-[var(--ui-accent)] border border-[var(--ui-accent)]/40 shadow-glow shadow-[var(--ui-accent)]/10",
+      glow: "bg-ui-accent/20 text-ui-accent border border-ui-accent/40 shadow-glow shadow-ui-accent/10",
   };
   return (
     <span
@@ -160,10 +160,10 @@ export const Modal = ({ isOpen, onClose, title, subtitle, children, className }:
             initial={{ scale: 0.95, y: 20, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.95, y: 20, opacity: 0 }}
-            className={cn("relative w-full max-w-xl bg-[var(--ui-sidebar-bg)]/95 backdrop-blur-3xl border border-white/10 rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden", className)}
+            className={cn("relative w-full max-w-xl bg-ui-sidebar-bg/95 backdrop-blur-3xl border border-white/10 rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden", className)}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--ui-accent)]/40 to-transparent" />
+            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-ui-accent/40 to-transparent" />
             
             <div className="px-10 py-8 border-b border-white/5 flex items-center justify-between">
               <div>
@@ -198,7 +198,7 @@ export const TabsTrigger = ({ active, onClick, children, className }: any) => (
     className={cn(
       "px-6 py-2 rounded-lg text-[13px] font-semibold tracking-normal transition-all duration-300 relative",
       active 
-        ? "bg-[var(--ui-accent)] text-white shadow-glow shadow-[var(--ui-accent)]/20" 
+        ? "bg-ui-accent text-white shadow-glow shadow-ui-accent/20" 
         : "text-slate-500 hover:text-white"
     )}
   >
@@ -213,7 +213,7 @@ export const Skeleton = ({ className, ...props }: React.HTMLAttributes<HTMLDivEl
       className={cn("animate-pulse rounded-xl bg-white/[0.02] border border-white/5 relative overflow-hidden", className)}
       {...props}
     >
-      <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-[var(--ui-accent)]/5 to-transparent animate-[shimmer_3s_infinite]" />
+      <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-ui-accent/5 to-transparent animate-[shimmer_3s_infinite]" />
     </div>
   );
 };
@@ -286,12 +286,12 @@ export const EmptyState = ({ icon: Icon = Inbox, title, description, action, cla
       className={cn("flex flex-col items-center justify-center p-16 text-center", className)}
     >
       <div className="relative mb-10 group">
-        <div className="absolute inset-0 bg-[var(--ui-accent)]/20 blur-[40px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-        <div className="relative w-24 h-24 bg-[var(--ui-bg)] border border-white/10 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-500 hover:border-[var(--ui-accent)]/50 hover:-translate-y-2">
-          <Icon className="w-10 h-10 text-slate-600 group-hover:text-[var(--ui-accent)] transition-colors" />
+        <div className="absolute inset-0 bg-ui-accent/20 blur-[40px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+        <div className="relative w-24 h-24 bg-ui-bg border border-white/10 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-500 hover:border-ui-accent/50 hover:-translate-y-2">
+          <Icon className="w-10 h-10 text-slate-600 group-hover:text-ui-accent transition-colors" />
         </div>
         <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-black/80 border border-white/10 flex items-center justify-center">
-           <Zap className="w-4 h-4 text-[var(--ui-accent)]" />
+           <Zap className="w-4 h-4 text-ui-accent" />
         </div>
       </div>
       <h3 className="text-2xl font-bold text-white tracking-tight mb-4">
@@ -348,6 +348,6 @@ const Loader2 = ({ className }: { className?: string }) => (
   <motion.div
     animate={{ rotate: 360 }}
     transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-    className={cn("w-5 h-5 border-2 border-[var(--ui-accent)]/20 border-t-[var(--ui-accent)] rounded-[2px]", className)}
+    className={cn("w-5 h-5 border-2 border-ui-accent/20 border-t-ui-accent rounded-[2px]", className)}
   />
 );
