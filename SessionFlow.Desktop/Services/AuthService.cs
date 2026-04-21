@@ -231,8 +231,21 @@ public class AuthService
 
         // Look up the engineer to get their EngineerCode
         var engineer = await _db.Users.Find(u => u.Id == pending.EngineerId).FirstOrDefaultAsync(ct);
-        if (engineer == null || string.IsNullOrEmpty(engineer.EngineerCode))
-            return (null, "Managing engineer is not fully configured. Code missing.");
+        if (engineer == null)
+            return (null, "Managing engineer not found.");
+
+        if (string.IsNullOrEmpty(engineer.EngineerCode))
+        {
+            if (engineer.Role == UserRole.Admin)
+            {
+                engineer.EngineerCode = "Eng1";
+                await _db.Users.UpdateOneAsync(u => u.Id == engineer.Id, Builders<User>.Update.Set(x => x.EngineerCode, "Eng1"), cancellationToken: ct);
+            }
+            else
+            {
+                return (null, "Managing engineer is not fully configured. Code missing.");
+            }
+        }
 
         // Generate the Student Record/Linkage
         string studentCode;

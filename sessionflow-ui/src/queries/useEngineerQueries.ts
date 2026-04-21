@@ -1,12 +1,13 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, UseQueryResult } from "@tanstack/react-query";
 import { authApi } from "../api/resources";
 import { queryKeys } from "./keys";
 
-export const usePendingStudentRequests = () => {
+export const usePendingStudentRequests = (options?: any): UseQueryResult<any[], Error> => {
   return useQuery({
     queryKey: ["pending-student-requests"],
-    queryFn: () => authApi.getPendingStudentRequests(),
-  });
+    queryFn: () => authApi.getPendingStudentRequests() as Promise<any[]>,
+    ...options
+  }) as UseQueryResult<any[], Error>;
 };
 
 export const useEngineerMutations = () => {
