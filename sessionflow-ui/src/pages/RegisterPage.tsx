@@ -40,18 +40,29 @@ const RegisterPage: React.FC = () => {
 
   const groupName = watch("groupName");
 
-  const onDiscover = async () => {
-    if (!groupName) {
+  const onDiscover = async (manualName?: string) => {
+    const targetName = manualName || groupName;
+    if (!targetName) {
       toast.error("Please enter a group name");
       return;
     }
     setLoading(true);
     try {
-      const result = await authApi.discoverGroup(groupName);
-      setDiscoveredGroup(result);
-      setDiscoveryStep('pick-student');
-      sharedAuth.setMascotState("watching");
-      toast.success("Group found! Please select your name.");
+      const result = await authApi.discoverGroup(targetName);
+      
+      if (result.groupName) {
+        setDiscoveredGroup(result);
+        setDiscoveryStep('pick-student');
+        sharedAuth.setMascotState("watching");
+        toast.success("Group found! Please select your name.");
+      } else if (result.suggestions && result.suggestions.length > 0) {
+        setDiscoveredGroup(result); // Will contain suggestions
+        sharedAuth.setMascotState("thinking");
+        toast.info("Group not found exactly. Did you mean one of these?");
+      } else {
+        toast.error("Group not found. Please check the name.");
+        sharedAuth.setMascotState("error");
+      }
     } catch (err: any) {
       toast.error(err.message || "Group not found. Check the name.");
       sharedAuth.setMascotState("error");
