@@ -232,7 +232,19 @@ public class AuthService
         // Look up the engineer to get their EngineerCode
         var engineer = await _db.Users.Find(u => u.Id == pending.EngineerId).FirstOrDefaultAsync(ct);
         if (engineer == null)
-            return (null, "Managing engineer not found.");
+        {
+            if (executor.Role == UserRole.Admin)
+            {
+                // Fallback to the admin executor for groups with unassigned/invalid engineers (e.g. from 3C import)
+                engineer = executor;
+                // Also assign this Admin to the group to fix future issues
+                await _db.Groups.UpdateOneAsync(g => g.Id == pending.GroupId, Builders<Group>.Update.Set(g => g.EngineerId, executor.Id), cancellationToken: ct);
+            }
+            else
+            {
+                return (null, "Managing engineer not found.");
+            }
+        }
 
         if (string.IsNullOrEmpty(engineer.EngineerCode))
         {
