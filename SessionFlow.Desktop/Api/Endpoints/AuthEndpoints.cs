@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -201,12 +202,52 @@ public static class AuthEndpoints
             if (string.IsNullOrWhiteSpace(name))
                 return Results.BadRequest(new { error = "Group name is required." });
 
-            var normalizedName = name.Trim();
-            var groupFilter = Builders<Group>.Filter.Regex(g => g.Name, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(normalizedName)}$", "i"))
-                            & Builders<Group>.Filter.Eq(g => g.IsDeleted, false);
-            var groupObj = await db.Groups.Find(groupFilter).FirstOrDefaultAsync();
+            var input = name.Trim();
+            // Input normalization: strip 3C prefix and collapse dots/spaces
+            var searchPattern = Regex.Replace(input, @"^(3c\.|3C\.)", "", RegexOptions.IgnoreCase);
+            searchPattern = Regex.Replace(searchPattern, @"[\.\s-]+", ".*"); // Fuzzy separator matching
+            
+            var regex = new MongoDB.Bson.BsonRegularExpression(searchPattern, "i");
+
+            var filter = Builders<Models.Group>.Filter.And(
+                Builders<Models.Group>.Filter.Eq(g => g.IsDeleted, false),
+                Builders<Models.Group>.Filter.Or(
+                    Builders<Models.Group>.Filter.Regex(g => g.Name, regex),
+                    Builders<Models.Group>.Filter.Regex(g => g.NormalizedGroupName, regex),
+                    Builders<Models.Group>.Filter.Regex(g => g.StandardizedName, regex),
+                    Builders<Models.Group>.Filter.Regex(g => g.CourseLabel, regex)
+                )
+            );
+
+            // 1. Try to find an exact or very close match first
+            var groupObj = await db.Groups.Find(filter).FirstOrDefaultAsync();
+
             if (groupObj == null)
-                return Results.NotFound(new { error = "Group not found." });
+            {
+                // 2. Fallback: Provide suggestions for "near misses"
+                // Do a broader search for suggestions
+                var broadSearch = input.Length >= 3 ? input.Substring(0, 3) : input;
+                var broadRegex = new MongoDB.Bson.BsonRegularExpression(System.Text.RegularExpressions.Regex.Escape(broadSearch), "i");
+                
+                var suggestionsFilter = Builders<Models.Group>.Filter.And(
+                    Builders<Models.Group>.Filter.Eq(g => g.IsDeleted, false),
+                    Builders<Models.Group>.Filter.Or(
+                        Builders<Models.Group>.Filter.Regex(g => g.Name, broadRegex),
+                        Builders<Models.Group>.Filter.Regex(g => g.CourseLabel, broadRegex)
+                    )
+                );
+
+                var suggestions = await db.Groups.Find(suggestionsFilter)
+                    .Limit(5)
+                    .Project(g => g.Name)
+                    .ToListAsync();
+
+                return Results.NotFound(new 
+                { 
+                    error = "Group not found.", 
+                    suggestions = suggestions 
+                });
+            }
 
             var engineer = await db.Users.Find(u => u.Id == groupObj.EngineerId).FirstOrDefaultAsync();
             var students = await db.Students.Find(s => s.GroupId == groupObj.Id && !s.IsDeleted).ToListAsync();

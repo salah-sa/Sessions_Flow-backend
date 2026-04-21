@@ -179,14 +179,41 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                         <Input
                           {...props.register("groupName")}
                           className="w-full h-[42px] pl-10 bg-[var(--ui-bg)]/60 border-white/[0.05] text-white rounded-xl focus:bg-white/[0.04] focus:border-[var(--ui-accent)]/30 transition-all text-[13px] placeholder:text-slate-600 font-medium normal-case tracking-normal"
-                          placeholder="Exact group name (e.g. Math-101)"
+                          placeholder="Group name (e.g. Unity 2)"
                           onFocus={() => { setFocusedField("groupName"); props.handleFieldFocus("text"); }}
                           onBlur={() => { setFocusedField(null); props.handleFieldBlur(); }}
                         />
                       </div>
+                      
+                      {/* Suggestions list */}
+                      <AnimatePresence>
+                        {props.discoveredGroup?.suggestions && props.discoveredGroup.suggestions.length > 0 && (
+                          <motion.div 
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="space-y-2 mt-2"
+                          >
+                            <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1">Suggested Groups:</p>
+                            <div className="flex flex-wrap gap-1.5 ml-1">
+                              {props.discoveredGroup.suggestions.map((s: string) => (
+                                <button
+                                  key={s}
+                                  type="button"
+                                  onClick={() => props.onDiscover?.(s)}
+                                  className="px-2 py-1 bg-[var(--ui-accent)]/10 hover:bg-[var(--ui-accent)]/20 border border-[var(--ui-accent)]/20 rounded-md text-[10px] text-[var(--ui-accent)] font-bold transition-all"
+                                >
+                                  {s}
+                                </button>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
                       <p className="text-[9px] text-slate-500 mt-2 leading-relaxed px-1">
                         <AlertCircle className="w-3 h-3 inline-block -mt-0.5 mr-1" />
-                        Enter the group name provided by your engineer to verify your identity.
+                        Tip: Try searching for your course like 'Unity 2' or 'Python 1'.
                       </p>
                     </div>
                     <Button
