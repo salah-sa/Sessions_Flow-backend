@@ -222,20 +222,28 @@ public static class AuthEndpoints
                 .ToListAsync())
                 .ToHashSet();
 
-            var availableStudents = students
-                .Where(s => !registeredStudentIds.Contains(s.Id.ToString()) && !registeredStudentIds.Contains(s.UniqueStudentCode))
-                .Where(s => !pendingStudentNames.Contains(s.Name))
-                .ToList();
+            var studentList = students.Select(s => 
+            {
+                var isRegistered = registeredStudentIds.Contains(s.Id.ToString()) || registeredStudentIds.Contains(s.UniqueStudentCode);
+                var isPending = pendingStudentNames.Contains(s.Name);
 
-            // SECURITY: Only return names (not IDs) for the student picker.
+                return new 
+                { 
+                    id = s.Id.ToString(), 
+                    name = s.Name, 
+                    status = isRegistered ? "Registered" : (isPending ? "Pending" : "Available") 
+                };
+            }).ToList();
+
+            // SECURITY: Return minimal necessary fields for the student picker.
             // Full student details require authentication.
             return Results.Ok(new
             {
                 groupName = groupObj.Name,
                 engineerName = engineer?.Name ?? "Unknown Engineer",
                 level = groupObj.Level,
-                availableSlots = availableStudents.Count,
-                students = availableStudents.Select(s => new { name = s.Name }).ToList()
+                availableSlots = studentList.Count(s => s.status == "Available"),
+                students = studentList
             });
         }).AllowAnonymous(); // Allow pre-registration group discovery
 

@@ -61,7 +61,12 @@ const RegisterPage: React.FC = () => {
     }
   };
 
-  const onSelectStudent = (student: { id: string; name: string }) => {
+  const onSelectStudent = (student: { id: string; name: string; status?: string }) => {
+    if (student.status === "Registered") {
+      toast.error("You need to sign in. Admin approved your account, go sign in.");
+      setTimeout(() => sharedAuth.onNavigate("/login"), 2000);
+      return;
+    }
     setSelectedStudent(student);
     setValue("name", student.name);
     setDiscoveryStep('register');
