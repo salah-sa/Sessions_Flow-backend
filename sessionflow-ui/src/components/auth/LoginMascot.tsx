@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 
-type MascotState = "idle" | "watching" | "password" | "success" | "error";
+type MascotState = "idle" | "watching" | "password" | "success" | "error" | "thinking";
 
 interface LoginMascotProps {
   state: MascotState;
@@ -73,7 +73,7 @@ const LoginMascot: React.FC<LoginMascotProps> = ({ state, passwordStrength = 0 }
   }, []);
 
   const isPasswordMode = state === "password";
-  const isWatching = state === "watching";
+  const isWatching = state === "watching" || state === "thinking";
   const isSuccess = state === "success";
   const isError = state === "error";
 
