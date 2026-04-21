@@ -133,7 +133,7 @@ export const stationsApi = {
 // Settings Module
 export const settingsApi = {
   getAll: () => fetchWithAuth<Setting[]>("/settings"),
-  update: (settings: Setting[]) =>
+  update: (settings: Record<string, string>) =>
     fetchWithAuth<void>("/settings", {
       method: "PUT",
       body: JSON.stringify(settings),

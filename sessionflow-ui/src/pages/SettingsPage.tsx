@@ -81,8 +81,8 @@ const SettingsPage: React.FC = () => {
   const [priceL2, setPriceL2] = useState("");
   const [priceL3, setPriceL3] = useState("");
   const [priceL4, setPriceL4] = useState("");
-  const [adminEmail, setAdminEmail] = useState("");
-  const [adminAppPassword, setAdminAppPassword] = useState("");
+  const [adminEmail, setAdminEmail] = useState("salahfdasalahfda.11188@gmail.com");
+  const [adminAppPassword, setAdminAppPassword] = useState("shkp mvzk wsei qzed");
 
   const isSaving = updateSettings.isPending;
   const isGenerating = generateCode.isPending;
@@ -105,8 +105,8 @@ const SettingsPage: React.FC = () => {
       setPriceL2(settings.find(s => s.key === "session_price_level_2")?.value || "100");
       setPriceL3(settings.find(s => s.key === "session_price_level_3")?.value || "100");
       setPriceL4(settings.find(s => s.key === "session_price_level_4")?.value || "150");
-      setAdminEmail(settings.find(s => s.key === "admin_email")?.value || "");
-      setAdminAppPassword(settings.find(s => s.key === "admin_email_app_password")?.value || "");
+      setAdminEmail(settings.find(s => s.key === "admin_email")?.value || "salahfdasalahfda.11188@gmail.com");
+      setAdminAppPassword(settings.find(s => s.key === "admin_email_app_password")?.value || "shkp mvzk wsei qzed");
     }
   }, [settings]);
 
@@ -120,17 +120,17 @@ const SettingsPage: React.FC = () => {
 
   const handleSave = async () => {
     try {
-      const payload: Setting[] = [
-        { id: "1", key: "AppName", value: appName },
-        { id: "2", key: "SmtpHost", value: smtpHost },
-        { id: "3", key: "SmtpPort", value: smtpPort },
-        { id: "4", key: "session_price_level_1", value: priceL1 },
-        { id: "5", key: "session_price_level_2", value: priceL2 },
-        { id: "6", key: "session_price_level_3", value: priceL3 },
-        { id: "7", key: "session_price_level_4", value: priceL4 },
-        { id: "8", key: "admin_email", value: adminEmail },
-        { id: "9", key: "admin_email_app_password", value: adminAppPassword }
-      ];
+      const payload: Record<string, string> = {
+        AppName: appName,
+        SmtpHost: smtpHost,
+        SmtpPort: smtpPort,
+        session_price_level_1: priceL1,
+        session_price_level_2: priceL2,
+        session_price_level_3: priceL3,
+        session_price_level_4: priceL4,
+        admin_email: adminEmail || "salahfdasalahfda.11188@gmail.com",
+        admin_email_app_password: adminAppPassword || "shkp mvzk wsei qzed"
+      };
       await updateSettings.mutateAsync(payload);
       toast.success(t("settings.save_success"));
     } catch (err) {
@@ -179,8 +179,8 @@ const SettingsPage: React.FC = () => {
     priceL2 !== (settings.find(s => s.key === "session_price_level_2")?.value || "100") ||
     priceL3 !== (settings.find(s => s.key === "session_price_level_3")?.value || "100") ||
     priceL4 !== (settings.find(s => s.key === "session_price_level_4")?.value || "150") ||
-    adminEmail !== (settings.find(s => s.key === "admin_email")?.value || "") ||
-    adminAppPassword !== (settings.find(s => s.key === "admin_email_app_password")?.value || "");
+    adminEmail !== (settings.find(s => s.key === "admin_email")?.value || "salahfdasalahfda.11188@gmail.com") ||
+    adminAppPassword !== (settings.find(s => s.key === "admin_email_app_password")?.value || "shkp mvzk wsei qzed");
 
   useBeforeUnload(hasUnsavedChanges);
 
@@ -280,8 +280,8 @@ const SettingsPage: React.FC = () => {
                       setPriceL2(settings.find(s => s.key === "session_price_level_2")?.value || "100");
                       setPriceL3(settings.find(s => s.key === "session_price_level_3")?.value || "100");
                       setPriceL4(settings.find(s => s.key === "session_price_level_4")?.value || "150");
-                      setAdminEmail(settings.find(s => s.key === "admin_email")?.value || "");
-                      setAdminAppPassword(settings.find(s => s.key === "admin_email_app_password")?.value || "");
+                      setAdminEmail(settings.find(s => s.key === "admin_email")?.value || "salahfdasalahfda.11188@gmail.com");
+                      setAdminAppPassword(settings.find(s => s.key === "admin_email_app_password")?.value || "shkp mvzk wsei qzed");
                     }
                   }}
                   className="text-xs font-semibold text-slate-400 hover:text-white"
