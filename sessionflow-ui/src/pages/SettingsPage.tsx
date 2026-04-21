@@ -39,6 +39,14 @@ import ImportBridge from "./settings/ImportBridge";
 import CommsRelay from "./settings/CommsRelay";
 import SecurityPanel from "./settings/SecurityPanel";
 
+interface SettingsTab {
+  id: "system" | "notifications" | "security" | "codes" | "import";
+  name: string;
+  icon: React.ElementType;
+  color: string;
+  hidden?: boolean;
+}
+
 const SettingsPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const location = useLocation();
@@ -180,6 +188,14 @@ const SettingsPage: React.FC = () => {
     ({ nextLocation: nextLoc }) => hasUnsavedChanges && nextLoc.pathname !== location.pathname
   );
 
+  const tabs: SettingsTab[] = [ 
+    { id: "system", name: t("settings.tabs.system_config"), icon: Terminal, color: "brand" },
+    { id: "codes", name: t("settings.tabs.engineer_access"), icon: Key, color: "emerald", hidden: !isAdmin },
+    { id: "import", name: t("settings.tabs.external_bridge"), icon: Globe, color: "blue" },
+    { id: "notifications", name: t("settings.tabs.comms_relay"), icon: Bell, color: "amber" },
+    { id: "security", name: t("settings.tabs.firewall_keys"), icon: Shield, color: "rose" }
+  ];
+
   return (
     <div className="h-full flex flex-col bg-[var(--ui-bg)] animate-fade-in overflow-hidden relative">
       <ConfirmDialog
@@ -297,23 +313,7 @@ const SettingsPage: React.FC = () => {
               </p>
               
               <div className="flex flex-row md:flex-col gap-4 md:gap-6 overflow-x-auto hide-scrollbar md:overflow-visible pb-2 md:pb-0">
-interface SettingsTab {
-  id: "system" | "notifications" | "security" | "codes" | "import";
-  name: string;
-  icon: React.ElementType;
-  color: string;
-  hidden?: boolean;
-}
-
-                const tabs: SettingsTab[] = [ 
-                  { id: "system", name: t("settings.tabs.system_config"), icon: Terminal, color: "brand" },
-                  { id: "codes", name: t("settings.tabs.engineer_access"), icon: Key, color: "emerald", hidden: !isAdmin },
-                  { id: "import", name: t("settings.tabs.external_bridge"), icon: Globe, color: "blue" },
-                  { id: "notifications", name: t("settings.tabs.comms_relay"), icon: Bell, color: "amber" },
-                  { id: "security", name: t("settings.tabs.firewall_keys"), icon: Shield, color: "rose" }
-                ];
-                
-                tabs.filter(i => !i.hidden).map((item) => (
+                {tabs.filter(i => !i.hidden).map((item) => (
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id as any)}

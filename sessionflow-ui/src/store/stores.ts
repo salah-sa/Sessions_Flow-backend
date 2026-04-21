@@ -11,7 +11,7 @@ export interface StudentLocationData {
 }
 
 // Auth Store
-interface AuthState {
+export interface AuthState {
   user: User | null;
   token: string | null;
   rememberMe: boolean;
@@ -93,7 +93,7 @@ export interface CustomTheme {
   sidebar: string;
 }
 
-interface UIState {
+export interface UIState {
   theme: "light" | "dark";
   language: "en" | "ar";
   sidebarOpen: boolean;
