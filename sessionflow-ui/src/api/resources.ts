@@ -19,7 +19,17 @@ export const authApi = {
       body: JSON.stringify(data),
     }),
   getPendingStudentRequests: () => fetchWithAuth<PendingEngineer[]>("/auth/pending-student-requests"),
-  discoverGroup: (name: string) => fetchPublic<{ groupName?: string; engineerName?: string; level?: number; students?: { id: string; name: string; status: string }[]; suggestions?: string[]; error?: string }>(`/auth/discover-group?name=${encodeURIComponent(name)}`),
+  discoverGroup: async (name: string) => {
+    const headers = new Headers({ "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" });
+    const BASE = (import.meta.env.VITE_API_URL ?? "") + "/api";
+    const response = await fetch(`${BASE}/auth/discover-group?name=${encodeURIComponent(name)}`, { headers });
+    const data = await response.json().catch(() => ({}));
+    // 404 with suggestions is a valid "partial match" response, not an error
+    if (response.ok || response.status === 404) {
+      return data as { groupName?: string; engineerName?: string; level?: number; students?: { id: string; name: string; status: string }[]; suggestions?: string[]; error?: string };
+    }
+    throw new Error(data.error || `Request failed with status ${response.status}`);
+  },
   approveStudentRequest: (id: string) =>
     fetchWithAuth<{ message: string; user: User }>(`/auth/approve-student-request/${id}`, { method: "POST" }),
   denyStudentRequest: (id: string) =>
