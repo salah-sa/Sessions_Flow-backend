@@ -242,10 +242,13 @@ public static class ApiHost
             var isMutating = method == "POST" || method == "PUT" || method == "DELETE" || method == "PATCH";
             var path = context.Request.Path.Value ?? "";
             
-            // Skip CSRF for SignalR hub, health checks, and file uploads
-            var isExempt = path.StartsWith("/hub", StringComparison.OrdinalIgnoreCase) ||
+            // Skip CSRF for auth endpoints (JWT-based, already rate-limited),
+            // SignalR hub, health checks, and file uploads
+            var isExempt = path.StartsWith("/api/auth", StringComparison.OrdinalIgnoreCase) ||
+                           path.StartsWith("/hub", StringComparison.OrdinalIgnoreCase) ||
                            path == "/ping" ||
-                           path.StartsWith("/uploads", StringComparison.OrdinalIgnoreCase);
+                           path.StartsWith("/uploads", StringComparison.OrdinalIgnoreCase) ||
+                           path.StartsWith("/api/admin/gmail/callback", StringComparison.OrdinalIgnoreCase);
             
             if (isMutating && !isExempt && !context.Request.Headers.ContainsKey("X-Requested-With"))
             {
