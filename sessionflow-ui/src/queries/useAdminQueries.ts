@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, UseQueryResult } from "@tanstack/react-query";
 import { auditApi, engineersApi } from "../api/resources_extra";
 import { groupsApi as coreGroupsApi } from "../api/resources";
 import { queryKeys } from "./keys";
@@ -10,11 +10,12 @@ export const useAuditLogs = () => {
   });
 };
 
-export const usePendingEngineers = () => {
+export const usePendingEngineers = (options?: any): UseQueryResult<any[], Error> => {
   return useQuery({
     queryKey: queryKeys.engineers.pending,
-    queryFn: () => engineersApi.getPending(),
-  });
+    queryFn: () => engineersApi.getPending() as Promise<any[]>,
+    ...options
+  }) as UseQueryResult<any[], Error>;
 };
 
 export const useEngineerCodes = () => {

@@ -17,12 +17,14 @@ import {
   UserCircle,
   Lock
 } from "lucide-react";
-import { NavLink, useNavigate } from "react-router-dom";
-import { useAuthStore } from "../../store/stores";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import { useAuthStore, useSectionBadgeStore, useChatStore } from "../../store/stores";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { usePendingEngineers } from "../../queries/useAdminQueries";
+import { usePendingStudentRequests } from "../../queries/useEngineerQueries";
 
 const LanguageBridge: React.FC = () => {
   const { i18n } = useTranslation();
@@ -91,7 +93,7 @@ const NavItem = ({ to, icon: Icon, label, badge, locked }: { to: string; icon: a
                <Lock className="w-3 h-3 text-rose-500" />
             </div>
           ) : badge !== undefined && badge > 0 ? (
-            <span className="px-2 py-0.5 rounded-md bg-[var(--ui-accent)] text-white text-[8px] font-bold shadow-glow shadow-[var(--ui-accent)]/20">
+            <span className="px-2 py-0.5 rounded-md bg-rose-500 text-white text-[8px] font-bold shadow-glow shadow-rose-500/20">
               {badge}
             </span>
           ) : null}
@@ -110,8 +112,41 @@ const Sidebar: React.FC = () => {
   const logout = useAuthStore((s) => s.logout);
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const isStudent = user?.role === "Student";
+  const isAdmin = user?.role === "Admin";
+  const isEngineer = user?.role === "Engineer";
+
+  const pendingEngineersReq = usePendingEngineers({ enabled: isAdmin });
+  const pendingStudentsReq = usePendingStudentRequests({ enabled: isAdmin || isEngineer });
+
+  const getUnseenCount = useSectionBadgeStore((s) => s.getUnseenCount);
+  const markSectionSeen = useSectionBadgeStore((s) => s.markSectionSeen);
+  
+  const chatUnreadCounts = useChatStore((s) => s.unreadCounts);
+  const chatBadgeCount = Object.values(chatUnreadCounts).reduce((a, b) => a + b, 0);
+
+  const pendingEngineerIds = (pendingEngineersReq.data || []).map((x: any) => x.id);
+  const pendingStudentIds = (pendingStudentsReq.data || []).map((x: any) => x.id);
+
+  const adminBadgeCount = isAdmin 
+    ? getUnseenCount("admin_engineers", pendingEngineerIds) + getUnseenCount("admin_students", pendingStudentIds)
+    : 0;
+    
+  const staffBadgeCount = isEngineer 
+    ? getUnseenCount("staff_students", pendingStudentIds)
+    : 0;
+
+  React.useEffect(() => {
+    if (location.pathname.startsWith("/admin") && isAdmin) {
+       markSectionSeen("admin_engineers", pendingEngineerIds);
+       markSectionSeen("admin_students", pendingStudentIds);
+    }
+    if (location.pathname.startsWith("/staff") && isEngineer) {
+       markSectionSeen("staff_students", pendingStudentIds);
+    }
+  }, [location.pathname, isAdmin, isEngineer, pendingEngineerIds.join(","), pendingStudentIds.join(","), markSectionSeen]);
 
   const handleLogout = () => {
     logout();
@@ -140,7 +175,7 @@ const Sidebar: React.FC = () => {
         <NavItem to="/sessions" icon={Target} label={t("nav.sessions") || "Sessions"} locked={isStudent} />
         <NavItem to="/students" icon={User} label={t("nav.students")} locked={isStudent} />
         <NavItem to="/timetable" icon={Calendar} label={t("nav.timetable")} />
-        <NavItem to="/chat" icon={MessageSquare} label={t("nav.chat")} />
+        <NavItem to="/chat" icon={MessageSquare} label={t("nav.chat")} badge={chatBadgeCount} />
         <NavItem to="/history" icon={Clock} label={t("nav.history") || "History"} />
         
         <div className="py-8 px-6">
@@ -149,10 +184,10 @@ const Sidebar: React.FC = () => {
         </div>
 
         {user?.role === "Admin" && (
-          <NavItem to="/admin" icon={ShieldCheck} label={t("staff.portal_title")} />
+          <NavItem to="/admin" icon={ShieldCheck} label={t("staff.portal_title")} badge={adminBadgeCount} />
         )}
         {user?.role === "Engineer" && (
-          <NavItem to="/staff" icon={Zap} label={t("staff.portal_title")} />
+          <NavItem to="/staff" icon={Zap} label={t("staff.portal_title")} badge={staffBadgeCount} />
         )}
         
         <NavItem to="/archive" icon={Archive} label={t("nav.archive") || "Archive"} locked={isStudent} />

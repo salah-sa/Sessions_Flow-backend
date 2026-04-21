@@ -154,6 +154,33 @@ export const useNotificationStore = create<NotificationState>()(
   )
 );
 
+// Section Badge Store (for sidebar red dot counters)
+interface SectionBadgeState {
+  seenItemIds: Record<string, string[]>;
+  markSectionSeen: (sectionKey: string, currentIds: string[]) => void;
+  getUnseenCount: (sectionKey: string, currentIds: string[]) => number;
+}
+
+export const useSectionBadgeStore = create<SectionBadgeState>()(
+  persist(
+    (set, get) => ({
+      seenItemIds: {},
+      markSectionSeen: (sectionKey, currentIds) =>
+        set((state) => ({
+          seenItemIds: {
+            ...state.seenItemIds,
+            [sectionKey]: currentIds,
+          },
+        })),
+      getUnseenCount: (sectionKey, currentIds) => {
+        const seen = get().seenItemIds[sectionKey] || [];
+        return currentIds.filter((id) => !seen.includes(id)).length;
+      },
+    }),
+    { name: "sf-section-badge-storage" }
+  )
+);
+
 // Chat Store
 interface ChatState {
   unreadCounts: Record<string, number>;
