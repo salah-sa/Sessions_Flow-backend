@@ -214,13 +214,10 @@ public static class ApiHost
                 
                 if (isContainer)
                 {
-                    // In container mode, also allow the Railway/deployed domain
-                    policy.SetIsOriginAllowed(origin =>
-                    {
-                        if (allowedOrigins.Any(o => origin.StartsWith(o, StringComparison.OrdinalIgnoreCase))) return true;
-                        // Allow same-origin requests (no Origin header = same origin)
-                        return false;
-                    });
+                    // In container mode (Railway), allow any origin.
+                    // CORS is NOT the security boundary here — JWT Bearer tokens are.
+                    // This is required for SignalR WebSocket upgrades from the Railway domain itself.
+                    policy.SetIsOriginAllowed(_ => true);
                 }
                 else
                 {
