@@ -419,8 +419,9 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
     useAppStore.getState().setConnectionStatus("Reconnecting");
     useAppStore.getState().setConnectionMode("hybrid");
 
+    const hubBaseUrl = import.meta.env.VITE_API_URL ?? "";
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl(`/hub?access_token=${token}`)
+      .withUrl(`${hubBaseUrl}/hub?access_token=${token}`)
       .withAutomaticReconnect([0, 1000, 3000, 5000, 10000])
       .configureLogging(signalR.LogLevel.Warning)
       .build();
