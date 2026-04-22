@@ -48,10 +48,9 @@ public class EmailService
             .Project(s => s.Value)
             .FirstOrDefaultAsync(ct);
 
-        // If it's a gmail address, it won't work with Resend unless verified as a domain.
-        // Default to Resend onboarding address for trial purposes.
+        // Use the verified domain for production email delivery.
         if (string.IsNullOrEmpty(from) || from.Contains("gmail.com")) 
-            return "SessionFlow <onboarding@resend.dev>";
+            return "SessionFlow <noreply@sessionflow.com>";
 
         return from;
     }
