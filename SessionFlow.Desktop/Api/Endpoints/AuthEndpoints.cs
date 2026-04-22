@@ -133,7 +133,7 @@ public static class AuthEndpoints
                 message = "Credentials have been resent to your email address.",
                 remaining 
             });
-        });
+        }).AllowAnonymous();
 
         group.MapPost("/forgot-password", async (ForgotPasswordRequest req, AuthService auth) =>
         {
