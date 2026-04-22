@@ -36,14 +36,10 @@ const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void }> = (
   const unreadCount = notificationData?.unreadCount || 0;
   const { markAsReadMutation, markAllAsReadMutation } = useNotificationMutations();
 
-  // Optimized Auto-Read Logic
+  // Optimized Auto-Read Logic: Mark all as read immediately when panel opens
   useEffect(() => {
     if (isOpen && unreadCount > 0) {
-      // Delay slightly to give user a chance to see they were unread
-      const timer = setTimeout(() => {
-        markAllAsReadMutation.mutate();
-      }, 1500);
-      return () => clearTimeout(timer);
+      markAllAsReadMutation.mutate();
     }
   }, [isOpen, unreadCount, markAllAsReadMutation]);
 
