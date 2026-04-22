@@ -14,14 +14,50 @@ export const useNotificationMutations = () => {
 
   const markAsReadMutation = useMutation({
     mutationFn: (id: string) => notificationsApi.markAsRead(id),
-    onSuccess: () => {
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.notifications.all });
+      const previousData = queryClient.getQueryData(queryKeys.notifications.recent);
+
+      queryClient.setQueryData(queryKeys.notifications.recent, (old: any) => {
+        if (!old) return old;
+        const newNotifications = old.notifications.map((n: any) => 
+          n.id === id ? { ...n, isRead: true } : n
+        );
+        const newUnreadCount = Math.max(0, old.unreadCount - 1);
+        return { ...old, notifications: newNotifications, unreadCount: newUnreadCount };
+      });
+
+      return { previousData };
+    },
+    onError: (err, id, context) => {
+      queryClient.setQueryData(queryKeys.notifications.recent, context?.previousData);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
     },
   });
 
   const markAllAsReadMutation = useMutation({
     mutationFn: () => notificationsApi.markAllAsRead(),
-    onSuccess: () => {
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.notifications.all });
+      const previousData = queryClient.getQueryData(queryKeys.notifications.recent);
+
+      queryClient.setQueryData(queryKeys.notifications.recent, (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          unreadCount: 0,
+          notifications: old.notifications.map((n: any) => ({ ...n, isRead: true }))
+        };
+      });
+
+      return { previousData };
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(queryKeys.notifications.recent, context?.previousData);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
     },
   });
