@@ -130,10 +130,11 @@ public static class ApiHost
             return new Services.EventBus.RedisEventBus(redisConnection, logger, redisInstanceName);
         });
 
+        builder.Services.AddHttpClient();
         builder.Services.AddScoped<AuthService>();
         builder.Services.AddScoped<SessionService>();
         builder.Services.AddScoped<GmailSenderService>();
-        builder.Services.AddScoped<SmtpEmailService>();
+        builder.Services.AddScoped<EmailService>();
         builder.Services.AddScoped<SchedulingService>();
         builder.Services.AddScoped<AuditService>();
         builder.Services.AddScoped<NotificationService>();
