@@ -492,6 +492,7 @@ public class AuthService
         {
             Name = pending.Name,
             Email = pending.Email,
+            Username = pending.Email, // Ensure username is set for login
             PasswordHash = pending.PasswordHash,
             Role = UserRole.Engineer,
             EngineerCode = newCode,
@@ -552,11 +553,10 @@ public class AuthService
                 );
                 if (!success)
                 {
-                    // Log but don't fail the approval
-                    System.Diagnostics.Debug.WriteLine($"Email dispatch failed: {error}");
+                    Console.Error.WriteLine($"[EMAIL] Engineer approval email dispatch failed for {user.Email}: {error}");
                 }
             } catch (Exception ex) {
-                System.Diagnostics.Debug.WriteLine($"Email dispatch exception: {ex.Message}");
+                Console.Error.WriteLine($"[EMAIL] Engineer approval email exception for {user.Email}: {ex.Message}");
             }
         });
 
@@ -627,7 +627,7 @@ public class AuthService
 
                 await mail.SendEmailAsync(user.Email, subject, body);
             } catch (Exception ex) {
-                System.Diagnostics.Debug.WriteLine($"Resend credentials email failed: {ex.Message}");
+                Console.Error.WriteLine($"[EMAIL] Resend credentials email failed for {user.Email}: {ex.Message}");
             }
         });
 
