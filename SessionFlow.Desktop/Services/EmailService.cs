@@ -12,8 +12,8 @@ using SessionFlow.Desktop.Models;
 namespace SessionFlow.Desktop.Services;
 
 /// <summary>
-/// Modern email service using Resend HTTP API to bypass SMTP port blocking on cloud providers.
-/// Configure via Environment Variable: RESEND_API_KEY
+/// Modern email service using Brevo (formerly Sendinblue) HTTP API to bypass SMTP port blocking.
+/// Configure via Environment Variable: BREVO_API_KEY
 /// </summary>
 public class EmailService
 {
@@ -31,12 +31,12 @@ public class EmailService
     private async Task<string?> GetApiKeyAsync(CancellationToken ct = default)
     {
         // 1. Try Environment Variable (Priority for Railway)
-        var envKey = Environment.GetEnvironmentVariable("RESEND_API_KEY");
+        var envKey = Environment.GetEnvironmentVariable("BREVO_API_KEY");
         if (!string.IsNullOrEmpty(envKey)) return envKey;
 
         // 2. Fallback to MongoDB settings
         return await _db.Settings
-            .Find(s => s.Key == "resend_api_key")
+            .Find(s => s.Key == "brevo_api_key")
             .Project(s => s.Value)
             .FirstOrDefaultAsync(ct);
     }
@@ -48,9 +48,9 @@ public class EmailService
             .Project(s => s.Value)
             .FirstOrDefaultAsync(ct);
 
-        // Use the verified domain for production email delivery.
+        // Use the verified sender for Brevo free tier.
         if (string.IsNullOrEmpty(from) || from.Contains("gmail.com")) 
-            return "SessionFlow <noreply@sessionflow.com>";
+            return "salahfdasalahfda.11188@gmail.com";
 
         return from;
     }
@@ -62,23 +62,23 @@ public class EmailService
             var apiKey = await GetApiKeyAsync(ct);
             if (string.IsNullOrEmpty(apiKey))
             {
-                _logger.LogWarning("RESEND_API_KEY not configured. Email to {To} was not sent.", to);
-                return (false, "Resend API Key not configured. Please add RESEND_API_KEY to your environment variables.");
+                _logger.LogWarning("BREVO_API_KEY not configured. Email to {To} was not sent.", to);
+                return (false, "Brevo API Key not configured. Please add BREVO_API_KEY to your environment variables.");
             }
 
-            var from = await GetFromEmailAsync(ct);
+            var fromEmail = await GetFromEmailAsync(ct);
 
             var payload = new
             {
-                from = from,
-                to = new[] { to },
+                sender = new { name = "SessionFlow", email = fromEmail },
+                to = new[] { new { email = to } },
                 subject = subject,
-                html = htmlBody
+                htmlContent = htmlBody
             };
 
             var json = JsonSerializer.Serialize(payload);
-            using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.resend.com/emails");
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.brevo.com/v3/smtp/email");
+            request.Headers.Add("api-key", apiKey);
             request.Content = new StringContent(json, Encoding.UTF8, "application/json");
 
             var response = await _httpClient.SendAsync(request, ct);
@@ -86,16 +86,16 @@ public class EmailService
 
             if (response.IsSuccessStatusCode)
             {
-                _logger.LogInformation("[EMAIL] Sent successfully via Resend to {To}: {Subject}", to, subject);
+                _logger.LogInformation("[EMAIL] Sent successfully via Brevo to {To}: {Subject}", to, subject);
                 return (true, null);
             }
 
-            _logger.LogError("[EMAIL] Resend API Error ({Status}): {Content}", response.StatusCode, content);
-            return (false, $"Resend API Error: {response.StatusCode}");
+            _logger.LogError("[EMAIL] Brevo API Error ({Status}): {Content}", response.StatusCode, content);
+            return (false, $"Brevo API Error: {response.StatusCode}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[EMAIL] Exception while sending via Resend to {To}", to);
+            _logger.LogError(ex, "[EMAIL] Exception while sending via Brevo to {To}", to);
             return (false, ex.Message);
         }
     }
@@ -104,8 +104,8 @@ public class EmailService
     {
         return await SendEmailAsync(to, "SessionFlow - Test Email",
             @"<div style='font-family: sans-serif; background: #020617; color: white; padding: 40px; border-radius: 20px;'>
-                <h2 style='color: #3b82f6;'>Resend API Active</h2>
-                <p>This test email confirms that your Resend HTTP relay is fully operational and bypassing SMTP restrictions.</p>
+                <h2 style='color: #3b82f6;'>Brevo API Active</h2>
+                <p>This test email confirms that your Brevo HTTP relay is fully operational and bypassing SMTP restrictions.</p>
                 <p style='color: #64748b; font-size: 10px; margin-top: 40px;'>SESSIONFLOW SECURITY ENFORCEMENT PROTOCOL</p>
             </div>");
     }
