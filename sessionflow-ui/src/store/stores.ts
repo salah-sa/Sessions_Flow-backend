@@ -314,8 +314,8 @@ interface AppState {
 export const useAppStore = create<AppState>((set) => ({
   isOnline: navigator.onLine,
   networkQuality: navigator.onLine ? "excellent" : "offline",
-  connectionStatus: "Disconnected",
-  connectionMode: "degraded",
+  connectionStatus: "Connected",
+  connectionMode: "full",
   isSyncing: false,
   userDismissedOffline: false,
   setOnline: (isOnline) => 
