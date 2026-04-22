@@ -3,6 +3,9 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using System.Threading;
 using SessionFlow.Desktop.Data;
 using SessionFlow.Desktop.Models;
 
