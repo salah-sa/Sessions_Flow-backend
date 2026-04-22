@@ -166,6 +166,9 @@ public class AuthService
         var usernameExists = await _db.Users.Find(usernameFilter).AnyAsync(ct);
         if (usernameExists) return (null, "Username is already taken.");
 
+        var emailFilter = Builders<User>.Filter.Eq(u => u.Email, email);
+        if (await _db.Users.Find(emailFilter).AnyAsync(ct)) return (null, "Email address is already registered.");
+
         // 2. Find groups that match this name (case-insensitive)
         var groupFilter = Builders<Group>.Filter.Regex(g => g.Name, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(groupName)}$", "i"))
                         & Builders<Group>.Filter.Eq(g => g.IsDeleted, false);
@@ -238,6 +241,11 @@ public class AuthService
         var usernameFilter = Builders<User>.Filter.Regex(u => u.Username, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(pending.Username)}$", "i"));
         if (await _db.Users.Find(usernameFilter).AnyAsync(ct))
             return (null, "The requested username is no longer available.");
+
+        // Double check email availability (prevents DuplicateKeyException on InsertOneAsync)
+        var emailFilter = Builders<User>.Filter.Eq(u => u.Email, pending.Email);
+        if (await _db.Users.Find(emailFilter).AnyAsync(ct))
+            return (null, "The requested email address is already registered to another account.");
 
         // Look up the engineer to get their EngineerCode
         var engineer = await _db.Users.Find(u => u.Id == pending.EngineerId).FirstOrDefaultAsync(ct);
