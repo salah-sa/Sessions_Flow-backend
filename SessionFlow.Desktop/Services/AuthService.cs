@@ -576,8 +576,8 @@ public class AuthService
         var now = DateTimeOffset.UtcNow;
         if (user.LastCredentialResendAt.HasValue && user.LastCredentialResendAt.Value.Date == now.Date)
         {
-            if (user.ResendCredentialsCount >= 3)
-                return (false, "Daily limit reached. You can request your credentials up to 3 times per day.", 0);
+            if (user.ResendCredentialsCount >= 6)
+                return (false, "Daily limit reached. You can request your credentials up to 6 times per day.", 0);
             
             user.ResendCredentialsCount++;
         }
@@ -631,7 +631,7 @@ public class AuthService
             }
         });
 
-        return (true, null, 3 - user.ResendCredentialsCount);
+        return (true, null, 6 - user.ResendCredentialsCount);
     }
 
     public async Task<(bool success, string? error)> DenyEngineerAsync(Guid pendingId, CancellationToken ct = default)
