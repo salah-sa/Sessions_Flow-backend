@@ -10,6 +10,7 @@ import { Events } from "../lib/eventContracts";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../queries/keys";
 import { ChatMessage } from "../types";
+import { toast } from "sonner";
 
 interface SignalRContextValue {
   on: (eventName: string, callback: (...args: any[]) => void) => () => void;
@@ -343,11 +344,18 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       sounds.playNotification();
     });
 
-    connection.on(Events.REQUEST_ACCEPTED, () => {
+    connection.on(Events.REQUEST_ACCEPTED, (data?: { studentId?: string; engineerCode?: string }) => {
       queryClient.invalidateQueries({ queryKey: ["pending-student-requests"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
       queryClient.invalidateQueries({ queryKey: ["groups"] }); // Incase student list in group details changed
       sounds.playPop();
+
+      if (data?.studentId && data?.engineerCode) {
+        toast.success("Registration Approved!", {
+          description: `Student ID: ${data.studentId} | Engineer Code: ${data.engineerCode}`,
+          duration: 10000,
+        });
+      }
     });
 
     connection.on(Events.REQUEST_REJECTED, () => {
@@ -402,11 +410,14 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
         connectionRef.current.stop();
         connectionRef.current = null;
         setState(signalR.HubConnectionState.Disconnected);
-        useAppStore.getState().setConnectionStatus("Disconnected");
-        useAppStore.getState().setConnectionMode("degraded");
+        useAppStore.getState().setConnectionStatus("Connected");
+        useAppStore.getState().setConnectionMode("full");
       }
       return;
     }
+
+    useAppStore.getState().setConnectionStatus("Reconnecting");
+    useAppStore.getState().setConnectionMode("hybrid");
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(`/hub?access_token=${token}`)
@@ -508,7 +519,9 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
         console.error("[SignalR] Connection failed:", err);
         setState(signalR.HubConnectionState.Disconnected);
         useAppStore.getState().setConnectionStatus("Disconnected");
-        useAppStore.getState().setConnectionMode("degraded");
+        // Don't turn red immediately, let the degradation timer handle it
+        useAppStore.getState().setConnectionMode("hybrid");
+        startDegradeTimer();
       });
 
     return () => {

@@ -34,15 +34,18 @@ export default defineConfig({
       "/api": {
         target: "https://sessionsflow-backend-production.up.railway.app",
         changeOrigin: true,
+        secure: false,
       },
       "/hub": {
         target: "https://sessionsflow-backend-production.up.railway.app",
         ws: true,
         changeOrigin: true,
+        secure: false,
       },
       "/uploads": {
         target: "https://sessionsflow-backend-production.up.railway.app",
         changeOrigin: true,
+        secure: false,
       },
     },
   },

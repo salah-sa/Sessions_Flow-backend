@@ -397,12 +397,30 @@ public class AuthService
             }
         });
 
-        // Publish Event for real-time frontend update
+        // Create an internal notification for the student immediately as a fallback to email
+        _ = Task.Run(async () => {
+            try {
+                using var scope = _serviceProvider.CreateScope();
+                var notifService = scope.ServiceProvider.GetRequiredService<NotificationService>();
+                await notifService.CreateNotificationAsync(
+                    user.Id,
+                    "Registration Approved",
+                    $"Welcome! Your request for {pending.GroupName} has been approved.\nStudent ID: {studentCode}\nEngineer Code: {engineer.EngineerCode}",
+                    NotificationType.Success
+                );
+            } catch (Exception ex) {
+                Console.Error.WriteLine($"[NOTIF] Failed to create approval notification for student {user.Id}: {ex.Message}");
+            }
+        });
+
+        // Publish Event for real-time frontend update (including credentials for instant UI feedback)
         await _eventBus.PublishAsync(Events.RequestAccepted, EventTargetType.All, "", new { 
             PendingId = pendingId, 
             UserId = user.Id, 
             EngineerId = pending.EngineerId,
-            GroupId = pending.GroupId 
+            GroupId = pending.GroupId,
+            StudentId = studentCode,
+            EngineerCode = engineer.EngineerCode
         });
 
         return (user, null);
