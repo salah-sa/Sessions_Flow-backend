@@ -67,7 +67,8 @@ public class SmtpEmailService
             message.Body = new TextPart("html") { Text = htmlBody };
 
             using var client = new SmtpClient();
-            await client.ConnectAsync("smtp.gmail.com", 587, SecureSocketOptions.StartTls, ct);
+            client.Timeout = 10000; // 10 seconds timeout to fail-fast and trigger retry
+            await client.ConnectAsync("smtp.gmail.com", 465, SecureSocketOptions.SslOnConnect, ct);
             await client.AuthenticateAsync(email, appPassword, ct);
             await client.SendAsync(message, ct);
             await client.DisconnectAsync(true, ct);
