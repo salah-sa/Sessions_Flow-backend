@@ -2,35 +2,57 @@ import { useQuery, useMutation, useQueryClient, UseQueryResult } from "@tanstack
 import { auditApi, engineersApi } from "../api/resources_extra";
 import { groupsApi as coreGroupsApi } from "../api/resources";
 import { queryKeys } from "./keys";
+import { useAuthStore } from "../store/stores";
 
 export const useAuditLogs = () => {
+  const token = useAuthStore((s) => s.token);
+  const hydrated = useAuthStore((s) => s._hasHydrated);
+
   return useQuery({
     queryKey: queryKeys.audit.logs,
     queryFn: () => auditApi.getLogs(),
+    enabled: !!token && hydrated,
+    retry: 2,
   });
 };
 
 export const usePendingEngineers = (options?: any): UseQueryResult<any[], Error> => {
+  const token = useAuthStore((s) => s.token);
+  const hydrated = useAuthStore((s) => s._hasHydrated);
+
   return useQuery({
     queryKey: queryKeys.engineers.pending,
     queryFn: () => engineersApi.getPending() as Promise<any[]>,
+    enabled: !!token && hydrated,
+    retry: 2,
     ...options
   }) as UseQueryResult<any[], Error>;
 };
 
 export const useEngineerCodes = () => {
+  const token = useAuthStore((s) => s.token);
+  const hydrated = useAuthStore((s) => s._hasHydrated);
+
   return useQuery({
     queryKey: queryKeys.engineers.codes,
     queryFn: () => engineersApi.getCodes(),
+    enabled: !!token && hydrated,
+    retry: 2,
   });
 };
 
 export const useAllEngineers = () => {
+  const token = useAuthStore((s) => s.token);
+  const hydrated = useAuthStore((s) => s._hasHydrated);
+
   return useQuery({
     queryKey: queryKeys.engineers.all,
     queryFn: () => engineersApi.getAll(),
+    enabled: !!token && hydrated,
+    retry: 2,
   });
 };
+
 
 export const useAdminMutations = () => {
   const queryClient = useQueryClient();
