@@ -108,3 +108,167 @@ public class EmailService
             </div>");
     }
 }
+
+public class EmailReminderService : BackgroundService
+{
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ILogger<EmailReminderService> _logger;
+    private DateTimeOffset _lastDailySummary = DateTimeOffset.MinValue;
+    private readonly HashSet<Guid> _sentReminders = new();
+
+    public EmailReminderService(IServiceProvider serviceProvider, ILogger<EmailReminderService> logger)
+    {
+        _serviceProvider = serviceProvider;
+        _logger = logger;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        _logger.LogInformation("EmailReminderService started.");
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                await CheckAndSendRemindersAsync(stoppingToken);
+                await CheckAndSendDailySummaryAsync(stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("EmailReminderService stopping due to cancellation.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in EmailReminderService loop.");
+            }
+
+            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+        }
+    }
+
+    private async Task CheckAndSendRemindersAsync(CancellationToken ct)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MongoService>();
+        var emailService = scope.ServiceProvider.GetRequiredService<EmailService>();
+
+        var now = DateTimeOffset.UtcNow;
+        var cutoff = now.AddMinutes(10);
+
+        var upcomingSessions = await db.Sessions
+            .Find(s => s.Status == SessionStatus.Scheduled
+                        && s.ScheduledAt > now
+                        && s.ScheduledAt <= cutoff)
+            .ToListAsync(ct);
+
+        foreach (var session in upcomingSessions)
+        {
+            if (ct.IsCancellationRequested) break;
+            if (_sentReminders.Contains(session.Id))
+                continue;
+
+            var engineer = await db.Users.Find(u => u.Id == session.EngineerId).FirstOrDefaultAsync(ct);
+            if (engineer == null || string.IsNullOrEmpty(engineer.Email))
+                continue;
+
+            var group = await db.Groups.Find(g => g.Id == session.GroupId).FirstOrDefaultAsync(ct);
+            var cairoTime = session.ScheduledAt.ToOffset(TimeSpan.FromHours(2));
+            var minutesUntil = (int)(session.ScheduledAt - now).TotalMinutes;
+
+            var body = $@"
+                <div style='font-family: sans-serif; background: #020617; color: white; padding: 40px; border-radius: 20px; text-align: center; max-width: 500px; margin: auto;'>
+                    <h2 style='color: #3b82f6;'>⏰ Session Reminder</h2>
+                    <p style='font-size: 1.1em;'>Your session is starting in <strong style='color: #60a5fa;'>{minutesUntil} minutes</strong>!</p>
+                    <div style='background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: left;'>
+                        <p><strong>Group:</strong> {group?.Name ?? "N/A"}</p>
+                        <p><strong>Time:</strong> {cairoTime:hh:mm tt} (Cairo)</p>
+                        <p><strong>Date:</strong> {cairoTime:dddd, MMMM dd}</p>
+                    </div>
+                    <p style='color: #64748b; font-size: 12px; margin-top: 30px;'>SESSIONFLOW — AUTOMATED SYSTEM RELAY</p>
+                </div>";
+
+            var (success, _) = await emailService.SendEmailAsync(
+                engineer.Email,
+                $"Session Reminder: {group?.Name ?? "Session"} starts in {minutesUntil} min",
+                body,
+                ct);
+
+            if (success)
+            {
+                _sentReminders.Add(session.Id);
+                _logger.LogInformation("Reminder sent for session {SessionId} to {Email}", session.Id, engineer.Email);
+            }
+        }
+
+        if (_sentReminders.Count > 500)
+        {
+            var toRemove = _sentReminders.Take(_sentReminders.Count - 100).ToList();
+            foreach (var id in toRemove)
+                _sentReminders.Remove(id);
+        }
+    }
+
+    private async Task CheckAndSendDailySummaryAsync(CancellationToken ct)
+    {
+        var cairoOffset = TimeSpan.FromHours(2);
+        var cairoNow = DateTimeOffset.UtcNow.ToOffset(cairoOffset);
+
+        if (cairoNow.Hour != 22 || cairoNow.Date == _lastDailySummary.Date)
+            return;
+
+        _logger.LogInformation("Sending daily summary emails...");
+        _lastDailySummary = cairoNow;
+
+        using var scope = _serviceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MongoService>();
+        var emailService = scope.ServiceProvider.GetRequiredService<EmailService>();
+
+        var tomorrowStart = new DateTimeOffset(cairoNow.Date.AddDays(1), cairoOffset);
+        var tomorrowEnd = tomorrowStart.AddDays(1);
+
+        var tomorrowSessions = await db.Sessions
+            .Find(s => s.ScheduledAt >= tomorrowStart && s.ScheduledAt < tomorrowEnd
+                        && s.Status == SessionStatus.Scheduled)
+            .ToListAsync(ct);
+
+        var byEngineer = tomorrowSessions.GroupBy(s => s.EngineerId);
+
+        foreach (var group in byEngineer)
+        {
+            if (ct.IsCancellationRequested) break;
+            var engineer = await db.Users.Find(u => u.Id == group.Key).FirstOrDefaultAsync(ct);
+            if (engineer == null || string.IsNullOrEmpty(engineer.Email))
+                continue;
+
+            var sessionList = group.ToList();
+            var sessionsHtmlList = new List<string>();
+            foreach (var s in sessionList)
+            {
+                if (ct.IsCancellationRequested) break;
+                var groupInfo = await db.Groups.Find(g => g.Id == s.GroupId).FirstOrDefaultAsync(ct);
+                var time = s.ScheduledAt.ToOffset(cairoOffset);
+                sessionsHtmlList.Add($"<tr><td style='padding:8px 12px; border-bottom: 1px solid #1e293b;'>{time:hh:mm tt}</td><td style='padding:8px 12px; border-bottom: 1px solid #1e293b;'>{groupInfo?.Name ?? "N/A"}</td></tr>");
+            }
+            
+            var sessionsHtml = string.Join("", sessionsHtmlList);
+
+            var body = $@"
+                <div style='font-family: sans-serif; background: #020617; color: white; padding: 40px; border-radius: 20px; max-width: 600px; margin: auto;'>
+                    <h2 style='color: #3b82f6;'>📋 Tomorrow's Schedule</h2>
+                    <p>Hi {engineer.Name}, here are your sessions for tomorrow ({tomorrowStart:dddd, MMMM dd}):</p>
+                    <table style='width: 100%; border-collapse: collapse; margin: 20px 0; background: #0f172a; border-radius: 12px; overflow: hidden;'>
+                        <tr style='background: #1e293b;'><th style='padding:12px; text-align:left;'>Time</th><th style='padding:12px; text-align:left;'>Group</th></tr>
+                        {sessionsHtml}
+                    </table>
+                    <p style='font-size: 1.1em;'>Total: <strong style='color: #60a5fa;'>{group.Count()}</strong> session(s)</p>
+                    <p style='color: #64748b; font-size: 12px; margin-top: 30px; text-align: center;'>SESSIONFLOW — AUTOMATED SYSTEM RELAY</p>
+                </div>";
+
+            await emailService.SendEmailAsync(
+                engineer.Email,
+                $"SessionFlow: Your schedule for {tomorrowStart:MMMM dd}",
+                body,
+                ct);
+        }
+    }
+}
