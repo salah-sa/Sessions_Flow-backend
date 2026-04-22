@@ -364,7 +364,7 @@ public class AuthService
                 try
                 {
                     using var scope = _scopeFactory.CreateScope();
-                    var mail = scope.ServiceProvider.GetRequiredService<SmtpEmailService>();
+                    var mail = scope.ServiceProvider.GetRequiredService<EmailService>();
                     var (emailSuccess, emailError) = await mail.SendEmailAsync(
                         user.Email,
                         "SessionFlow: Student Activation Completed",
@@ -536,7 +536,7 @@ public class AuthService
         _ = Task.Run(async () => {
             try {
                 using var scope = _scopeFactory.CreateScope();
-                var mail = scope.ServiceProvider.GetRequiredService<SmtpEmailService>();
+                var mail = scope.ServiceProvider.GetRequiredService<EmailService>();
                 var (success, error) = await mail.SendEmailAsync(
                     user.Email,
                     "SessionFlow: Identity Clearance Granted",
@@ -593,7 +593,7 @@ public class AuthService
         _ = Task.Run(async () => {
             try {
                 using var scope = _scopeFactory.CreateScope();
-                var mail = scope.ServiceProvider.GetRequiredService<SmtpEmailService>();
+                var mail = scope.ServiceProvider.GetRequiredService<EmailService>();
                 
                 string subject, body;
                 if (user.Role == UserRole.Student)
@@ -978,7 +978,7 @@ public class AuthService
         // 6. Send email
         using (var scope = _scopeFactory.CreateScope())
         {
-            var mail = scope.ServiceProvider.GetRequiredService<SmtpEmailService>();
+            var mail = scope.ServiceProvider.GetRequiredService<EmailService>();
             var subject = "SessionFlow - Password Reset Code";
             var body = $@"
                 <div style='font-family: sans-serif; background: #020617; color: white; padding: 40px; border-radius: 20px; text-align: center; max-width: 500px; margin: auto;'>

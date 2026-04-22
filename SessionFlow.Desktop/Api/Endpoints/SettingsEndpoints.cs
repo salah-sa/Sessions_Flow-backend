@@ -56,7 +56,7 @@ public static class SettingsEndpoints
         });
 
         // POST /api/settings/test-email
-        group.MapPost("/test-email", [Microsoft.AspNetCore.Authorization.Authorize("AdminOnly")] async (TestEmailRequest req, SmtpEmailService emailService, HttpContext ctx) =>
+        group.MapPost("/test-email", [Microsoft.AspNetCore.Authorization.Authorize("AdminOnly")] async (TestEmailRequest req, EmailService emailService, HttpContext ctx) =>
         {
             var to = req.To;
             if (string.IsNullOrWhiteSpace(to))
