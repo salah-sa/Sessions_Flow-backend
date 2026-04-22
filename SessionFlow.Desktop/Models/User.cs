@@ -57,4 +57,8 @@ public class User
     
     [BsonIgnore]
     public ICollection<ChatMessage> ChatMessages { get; set; } = new List<ChatMessage>();
+
+    // Rate limiting for credential resend
+    public int ResendCredentialsCount { get; set; } = 0;
+    public DateTimeOffset? LastCredentialResendAt { get; set; }
 }

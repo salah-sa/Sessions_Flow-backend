@@ -168,3 +168,15 @@ export async function resetPassword(tokenId: string, newPassword: string): Promi
     return { success: false, error: err.message || "Failed to reset password" };
   }
 }
+
+/**
+ * Resend Credentials — Request a resend of sign-in details (Student ID / Engineer Code)
+ */
+export async function resendCredentials(email: string): Promise<{ success: boolean; message?: string; remaining?: number; error?: string }> {
+  try {
+    const res = await authApi.resendCredentials(email);
+    return { success: true, message: res.message, remaining: res.remaining };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to resend credentials" };
+  }
+}

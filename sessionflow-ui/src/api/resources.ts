@@ -60,6 +60,11 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify({ tokenId, newPassword }),
     }),
+  resendCredentials: (email: string) =>
+    fetchPublic<{ message: string; remaining: number }>("/auth/resend-credentials", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
 };
 
 // Groups Module

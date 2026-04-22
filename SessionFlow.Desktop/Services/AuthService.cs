@@ -546,6 +546,77 @@ public class AuthService
         return (user, null);
     }
 
+    public async Task<(bool success, string? error, int remaining)> ResendCredentialsAsync(string email, CancellationToken ct = default)
+    {
+        var user = await _db.Users.Find(u => u.Email == email).FirstOrDefaultAsync(ct);
+        if (user == null) 
+            return (false, "Email not found in our system.", 0);
+
+        if (!user.IsApproved)
+            return (false, "Your account has not been approved by an administrator yet. Please check back later.", 0);
+
+        // Check daily limit (3 requests per day)
+        var now = DateTimeOffset.UtcNow;
+        if (user.LastCredentialResendAt.HasValue && user.LastCredentialResendAt.Value.Date == now.Date)
+        {
+            if (user.ResendCredentialsCount >= 3)
+                return (false, "Daily limit reached. You can request your credentials up to 3 times per day.", 0);
+            
+            user.ResendCredentialsCount++;
+        }
+        else
+        {
+            user.ResendCredentialsCount = 1;
+        }
+        
+        user.LastCredentialResendAt = now;
+        await _db.Users.ReplaceOneAsync(u => u.Id == user.Id, user, cancellationToken: ct);
+
+        // Send Email asynchronously
+        _ = Task.Run(async () => {
+            try {
+                using var scope = _serviceProvider.CreateScope();
+                var mail = scope.ServiceProvider.GetRequiredService<SmtpEmailService>();
+                
+                string subject, body;
+                if (user.Role == UserRole.Student)
+                {
+                    subject = "SessionFlow: Student Credentials Recovery";
+                    body = $@"<div style='font-family: sans-serif; background: #020617; color: white; padding: 40px; border-radius: 20px;'>
+                            <h2 style='color: #22c55e;'>Credentials Recovered</h2>
+                            <p>Hello, <strong>{user.Name}</strong>. Here are your sign-in details as requested.</p>
+                            <div style='background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;'>
+                                <p style='font-size: 12px; color: #64748b; margin: 0;'>Your Student ID:</p>
+                                <p style='font-size: 20px; font-weight: bold; color: #3b82f6; margin: 5px 0;'>{user.StudentId ?? "N/A"}</p>
+                                <br/>
+                                <p style='font-size: 12px; color: #64748b; margin: 0;'>Engineer Clearance Code:</p>
+                                <p style='font-size: 20px; font-weight: bold; color: #10b981; margin: 5px 0;'>{user.EngineerCode ?? "N/A"}</p>
+                            </div>
+                            <p>Use your Username and Password to access the platform.</p>
+                        </div>";
+                }
+                else
+                {
+                    subject = "SessionFlow: Engineer Credentials Recovery";
+                    body = $@"<div style='font-family: sans-serif; background: #020617; color: white; padding: 40px; border-radius: 20px;'>
+                        <h2 style='color: #3b82f6;'>Credentials Recovered</h2>
+                        <p>Hello, <strong>{user.Name}</strong>. Here is your clearance code as requested.</p>
+                        <div style='background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;'>
+                            <p style='font-size: 12px; color: #64748b; margin: 0;'>Your Unique Engineer Code:</p>
+                            <p style='font-size: 24px; font-weight: bold; color: #3b82f6; margin: 5px 0; letter-spacing: 2px;'>{user.EngineerCode ?? "N/A"}</p>
+                        </div>
+                    </div>";
+                }
+
+                await mail.SendEmailAsync(user.Email, subject, body);
+            } catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine($"Resend credentials email failed: {ex.Message}");
+            }
+        });
+
+        return (true, null, 3 - user.ResendCredentialsCount);
+    }
+
     public async Task<(bool success, string? error)> DenyEngineerAsync(Guid pendingId, CancellationToken ct = default)
     {
         var update = Builders<PendingEngineer>.Update
