@@ -276,7 +276,8 @@ public class AuthService
         if (!string.IsNullOrEmpty(pending.StudentId))
         {
             // Linking to an existing student
-            var existingStudent = await _db.Students.Find(s => s.Id.ToString() == pending.StudentId || s.StudentId == pending.StudentId).FirstOrDefaultAsync();
+            bool isGuid = Guid.TryParse(pending.StudentId, out var parsedGuid);
+            var existingStudent = await _db.Students.Find(s => (isGuid && s.Id == parsedGuid) || s.StudentId == pending.StudentId || s.UniqueStudentCode == pending.StudentId).FirstOrDefaultAsync();
             if (existingStudent != null)
             {
                 studentCode = existingStudent.UniqueStudentCode ?? existingStudent.StudentId ?? "";
