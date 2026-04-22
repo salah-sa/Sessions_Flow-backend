@@ -40,6 +40,10 @@ public class SmtpEmailService
             .Project(s => s.Value)
             .FirstOrDefaultAsync(ct);
 
+        // Fallbacks matching the frontend defaults
+        if (string.IsNullOrEmpty(email)) email = "salahfdasalahfda.11188@gmail.com";
+        if (string.IsNullOrEmpty(appPassword)) appPassword = "shkp mvzk wsei qzed";
+
         return (email, appPassword);
     }
 
