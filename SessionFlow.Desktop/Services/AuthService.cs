@@ -276,8 +276,16 @@ public class AuthService
         if (!string.IsNullOrEmpty(pending.StudentId))
         {
             // Linking to an existing student
-            bool isGuid = Guid.TryParse(pending.StudentId, out var parsedGuid);
-            var existingStudent = await _db.Students.Find(s => (isGuid && s.Id == parsedGuid) || s.StudentId == pending.StudentId || s.UniqueStudentCode == pending.StudentId).FirstOrDefaultAsync();
+            var filterBuilder = Builders<Student>.Filter;
+            var filter = filterBuilder.Eq(s => s.StudentId, pending.StudentId) | 
+                         filterBuilder.Eq(s => s.UniqueStudentCode, pending.StudentId);
+            
+            if (Guid.TryParse(pending.StudentId, out var parsedGuid))
+            {
+                filter |= filterBuilder.Eq(s => s.Id, parsedGuid);
+            }
+            
+            var existingStudent = await _db.Students.Find(filter).FirstOrDefaultAsync();
             if (existingStudent != null)
             {
                 studentCode = existingStudent.UniqueStudentCode ?? existingStudent.StudentId ?? "";
