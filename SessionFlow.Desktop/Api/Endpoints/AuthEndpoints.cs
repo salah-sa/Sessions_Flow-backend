@@ -120,6 +120,21 @@ public static class AuthEndpoints
             });
         });
 
+        group.MapPost("/resend-credentials", async (ResendCredentialsRequest req, AuthService auth) =>
+        {
+            if (string.IsNullOrWhiteSpace(req.Email))
+                return Results.BadRequest(new { error = "Email is required." });
+
+            var (success, error, remaining) = await auth.ResendCredentialsAsync(req.Email.Trim().ToLowerInvariant());
+            if (!success)
+                return Results.BadRequest(new { error });
+
+            return Results.Ok(new { 
+                message = "Credentials have been resent to your email address.",
+                remaining 
+            });
+        });
+
         group.MapPost("/forgot-password", async (ForgotPasswordRequest req, AuthService auth) =>
         {
             if (string.IsNullOrWhiteSpace(req.Email))
@@ -427,4 +442,5 @@ public static class AuthEndpoints
     public record ForgotPasswordRequest(string Email);
     public record VerifyResetCodeRequest(string Email, string Code);
     public record ResetPasswordRequest(Guid TokenId, string NewPassword);
+    public record ResendCredentialsRequest(string Email);
 }

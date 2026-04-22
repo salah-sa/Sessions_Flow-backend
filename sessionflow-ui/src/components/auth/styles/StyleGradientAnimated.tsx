@@ -10,6 +10,7 @@ import { LoginStyleProps } from "../types";
 import { SocialButtons } from "../SocialButtons";
 import RealisticPandaMascot from "../RealisticPandaMascot";
 import { ForgotPasswordModal } from "../ForgotPasswordModal";
+import { ResendCredentialsModal } from "../ResendCredentialsModal";
 
 /* ─── Password strength labels + colors ─── */
 const strengthConfig = [
@@ -49,6 +50,7 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [showForgotDialog, setShowForgotDialog] = useState(false);
+  const [showResendDialog, setShowResendDialog] = useState(false);
 
   const isRegister = props.isRegister ?? false;
 
@@ -362,11 +364,18 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                       <FieldError error={(props.errors as any).password} />
                       
                       {!isRegister && (
-                        <div className="flex justify-end mt-1 px-1">
+                        <div className="flex justify-between mt-1 px-1">
+                          <button
+                            type="button"
+                            onClick={() => setShowResendDialog(true)}
+                            className="text-[9px] font-bold text-slate-500/60 hover:text-[var(--ui-accent)] transition-colors uppercase tracking-widest"
+                          >
+                            Didn't receive credentials?
+                          </button>
                           <button
                             type="button"
                             onClick={() => setShowForgotDialog(true)}
-                            className="text-[10px] font-bold text-[var(--ui-accent)]/60 hover:text-[var(--ui-accent)] transition-colors uppercase tracking-widest"
+                            className="text-[9px] font-bold text-[var(--ui-accent)]/60 hover:text-[var(--ui-accent)] transition-colors uppercase tracking-widest"
                           >
                             Forgot Password?
                           </button>
@@ -512,6 +521,11 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
         isOpen={showForgotDialog} 
         onClose={() => setShowForgotDialog(false)}
         loginMode={props.loginMode}
+      />
+
+      <ResendCredentialsModal 
+        isOpen={showResendDialog} 
+        onClose={() => setShowResendDialog(false)}
       />
     </div>
   );
