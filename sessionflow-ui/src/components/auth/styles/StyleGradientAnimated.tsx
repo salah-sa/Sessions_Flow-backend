@@ -511,6 +511,12 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                     <>Don't have an account? <button onClick={() => props.onNavigate("/register")} className="text-emerald-400 font-bold">Sign up</button></>
                   )}
                 </p>
+                
+                {isRegister && (
+                  <p className="text-[11px] text-slate-500 mt-3">
+                    Didn't receive your credentials? <button type="button" onClick={() => setShowResendDialog(true)} className="text-[var(--ui-accent)] font-bold transition-colors hover:text-[var(--ui-accent)]/80">Resend email</button>
+                  </p>
+                )}
               </div>
             </div>
           </div>

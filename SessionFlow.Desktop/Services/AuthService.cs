@@ -20,15 +20,15 @@ public class AuthService
     private readonly string _generatedAdminPassword;
     private readonly NotificationService _notificationService;
     private readonly IEventBus _eventBus;
-    private readonly IServiceProvider _serviceProvider; // Use provider to avoid circular deps if any
+    private readonly IServiceScopeFactory _scopeFactory;
 
-    public AuthService(MongoService db, IConfiguration config, NotificationService notificationService, IEventBus eventBus, IServiceProvider serviceProvider)
+    public AuthService(MongoService db, IConfiguration config, NotificationService notificationService, IEventBus eventBus, IServiceScopeFactory scopeFactory)
     {
         _db = db;
         _config = config;
         _notificationService = notificationService;
         _eventBus = eventBus;
-        _serviceProvider = serviceProvider;
+        _scopeFactory = scopeFactory;
         _generatedAdminPassword = _config["Security:DefaultAdminPassword"] ?? "Admin1234!";
     }
 
@@ -346,7 +346,7 @@ public class AuthService
             {
                 try
                 {
-                    using var scope = _serviceProvider.CreateScope();
+                    using var scope = _scopeFactory.CreateScope();
                     var mail = scope.ServiceProvider.GetRequiredService<SmtpEmailService>();
                     var (emailSuccess, emailError) = await mail.SendEmailAsync(
                         user.Email,
@@ -365,11 +365,11 @@ public class AuthService
                         </div>"
                     );
 
-                    if (emailSuccess) break; // Success — exit retry loop
+                    if (emailSuccess) break; // Success â€” exit retry loop
 
                     if (attempt == maxRetries && !emailSuccess)
                     {
-                        // Final attempt failed — notify engineer
+                        // Final attempt failed â€” notify engineer
                         var notifService = scope.ServiceProvider.GetRequiredService<NotificationService>();
                         await notifService.CreateNotificationAsync(
                             pending.EngineerId,
@@ -400,7 +400,7 @@ public class AuthService
         // Create an internal notification for the student immediately as a fallback to email
         _ = Task.Run(async () => {
             try {
-                using var scope = _serviceProvider.CreateScope();
+                using var scope = _scopeFactory.CreateScope();
                 var notifService = scope.ServiceProvider.GetRequiredService<NotificationService>();
                 await notifService.CreateNotificationAsync(
                     user.Id,
@@ -517,7 +517,7 @@ public class AuthService
         // Send Approval Email asynchronously (don't block the UI/API response)
         _ = Task.Run(async () => {
             try {
-                using var scope = _serviceProvider.CreateScope();
+                using var scope = _scopeFactory.CreateScope();
                 var mail = scope.ServiceProvider.GetRequiredService<SmtpEmailService>();
                 var (success, error) = await mail.SendEmailAsync(
                     user.Email,
@@ -575,7 +575,7 @@ public class AuthService
         // Send Email asynchronously
         _ = Task.Run(async () => {
             try {
-                using var scope = _serviceProvider.CreateScope();
+                using var scope = _scopeFactory.CreateScope();
                 var mail = scope.ServiceProvider.GetRequiredService<SmtpEmailService>();
                 
                 string subject, body;
@@ -729,7 +729,8 @@ public class AuthService
             if (imageBytes.Length > 2 * 1024 * 1024)
                 throw new ArgumentException("Avatar too large. Maximum 2MB allowed.");
 
-            var storage = _serviceProvider.GetRequiredService<StorageService>();
+            using var scope = _scopeFactory.CreateScope();
+            var storage = scope.ServiceProvider.GetRequiredService<StorageService>();
             using (var stream = new MemoryStream(imageBytes))
             {
                 var gridFsId = await storage.UploadFileAsync(stream, $"{userId}.webp", "image/webp");
@@ -958,7 +959,7 @@ public class AuthService
         await _db.PasswordResetTokens.InsertOneAsync(token);
 
         // 6. Send email
-        using (var scope = _serviceProvider.CreateScope())
+        using (var scope = _scopeFactory.CreateScope())
         {
             var mail = scope.ServiceProvider.GetRequiredService<SmtpEmailService>();
             var subject = "SessionFlow - Password Reset Code";
