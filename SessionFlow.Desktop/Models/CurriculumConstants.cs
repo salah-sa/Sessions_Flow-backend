@@ -4,7 +4,7 @@ public static class CurriculumConstants
 {
     public static int GetMaxStudents(int level)
     {
-        return level == 4 ? 2 : 4;
+        return 4;
     }
 
     public static int GetTotalSessions(int level)

@@ -65,7 +65,32 @@ export const GroupCard: React.FC<GroupCardProps> = ({
                  LVL {group.level}
                </div>
             </div>
-            <p className="text-[11px] text-slate-500 font-medium uppercase tracking-widest leading-relaxed line-clamp-2">{group.description || t("common.none")}</p>
+            <p className="text-[11px] text-slate-500 font-medium uppercase tracking-widest leading-relaxed line-clamp-2">
+              {group.description || (group.schedules && group.schedules.length > 0 ? (
+                (() => {
+                  const s = group.schedules[0];
+                  const days = [
+                    t("common.days.sunday", "Sunday"),
+                    t("common.days.monday", "Monday"),
+                    t("common.days.tuesday", "Tuesday"),
+                    t("common.days.wednesday", "Wednesday"),
+                    t("common.days.thursday", "Thursday"),
+                    t("common.days.friday", "Friday"),
+                    t("common.days.saturday", "Saturday")
+                  ];
+                  const day = days[s.dayOfWeek];
+                  
+                  // Simple time formatting for "HH:mm" to "h:mm A"
+                  const [hours, minutes] = s.startTime.split(':');
+                  const h = parseInt(hours, 10);
+                  const ampm = h >= 12 ? 'PM' : 'AM';
+                  const displayH = h % 12 || 12;
+                  const time = `${displayH}:${minutes} ${ampm}`;
+
+                  return `${day} • ${time}`;
+                })()
+              ) : t("common.none"))}
+            </p>
           </div>
 
           <div className="flex items-center gap-8 pt-8 border-t border-white/5">
