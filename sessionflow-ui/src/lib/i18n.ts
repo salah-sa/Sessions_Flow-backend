@@ -54,6 +54,15 @@ const resources = {
           "thursday": "Thursday",
           "friday": "Friday",
           "saturday": "Saturday"
+        },
+        "days_short": {
+          "sun": "Sun",
+          "mon": "Mon",
+          "tue": "Tue",
+          "wed": "Wed",
+          "thu": "Thu",
+          "fri": "Fri",
+          "sat": "Sat"
         }
       },
       "nav": {
@@ -232,6 +241,7 @@ const resources = {
       "groups": {
         "title": "Group Management",
         "subtitle": "Organize and track your educational groups.",
+        "filter_day": "Filter by Day",
         "create": "Create New Group",
         "sync": "Save Changes",
         "level": "Level",
@@ -1060,7 +1070,25 @@ const resources = {
         "success": "تم بنجاح",
         "warning": "تحذير",
         "info": "معلومات",
-        "cairo_time": "توقيت القاهرة"
+        "cairo_time": "توقيت القاهرة",
+        "days": {
+          "sunday": "الأحد",
+          "monday": "الاثنين",
+          "tuesday": "الثلاثاء",
+          "wednesday": "الأربعاء",
+          "thursday": "الخميس",
+          "friday": "الجمعة",
+          "saturday": "السبت"
+        },
+        "days_short": {
+          "sun": "أحد",
+          "mon": "إثن",
+          "tue": "ثلا",
+          "wed": "أرب",
+          "thu": "خمي",
+          "fri": "جمع",
+          "sat": "سبت"
+        }
       },
       "nav": {
         "dashboard": "لوحة التحكم",
@@ -1126,6 +1154,7 @@ const resources = {
       "groups": {
         "title": "إدارة المجموعات",
         "subtitle": "تنظيم وتتبع المجموعات التعليمية.",
+        "filter_day": "تصفية حسب اليوم",
         "create": "إنشاء مجموعة جديدة",
         "sync": "مزامنة التغييرات",
         "level": "المستوى",

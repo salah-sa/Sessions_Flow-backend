@@ -21,6 +21,7 @@ const GroupsPage: React.FC = () => {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [dayFilter, setDayFilter] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
@@ -39,7 +40,8 @@ const GroupsPage: React.FC = () => {
   const filteredGroups = groups.filter(group => {
     const matchesSearch = group.name.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === "All" || group.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesDay = dayFilter === null || group.schedules?.some(s => s.dayOfWeek === dayFilter);
+    return matchesSearch && matchesStatus && matchesDay;
   });
 
   const handleOpenCreate = () => {
@@ -144,6 +146,8 @@ const GroupsPage: React.FC = () => {
         onSearchChange={setSearch}
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
+        dayFilter={dayFilter}
+        onDayFilterChange={setDayFilter}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
       />
