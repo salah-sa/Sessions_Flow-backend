@@ -13,6 +13,7 @@ const SessionsListPage = lazy(() => import("./pages/SessionsListPage"));
 const SessionPage = lazy(() => import("./pages/SessionPage"));
 const TimetablePage = lazy(() => import("./pages/TimetablePage"));
 const StudentsPage = lazy(() => import("./pages/StudentsPage"));
+const AttendancePage = lazy(() => import("./pages/AttendancePage"));
 const HistoryPage = lazy(() => import("./pages/HistoryPage"));
 const ChatPage = lazy(() => import("./pages/ChatPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
@@ -111,6 +112,16 @@ export const router = createBrowserRouter([
           <RoleGuard allowedRoles={["Admin", "Engineer"]}>
             <Suspense fallback={<PageLoader />}>
               <TimetablePage />
+            </Suspense>
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "attendance",
+        element: (
+          <RoleGuard allowedRoles={["Admin", "Engineer"]}>
+            <Suspense fallback={<PageLoader />}>
+              <AttendancePage />
             </Suspense>
           </RoleGuard>
         ),
