@@ -160,13 +160,26 @@ const MembersPanel: React.FC<MembersPanelProps> = ({ group, isOpen, onClose }) =
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          initial={{ width: 0, opacity: 0 }}
-          animate={{ width: 340, opacity: 1 }}
-          exit={{ width: 0, opacity: 0 }}
-          transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          className="h-full border-s border-white/5 bg-[var(--ui-sidebar-bg)]/95 backdrop-blur-3xl overflow-hidden flex flex-col shrink-0 relative"
-        >
+        <>
+          {/* Mobile Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[50] md:hidden"
+          />
+
+          <motion.div
+            initial={{ x: "100%", opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className={cn(
+              "h-full border-s border-white/5 bg-[var(--ui-sidebar-bg)]/95 backdrop-blur-3xl overflow-hidden flex flex-col shrink-0",
+              "fixed inset-y-0 right-0 z-[60] w-full sm:w-[340px] md:relative md:w-[340px] md:z-auto"
+            )}
+          >
           <div className="absolute top-0 right-0 w-full h-[300px] bg-[var(--ui-accent)]/5 blur-[100px] pointer-events-none" />
 
           <div className="px-8 py-8 border-b border-white/5 flex items-center justify-between flex-none relative z-10">
@@ -193,6 +206,7 @@ const MembersPanel: React.FC<MembersPanelProps> = ({ group, isOpen, onClose }) =
             </AnimatePresence>
           </div>
         </motion.div>
+        </>
       )}
     </AnimatePresence>
   );
