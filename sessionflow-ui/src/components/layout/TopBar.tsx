@@ -41,7 +41,7 @@ const TopBar: React.FC = () => {
 
   const [notifOpen, setNotifOpen] = React.useState(false);
   const [cmdOpen, setCmdOpen] = React.useState(false);
-  const [currentTime, setCurrentTime] = React.useState(format(new Date(), "HH:mm:ss"));
+  const [currentTime, setCurrentTime] = React.useState(format(new Date(), "hh:mm:ss a"));
   const [showExitConfirm, setShowExitConfirm] = React.useState(false);
   const [isExiting, setIsExiting] = React.useState(false);
   const [isMobileDevice, setIsMobileDevice] = React.useState(false);
@@ -62,7 +62,7 @@ const TopBar: React.FC = () => {
 
   React.useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(format(new Date(), "HH:mm:ss"));
+      setCurrentTime(format(new Date(), "hh:mm:ss a"));
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -77,6 +77,21 @@ const TopBar: React.FC = () => {
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
   }, []);
+
+  const studentLocationData = useAuthStore((s) => s.studentLocationData);
+
+  const getFlagEmoji = (countryCode?: string) => {
+    if (!countryCode) return "🌐";
+    try {
+      const codePoints = countryCode
+        .toUpperCase()
+        .split('')
+        .map(char => 127397 + char.charCodeAt(0));
+      return String.fromCodePoint(...codePoints);
+    } catch (e) {
+      return "🌐";
+    }
+  };
 
   const [isMaximized, setIsMaximized] = React.useState(false);
 
@@ -164,47 +179,31 @@ const TopBar: React.FC = () => {
         <div className="flex items-center gap-3">
           <button 
             onClick={toggleSidebar}
-            className="w-10 h-10 rounded-xl bg-[var(--ui-accent)]/10 border border-[var(--ui-accent)]/20 flex items-center justify-center shadow-glow shadow-[var(--ui-accent)]/5 hover:bg-[var(--ui-accent)]/20 transition-all cursor-pointer active:scale-95"
+            className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-[var(--ui-accent)]/10 border border-[var(--ui-accent)]/20 flex items-center justify-center shadow-glow shadow-[var(--ui-accent)]/5 hover:bg-[var(--ui-accent)]/20 transition-all cursor-pointer active:scale-95"
           >
-             <LayoutGrid className="w-5 h-5 text-[var(--ui-accent)]" />
+             <LayoutGrid className="w-4 h-4 md:w-5 md:h-5 text-[var(--ui-accent)]" />
           </button>
-          <div className="hidden sm:block text-start">
-            <h1 className="text-sm font-bold text-white uppercase tracking-[0.2em]">{t("dashboard.title")}</h1>
-            <div className="flex items-center gap-3 mt-0.5">
+          <div className="text-start flex flex-col justify-center">
+            <div className="flex items-center gap-2">
+              <h1 className="text-[10px] md:text-sm font-bold text-white uppercase tracking-[0.1em] md:tracking-[0.2em]">{t("dashboard.title")}</h1>
+              <span className="text-sm md:text-base" title={studentLocationData?.city || "Unknown Location"}>
+                {getFlagEmoji(studentLocationData?.countryCode)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 md:gap-3 mt-0.5">
                <div className="flex items-center gap-1.5">
-                  <div className={cn("w-1.5 h-1.5 rounded-full shadow-glow", connectionMode === "full" ? "bg-[var(--ui-accent)]" : "bg-rose-500 shadow-rose-500/50")} />
-                  <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">
-                     {connectionMode === "full" ? "Neural Link Online" : "Disconnected"}
+                  <div className={cn("w-1 h-1 md:w-1.5 md:h-1.5 rounded-full shadow-glow", connectionMode === "full" ? "bg-[var(--ui-accent)]" : "bg-rose-500 shadow-rose-500/50")} />
+                  <span className="text-[7px] md:text-[8px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap hidden xs:inline">
+                     {connectionMode === "full" ? "Online" : "Offline"}
                   </span>
                </div>
-                <div className="w-px h-3 bg-white/10" />
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/[0.02] border border-white/5">
-                   {networkQuality === "excellent" ? (
-                     <Zap className="w-3 h-3 text-emerald-500 shadow-glow shadow-emerald-500/50" />
-                   ) : networkQuality === "good" ? (
-                     <Wifi className="w-3 h-3 text-[var(--ui-accent)] shadow-glow shadow-[var(--ui-accent)]/50" />
-                   ) : networkQuality === "weak" ? (
-                     <AlertTriangle className="w-3 h-3 text-amber-500 shadow-glow shadow-amber-500/50" />
-                   ) : (
-                     <WifiOff className="w-3 h-3 text-rose-500 shadow-glow shadow-rose-500/50" />
-                   )}
-                   <span className={cn(
-                     "text-[8px] font-black uppercase tracking-widest",
-                     networkQuality === "excellent" ? "text-emerald-500" :
-                     networkQuality === "good" ? "text-[var(--ui-accent)]" :
-                     networkQuality === "weak" ? "text-amber-500" : "text-rose-500"
-                   )}>
-                      {networkQuality.toUpperCase()}
-                   </span>
-                </div>
-                <div className="w-px h-3 bg-white/10" />
+                <div className="w-px h-2.5 md:h-3 bg-white/10 hidden xs:block" />
                 <div className="flex items-center gap-1.5">
-                   <Clock className="w-3 h-3 text-slate-600" />
-                   <span className="text-[9px] font-mono font-bold text-[var(--ui-accent)] tracking-tighter tabular-nums">
+                   <Clock className="w-2.5 h-2.5 md:w-3 md:h-3 text-slate-600" />
+                   <span className="text-[8px] md:text-[9px] font-mono font-bold text-[var(--ui-accent)] tracking-tighter tabular-nums whitespace-nowrap">
                       {currentTime}
                    </span>
                 </div>
-
             </div>
           </div>
         </div>

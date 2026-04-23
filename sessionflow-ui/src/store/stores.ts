@@ -4,6 +4,7 @@ import { User, Session, AttendanceRecord, Notification, AuditLog, ChatMessage } 
 
 export interface StudentLocationData {
   city: string;
+  countryCode?: string;
   lat?: number;
   lng?: number;
   source: 'auto' | 'manual';
@@ -43,7 +44,10 @@ export const useAuthStore = create<AuthState>()(
       },
       setRememberMe: (val) => set({ rememberMe: val }),
       setStudentLocation: (studentLocation) => set({ studentLocation }),
-      setStudentLocationData: (data) => set({ studentLocationData: data, studentLocation: data.city }),
+      setStudentLocationData: (data) => set({ 
+        studentLocationData: data, 
+        studentLocation: data.city 
+      }),
       updateUser: (user) => set({ user }),
       setHasHydrated: (val) => set({ _hasHydrated: val }),
       logout: () => {
