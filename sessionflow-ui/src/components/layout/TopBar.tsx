@@ -71,6 +71,7 @@ const TopBar: React.FC = () => {
   const getHost = () => (window as any).chrome?.webview?.hostObjects?.sessionFlowHost;
 
   const setMinimized = useUIStore((s) => s.setMinimized);
+  const toggleSidebar = useUIStore((s) => s.toggleSidebar);
 
   const handleMinimize = async () => {
     const host = getHost();
@@ -148,9 +149,12 @@ const TopBar: React.FC = () => {
       
       <div className="flex items-center gap-3 flex-1" style={{ WebkitAppRegion: 'no-drag' } as any}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[var(--ui-accent)]/10 border border-[var(--ui-accent)]/20 flex items-center justify-center shadow-glow shadow-[var(--ui-accent)]/5">
+          <button 
+            onClick={toggleSidebar}
+            className="w-10 h-10 rounded-xl bg-[var(--ui-accent)]/10 border border-[var(--ui-accent)]/20 flex items-center justify-center shadow-glow shadow-[var(--ui-accent)]/5 hover:bg-[var(--ui-accent)]/20 transition-all cursor-pointer active:scale-95"
+          >
              <LayoutGrid className="w-5 h-5 text-[var(--ui-accent)]" />
-          </div>
+          </button>
           <div className="hidden sm:block text-start">
             <h1 className="text-sm font-bold text-white uppercase tracking-[0.2em]">{t("dashboard.title")}</h1>
             <div className="flex items-center gap-3 mt-0.5">

@@ -127,9 +127,9 @@ const Shell: React.FC = () => {
           </AnimatePresence>
 
           <div className={cn(
-            "fixed lg:relative h-full z-40 transition-all duration-700 cubic-bezier(0.16, 1, 0.3, 1) transform lg:!transform-none",
+            "fixed lg:relative h-full z-40 transition-all duration-700 cubic-bezier(0.16, 1, 0.3, 1) transform",
             "bg-transparent",
-            sidebarOpen ? "translate-x-0" : "-translate-x-full lg:!translate-x-0"
+            sidebarOpen ? "translate-x-0" : "-translate-x-full"
           )}>
             <Sidebar />
           </div>
