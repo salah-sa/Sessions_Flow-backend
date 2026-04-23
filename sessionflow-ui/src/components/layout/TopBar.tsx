@@ -16,7 +16,9 @@ import {
   Clock,
   Wifi,
   WifiOff,
-  AlertTriangle
+  AlertTriangle,
+  Monitor,
+  Smartphone
 } from "lucide-react";
 
 import { format } from "date-fns";
@@ -42,6 +44,17 @@ const TopBar: React.FC = () => {
   const [currentTime, setCurrentTime] = React.useState(format(new Date(), "HH:mm:ss"));
   const [showExitConfirm, setShowExitConfirm] = React.useState(false);
   const [isExiting, setIsExiting] = React.useState(false);
+  const [isMobileDevice, setIsMobileDevice] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkMobile = () => {
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsMobileDevice(isMobile);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Notification Sync
   const { data: notificationData } = useNotifications();
@@ -241,6 +254,18 @@ const TopBar: React.FC = () => {
           <div className="relative">
              <div className="w-10 h-10 rounded-xl bg-[var(--ui-surface)] border border-white/5 flex items-center justify-center text-white overflow-hidden shadow-xl transition-all duration-300 group-hover:border-[var(--ui-accent)]/50 group-hover:shadow-[var(--ui-accent)]/10 ring-0 group-hover:ring-4 ring-[var(--ui-accent)]/5">
                 {user?.avatarUrl ? <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" /> : <div className="text-xs font-black">{user?.name?.charAt(0)}</div>}
+             </div>
+             
+             {/* Device-aware Online Indicator LED */}
+             <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#0a0a0a] border border-white/10 rounded-lg flex items-center justify-center shadow-xl z-10">
+                <div className="w-full h-full rounded-lg bg-emerald-500/10 flex items-center justify-center relative">
+                   {isMobileDevice ? (
+                     <Smartphone className="w-3 h-3 text-emerald-500 animate-pulse shadow-glow shadow-emerald-500/50" />
+                   ) : (
+                     <Monitor className="w-3 h-3 text-emerald-500 animate-pulse shadow-glow shadow-emerald-500/50" />
+                   )}
+                   <div className="absolute inset-0 bg-emerald-500/20 blur-[2px] rounded-full animate-pulse" />
+                </div>
              </div>
           </div>
         </Link>
