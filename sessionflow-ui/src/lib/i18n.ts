@@ -62,6 +62,7 @@ const resources = {
         "sessions": "Sessions",
         "students": "Students",
         "timetable": "Timetable",
+        "attendance": "Attendance",
         "chat": "Chat",
         "history": "History",
         "archive": "Archive",
@@ -449,6 +450,15 @@ const resources = {
         "latency_value": "Real-time",
         "encryption": "Security",
         "encryption_value": "Secure"
+      },
+      "attendance": {
+        "title": "Attendance",
+        "subtitle": "Daily session attendance and tracking.",
+        "search": "Search groups...",
+        "make_attendance": "Make Attendance",
+        "wizard_title": "Attendance Form",
+        "step_details": "Details",
+        "step_students": "Students"
       },
       "timetable": {
         "title": "Class Schedule",
@@ -1058,6 +1068,7 @@ const resources = {
         "sessions": "الجلسات",
         "students": "الطلاب",
         "timetable": "الجدول الزمني",
+        "attendance": "الغياب والحضور",
         "chat": "المحادثة",
         "history": "السجل",
         "archive": "الأرشيف",
@@ -1355,6 +1366,15 @@ const resources = {
         "latency_value": "مزامنة فورية",
         "encryption": "التشفير",
         "encryption_value": "TLS آمن"
+      },
+      "attendance": {
+        "title": "الغياب والحضور",
+        "subtitle": "تتبع حضور وانصراف المجموعات اليومية.",
+        "search": "البحث عن مجموعة...",
+        "make_attendance": "تسجيل الحضور",
+        "wizard_title": "نموذج الحضور",
+        "step_details": "التفاصيل",
+        "step_students": "الطلاب"
       },
       "timetable": {
         "title": "مصفوفة الجدول",

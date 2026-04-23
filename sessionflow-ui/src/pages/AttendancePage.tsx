@@ -96,7 +96,7 @@ const AttendancePage: React.FC = () => {
                 const endDate = new Date(scheduledDate.getTime() + session.durationMinutes * 60000);
                 endTimeStr = format(endDate, "HH:mm");
               }
-              const studentCount = session.group?.students?.length || 0;
+              const studentCount = session.totalStudents || session.group?.students?.length || 0;
 
               return (
               <Card key={session.id} className="p-6 border border-white/5 bg-[var(--ui-sidebar-bg)]/40 backdrop-blur-3xl hover:bg-white/[0.04] transition-colors group flex flex-col">

@@ -3,6 +3,7 @@ import { Modal, Button, Input, Card } from "../../components/ui";
 import { Check, X, Clock, Users, ArrowRight, Save, FileText } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Session } from "../../types";
+import { useSession } from "../../queries/useSessionQueries";
 import { StudentFeedback, AttendanceFormData, generateAttendanceFormUrl } from "./AttendanceGoogleFormService";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
@@ -35,32 +36,37 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
   // Form State
   const [formData, setFormData] = useState<Partial<AttendanceFormData>>({});
   
-  // Initialize form when session opens
+  // Fetch complete session data including students when the modal opens
+  const { data: detailedSession } = useSession(isOpen && session ? session.id : undefined);
+  
+  // Initialize form when session data is loaded
   React.useEffect(() => {
-    if (session && isOpen) {
-      const scheduledDate = new Date(session.scheduledAt);
+    const activeSession = detailedSession || session;
+    if (activeSession && isOpen) {
+      const scheduledDate = new Date(activeSession.scheduledAt);
       const dateStr = format(scheduledDate, "yyyy-MM-dd");
       const startTimeStr = format(scheduledDate, "HH:mm");
       
       let endTimeStr = "";
-      if (session.durationMinutes) {
-        const endDate = new Date(scheduledDate.getTime() + session.durationMinutes * 60000);
+      if (activeSession.durationMinutes) {
+        const endDate = new Date(scheduledDate.getTime() + activeSession.durationMinutes * 60000);
         endTimeStr = format(endDate, "HH:mm");
       }
 
-      const students = session.group?.students || [];
+      // detailedSession.students from GET /api/sessions/{id}
+      const students = (detailedSession as any)?.students || activeSession.group?.students || [];
 
       setFormData({
-        groupName: session.groupName || "",
+        groupName: activeSession.groupName || "",
         dayOfWeek: scheduledDate.getDay(),
         startTime: startTimeStr,
         endTime: endTimeStr,
         date: dateStr,
-        lectureNumber: session.sessionNumber || 1,
+        lectureNumber: activeSession.sessionNumber || 1,
         isLastLecture: false,
         isNextLastLecture: false,
         notes: "",
-        students: students.map(s => ({
+        students: students.map((s: any) => ({
           id: s.id,
           name: s.name,
           isPresent: true,
@@ -74,7 +80,7 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
       });
       setStep(1);
     }
-  }, [session, isOpen]);
+  }, [detailedSession, session, isOpen]);
 
   const updateStudent = (studentId: string, updates: Partial<StudentFeedback>) => {
     setFormData(prev => ({
