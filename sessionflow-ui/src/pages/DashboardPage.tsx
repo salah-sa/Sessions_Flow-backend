@@ -91,11 +91,10 @@ const DashboardPage: React.FC = () => {
   const levelKeys = ["fundamentals", "intermediate", "advanced", "masterclass"];
   
   const distributionData = [1, 2, 3, 4].map((lvl, i) => {
-    const groupsAtLevel = (data?.topGroups || []).filter(g => g.level === lvl);
-    const studentCount = groupsAtLevel.reduce((sum, g) => sum + g.studentCount, 0);
+    const entry = (data?.operatorDistribution || []).find(d => d.level === lvl);
     return { 
       label: t(`sidebar.levels.${levelKeys[i]}`), 
-      value: studentCount, 
+      value: entry?.count ?? 0, 
       color: levelColors[i] 
     };
   });

@@ -295,6 +295,7 @@ export interface DashboardSummary {
   // Breakdowns
   revenueByLevel: RevenueByLevel[];
   attendanceByLevel: { level: number; rate: number }[];
+  operatorDistribution: { level: number; count: number }[];
   sessionsByStatus: SessionsByStatus[];
   topGroups: TopGroup[];
 
