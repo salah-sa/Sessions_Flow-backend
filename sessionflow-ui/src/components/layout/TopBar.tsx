@@ -98,8 +98,6 @@ const TopBar: React.FC = () => {
     return () => document.removeEventListener("keydown", down);
   }, []);
 
-  const studentLocationData = useAuthStore((s) => s.studentLocationData);
-
   const getFlagEmoji = (countryCode?: string) => {
     if (!countryCode) return "🌐";
     try {
