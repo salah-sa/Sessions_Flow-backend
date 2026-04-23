@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { User, Mail, Shield, Calendar, Clock, Activity, Lock, Save, Loader2, Key, Target, ShieldCheck, ArrowUpRight, TrendingUp, History, Camera, Upload, Copy, Check } from "lucide-react";
+import { User, Mail, Shield, Calendar, Clock, Activity, Lock, Save, Loader2, Key, Target, ShieldCheck, ArrowUpRight, TrendingUp, History, Camera, Upload, Copy, Check, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Card, Button, Input, Badge, Skeleton } from "../components/ui";
 import { useAuthStore } from "../store/stores";
@@ -13,6 +14,8 @@ import { useTranslation } from "react-i18next";
 
 const ProfilePage: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const logout = useAuthStore((s) => s.logout);
   const user = useAuthStore((s) => s.user);
   const setAuth = useAuthStore((s) => s.setAuth);
   const [oldPassword, setOldPassword] = useState("");
@@ -220,7 +223,16 @@ const ProfilePage: React.FC = () => {
                     </Button>
                  </form>
               </div>
-           </div>
+
+               {/* Sign Out */}
+               <button 
+                 onClick={() => { logout(); navigate("/login"); }}
+                 className="w-full h-12 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-2xl flex items-center justify-center gap-3 text-[10px] font-bold uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all shadow-glow shadow-rose-500/0 hover:shadow-rose-500/20 active:scale-95"
+               >
+                 <LogOut className="w-4 h-4" />
+                 <span>{t("nav.logout")}</span>
+               </button>
+            </div>
 
            {/* Metrics & Activity Feed */}
            <div className="lg:col-span-2 space-y-12">

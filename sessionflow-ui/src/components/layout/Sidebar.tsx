@@ -6,11 +6,8 @@ import {
   MessageSquare, 
   Calendar, 
   ShieldCheck, 
-  LogOut,
   Zap,
   Target,
-  Activity,
-  Box,
   Clock,
   Archive,
   User,
@@ -109,7 +106,6 @@ const NavItem = ({ to, icon: Icon, label, badge, locked }: { to: string; icon: a
 
 const Sidebar: React.FC = () => {
   const { t } = useTranslation();
-  const logout = useAuthStore((s) => s.logout);
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
   const location = useLocation();
@@ -147,11 +143,6 @@ const Sidebar: React.FC = () => {
        markSectionSeen("staff_students", pendingStudentIds);
     }
   }, [location.pathname, isAdmin, isEngineer, pendingEngineerIds.join(","), pendingStudentIds.join(","), markSectionSeen]);
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
 
   return (
     <aside className="h-full w-[280px] bg-[var(--ui-sidebar-bg)] border-e border-white/5 flex flex-col z-[50]">
@@ -197,25 +188,7 @@ const Sidebar: React.FC = () => {
         <LanguageBridge />
       </nav>
 
-      <div className="p-4 shrink-0 border-t border-white/5 bg-white/[0.01]">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5 opacity-60">
-             <div className="w-2 h-2 rounded-full bg-[var(--ui-accent)] shadow-glow" />
-             <div className="flex flex-col">
-                <span className="text-[8px] font-black text-white uppercase tracking-tighter leading-none">Node active</span>
-                <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">V 1.9</span>
-             </div>
-          </div>
-          
-          <button 
-            onClick={handleLogout}
-            className="h-9 px-4 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-lg flex items-center justify-center gap-2 text-[9px] font-bold uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all shadow-glow shadow-rose-500/0 hover:shadow-rose-500/20 active:scale-95"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>{t("nav.logout")}</span>
-          </button>
-        </div>
-      </div>
+
     </aside>
   );
 };
