@@ -15,7 +15,8 @@ const AttendancePage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const todayStr = format(new Date(), "yyyy-MM-dd");
-
+  
+  // Cairo offset is +2
   const { data, isLoading } = useInfiniteSessions({
     startDate: todayStr,
     endDate: todayStr,
@@ -89,7 +90,11 @@ const AttendancePage: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredSessions.map((session) => {
-              const scheduledDate = new Date(session.scheduledAt);
+              // Treat the stored timestamp as local time to avoid double-offset (+2h) shift
+              // Backend stored Cairo time as UTC, so we remove the 'Z' to prevent browser from adding another +2h
+              const localIso = session.scheduledAt.replace('Z', '');
+              const scheduledDate = new Date(localIso);
+              
               const startTimeStr = format(scheduledDate, "hh:mm a");
               let endTimeStr = "";
               if (session.durationMinutes) {
@@ -97,16 +102,19 @@ const AttendancePage: React.FC = () => {
                 endTimeStr = format(endDate, "hh:mm a");
               }
               const studentCount = session.totalStudents || session.group?.students?.length || 0;
-              const isAttendable = session.status !== "Scheduled";
+              
+              // Allow attendance for Active, Ended, and today's Scheduled sessions
+              const isAttendable = true; 
+              const isScheduled = session.status === "Scheduled";
 
               return (
               <Card key={session.id} className={cn(
                 "p-5 sm:p-6 border border-white/5 bg-[var(--ui-sidebar-bg)]/40 backdrop-blur-3xl hover:bg-white/[0.04] transition-all group flex flex-col relative overflow-hidden",
                 !isAttendable && "opacity-75"
               )}>
-                {!isAttendable && (
+                {isScheduled && (
                   <div className="absolute top-0 right-0 px-3 py-1 bg-amber-500/10 text-amber-500 text-[8px] font-black uppercase tracking-[0.2em] rounded-bl-xl border-b border-l border-amber-500/20">
-                    Standby
+                    Ready
                   </div>
                 )}
                 <div className="flex justify-between items-start mb-6">
@@ -124,23 +132,22 @@ const AttendancePage: React.FC = () => {
                 
                 <div className="mt-auto pt-6 border-t border-white/5">
                   <Button 
-                    variant={isAttendable ? "primary" : "secondary"}
-                    disabled={!isAttendable}
+                    variant={isScheduled ? "outline" : "primary"}
                     className={cn(
                       "w-full h-12 flex items-center justify-center gap-2 transition-all",
-                      isAttendable ? "group-hover:shadow-[0_0_20px_rgba(var(--ui-accent-rgb),0.3)]" : "opacity-50 cursor-not-allowed"
+                      "group-hover:shadow-[0_0_20px_rgba(var(--ui-accent-rgb),0.3)]"
                     )}
-                    onClick={() => isAttendable && handleMakeAttendance(session)}
+                    onClick={() => handleMakeAttendance(session)}
                   >
-                    {isAttendable ? (
+                    {isScheduled ? (
                       <>
-                        <CheckCircle className="w-4 h-4" />
-                        {t("attendance.make_attendance") || "Make Attendance"}
+                        <Zap className="w-4 h-4 text-[var(--ui-accent)]" />
+                        {t("attendance.start_and_mark") || "Start & Mark"}
                       </>
                     ) : (
                       <>
-                        <Clock className="w-4 h-4" />
-                        Waiting to Start
+                        <CheckCircle className="w-4 h-4" />
+                        {t("attendance.mark_attendance") || "Mark Attendance"}
                       </>
                     )}
                   </Button>

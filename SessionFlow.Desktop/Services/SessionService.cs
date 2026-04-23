@@ -27,17 +27,23 @@ public class SessionService
 
         // Use the refined ScheduleEngine to generate the full timeline
         var generatedSessions = ScheduleEngine.GenerateFromGroup(group, schedules);
+        var cairoTz = GetConfiguredTimeZone();
 
         if (generatedSessions.Count > 0)
         {
-            var sessionsToInsert = generatedSessions.Select(gs => new Session
+            var sessionsToInsert = generatedSessions.Select(gs => 
             {
-                GroupId = group.Id,
-                EngineerId = group.EngineerId,
-                SessionNumber = gs.SessionNumber,
-                ScheduledAt = gs.ScheduledDate.Add(gs.StartTime).ToUniversalTime(),
-                Status = SessionStatus.Scheduled,
-                DurationMinutes = gs.DurationMinutes
+                var localTime = gs.ScheduledDate.Add(gs.StartTime);
+                var offset = cairoTz.GetUtcOffset(localTime);
+                return new Session
+                {
+                    GroupId = group.Id,
+                    EngineerId = group.EngineerId,
+                    SessionNumber = gs.SessionNumber,
+                    ScheduledAt = new DateTimeOffset(localTime, offset).ToUniversalTime(),
+                    Status = SessionStatus.Scheduled,
+                    DurationMinutes = gs.DurationMinutes
+                };
             }).ToList();
 
             await _db.Sessions.InsertManyAsync(sessionsToInsert, cancellationToken: ct);
