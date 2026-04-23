@@ -123,6 +123,7 @@ public static class SessionEndpoints
                     attendanceCount = records.Count,
                     presentCount = records.Count(ar => ar.Status == AttendanceStatus.Present),
                     totalStudents = studentsLookup.GetValueOrDefault(s.GroupId, 0),
+                    durationMinutes = s.DurationMinutes,
                     createdAt = s.CreatedAt
                 });
             }
@@ -192,6 +193,7 @@ public static class SessionEndpoints
                 endedAt = session.EndedAt,
                 status = session.Status.ToString(),
                 notes = session.Notes,
+                durationMinutes = session.DurationMinutes,
                 students = groupStudents.Select(s => new
                 {
                     id = s.Id,

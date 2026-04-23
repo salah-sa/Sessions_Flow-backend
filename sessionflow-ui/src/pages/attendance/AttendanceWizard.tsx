@@ -15,19 +15,6 @@ interface AttendanceWizardProps {
   session: Session | null;
 }
 
-const mapDayOfWeek = (dateString: string): number => {
-  const d = new Date(dateString);
-  return d.getDay(); // 0-6 where 0 is Sunday
-};
-
-const formatTime = (timeString: string) => {
-  if (!timeString) return "";
-  try {
-    return timeString.substring(0, 5); // Assuming format "HH:mm:ss" or similar
-  } catch (e) {
-    return timeString;
-  }
-};
 
 export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onClose, session }) => {
   const { t } = useTranslation();
@@ -37,7 +24,7 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
   const [formData, setFormData] = useState<Partial<AttendanceFormData>>({});
   
   // Fetch complete session data including students when the modal opens
-  const { data: detailedSession } = useSession(isOpen && session ? session.id : undefined);
+  const { data: detailedSession } = useSession(session?.id);
   
   // Initialize form when session data is loaded
   React.useEffect(() => {
@@ -188,6 +175,18 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
 
         {step === 2 && (
           <div className="space-y-4">
+            {formData.students.length > 6 && (
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex gap-3 items-start animate-in fade-in slide-in-from-top-4">
+                <Clock className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-amber-500 uppercase tracking-tight">Student Limit Notice</p>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    The current Google Form only supports up to 6 students. 
+                    Only the first 6 students listed below will be exported.
+                  </p>
+                </div>
+              </div>
+            )}
             {formData.students.map((student, idx) => (
               <Card key={student.id} className="p-4 border border-white/5 bg-white/[0.02]">
                 <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/5">

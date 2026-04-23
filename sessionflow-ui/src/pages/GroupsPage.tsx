@@ -119,7 +119,7 @@ const GroupsPage: React.FC = () => {
               {t("groups.system_active")}
             </div>
             <div className="h-px w-8 bg-white/10" />
-            <span className="text-xs font-semibold text-slate-600 uppercase tabular-nums">{groups.length} {t("groups.card.groups_registered")}</span>
+            <span className="text-xs font-semibold text-slate-600 uppercase tabular-nums">{data?.pages[0]?.totalCount ?? groups.length} {t("groups.card.groups_registered")}</span>
           </div>
           <h1 className="text-3xl sm:text-5xl md:text-7xl font-semibold text-white tracking-tighter uppercase leading-[0.85]">
             {t("groups.title")}

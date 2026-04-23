@@ -167,7 +167,7 @@ const Sidebar: React.FC = () => {
         <NavItem to="/sessions" icon={Target} label={t("nav.sessions") || "Sessions"} locked={isStudent} />
         <NavItem to="/students" icon={User} label={t("nav.students")} locked={isStudent} />
         <NavItem to="/timetable" icon={Calendar} label={t("nav.timetable")} />
-        <NavItem to="/attendance" icon={CheckCircle} label={t("attendance.title") || "Attendance"} locked={isStudent} />
+        <NavItem to="/attendance" icon={CheckCircle} label={t("nav.attendance") || "Attendance"} locked={isStudent} />
         <NavItem to="/chat" icon={MessageSquare} label={t("nav.chat")} badge={chatBadgeCount} />
         <NavItem to="/history" icon={Clock} label={t("nav.history") || "History"} />
         
