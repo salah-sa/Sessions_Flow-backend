@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import NotificationCenter from "./NotificationCenter";
 import CommandPalette from "./CommandPalette";
 import { useNotifications } from "../../queries/useNotificationQueries";
+import { useIPGeolocation } from "../../queries/useGeoQueries";
 import { ConfirmDialog } from "../ui";
 
 const TopBar: React.FC = () => {
@@ -45,6 +46,25 @@ const TopBar: React.FC = () => {
   const [showExitConfirm, setShowExitConfirm] = React.useState(false);
   const [isExiting, setIsExiting] = React.useState(false);
   const [isMobileDevice, setIsMobileDevice] = React.useState(false);
+  
+  const { studentLocationData, setStudentLocationData } = useAuthStore();
+  const geoMutation = useIPGeolocation();
+
+  React.useEffect(() => {
+    if (!studentLocationData && !geoMutation.isPending && !geoMutation.isSuccess) {
+      geoMutation.mutate();
+    }
+  }, [studentLocationData]);
+
+  React.useEffect(() => {
+    if (geoMutation.isSuccess && geoMutation.data && !studentLocationData) {
+      setStudentLocationData({
+        ...geoMutation.data,
+        source: 'auto',
+        timestamp: Date.now()
+      });
+    }
+  }, [geoMutation.isSuccess, geoMutation.data]);
 
   React.useEffect(() => {
     const checkMobile = () => {

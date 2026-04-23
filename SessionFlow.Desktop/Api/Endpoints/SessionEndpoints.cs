@@ -70,7 +70,10 @@ public static class SessionEndpoints
             else if (!string.IsNullOrEmpty(startDate) && DateTimeOffset.TryParse(startDate, out var sD) &&
                      !string.IsNullOrEmpty(endDate) && DateTimeOffset.TryParse(endDate, out var eD))
             {
-                filter &= builder.Gte(s => s.ScheduledAt, sD.ToUniversalTime()) & builder.Lt(s => s.ScheduledAt, eD.AddDays(1).ToUniversalTime());
+                var cairoOffset = TimeSpan.FromHours(2);
+                var rangeStart = new DateTimeOffset(sD.Date, cairoOffset).ToUniversalTime();
+                var rangeEnd = new DateTimeOffset(eD.Date, cairoOffset).ToUniversalTime().AddDays(1);
+                filter &= builder.Gte(s => s.ScheduledAt, rangeStart) & builder.Lt(s => s.ScheduledAt, rangeEnd);
             }
 
             var (skip, take) = PaginationHelper.Normalize(page, pageSize);

@@ -3,7 +3,7 @@ import { Modal, Button, Input, Card } from "../../components/ui";
 import { Check, X, Clock, Users, ArrowRight, Save, FileText } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Session } from "../../types";
-import { useSession } from "../../queries/useSessionQueries";
+import { useSession, useSessionMutations } from "../../queries/useSessionQueries";
 import { StudentFeedback, AttendanceFormData, generateAttendanceFormUrl } from "./AttendanceGoogleFormService";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
@@ -25,12 +25,21 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
   
   // Fetch complete session data including students when the modal opens
   const { data: detailedSession } = useSession(session?.id);
+  const { startMutation } = useSessionMutations();
   
   // Initialize form when session data is loaded
   React.useEffect(() => {
     const activeSession = detailedSession || session;
     if (activeSession && isOpen) {
-      const scheduledDate = new Date(activeSession.scheduledAt);
+      // Auto-start session if it's scheduled
+      if (activeSession.status === "Scheduled" && !startMutation.isPending) {
+        startMutation.mutate(activeSession.id);
+      }
+
+      // Treat the stored timestamp as local time to avoid double-offset (+2h) shift
+      const localIso = activeSession.scheduledAt.replace('Z', '');
+      const scheduledDate = new Date(localIso);
+      
       const dateStr = format(scheduledDate, "yyyy-MM-dd");
       const startTimeStr = format(scheduledDate, "hh:mm a");
       
