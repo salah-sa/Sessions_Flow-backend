@@ -33,10 +33,10 @@ export const GroupList: React.FC<GroupListProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 pt-4"
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-8 pt-4"
           >
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-[380px] rounded-2zl bg-white/[0.02] border border-white/5 animate-pulse" />
+              <div key={i} className="h-[280px] md:h-[380px] rounded-2zl bg-white/[0.02] border border-white/5 animate-pulse" />
             ))}
           </motion.div>
         ) : groups.length === 0 ? (
@@ -62,7 +62,7 @@ export const GroupList: React.FC<GroupListProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 pt-4"
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-8 pt-4"
           >
             {groups.map((group, index) => (
               <GroupCard 
@@ -84,14 +84,14 @@ export const GroupList: React.FC<GroupListProps> = ({
             className="card-base !p-0 overflow-hidden border-white/5 bg-[var(--ui-sidebar-bg)]/80 backdrop-blur-3xl"
           >
             <div className="overflow-x-auto custom-scrollbar">
-              <table className="w-full text-start border-collapse min-w-[800px]">
+              <table className="w-full text-start border-collapse min-w-[600px] md:min-w-[800px]">
                 <thead>
                   <tr className="bg-white/[0.02] border-b border-white/5 text-slate-500 text-[10px] uppercase font-bold tracking-[0.2em]">
-                    <th className="px-8 py-6 text-start">{t("groups.wizard.step1.name")}</th>
-                    <th className="px-8 py-6 text-center">{t("groups.modal.students")}</th>
-                    <th className="px-8 py-6 text-center">{t("groups.wizard.step1.level")}</th>
-                    <th className="px-8 py-6 text-start">{t("groups.card.next_session")}</th>
-                    <th className="px-8 py-6 text-end">{t("common.actions")}</th>
+                    <th className="px-4 md:px-8 py-4 md:py-6 text-start">{t("groups.wizard.step1.name")}</th>
+                    <th className="px-4 md:px-8 py-4 md:py-6 text-center hidden sm:table-cell">{t("groups.modal.students")}</th>
+                    <th className="px-4 md:px-8 py-4 md:py-6 text-center">{t("groups.wizard.step1.level")}</th>
+                    <th className="px-4 md:px-8 py-4 md:py-6 text-start hidden md:table-cell">{t("groups.card.next_session")}</th>
+                    <th className="px-4 md:px-8 py-4 md:py-6 text-end">{t("common.actions")}</th>
                   </tr>
                 </thead>
                 <tbody className="text-xs">
@@ -104,24 +104,24 @@ export const GroupList: React.FC<GroupListProps> = ({
                       transition={{ delay: index * 0.03 }}
                       className="border-b last:border-none border-white/5 hover:bg-white/[0.01] transition-colors group"
                     >
-                      <td className="px-8 py-6">
+                      <td className="px-4 md:px-8 py-4 md:py-6">
                         <div className="flex items-center gap-4">
-                          <div className="w-2 h-2 rounded-full bg-[var(--ui-accent)] shadow-[0_0_10px_rgba(var(--ui-accent-rgb),0.5)]" />
-                          <span className="font-bold text-slate-300 group-hover:text-white transition-colors">{group.name}</span>
+                          <div className="w-2 h-2 rounded-full bg-[var(--ui-accent)] shadow-[0_0_10px_rgba(var(--ui-accent-rgb),0.5)] shrink-0" />
+                          <span className="font-bold text-slate-300 group-hover:text-white transition-colors truncate max-w-[150px] md:max-w-none">{group.name}</span>
                         </div>
                       </td>
-                      <td className="px-8 py-6 text-center text-slate-500 font-bold tabular-nums">{group.studentCount ?? group.students?.length ?? 0}</td>
-                      <td className="px-8 py-6 text-center">
-                        <div className="inline-flex h-6 px-3 rounded-md bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] text-[9px] font-bold uppercase tracking-widest items-center border border-[var(--ui-accent)]/20">
+                      <td className="px-4 md:px-8 py-4 md:py-6 text-center text-slate-500 font-bold tabular-nums hidden sm:table-cell">{group.studentCount ?? group.students?.length ?? 0}</td>
+                      <td className="px-4 md:px-8 py-4 md:py-6 text-center">
+                        <div className="inline-flex h-6 px-3 rounded-md bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] text-[9px] font-bold uppercase tracking-widest items-center border border-[var(--ui-accent)]/20 shrink-0">
                            LVL {group.level}
                         </div>
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-4 md:px-8 py-4 md:py-6 hidden md:table-cell">
                         <span className="text-[10px] uppercase font-bold text-slate-500 tracking-tight">
                           {group.nextSession ? new Date(group.nextSession).toLocaleDateString() : t("common.none")}
                         </span>
                       </td>
-                      <td className="px-8 py-6 text-end">
+                      <td className="px-4 md:px-8 py-4 md:py-6 text-end">
                         <div className="flex justify-end gap-2">
                           <button 
                             onClick={() => onAddStudent(group)}

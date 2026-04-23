@@ -339,6 +339,22 @@
   }
 }
 
+/* UTILITIES */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  @media (max-width: 767px) {
+    .touch-target { 
+      min-height: 44px; 
+      min-width: 44px; 
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+}
+
 /* Custom Scrollbar for the Void */
 ::-webkit-scrollbar {
   width: 4px;

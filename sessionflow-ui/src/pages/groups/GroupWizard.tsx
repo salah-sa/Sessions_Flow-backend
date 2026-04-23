@@ -175,12 +175,12 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
           <div 
             key={step.id} 
             className={cn(
-              "flex-1 h-10 px-4 rounded-xl flex items-center justify-center gap-2 transition-all",
+              "flex-1 h-10 px-2 md:px-4 rounded-xl flex items-center justify-center gap-2 transition-all",
               wizardStep === step.id ? "bg-[var(--ui-accent)] text-white shadow-glow" : "text-slate-600"
             )}
           >
             <step.icon className={cn("w-3.5 h-3.5", wizardStep === step.id ? "animate-pulse" : "")} />
-            <span className="text-[10px] font-black uppercase tracking-widest hidden md:inline">{step.label}</span>
+            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest hidden sm:inline">{step.label}</span>
           </div>
         ))}
       </div>
@@ -188,7 +188,7 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {wizardStep === 1 && (
           <div className="space-y-8 animate-fade-in">
-            <div className="grid grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ms-1">{t("groups.wizard.step1.name")}</label>
                 <input 
@@ -262,7 +262,7 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-3 bg-[var(--ui-bg)]/50 p-5 rounded-2xl border border-white/5 shadow-inner">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-1">{t("groups.wizard.step2.capacity")}</label>
                 <div className="flex items-center justify-between">
@@ -344,8 +344,8 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
               
               <div className="grid gap-3">
                 {fields.map((field, index) => (
-                  <div key={field.id} className="flex gap-4 items-center bg-[var(--ui-sidebar-bg)]/80 p-4 rounded-2xl border border-white/5 hover:border-[var(--ui-accent)]/30 transition-colors group/row">
-                    <div className="flex-1">
+                  <div key={field.id} className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center bg-[var(--ui-sidebar-bg)]/80 p-4 rounded-2xl border border-white/5 hover:border-[var(--ui-accent)]/30 transition-colors group/row">
+                    <div className="w-full sm:flex-1">
                       <select 
                         {...register(`schedules.${index}.dayOfWeek` as const, { valueAsNumber: true })}
                         className="w-full h-10 rounded-xl border border-white/5 bg-[var(--ui-bg)] px-4 text-xs font-black text-slate-300 uppercase tracking-widest focus:ring-2 focus:ring-[var(--ui-accent)]/50 outline-none"
@@ -355,19 +355,19 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
                         ))}
                       </select>
                     </div>
-                    <div className="w-32">
+                    <div className="w-full sm:w-32">
                       <select {...register(`schedules.${index}.startTime` as const)} className="w-full h-10 rounded-xl border border-white/5 bg-[var(--ui-bg)] px-4 text-xs font-black text-slate-300 focus:ring-2 focus:ring-[var(--ui-accent)]/50 outline-none tabular-nums">
                         {TIME_SLOTS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                       </select>
                     </div>
-                    <div className="w-32">
+                    <div className="w-full sm:w-32">
                       <select {...register(`schedules.${index}.durationMinutes` as const, { valueAsNumber: true })} className="w-full h-10 rounded-xl border border-white/5 bg-[var(--ui-bg)] px-4 text-xs font-black text-slate-300 focus:ring-2 focus:ring-[var(--ui-accent)]/50 outline-none">
                         <option value={60}>1 HOUR</option>
                         <option value={90}>1.5 HOURS</option>
                         <option value={120}>2 HOURS</option>
                       </select>
                     </div>
-                    <button type="button" onClick={() => remove(index)} className="h-10 w-10 flex items-center justify-center rounded-xl text-slate-600 hover:text-red-500 hover:bg-red-500/10 transition-all">
+                    <button type="button" onClick={() => remove(index)} className="h-10 w-full sm:w-10 flex items-center justify-center rounded-xl text-slate-600 hover:text-red-500 hover:bg-red-500/10 transition-all">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -384,7 +384,7 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
         )}
 
         {wizardStep === 3 && mode === "create" && (
-          <div className="space-y-6 animate-fade-in h-[400px] overflow-y-auto custom-scrollbar pe-2">
+          <div className="space-y-6 animate-fade-in max-h-[400px] overflow-y-auto custom-scrollbar pe-2">
               <div className="p-4 bg-[var(--ui-sidebar-bg)] border border-white/5 rounded-2xl flex items-center gap-4 mb-8">
                  <div className="w-12 h-12 rounded-2xl bg-[var(--ui-accent)]/10 border border-[var(--ui-accent)]/20 flex items-center justify-center shadow-glow shadow-[var(--ui-accent)]/5">
                     <GraduationCap className="w-6 h-6 text-[var(--ui-accent)]" />
