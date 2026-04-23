@@ -444,6 +444,14 @@ public static class DashboardEndpoints
                     })
                     .OrderBy(x => x.level)
                     .ToList(),
+                operatorDistribution = activeGroups
+                    .GroupBy(g => g.Level)
+                    .Select(grp => new {
+                        level = grp.Key,
+                        count = grp.Sum(g => g.NumberOfStudents)
+                    })
+                    .OrderBy(x => x.level)
+                    .ToList(),
                 sessionsByStatus = sessionsByStatus,
                 topGroups = topGroups,
 
