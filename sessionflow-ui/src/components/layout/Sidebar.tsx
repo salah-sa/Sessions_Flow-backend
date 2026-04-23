@@ -155,7 +155,7 @@ const Sidebar: React.FC = () => {
 
   return (
     <aside className="h-full w-[280px] bg-[var(--ui-sidebar-bg)] border-e border-white/5 flex flex-col z-[50]">
-      <div className="px-6 py-5 mb-2 relative">
+      <div className="px-6 py-4 mb-1 relative">
          <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-[var(--ui-accent)] flex items-center justify-center shadow-glow shadow-[var(--ui-accent)]/20 relative overflow-hidden">
                <Zap className="w-6 h-6 text-white relative z-10" />
@@ -197,31 +197,23 @@ const Sidebar: React.FC = () => {
         <LanguageBridge />
       </nav>
 
-      <div className="p-4 shrink-0">
-        <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-4 relative overflow-hidden group">
-          <div className="relative z-10 flex flex-col gap-3">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-black border border-white/10 flex items-center justify-center shrink-0">
-                 <Box className="w-5 h-5 text-slate-600 group-hover:text-[var(--ui-accent)] transition-colors" />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-white uppercase tracking-widest leading-none">Active Node</p>
-                <div className="flex items-center gap-1.5 mt-1.5 opacity-60">
-                   <Activity className="w-3 h-3 text-[var(--ui-accent)]" />
-                   <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Protocol 1.9</span>
-                </div>
-              </div>
-            </div>
-            
-            <button 
-              onClick={handleLogout}
-              className="w-full h-11 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-xl flex items-center justify-center gap-3 text-[10px] font-bold uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all shadow-glow shadow-rose-500/0 hover:shadow-rose-500/20"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>{t("nav.logout")}</span>
-            </button>
+      <div className="p-4 shrink-0 border-t border-white/5 bg-white/[0.01]">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5 opacity-60">
+             <div className="w-2 h-2 rounded-full bg-[var(--ui-accent)] shadow-glow" />
+             <div className="flex flex-col">
+                <span className="text-[8px] font-black text-white uppercase tracking-tighter leading-none">Node active</span>
+                <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">V 1.9</span>
+             </div>
           </div>
-          <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--ui-accent)]/5 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2" />
+          
+          <button 
+            onClick={handleLogout}
+            className="h-9 px-4 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-lg flex items-center justify-center gap-2 text-[9px] font-bold uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all shadow-glow shadow-rose-500/0 hover:shadow-rose-500/20 active:scale-95"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>{t("nav.logout")}</span>
+          </button>
         </div>
       </div>
     </aside>
