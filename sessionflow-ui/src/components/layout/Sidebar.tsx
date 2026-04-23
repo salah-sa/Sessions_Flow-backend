@@ -37,7 +37,7 @@ const LanguageBridge: React.FC = () => {
   };
 
   return (
-    <div className="mt-auto px-6 py-8">
+    <div className="px-6 py-3">
       <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex items-center justify-between">
         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Language Bridge</span>
         <button 
@@ -69,7 +69,7 @@ const NavItem = ({ to, icon: Icon, label, badge, locked }: { to: string; icon: a
       to={to}
       onClick={handleClick}
       className={({ isActive }) => cn(
-        "group relative flex items-center gap-4 px-6 py-4 rounded-xl transition-all duration-300 overflow-hidden",
+        "group relative flex items-center gap-4 px-6 py-2.5 rounded-xl transition-all duration-300 overflow-hidden",
         isActive && !locked ? "bg-[var(--ui-accent)]/10 text-white" : "text-slate-500 hover:text-white hover:bg-white/[0.02]",
         locked && "opacity-75"
       )}
@@ -155,7 +155,7 @@ const Sidebar: React.FC = () => {
 
   return (
     <aside className="h-full w-[280px] bg-[var(--ui-sidebar-bg)] border-e border-white/5 flex flex-col z-[50]">
-      <div className="p-10 mb-6 relative">
+      <div className="px-6 py-5 mb-2 relative">
          <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-[var(--ui-accent)] flex items-center justify-center shadow-glow shadow-[var(--ui-accent)]/20 relative overflow-hidden">
                <Zap className="w-6 h-6 text-white relative z-10" />
@@ -169,7 +169,7 @@ const Sidebar: React.FC = () => {
          <div className="absolute bottom-0 left-10 right-10 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </div>
 
-      <nav className="flex-1 px-4 space-y-2 overflow-y-auto custom-scrollbar">
+      <nav className="flex-1 px-4 space-y-2 overflow-y-auto min-h-0 custom-scrollbar">
         <NavItem to="/dashboard" icon={BarChart3} label={t("nav.dashboard")} />
         <NavItem to="/groups" icon={Users} label={t("nav.groups") || "Groups"} locked={isStudent} />
         <NavItem to="/sessions" icon={Target} label={t("nav.sessions") || "Sessions"} locked={isStudent} />
@@ -178,7 +178,7 @@ const Sidebar: React.FC = () => {
         <NavItem to="/chat" icon={MessageSquare} label={t("nav.chat")} badge={chatBadgeCount} />
         <NavItem to="/history" icon={Clock} label={t("nav.history") || "History"} />
         
-        <div className="py-8 px-6">
+        <div className="py-3 px-6">
            <p className="text-[9px] font-bold text-slate-700 uppercase tracking-widest mb-4">Core Modules</p>
            <div className="h-px bg-white/5" />
         </div>
@@ -197,9 +197,9 @@ const Sidebar: React.FC = () => {
         <LanguageBridge />
       </nav>
 
-      <div className="p-4">
-        <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-6 relative overflow-hidden group">
-          <div className="relative z-10 flex flex-col gap-6">
+      <div className="p-4 shrink-0">
+        <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-4 relative overflow-hidden group">
+          <div className="relative z-10 flex flex-col gap-3">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-black border border-white/10 flex items-center justify-center shrink-0">
                  <Box className="w-5 h-5 text-slate-600 group-hover:text-[var(--ui-accent)] transition-colors" />
