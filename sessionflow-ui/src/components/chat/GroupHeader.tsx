@@ -103,7 +103,7 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
   const overflow = members.length - visibleAvatars.length;
 
   return (
-    <div className="relative px-10 py-6 bg-[var(--ui-sidebar-bg)]/80 backdrop-blur-3xl border-b border-white/5 flex-none z-20">
+    <div className="relative px-4 md:px-10 py-3 md:py-6 bg-[var(--ui-sidebar-bg)]/80 backdrop-blur-3xl border-b border-white/5 flex-none z-20">
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--ui-accent)]/40 to-transparent" />
 
       <div className="flex items-center justify-between gap-8">
@@ -112,7 +112,7 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
         </button>
 
         <div className="flex items-center gap-6 min-w-0 flex-1">
-          <div className="w-12 h-12 shrink-0 rounded-xl bg-gradient-to-br from-[var(--ui-accent)]/20 to-[#7c3aed]/10 border border-[var(--ui-accent)]/30 flex items-center justify-center text-white font-bold text-xs shadow-glow shadow-[var(--ui-accent)]/10">
+          <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-xl bg-gradient-to-br from-[var(--ui-accent)]/20 to-[#7c3aed]/10 border border-[var(--ui-accent)]/30 flex items-center justify-center text-white font-bold text-xs shadow-glow shadow-[var(--ui-accent)]/10">
             L{group.level}
           </div>
 
@@ -160,10 +160,10 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          <button onClick={onToggleMute} className={cn("w-11 h-11 rounded-xl flex items-center justify-center transition-all border", isMuted ? "bg-rose-500/10 border-rose-500/30 text-rose-500" : "bg-white/[0.02] border-white/5 text-slate-600 hover:text-[var(--ui-accent)] hover:border-[var(--ui-accent)]/20")}>
+          <button onClick={onToggleMute} className={cn("w-9 h-9 md:w-11 md:h-11 rounded-xl flex items-center justify-center transition-all border", isMuted ? "bg-rose-500/10 border-rose-500/30 text-rose-500" : "bg-white/[0.02] border-white/5 text-slate-600 hover:text-[var(--ui-accent)] hover:border-[var(--ui-accent)]/20")}>
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
-          <button onClick={onToggleMembers} className={cn("h-11 px-5 rounded-xl flex items-center gap-3 transition-all border font-bold text-[9px] uppercase tracking-widest", membersOpen ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/40 text-[var(--ui-accent)]" : "bg-white/[0.02] border-white/5 text-slate-600 hover:text-white hover:border-white/10")}>
+          <button onClick={onToggleMembers} className={cn("h-9 md:h-11 px-3 md:px-5 rounded-xl flex items-center gap-2 md:gap-3 transition-all border font-bold text-[9px] uppercase tracking-widest", membersOpen ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/40 text-[var(--ui-accent)]" : "bg-white/[0.02] border-white/5 text-slate-600 hover:text-white hover:border-white/10")}>
             <Users className="w-4 h-4" />
             <span>{members.length}</span>
           </button>

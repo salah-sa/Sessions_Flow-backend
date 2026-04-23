@@ -157,7 +157,7 @@ const TopBar: React.FC = () => {
 
 
   return (
-    <header className="h-[80px] bg-[var(--ui-sidebar-bg)] border-b border-white/5 flex items-center justify-between px-6 relative z-40 select-none" style={{ WebkitAppRegion: 'drag' } as any}>
+    <header className="h-[56px] md:h-[80px] bg-[var(--ui-sidebar-bg)] border-b border-white/5 flex items-center justify-between px-4 md:px-6 relative z-40 select-none" style={{ WebkitAppRegion: 'drag' } as any}>
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--ui-accent)] to-transparent opacity-30" />
       
       <div className="flex items-center gap-3 flex-1" style={{ WebkitAppRegion: 'no-drag' } as any}>
@@ -222,7 +222,7 @@ const TopBar: React.FC = () => {
       </div>
 
       <div className="flex items-center gap-0" style={{ WebkitAppRegion: 'no-drag' } as any}>
-        <div className="hidden lg:flex items-center gap-4 border-r border-white/5 pe-6">
+        <div className="flex items-center gap-1 md:gap-4 border-r border-white/5 pe-2 md:pe-6">
            <button 
               onClick={() => navigate("/chat")}
               className="p-2 text-slate-500 hover:text-white transition-colors relative"
@@ -245,7 +245,7 @@ const TopBar: React.FC = () => {
 
         <Link 
           to="/profile" 
-          className="flex items-center gap-4 px-6 group transition-all border-r border-white/5 h-[80px]" 
+          className="flex items-center gap-2 md:gap-4 px-3 md:px-6 group transition-all border-r border-white/5 h-full" 
         >
           <div className="text-right hidden sm:block">
             <p className="text-[10px] font-bold text-white uppercase tracking-widest leading-none group-hover:text-[var(--ui-accent)] transition-colors">{user?.name}</p>
@@ -270,8 +270,8 @@ const TopBar: React.FC = () => {
           </div>
         </Link>
 
-        {/* Windows-style Window Controls on the FAR Right */}
-        <div className="flex items-center h-[80px]">
+        {/* Windows-style Window Controls on the FAR Right - Hidden on Mobile */}
+        <div className="hidden md:flex items-center h-full">
           <button 
             onClick={handleMinimize}
             className="w-[48px] h-full flex items-center justify-center text-slate-500 hover:bg-white/5 transition-colors"

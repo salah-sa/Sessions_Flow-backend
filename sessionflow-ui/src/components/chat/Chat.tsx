@@ -109,7 +109,7 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
 
         <div className="flex flex-col gap-2">
           <div className={cn(
-            "px-6 py-4 rounded-xl text-[13px] relative shadow-2xl border transition-all duration-300",
+            "px-4 py-3 md:px-6 md:py-4 rounded-xl text-[13px] relative shadow-2xl border transition-all duration-300",
             isMe 
               ? "bg-ui-accent text-white font-medium border-transparent shadow-ui-accent/20" 
               : "bg-ui-sidebar-bg/95 text-slate-200 border-white/5 shadow-black/80"
@@ -242,7 +242,7 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
   return (
     <div className="flex flex-col h-full bg-ui-sidebar-bg/40 backdrop-blur-3xl rounded-xl border border-white/5 overflow-hidden shadow-2xl relative">
       <div className="flex-1 min-h-0 relative">
-        <div ref={scrollRef} className="absolute inset-0 overflow-y-auto p-8 space-y-2 custom-scrollbar">
+        <div ref={scrollRef} className="absolute inset-0 overflow-y-auto p-4 md:p-8 space-y-2 custom-scrollbar">
           {isLoading && <div className="flex flex-col items-center justify-center py-20"><Loader2 className="w-10 h-10 text-ui-accent animate-spin mb-4" /><p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">establishing link...</p></div>}
           {hasNextPage && <div className="flex justify-center py-6"><Button variant="ghost" size="sm" onClick={() => fetchNextPage?.()} className="text-[10px] font-bold text-slate-500 hover:text-white uppercase tracking-widest bg-white/[0.02] border border-white/5 rounded-xl px-8">{isFetchingNextPage ? "Accessing Archive..." : "Load Older Records"}</Button></div>}
           {messages.map((msg, i) => <MessageBubble key={msg.id} message={msg} isMe={msg.senderId === user?.id} showSender={i === 0 || messages[i-1]?.senderId !== msg.senderId} />)}
@@ -250,7 +250,7 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
         <AnimatePresence>{showScrollButton && <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} onClick={() => scrollRef.current?.scroll({ top: scrollRef.current.scrollHeight, behavior: "smooth" })} className="absolute bottom-8 right-10 w-12 h-12 rounded-full bg-ui-accent text-white flex items-center justify-center shadow-glow shadow-ui-accent/40 border border-ui-accent/20 hover:scale-110 transition-all"><ChevronDown className="w-6 h-6" /></motion.button>}</AnimatePresence>
       </div>
 
-      <div className="p-6 bg-ui-bg/80 border-t border-white/5 flex flex-col gap-4 relative z-50">
+      <div className="p-3 md:p-6 bg-ui-bg/80 border-t border-white/5 flex flex-col gap-4 relative z-50">
         <TypingIndicator activeGroupId={activeGroupId} />
         
         <AnimatePresence>
@@ -260,7 +260,7 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              className="absolute bottom-full left-6 mb-4 z-[60] shadow-2xl rounded-2xl overflow-hidden border border-white/10"
+              className="absolute bottom-full left-0 right-0 md:left-6 md:right-auto mb-4 z-[60] shadow-2xl rounded-2xl overflow-hidden border border-white/10"
             >
               <Picker 
                 data={data} 
@@ -274,7 +274,7 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
           )}
 
           {showMentions && filteredMembers.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="absolute bottom-full left-6 mb-4 w-72 bg-ui-sidebar-bg border border-white/10 rounded-xl shadow-2xl overflow-hidden overflow-y-auto max-h-64 custom-scrollbar">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="absolute bottom-full left-3 md:left-6 right-3 md:right-auto mb-4 w-auto md:w-72 bg-ui-sidebar-bg border border-white/10 rounded-xl shadow-2xl overflow-hidden overflow-y-auto max-h-64 custom-scrollbar">
               <div className="p-3 border-b border-white/5 bg-white/[0.02] text-[9px] font-bold text-slate-500 uppercase tracking-widest">Establish Point-to-Point Mention</div>
               {filteredMembers.map((m, i) => (
                 <button key={m.id} onClick={() => insertMention(m)} className={cn("w-full flex items-center gap-4 px-5 py-4 transition-all text-left", i === mentionIndex ? "bg-ui-accent/10 text-ui-accent" : "text-slate-400 hover:bg-white/5")}>
@@ -288,7 +288,7 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
 
         {selectedFile && <div className="p-3 bg-black/40 border border-white/5 rounded-xl self-start flex gap-4 items-center relative"><img src={selectedFileUrl!} className="w-12 h-12 rounded-lg object-cover" /><div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{selectedFile.name}</div><button onClick={() => setSelectedFile(null)} className="p-1 hover:text-rose-500 transition-colors"><X className="w-4 h-4" /></button></div>}
 
-        <div className="flex items-center gap-3 bg-black/40 rounded-xl border border-white/5 px-4 h-16 shadow-inner transition-all focus-within:border-ui-accent/30">
+        <div className="flex items-center gap-2 md:gap-3 bg-black/40 rounded-xl border border-white/5 px-3 md:px-4 h-12 md:h-16 shadow-inner transition-all focus-within:border-ui-accent/30">
           <Button variant="ghost" size="icon" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="text-slate-500 hover:text-ui-accent"><Smile className="w-5 h-5" /></Button>
           <input 
             ref={inputRef} value={text} onChange={(e) => handleInputChange(e.target.value)} 

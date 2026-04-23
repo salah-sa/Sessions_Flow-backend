@@ -109,7 +109,7 @@ const GroupsPage: React.FC = () => {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return (
-    <div className="container-page pb-20 space-y-12">
+    <div className="container-page pb-20 space-y-6 md:space-y-12">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-30">
         <div className="space-y-4 animate-in fade-in slide-in-from-left-8 duration-1000">
@@ -121,17 +121,17 @@ const GroupsPage: React.FC = () => {
             <div className="h-px w-8 bg-white/10" />
             <span className="text-xs font-semibold text-slate-600 uppercase tabular-nums">{groups.length} {t("groups.card.groups_registered")}</span>
           </div>
-          <h1 className="text-5xl md:text-7xl font-semibold text-white tracking-tighter uppercase leading-[0.85]">
+          <h1 className="text-3xl sm:text-5xl md:text-7xl font-semibold text-white tracking-tighter uppercase leading-[0.85]">
             {t("groups.title")}
           </h1>
         </div>
 
         <div className="flex gap-4 animate-in fade-in slide-in-from-right-8 duration-1000">
-          <Button variant="secondary" size="lg" className="!h-14 !px-8 group">
+          <Button variant="secondary" size="lg" className="!h-11 !px-5 sm:!h-14 sm:!px-8 group">
              <Download className="w-5 h-5 me-2 text-slate-500 group-hover:text-white transition-colors" />
              {t("common.export")}
           </Button>
-          <Button onClick={handleOpenCreate} variant="primary" size="lg" className="!h-14 !px-8 !shadow-glow !shadow-ui-accent/20">
+          <Button onClick={handleOpenCreate} variant="primary" size="lg" className="!h-11 !px-5 sm:!h-14 sm:!px-8 !shadow-glow !shadow-ui-accent/20">
              <Plus className="w-6 h-6 me-2" />
              {t("groups.action_create")}
           </Button>
