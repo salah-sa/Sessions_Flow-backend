@@ -5,39 +5,13 @@ echo ==========================================
 echo   SessionFlow Production Build Script
 echo ==========================================
 
-:: 0. Verify Docker Services (Mongo + Redis)
-echo [0/5] Verifying Docker Services (Mongo + Redis)...
-docker ps >nul 2>&1
-if %errorlevel% neq 0 (
-    echo   ! ERROR: Docker Desktop is not running. Please start it.
-    pause
-    exit /b 1
-)
-
-:: Start Mongo if not running
-docker inspect -f {{.State.Running}} mongo >nul 2>&1
-if %errorlevel% neq 0 (
-    echo   - Starting MongoDB container...
-    docker start mongo
-)
-
-:: Start Redis if not running
-docker inspect -f {{.State.Running}} redis-sessionflow >nul 2>&1
-if %errorlevel% neq 0 (
-    echo   - Starting Redis container...
-    docker start redis-sessionflow
-)
-
-:: Wait for services to stabilize
-timeout /t 3 /nobreak >nul
-
 :: 1. Force kill existing app instances to release file/port locks
-echo [1/5] Cleaning up existing sessions...
+echo [1/4] Cleaning up existing sessions...
 taskkill /F /IM SessionFlow.Desktop.exe /T 2>nul
 timeout /t 2 /nobreak >nul
 
 :: 2. Build Frontend (sessionflow-ui)
-echo [2/5] Building React Frontend (sessionflow-ui)...
+echo [2/4] Building React Frontend (sessionflow-ui)...
 pushd "sessionflow-ui"
 if not exist "node_modules" (
     echo   - node_modules not found, running npm install...
@@ -53,12 +27,12 @@ if %errorlevel% neq 0 (
 popd
 
 :: 3. Prepare wwwroot in Desktop Project
-echo [3/5] Cleaning SessionFlow.Desktop\wwwroot...
+echo [3/4] Cleaning SessionFlow.Desktop\wwwroot...
 if not exist "SessionFlow.Desktop\wwwroot" mkdir "SessionFlow.Desktop\wwwroot"
 powershell -Command "Remove-Item -Path 'SessionFlow.Desktop\wwwroot\*' -Recurse -Force -ErrorAction SilentlyContinue"
 
 :: 4. Sync Assets from Frontend dist to Backend wwwroot
-echo [4/5] Syncing assets from sessionflow-ui\dist...
+echo [4/4] Syncing assets from sessionflow-ui\dist...
 if not exist "sessionflow-ui\dist" (
     echo   ! ERROR: Frontend dist folder is missing.
     pause
@@ -83,7 +57,7 @@ if %errorlevel% neq 0 (
 )
 popd
 
-:: 6. Direct Sync to Output Folders (Fix for 404/Missing Assets)
+:: 6. Final Sync to Output Folders
 echo [6/6] Finalizing UI assets in Output folders...
 set "DEST_RELEASE=SessionFlow.Desktop\bin\Release\net9.0-windows\win-x64\wwwroot"
 if exist "SessionFlow.Desktop\bin\Release\net9.0-windows\win-x64" (
