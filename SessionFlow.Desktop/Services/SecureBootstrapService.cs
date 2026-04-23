@@ -16,6 +16,7 @@ public static class SecureBootstrapService
     private const string DbConnStringKey = "Database:ConnectionString";
     private const string JwtSecretKey = "Jwt:SecretKey";
     private const string AdminPasswordKey = "Security:DefaultAdminPassword";
+    private const string RedisConnStringKey = "Redis:ConnectionString";
 
     private static readonly string EnvFilePath = Path.Combine(
         AppDomain.CurrentDomain.BaseDirectory, ".env");
@@ -64,12 +65,44 @@ public static class SecureBootstrapService
             PersistToEnvFile($"{EnvPrefix}ADMIN_PASSWORD", adminPass);
         }
 
+        // --- Redis Injection (Railway REDIS_URL support) ---
+        var redisUrl = Environment.GetEnvironmentVariable("REDIS_URL");
+        var redisConn = Environment.GetEnvironmentVariable($"{EnvPrefix}REDIS_CONNECTION") 
+                       ?? tempConfig[RedisConnStringKey];
+
+        if (!string.IsNullOrWhiteSpace(redisUrl) && redisUrl.StartsWith("redis://"))
+        {
+            try 
+            {
+                // Format: redis://default:password@host:port
+                var uri = new Uri(redisUrl);
+                var password = uri.UserInfo.Split(':').LastOrDefault();
+                var host = uri.Host;
+                var port = uri.Port;
+                
+                redisConn = string.IsNullOrEmpty(password) 
+                    ? $"{host}:{port}" 
+                    : $"{host}:{port},password={password}";
+                
+                // Add common Railway options
+                if (!redisConn.Contains("abortConnect"))
+                {
+                    redisConn += ",abortConnect=false,connectTimeout=5000";
+                }
+            }
+            catch
+            {
+                // Fallback to existing redisConn if parsing fails
+            }
+        }
+
         // Inject as in-memory overrides (highest priority)
         var overrides = new Dictionary<string, string?>
         {
             [JwtSecretKey] = jwtSecret,
             [DbConnStringKey] = dbConn,
-            [AdminPasswordKey] = adminPass
+            [AdminPasswordKey] = adminPass,
+            [RedisConnStringKey] = redisConn
         };
 
         builder.AddInMemoryCollection(overrides);
