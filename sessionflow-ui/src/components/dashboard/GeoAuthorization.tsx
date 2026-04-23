@@ -33,7 +33,7 @@ export const GeoAuthorization: React.FC = () => {
     if (hasResolvedLocation || attempted.current) return;
     attempted.current = true;
 
-    const finalizeLocation = async (latitude: number, longitude: number) => {
+    const finalizeLocation = async (latitude: number, longitude: number, countryCode?: string) => {
       let city: string;
       try {
         city = await reverseGeocode({ lat: latitude, lng: longitude });
@@ -43,6 +43,7 @@ export const GeoAuthorization: React.FC = () => {
 
       const locationData = {
         city,
+        countryCode,
         lat: latitude,
         lng: longitude,
         source: 'auto' as const,
@@ -69,7 +70,7 @@ export const GeoAuthorization: React.FC = () => {
     const tryIPFallback = async () => {
       try {
         const data = await fetchIPGeo();
-        await finalizeLocation(data.lat, data.lng);
+        await finalizeLocation(data.lat, data.lng, data.countryCode);
       } catch {
         // Silent fail — user can manually trigger from settings later
         console.warn("[GeoAuthorization] IP-based geolocation also failed. No location saved.");

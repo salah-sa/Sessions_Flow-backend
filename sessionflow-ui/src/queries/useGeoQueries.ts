@@ -21,7 +21,8 @@ export const useIPGeolocation = () => {
       return {
         lat: data.latitude,
         lng: data.longitude,
-        city: data.city || "Remote Node"
+        city: data.city || "Remote Node",
+        countryCode: data.country_code
       };
     }
   });
