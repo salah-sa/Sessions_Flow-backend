@@ -90,10 +90,12 @@ public static class SessionEndpoints
             var groupsList = await db.Groups.Find(g => groupIds.Contains(g.Id)).ToListAsync();
             var engineersList = await db.Users.Find(e => engineerIds.Contains(e.Id)).ToListAsync();
             var allRecords = await db.AttendanceRecords.Find(ar => sessionIds.Contains(ar.SessionId)).ToListAsync();
+            var allActiveStudents = await db.Students.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync();
 
             var groupDict = groupsList.ToDictionary(g => g.Id);
             var engDict = engineersList.ToDictionary(e => e.Id);
             var recordsLookup = allRecords.GroupBy(ar => ar.SessionId).ToDictionary(g => g.Key, g => g.ToList());
+            var studentsLookup = allActiveStudents.GroupBy(s => s.GroupId).ToDictionary(g => g.Key, g => g.Count());
 
             var result = new List<object>();
             foreach (var s in sessions)
@@ -120,6 +122,7 @@ public static class SessionEndpoints
                     notes = s.Notes,
                     attendanceCount = records.Count,
                     presentCount = records.Count(ar => ar.Status == AttendanceStatus.Present),
+                    totalStudents = studentsLookup.GetValueOrDefault(s.GroupId, 0),
                     createdAt = s.CreatedAt
                 });
             }
