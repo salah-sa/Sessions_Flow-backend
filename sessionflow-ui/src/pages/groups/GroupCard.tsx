@@ -32,15 +32,15 @@ export const GroupCard: React.FC<GroupCardProps> = ({
       exit={{ opacity: 0, scale: 0.9 }}
       transition={{ delay: index * 0.05, duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
       whileHover={{ y: -5, transition: { duration: 0.2 } }}
-      className="relative w-full h-[380px]"
+      className="relative w-full min-h-[320px] h-auto md:h-[380px]"
     >
       <div className="card-base absolute inset-0 flex flex-col group transition-all duration-500 border-white/5 hover:border-[var(--ui-accent)]/40 shadow-2xl overflow-hidden">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--ui-accent)]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         
-        <div className="p-8 space-y-8 flex-1 relative z-20">
+        <div className="p-5 md:p-8 space-y-6 md:space-y-8 flex-1 relative z-20">
           <div className="flex justify-between items-start">
-            <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5 text-[var(--ui-accent)] shadow-inner transition-transform group-hover:scale-105">
-              <Users className="w-6 h-6" />
+            <div className="p-3 md:p-4 rounded-xl bg-white/[0.03] border border-white/5 text-[var(--ui-accent)] shadow-inner transition-transform group-hover:scale-105">
+              <Users className="w-5 h-5 md:w-6 md:h-6" />
             </div>
             <div className="flex gap-2">
               <button 
@@ -59,9 +59,9 @@ export const GroupCard: React.FC<GroupCardProps> = ({
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center gap-3">
-               <h3 className="text-2xl font-bold text-white tracking-tighter truncate">{group.name}</h3>
-               <div className="h-5 px-3 rounded-md bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] text-[9px] font-bold uppercase tracking-[0.2em] flex items-center border border-[var(--ui-accent)]/20">
+            <div className="flex items-center gap-2 md:gap-3">
+               <h3 className="text-xl md:text-2xl font-bold text-white tracking-tighter truncate">{group.name}</h3>
+               <div className="h-5 px-2.5 md:px-3 rounded-md bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] text-[8px] md:text-[9px] font-bold uppercase tracking-[0.2em] flex items-center border border-[var(--ui-accent)]/20 shrink-0">
                  LVL {group.level}
                </div>
             </div>
@@ -93,14 +93,14 @@ export const GroupCard: React.FC<GroupCardProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-8 pt-8 border-t border-white/5">
-              <div className="flex items-center gap-4 min-w-0">
-                <div className="relative w-16 h-16 flex items-center justify-center drop-shadow-2xl">
-                  <svg className="w-full h-full -rotate-90 transform">
+          <div className="flex items-center gap-4 md:gap-8 pt-5 md:pt-8 border-t border-white/5">
+              <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                <div className="relative w-12 h-12 md:w-16 md:h-16 flex items-center justify-center drop-shadow-2xl shrink-0">
+                  <svg viewBox="0 0 64 64" className="w-full h-full -rotate-90 transform">
                     <circle cx="32" cy="32" r="30" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-white/5" />
                     <circle cx="32" cy="32" r="30" stroke="currentColor" strokeWidth="4" fill="transparent" strokeDasharray="188.5" strokeDashoffset={188.5 - (Math.min(1, (group.studentCount ?? group.students?.length ?? 0) / group.numberOfStudents) * 188.5)} className="text-[var(--ui-accent)] transition-all duration-1000" />
                   </svg>
-                  <span className="absolute text-lg font-bold text-white">
+                  <span className="absolute text-sm md:text-lg font-bold text-white">
                     {group.studentCount ?? group.students?.length ?? 0}
                   </span>
                 </div>
@@ -125,7 +125,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({
           </div>
         </div>
 
-        <div className="px-8 py-6 bg-white/[0.01] border-t border-white/5 flex items-center justify-between mt-auto">
+        <div className="px-5 py-4 md:px-8 md:py-6 bg-white/[0.01] border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-auto">
           <div className="space-y-1">
              <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">{t("groups.card.next_session")}</p>
              <p className="text-[11px] font-bold text-slate-300 uppercase tracking-tighter">
@@ -135,10 +135,10 @@ export const GroupCard: React.FC<GroupCardProps> = ({
              </p>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => onAddStudent(group)} className="w-10 h-10 rounded-lg flex items-center justify-center bg-white/[0.03] border border-white/5 text-slate-400 hover:text-[var(--ui-accent)] hover:border-[var(--ui-accent)]/30 transition-all">
+            <button onClick={() => onAddStudent(group)} className="w-10 h-10 md:w-10 md:h-10 rounded-lg flex items-center justify-center bg-white/[0.03] border border-white/5 text-slate-400 hover:text-[var(--ui-accent)] hover:border-[var(--ui-accent)]/30 transition-all touch-target md:touch-auto">
               <Plus className="w-5 h-5" />
             </button>
-            <button onClick={() => navigate(`/groups/${group.id}/sessions`)} className="btn-primary !h-10 !px-6 !text-[9px]">
+            <button onClick={() => navigate(`/groups/${group.id}/sessions`)} className="btn-primary flex-1 sm:flex-initial !h-10 !px-6 !text-[9px] uppercase tracking-widest font-black">
               {t("groups.card.manage")} <ChevronRight className="w-3.5 h-3.5 ms-2" />
             </button>
           </div>

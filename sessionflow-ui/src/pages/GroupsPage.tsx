@@ -114,28 +114,29 @@ const GroupsPage: React.FC = () => {
     <div className="container-page pb-20 space-y-6 md:space-y-12">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-30">
-        <div className="space-y-4 animate-in fade-in slide-in-from-left-8 duration-1000">
-          <div className="flex items-center gap-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ui-accent/10 text-ui-accent text-xs font-semibold border border-ui-accent/20 shadow-glow shadow-ui-accent/5">
+        <div className="space-y-3 md:space-y-4 animate-in fade-in slide-in-from-left-8 duration-1000">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ui-accent/10 text-ui-accent text-[10px] sm:text-xs font-semibold border border-ui-accent/20 shadow-glow shadow-ui-accent/5">
               <Terminal className="w-3 h-3" />
               {t("groups.system_active")}
             </div>
-            <div className="h-px w-8 bg-white/10" />
-            <span className="text-xs font-semibold text-slate-600 uppercase tabular-nums">{data?.pages[0]?.totalCount ?? groups.length} {t("groups.card.groups_registered")}</span>
+            <div className="h-px w-6 sm:w-8 bg-white/10" />
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-600 uppercase tabular-nums">{data?.pages[0]?.totalCount ?? groups.length} {t("groups.card.groups_registered")}</span>
           </div>
-          <h1 className="text-3xl sm:text-5xl md:text-7xl font-semibold text-white tracking-tighter uppercase leading-[0.85]">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-semibold text-white tracking-tighter uppercase leading-[0.85]">
             {t("groups.title")}
           </h1>
         </div>
 
-        <div className="flex gap-4 animate-in fade-in slide-in-from-right-8 duration-1000">
-          <Button variant="secondary" size="lg" className="!h-11 !px-5 sm:!h-14 sm:!px-8 group">
-             <Download className="w-5 h-5 me-2 text-slate-500 group-hover:text-white transition-colors" />
-             {t("common.export")}
+        <div className="flex w-full sm:w-auto gap-3 sm:gap-4 animate-in fade-in slide-in-from-right-8 duration-1000">
+          <Button variant="secondary" size="lg" className="flex-1 sm:flex-none !h-11 !px-4 sm:!h-14 sm:!px-8 group">
+             <Download className="w-5 h-5 sm:me-2 text-slate-500 group-hover:text-white transition-colors" />
+             <span className="hidden sm:inline">{t("common.export")}</span>
+             <span className="sm:hidden">{t("common.export").split(' ')[0]}</span>
           </Button>
-          <Button onClick={handleOpenCreate} variant="primary" size="lg" className="!h-11 !px-5 sm:!h-14 sm:!px-8 !shadow-glow !shadow-ui-accent/20">
-             <Plus className="w-6 h-6 me-2" />
-             {t("groups.action_create")}
+          <Button onClick={handleOpenCreate} variant="primary" size="lg" className="flex-1 sm:flex-none !h-11 !px-4 sm:!h-14 sm:!px-8 !shadow-glow !shadow-ui-accent/20">
+             <Plus className="w-5 h-5 sm:w-6 sm:h-6 sm:me-2" />
+             <span className="truncate">{t("groups.action_create")}</span>
           </Button>
         </div>
       </div>
