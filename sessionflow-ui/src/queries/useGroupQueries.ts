@@ -7,7 +7,7 @@ export const useGroupQueries = (filters: { search?: string; status?: string; pag
   return useInfiniteQuery({
     queryKey: queryKeys.groups.infiniteList(filters),
     queryFn: ({ pageParam = 1 }) => 
-      groupsApi.getAll({ ...filters, page: pageParam as number, pageSize: filters.pageSize || 20 }),
+      groupsApi.getAll({ ...filters, page: pageParam as number, pageSize: filters.pageSize || 100 }),
     initialPageParam: 1,
     getNextPageParam: (lastPage: PaginatedResponse<Group>) => 
       lastPage.hasMore ? (lastPage.page || 1) + 1 : undefined,
