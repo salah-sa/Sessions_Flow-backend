@@ -12,7 +12,8 @@ import {
   Archive,
   User,
   UserCircle,
-  Lock
+  Lock,
+  CheckCircle
 } from "lucide-react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore, useSectionBadgeStore, useChatStore } from "../../store/stores";
@@ -166,6 +167,7 @@ const Sidebar: React.FC = () => {
         <NavItem to="/sessions" icon={Target} label={t("nav.sessions") || "Sessions"} locked={isStudent} />
         <NavItem to="/students" icon={User} label={t("nav.students")} locked={isStudent} />
         <NavItem to="/timetable" icon={Calendar} label={t("nav.timetable")} />
+        <NavItem to="/attendance" icon={CheckCircle} label={t("attendance.title") || "Attendance"} locked={isStudent} />
         <NavItem to="/chat" icon={MessageSquare} label={t("nav.chat")} badge={chatBadgeCount} />
         <NavItem to="/history" icon={Clock} label={t("nav.history") || "History"} />
         
