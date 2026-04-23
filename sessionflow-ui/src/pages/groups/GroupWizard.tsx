@@ -114,6 +114,7 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
   }, [currentLevel, mode, wizardStep, setValue, getValues]);
 
   useEffect(() => {
+    if (mode === "edit") return;
     const count = watchedStudentCount || 4;
     if (count > 0 && count <= 10) {
       const currentCadets = getValues("cadets") || [];
@@ -125,7 +126,7 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
         setValue("cadets", newCadets, { shouldDirty: true });
       }
     }
-  }, [watchedStudentCount, setValue, getValues]);
+  }, [watchedStudentCount, setValue, getValues, mode]);
 
   const handleNext = () => {
     if (wizardStep === 1) {

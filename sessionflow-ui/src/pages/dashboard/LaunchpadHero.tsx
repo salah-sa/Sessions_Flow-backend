@@ -23,17 +23,16 @@ export const LaunchpadHero: React.FC = () => {
           </div>
         </div>
         
-        {/* Main headline — scaled down significantly */}
         <div className="space-y-0.5">
-           <h1 className="font-black text-white tracking-tighter uppercase leading-[0.9] flex flex-col">
-              <span className="text-slate-500 text-xs sm:text-sm font-bold mb-2 flex items-center gap-2">
+           <h1 className="flex flex-col">
+              <span className="text-slate-500 text-xs sm:text-sm font-bold mb-2 flex items-center gap-2 uppercase tracking-widest">
                  <div className="w-1.5 h-1.5 rounded-full bg-[var(--ui-accent)] animate-ping" />
                  {t("dashboard.mission_intelligence")}
               </span>
-              <span className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl">
+              <span className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black text-white tracking-tighter uppercase leading-[0.9]">
                 {t("dashboard.welcome_back")},
               </span>
-              <span className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl text-[var(--ui-accent)] drop-shadow-[0_0_20px_rgba(var(--ui-accent-rgb),0.25)]">
+              <span className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[var(--ui-accent)] to-emerald-400 drop-shadow-[0_0_20px_rgba(var(--ui-accent-rgb),0.3)] tracking-tighter uppercase leading-tight py-1">
                 {userName || t("common.user")}
               </span>
            </h1>

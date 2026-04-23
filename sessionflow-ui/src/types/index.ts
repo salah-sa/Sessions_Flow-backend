@@ -344,6 +344,16 @@ export interface GroupCreateData {
   numberOfStudents: number;
   startingSessionNumber: number;
   totalSessions: number;
+  frequency: number;
+  schedules?: {
+    dayOfWeek: number;
+    startTime: string;
+    durationMinutes: number;
+  }[];
+  cadets?: {
+    name: string;
+    studentId?: string;
+  }[];
 }
 
 export interface GroupUpdateData extends Partial<GroupCreateData> {
