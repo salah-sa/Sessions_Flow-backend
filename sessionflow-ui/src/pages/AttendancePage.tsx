@@ -1,16 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import { Calendar, CheckCircle, Clock, Users, Zap, Search, ExternalLink } from "lucide-react";
 import { useInfiniteSessions, useSessionMutations } from "../queries/useSessionQueries";
 import { Session } from "../types";
 import { Card, Button, Badge } from "../components/ui";
+import { AttendanceWizard } from "./attendance/AttendanceWizard";
 import { cn } from "../lib/utils";
 
 const AttendancePage: React.FC = () => {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
+  const [wizardSession, setWizardSession] = useState<Session | null>(null);
+
+  useEffect(() => {
+    (window as any).onWizardComplete = (id: string) => {
+      setPendingSessionId(id);
+    };
+    return () => {
+      delete (window as any).onWizardComplete;
+    };
+  }, []);
 
   const todayStr = format(new Date(), "yyyy-MM-dd");
   
@@ -31,47 +42,8 @@ const AttendancePage: React.FC = () => {
     return true;
   });
 
-  const handleMakeAttendance = async (session: Session) => {
-    let currentSession = session;
-    if (session.status === "Scheduled") {
-      try {
-        currentSession = await startMutation.mutateAsync(session.id);
-      } catch (err) {
-        console.error("Failed to start session", err);
-        return;
-      }
-    }
-
-    const dayNames: Record<number, string> = {
-      0: "الأحد", 1: "الاثنين", 2: "الثلاثاء", 3: "الاربعاء", 4: "الخميس", 5: "الجمعة", 6: "السبت"
-    };
-    const date = new Date(currentSession.scheduledAt);
-    const dayArabic = dayNames[date.getDay()];
-    const dateStr = format(date, "yyyy-MM-dd");
-
-    const rawUtcStart = new Date(currentSession.scheduledAt);
-    const h = rawUtcStart.getUTCHours();
-    const m = rawUtcStart.getUTCMinutes();
-    
-    const startTimeStr = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
-    const endH = (h + 2) % 24;
-    const endTimeStr = `${endH.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
-
-    const groupName = encodeURIComponent(currentSession.groupName || "");
-    const dayEncoded = encodeURIComponent(dayArabic);
-    const startTimeEncoded = encodeURIComponent(startTimeStr);
-    const endTimeEncoded = encodeURIComponent(endTimeStr);
-    const dateEncoded = encodeURIComponent(dateStr);
-    const sessionNumEncoded = encodeURIComponent(currentSession.sessionNumber?.toString() || "");
-    
-    const baseUrl = "https://docs.google.com/forms/d/e/1FAIpQLSc3cVcgcW99zHpAHO9gZYOSiN5gYT8lhOrRW4oFNUStHnHb7w/viewform?usp=pp_url";
-    // 1384758985 (current is last) -> default لا
-    // 441454399 (next is last) -> default لا
-    const formUrl = `${baseUrl}&entry.547163657=${groupName}&entry.176364019=${dayEncoded}&entry.481499408=${startTimeEncoded}&entry.266996152=${endTimeEncoded}&entry.1713053362=${dateEncoded}&entry.1157022992=${sessionNumEncoded}&entry.1384758985=%D9%84%D8%A7&entry.441454399=%D9%84%D8%A7&entry.601411487=${encodeURIComponent("نعم")}`;
-    
-    window.open(formUrl, "_blank");
-
-    setPendingSessionId(currentSession.id);
+  const handleMakeAttendance = (session: Session) => {
+    setWizardSession(session);
   };
 
   return (
@@ -241,6 +213,14 @@ const AttendancePage: React.FC = () => {
             </div>
           </Card>
         </div>
+      )}
+
+      {wizardSession && (
+        <AttendanceWizard 
+          isOpen={!!wizardSession}
+          session={wizardSession}
+          onClose={() => setWizardSession(null)}
+        />
       )}
     </div>
   );
