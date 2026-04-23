@@ -174,11 +174,11 @@ const ChatPage: React.FC = () => {
 
       {/* Zenith Sidebar */}
       <div className={cn(
-        "fixed inset-y-0 start-0 z-50 w-full sm:w-[320px] md:relative border-e border-white/5 flex flex-col h-full bg-[var(--ui-sidebar-bg)] backdrop-blur-3xl transition-transform duration-500",
+        "fixed inset-y-0 start-0 z-50 w-full sm:w-[280px] md:w-[320px] md:relative border-e border-white/5 flex flex-col h-full bg-[var(--ui-sidebar-bg)] backdrop-blur-3xl transition-transform duration-500",
         activeGroupId ? "hidden md:flex" : "flex",
         !isSidebarOpen && "-translate-x-full md:translate-x-0"
       )}>
-        <div className="p-8 space-y-8 flex-none">
+        <div className="p-4 space-y-4 md:p-8 md:space-y-8 flex-none">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
@@ -308,7 +308,7 @@ const ChatPage: React.FC = () => {
             />
 
             <div className="flex-1 flex min-h-0">
-              <div className="flex-1 min-h-0 p-8 relative overflow-hidden flex flex-col">
+              <div className="flex-1 min-h-0 p-0 md:p-4 lg:p-8 relative overflow-hidden flex flex-col">
                 <ChatWindow
                   messages={messages}
                   onSendMessage={handleSendMessage}
