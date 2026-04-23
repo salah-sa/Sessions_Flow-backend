@@ -496,6 +496,80 @@ public class SessionService
     }
 
     /// <summary>
+    /// Ensures every active group that has a schedule for today's day-of-week
+    /// has at least one session record for today. Auto-generates missing ones.
+    /// Called before listing today's sessions so the Attendance page is always complete.
+    /// </summary>
+    public async Task EnsureTodaysSessionsAsync(CancellationToken ct = default)
+    {
+        var cairoTz = GetConfiguredTimeZone();
+        var cairoNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, cairoTz);
+        var todayDow = (int)cairoNow.DayOfWeek; // 0=Sun .. 6=Sat
+
+        // 1. Find all schedules that match today's day
+        var todaySchedules = await _db.GroupSchedules
+            .Find(gs => gs.DayOfWeek == todayDow)
+            .ToListAsync(ct);
+
+        if (todaySchedules.Count == 0) return;
+
+        var groupIdsWithSchedule = todaySchedules.Select(s => s.GroupId).Distinct().ToList();
+
+        // 2. Get all active groups that own those schedules
+        var activeGroups = await _db.Groups
+            .Find(g => groupIdsWithSchedule.Contains(g.Id) && g.Status == GroupStatus.Active && !g.IsDeleted)
+            .ToListAsync(ct);
+
+        if (activeGroups.Count == 0) return;
+
+        // 3. Get all existing sessions for today (Cairo day boundaries in UTC)
+        var cairoOffset = cairoTz.GetUtcOffset(cairoNow);
+        var todayStart = new DateTimeOffset(cairoNow.Date, cairoOffset).ToUniversalTime();
+        var todayEnd = todayStart.AddDays(1);
+
+        var existingSessions = await _db.Sessions
+            .Find(s => s.ScheduledAt >= todayStart && s.ScheduledAt < todayEnd && !s.IsDeleted)
+            .ToListAsync(ct);
+
+        var existingGroupIds = new HashSet<Guid>(existingSessions.Select(s => s.GroupId));
+
+        // 4. Generate missing sessions
+        var newSessions = new List<Session>();
+
+        foreach (var group in activeGroups)
+        {
+            if (existingGroupIds.Contains(group.Id)) continue; // Already has a session today
+            if (group.CurrentSessionNumber > group.TotalSessions) continue; // Group completed
+
+            var groupSchedules = todaySchedules.Where(s => s.GroupId == group.Id).OrderBy(s => s.StartTime).ToList();
+
+            foreach (var schedule in groupSchedules)
+            {
+                var scheduledAt = new DateTimeOffset(
+                    cairoNow.Year, cairoNow.Month, cairoNow.Day,
+                    schedule.StartTime.Hours, schedule.StartTime.Minutes, 0,
+                    cairoOffset
+                );
+
+                newSessions.Add(new Session
+                {
+                    GroupId = group.Id,
+                    EngineerId = group.EngineerId,
+                    SessionNumber = group.CurrentSessionNumber,
+                    ScheduledAt = scheduledAt.ToUniversalTime(),
+                    Status = SessionStatus.Scheduled,
+                    DurationMinutes = schedule.DurationMinutes
+                });
+            }
+        }
+
+        if (newSessions.Count > 0)
+        {
+            await _db.Sessions.InsertManyAsync(newSessions, cancellationToken: ct);
+        }
+    }
+
+    /// <summary>
     /// Resolves the configured timezone with fallback chain: Windows ID → IANA ID → UTC+2 custom.
     /// Reads from Application:Timezone in appsettings.json (default: "Africa/Cairo").
     /// </summary>

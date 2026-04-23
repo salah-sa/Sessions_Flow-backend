@@ -90,16 +90,21 @@ const AttendancePage: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredSessions.map((session) => {
-              // Treat the stored timestamp as local time to avoid double-offset (+2h) shift
-              // Backend stored Cairo time as UTC, so we remove the 'Z' to prevent browser from adding another +2h
-              const localIso = session.scheduledAt.replace('Z', '');
-              const scheduledDate = new Date(localIso);
+              // Backend stores Cairo local time AS UTC (e.g., 7:00 PM Cairo → 19:00 UTC)
+              // Use getUTCHours/Minutes to extract the raw stored values directly
+              const raw = new Date(session.scheduledAt);
+              const h = raw.getUTCHours();
+              const m = raw.getUTCMinutes();
+              const ampm = h >= 12 ? 'PM' : 'AM';
+              const startTimeStr = `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`;
               
-              const startTimeStr = format(scheduledDate, "hh:mm a");
               let endTimeStr = "";
               if (session.durationMinutes) {
-                const endDate = new Date(scheduledDate.getTime() + session.durationMinutes * 60000);
-                endTimeStr = format(endDate, "hh:mm a");
+                const totalMin = h * 60 + m + session.durationMinutes;
+                const eh = Math.floor(totalMin / 60) % 24;
+                const em = totalMin % 60;
+                const eampm = eh >= 12 ? 'PM' : 'AM';
+                endTimeStr = `${eh % 12 || 12}:${String(em).padStart(2, '0')} ${eampm}`;
               }
               const studentCount = session.totalStudents || session.group?.students?.length || 0;
               
@@ -142,12 +147,12 @@ const AttendancePage: React.FC = () => {
                     {isScheduled ? (
                       <>
                         <Zap className="w-4 h-4 text-[var(--ui-accent)]" />
-                        {t("attendance.start_and_mark") || "Start & Mark"}
+                        Start & Mark
                       </>
                     ) : (
                       <>
                         <CheckCircle className="w-4 h-4" />
-                        {t("attendance.mark_attendance") || "Mark Attendance"}
+                        Mark Attendance
                       </>
                     )}
                   </Button>
