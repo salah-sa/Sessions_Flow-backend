@@ -36,17 +36,21 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
         startMutation.mutate(activeSession.id);
       }
 
-      // Treat the stored timestamp as local time to avoid double-offset (+2h) shift
-      const localIso = activeSession.scheduledAt.replace('Z', '');
-      const scheduledDate = new Date(localIso);
-      
-      const dateStr = format(scheduledDate, "yyyy-MM-dd");
-      const startTimeStr = format(scheduledDate, "hh:mm a");
+      // Backend stores Cairo local time AS UTC — extract raw UTC values
+      const raw = new Date(activeSession.scheduledAt);
+      const h = raw.getUTCHours();
+      const m = raw.getUTCMinutes();
+      const dateStr = format(raw, "yyyy-MM-dd");
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const startTimeStr = `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`;
       
       let endTimeStr = "";
       if (activeSession.durationMinutes) {
-        const endDate = new Date(scheduledDate.getTime() + activeSession.durationMinutes * 60000);
-        endTimeStr = format(endDate, "hh:mm a");
+        const totalMin = h * 60 + m + activeSession.durationMinutes;
+        const eh = Math.floor(totalMin / 60) % 24;
+        const em = totalMin % 60;
+        const eampm = eh >= 12 ? 'PM' : 'AM';
+        endTimeStr = `${eh % 12 || 12}:${String(em).padStart(2, '0')} ${eampm}`;
       }
 
       // detailedSession.students from GET /api/sessions/{id}
@@ -54,7 +58,7 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
 
       setFormData({
         groupName: activeSession.groupName || "",
-        dayOfWeek: scheduledDate.getDay(),
+        dayOfWeek: raw.getDay(),
         startTime: startTimeStr,
         endTime: endTimeStr,
         date: dateStr,
