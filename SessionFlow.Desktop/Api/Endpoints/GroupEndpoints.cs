@@ -552,7 +552,7 @@ public static class GroupEndpoints
                 return Results.BadRequest(new { error = "Student name is required." });
 
             var activeStudents = (int)await db.Students.CountDocumentsAsync(s => s.GroupId == id && !s.IsDeleted);
-            var maxStudents = g.Level == 4 ? 2 : 4;
+            var maxStudents = CurriculumConstants.GetMaxStudents(g.Level);
 
             if (activeStudents >= maxStudents)
                 return Results.BadRequest(new { error = $"Security Restriction: Group is full. Maximum {maxStudents} students for Level {g.Level}." });

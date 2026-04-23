@@ -21,7 +21,7 @@ export const groupSchema = z.object({
     studentId: z.string().optional()
   })).optional(),
 }).superRefine((data, ctx) => {
-  const maxStudents = data.level === 4 ? 2 : 4;
+  const maxStudents = 4;
   if (data.numberOfStudents > maxStudents) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -74,4 +74,4 @@ export const generateTimeSlots = () => {
 
 export const TIME_SLOTS = generateTimeSlots();
 export const LEVEL_SESSION_MAP: Record<number, number> = { 1: 13, 2: 12, 3: 13, 4: 13 };
-export const LEVEL_CAPACITY_MAP: Record<number, number> = { 1: 4, 2: 4, 3: 4, 4: 2 };
+export const LEVEL_CAPACITY_MAP: Record<number, number> = { 1: 4, 2: 4, 3: 4, 4: 4 };
