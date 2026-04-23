@@ -77,7 +77,7 @@ export const useSessionMutations = () => {
   });
 
   const endMutation = useMutation({
-    mutationFn: ({ id, notes }: { id: string; notes?: string }) => sessionsApi.end(id, notes),
+    mutationFn: ({ id, notes, force }: { id: string; notes?: string; force?: boolean }) => sessionsApi.end(id, notes, force),
     onSuccess: (updated) => {
       queryClient.setQueryData(queryKeys.sessions.byId(updated.id), updated);
       queryClient.invalidateQueries({ queryKey: queryKeys.sessions.all });

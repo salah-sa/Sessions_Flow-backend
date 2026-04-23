@@ -304,9 +304,9 @@ public static class SessionEndpoints
         });
 
         // POST /api/sessions/{id}/end
-        group.MapPost("/{id:guid}/end", async (Guid id, EndSessionRequest? req, SessionService sessionService, Services.EventBus.IEventBus eventBus) =>
+        group.MapPost("/{id:guid}/end", async (Guid id, EndSessionRequest? req, bool? force, SessionService sessionService, Services.EventBus.IEventBus eventBus) =>
         {
-            var (session, error) = await sessionService.EndSessionAsync(id, req?.Notes);
+            var (session, error) = await sessionService.EndSessionAsync(id, req?.Notes, force ?? false);
             if (error != null)
                 return Results.BadRequest(new { error });
 

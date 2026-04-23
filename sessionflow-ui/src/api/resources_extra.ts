@@ -26,11 +26,13 @@ export const sessionsApi = {
       body: JSON.stringify(data),
     }),
   start: (id: string) => fetchWithAuth<Session>(`/sessions/${id}/start`, { method: "POST" }),
-  end: (id: string, notes?: string) =>
-    fetchWithAuth<Session>(`/sessions/${id}/end`, {
+  end: (id: string, notes?: string, force?: boolean) => {
+    const url = force ? `/sessions/${id}/end?force=true` : `/sessions/${id}/end`;
+    return fetchWithAuth<Session>(url, {
       method: "POST",
       body: JSON.stringify({ notes }),
-    }),
+    });
+  },
   updateAttendance: (sessionId: string, records: AttendanceUpdateRecord[]) =>
     fetchWithAuth<void>(`/sessions/${sessionId}/attendance`, {
       method: "PUT",
