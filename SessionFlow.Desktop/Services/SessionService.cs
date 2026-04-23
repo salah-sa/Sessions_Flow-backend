@@ -199,7 +199,7 @@ public class SessionService
         return (session, null);
     }
 
-    public async Task<(Session? session, string? error)> EndSessionAsync(Guid sessionId, string? notes = null)
+    public async Task<(Session? session, string? error)> EndSessionAsync(Guid sessionId, string? notes = null, bool force = false)
     {
         var session = await _db.Sessions.Find(s => s.Id == sessionId).FirstOrDefaultAsync();
         if (session == null)
@@ -210,7 +210,7 @@ public class SessionService
 
         var records = await _db.AttendanceRecords.Find(ar => ar.SessionId == sessionId).ToListAsync();
         
-        if (records.Any(r => r.Status == AttendanceStatus.Unmarked))
+        if (!force && records.Any(r => r.Status == AttendanceStatus.Unmarked))
         {
             return (null, "Completion Error: One or more students have not been marked. Please record attendance for all members before ending the session.");
         }
