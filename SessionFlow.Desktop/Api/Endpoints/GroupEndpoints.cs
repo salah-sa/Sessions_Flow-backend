@@ -530,20 +530,16 @@ public static class GroupEndpoints
                 if (studentInfos == null || !studentInfos.Any(s => s.GroupId == id)) return Results.Forbid();
             }
 
-            var students = new List<Student>();
-            if (role != "Student")
-            {
-                var rawStudents = await db.Students
-                    .Find(s => s.GroupId == id && !s.IsDeleted)
-                    .SortBy(s => s.Name)
-                    .ToListAsync();
+            var rawStudents = await db.Students
+                .Find(s => s.GroupId == id && !s.IsDeleted)
+                .SortBy(s => s.Name)
+                .ToListAsync();
 
-                students = rawStudents
-                    .GroupBy(s => s.Name.ToLower().Trim())
-                    .Select(group => group.OrderByDescending(s => s.UserId != null).ThenByDescending(s => s.CreatedAt).First())
-                    .OrderBy(s => s.Name)
-                    .ToList();
-            }
+            var students = rawStudents
+                .GroupBy(s => s.Name.ToLower().Trim())
+                .Select(group => group.OrderByDescending(s => s.UserId != null).ThenByDescending(s => s.CreatedAt).First())
+                .OrderBy(s => s.Name)
+                .ToList();
 
             return Results.Ok(students.Select(s => new
             {

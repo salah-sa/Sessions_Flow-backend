@@ -188,6 +188,7 @@ public class MongoService
     public IMongoCollection<Subscription> Subscriptions => _database.GetCollection<Subscription>("Subscriptions");
     public IMongoCollection<PaymentTransaction> PaymentTransactions => _database.GetCollection<PaymentTransaction>("PaymentTransactions");
     public IMongoCollection<Invoice> Invoices => _database.GetCollection<Invoice>("Invoices");
+    public IMongoCollection<SupportTicket> SupportTickets => _database.GetCollection<SupportTicket>("SupportTickets");
 
     public IMongoDatabase Database => _database;
 }

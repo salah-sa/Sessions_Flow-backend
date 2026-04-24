@@ -8,6 +8,9 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { SignalRProvider } from "./providers/SignalRProvider";
 import { validateSession } from "./api/authService";
 
+import { CustomerServiceFab } from "./components/support/CustomerServiceFab";
+import { SystemUpdatePopup } from "./components/support/SystemUpdatePopup";
+
 const App: React.FC = () => {
   const [showSplash, setShowSplash] = useState(true);
   const token = useAuthStore((s) => s.token);
@@ -54,6 +57,8 @@ const App: React.FC = () => {
       <ErrorBoundary onRetry={() => window.location.reload()}>
         <SignalRProvider>
           <RouterProvider router={router} />
+          <CustomerServiceFab />
+          <SystemUpdatePopup />
         </SignalRProvider>
       </ErrorBoundary>
     </>
