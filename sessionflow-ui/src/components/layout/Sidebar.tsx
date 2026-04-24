@@ -154,7 +154,7 @@ const Sidebar: React.FC = () => {
   }, [location.pathname, isAdmin, isEngineer, pendingEngineerIds.join(","), pendingStudentIds.join(","), markSectionSeen]);
 
   const userTier = user?.subscriptionTier || "Free";
-  const isPremium = userTier === "Pro" || userTier === "Enterprise";
+  const isPremium = isAdmin || userTier === "Pro" || userTier === "Enterprise";
 
   return (
     <aside className="h-full w-[280px] bg-[var(--ui-sidebar-bg)] border-e border-white/5 flex flex-col z-[50]">

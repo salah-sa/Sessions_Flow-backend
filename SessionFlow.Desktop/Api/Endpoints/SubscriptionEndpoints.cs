@@ -23,6 +23,19 @@ public static class SubscriptionEndpoints
             var user = await auth.GetUserFromClaimsAsync(ctx.User);
             if (user == null) return Results.Unauthorized();
 
+            if (user.Role == UserRole.Admin)
+            {
+                return Results.Ok(new
+                {
+                    tier = "Enterprise",
+                    paymobCustomerId = user.PaymobCustomerId,
+                    subscriptionId = (Guid?)null,
+                    status = "Active",
+                    expiryDate = DateTime.MaxValue,
+                    canUpgrade = false
+                });
+            }
+
             var subscription = await db.Subscriptions
                 .Find(s => s.UserId == user.Id && s.Status == SubscriptionStatus.Active)
                 .SortByDescending(s => s.CreatedAt)
