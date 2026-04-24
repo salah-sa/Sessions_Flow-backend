@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Button, Input } from "../../components/ui";
 import { 
-  Info, Settings, Users, CheckCircle2, Plus, X, Trash2, 
+  Info, Settings, Users, CheckCircle2, Plus, Minus, X, Trash2, 
   Calendar, ShieldCheck, PlayCircle, ChevronRight, Loader2, AlertTriangle, GraduationCap 
 } from "lucide-react";
 import { useForm, useFieldArray } from "react-hook-form";
@@ -267,7 +267,7 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-1">{t("groups.wizard.step2.capacity")}</label>
                 <div className="flex items-center justify-between">
                   <button type="button" onClick={() => setValue("numberOfStudents", Math.max(1, watch("numberOfStudents") - 1))} className="w-10 h-10 rounded-xl bg-[var(--ui-sidebar-bg)] border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
-                    <X className="w-4 h-4 rotate-45" />
+                    <Minus className="w-4 h-4" />
                   </button>
                   <span className="text-2xl font-black text-white tabular-nums">{watch("numberOfStudents")}</span>
                   <button type="button" onClick={() => {
@@ -316,7 +316,7 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-1">{t("groups.wizard.step2.starting_no")}</label>
                 <div className="flex items-center justify-between">
                   <button type="button" onClick={() => setValue("startingSessionNumber", Math.max(1, watch("startingSessionNumber") - 1))} className="w-10 h-10 rounded-xl bg-[var(--ui-sidebar-bg)] border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
-                    <X className="w-4 h-4 rotate-45" />
+                    <Minus className="w-4 h-4" />
                   </button>
                   <span className="text-2xl font-black text-white tabular-nums">{watch("startingSessionNumber")}</span>
                   <button type="button" onClick={() => {

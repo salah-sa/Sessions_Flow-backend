@@ -77,8 +77,8 @@ const GroupsPage: React.FC = () => {
         toast.success(t("groups.update_success"));
       }
       setIsModalOpen(false);
-    } catch (error) {
-      toast.error(t("groups.error_generic"));
+    } catch (error: any) {
+      toast.error(error?.message || t("groups.error_generic"));
     }
   };
 
