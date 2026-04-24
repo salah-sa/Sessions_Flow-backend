@@ -27,11 +27,20 @@ export function useNetworkQuality() {
   });
 
   const checkCountRef = useRef(0);
+  const qualityRef = useRef<NetworkQuality>(navigator.onLine ? "good" : "offline");
+
+  // Helper to update quality only when it changes
+  const updateQuality = (newQuality: NetworkQuality) => {
+    if (qualityRef.current !== newQuality) {
+      qualityRef.current = newQuality;
+      setQuality(newQuality);
+    }
+  };
 
   useEffect(() => {
     const measureLatency = async () => {
       if (!navigator.onLine) {
-        setQuality("offline");
+        updateQuality("offline");
         return;
       }
 
@@ -41,8 +50,6 @@ export function useNetworkQuality() {
       try {
         const start = performance.now();
         
-        // Ping Google's standard 204 No Content URL to test REAL internet egress latency
-        // Note: fetch will fail CORS if we don't do mode: 'no-cors'
         await fetch("https://www.google.com/generate_204", { 
           method: "HEAD", 
           cache: "no-store",
@@ -67,28 +74,28 @@ export function useNetworkQuality() {
         setDetails({ effectiveType, downlink, rtt, latency });
 
         if (latency < 100) {
-          setQuality("excellent");
+          updateQuality("excellent");
         } else if (latency < 400) {
-          setQuality("good");
+          updateQuality("good");
         } else {
-          setQuality("weak");
+          updateQuality("weak");
         }
 
       } catch (e) {
         clearTimeout(timeoutId);
         if (navigator.onLine) {
-          setQuality("weak"); 
+          updateQuality("weak"); 
         } else {
-          setQuality("offline");
+          updateQuality("offline");
         }
       }
     };
 
     const handleOnline = () => {
-        setQuality("good");
+        updateQuality("good");
         measureLatency();
     }
-    const handleOffline = () => setQuality("offline");
+    const handleOffline = () => updateQuality("offline");
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -99,9 +106,9 @@ export function useNetworkQuality() {
     // Periodic check
     const intervalId = setInterval(() => {
       checkCountRef.current++;
-      // Every 15 seconds ping the external server
+      // Every 30 seconds ping the external server
       measureLatency();
-    }, 15000);
+    }, 30000);
 
     return () => {
       window.removeEventListener("online", handleOnline);
