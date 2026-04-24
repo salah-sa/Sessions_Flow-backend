@@ -306,6 +306,7 @@ public static class ApiHost
         ReportingEndpoints.Map(app);
         SupportEndpoints.Map(app);
         SystemEndpoints.Map(app);
+        AdminUserEndpoints.Map(app);
 
         // 6. Map Real-time Hubs
         app.MapHub<SessionHub>("/hub");

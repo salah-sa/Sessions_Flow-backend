@@ -19,6 +19,10 @@ export interface User {
   createdAt: string;
   subscriptionTier?: SubscriptionTier;
   paymobCustomerId?: string;
+  // User Governance
+  restrictedUntil?: string;
+  restrictionReason?: string;
+  blockedPages?: string[];
 }
 
 export type GroupStatus = "Active" | "Completed" | "Archived";

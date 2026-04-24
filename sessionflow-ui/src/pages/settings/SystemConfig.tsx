@@ -1,5 +1,5 @@
 import React from "react";
-import { Mail, Sun, Moon, Globe, Terminal, DollarSign, CheckCircle2 } from "lucide-react";
+import { Mail, Sun, Moon, Globe, Terminal, DollarSign, CheckCircle2, Crown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/utils";
 import { useUIStore, CustomTheme } from "../../store/stores";
@@ -17,6 +17,15 @@ interface SystemConfigProps {
   setPriceL3: (val: string) => void;
   priceL4: string;
   setPriceL4: (val: string) => void;
+  // Subscription Pricing
+  subProMonthly: string;
+  setSubProMonthly: (val: string) => void;
+  subProAnnual: string;
+  setSubProAnnual: (val: string) => void;
+  subEntMonthly: string;
+  setSubEntMonthly: (val: string) => void;
+  subEntAnnual: string;
+  setSubEntAnnual: (val: string) => void;
   theme: string;
   setTheme: (theme: any) => void;
   customTheme: CustomTheme | null;
@@ -31,6 +40,10 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
   priceL2, setPriceL2,
   priceL3, setPriceL3,
   priceL4, setPriceL4,
+  subProMonthly, setSubProMonthly,
+  subProAnnual, setSubProAnnual,
+  subEntMonthly, setSubEntMonthly,
+  subEntAnnual, setSubEntAnnual,
   theme, setTheme,
   customTheme, updateCustomTheme,
   activeStyle, handleToggleTheme
@@ -260,6 +273,86 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Subscription Pricing Matrix */}
+      <section className="space-y-8">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-lg font-sora font-black text-white uppercase tracking-tight flex items-center gap-3">
+            <span className="w-1.5 h-6 bg-purple-500 rounded-full" />
+            Subscription Pricing Matrix
+          </h2>
+          <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] ps-5">Prices reflect automatically on the Plans page (in EGP)</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Pro Tier */}
+          <div className="card-base space-y-4 border-purple-500/10 hover:border-purple-500/30 transition-all">
+            <div className="flex items-center gap-3">
+              <Crown className="w-5 h-5 text-purple-400" />
+              <p className="text-xs font-black text-purple-400 uppercase tracking-widest">Pro Plan</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Monthly</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={subProMonthly}
+                    onChange={(e) => setSubProMonthly(e.target.value)}
+                    className="w-full h-10 bg-[var(--ui-bg)] border border-white/5 rounded-lg ps-10 pe-4 text-sm font-black text-white tabular-nums focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                  />
+                  <span className="absolute start-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-600">EGP</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Annual</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={subProAnnual}
+                    onChange={(e) => setSubProAnnual(e.target.value)}
+                    className="w-full h-10 bg-[var(--ui-bg)] border border-white/5 rounded-lg ps-10 pe-4 text-sm font-black text-white tabular-nums focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                  />
+                  <span className="absolute start-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-600">EGP</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Enterprise Tier */}
+          <div className="card-base space-y-4 border-amber-500/10 hover:border-amber-500/30 transition-all">
+            <div className="flex items-center gap-3">
+              <Crown className="w-5 h-5 text-amber-400" />
+              <p className="text-xs font-black text-amber-400 uppercase tracking-widest">Enterprise Plan</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Monthly</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={subEntMonthly}
+                    onChange={(e) => setSubEntMonthly(e.target.value)}
+                    className="w-full h-10 bg-[var(--ui-bg)] border border-white/5 rounded-lg ps-10 pe-4 text-sm font-black text-white tabular-nums focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                  />
+                  <span className="absolute start-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-600">EGP</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Annual</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={subEntAnnual}
+                    onChange={(e) => setSubEntAnnual(e.target.value)}
+                    className="w-full h-10 bg-[var(--ui-bg)] border border-white/5 rounded-lg ps-10 pe-4 text-sm font-black text-white tabular-nums focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                  />
+                  <span className="absolute start-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-600">EGP</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </div>

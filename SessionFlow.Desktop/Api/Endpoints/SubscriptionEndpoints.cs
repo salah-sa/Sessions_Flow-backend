@@ -52,6 +52,71 @@ public static class SubscriptionEndpoints
             });
         }).RequireAuthorization();
 
+        // GET: /api/subscription/plans — Dynamic pricing from Settings
+        group.MapGet("/plans", async (MongoService db) =>
+        {
+            var settings = await db.Settings.Find(_ => true).ToListAsync();
+            string V(string key, string fallback = "") =>
+                settings.FirstOrDefault(s => s.Key == key)?.Value ?? fallback;
+
+            var plans = new[]
+            {
+                new {
+                    name = "Free",
+                    tier = "Free",
+                    description = V(BusinessConstants.Settings.SubDescriptionFree, "Perfect for getting started."),
+                    priceMonthly = "EGP 0",
+                    priceAnnual = "EGP 0",
+                    priceMonthlyRaw = 0,
+                    priceAnnualRaw = 0,
+                    features = ParseFeatures(V(BusinessConstants.Settings.SubFeaturesFreePlan,
+                        "[\"Up to 2 Active Groups\",\"Basic Session Scheduling\",\"Standard Chat Access\",\"Community Support\"]")),
+                    popular = false,
+                    color = "from-slate-400 to-slate-600",
+                    bgClass = "bg-white/[0.02] hover:bg-white/[0.05]",
+                    borderClass = "border-white/10",
+                    buttonText = "Current Plan",
+                    buttonVariant = "outline"
+                },
+                new {
+                    name = "Pro",
+                    tier = "Pro",
+                    description = V(BusinessConstants.Settings.SubDescriptionPro, "For professional engineers."),
+                    priceMonthly = $"EGP {V(BusinessConstants.Settings.SubPriceProMonthly, "149")}",
+                    priceAnnual = $"EGP {V(BusinessConstants.Settings.SubPriceProAnnual, "1490")}",
+                    priceMonthlyRaw = int.TryParse(V(BusinessConstants.Settings.SubPriceProMonthly, "149"), out var pm) ? pm : 149,
+                    priceAnnualRaw = int.TryParse(V(BusinessConstants.Settings.SubPriceProAnnual, "1490"), out var pa) ? pa : 1490,
+                    features = ParseFeatures(V(BusinessConstants.Settings.SubFeaturesProPlan,
+                        "[\"Unlimited Active Groups\",\"Advanced Analytics\",\"Premium Badges\",\"Priority Support\",\"Data Export\"]")),
+                    popular = true,
+                    color = "from-[var(--ui-accent)] to-purple-500",
+                    bgClass = "bg-[var(--ui-accent)]/5 hover:bg-[var(--ui-accent)]/10",
+                    borderClass = "border-[var(--ui-accent)]/30",
+                    buttonText = "Upgrade to Pro",
+                    buttonVariant = "primary"
+                },
+                new {
+                    name = "Enterprise",
+                    tier = "Enterprise",
+                    description = V(BusinessConstants.Settings.SubDescriptionEnterprise, "White-glove service."),
+                    priceMonthly = $"EGP {V(BusinessConstants.Settings.SubPriceEnterpriseMonthly, "499")}",
+                    priceAnnual = $"EGP {V(BusinessConstants.Settings.SubPriceEnterpriseAnnual, "4990")}",
+                    priceMonthlyRaw = int.TryParse(V(BusinessConstants.Settings.SubPriceEnterpriseMonthly, "499"), out var em) ? em : 499,
+                    priceAnnualRaw = int.TryParse(V(BusinessConstants.Settings.SubPriceEnterpriseAnnual, "4990"), out var ea) ? ea : 4990,
+                    features = ParseFeatures(V(BusinessConstants.Settings.SubFeaturesEnterprisePlan,
+                        "[\"Everything in Pro\",\"Admin Portal Access\",\"Custom Features\",\"Account Manager\",\"White-labeled Reports\"]")),
+                    popular = false,
+                    color = "from-amber-400 to-orange-500",
+                    bgClass = "bg-amber-500/5 hover:bg-amber-500/10",
+                    borderClass = "border-amber-500/30",
+                    buttonText = "Contact Sales",
+                    buttonVariant = "outline"
+                }
+            };
+
+            return Results.Ok(plans);
+        }).RequireAuthorization();
+
         // POST: /api/subscription/checkout
         group.MapPost("/checkout", async (CheckoutRequest req, HttpContext ctx, AuthService auth, PaymobService paymob, MongoService db) =>
         {
@@ -189,4 +254,16 @@ public static class SubscriptionEndpoints
     }
 
     public record CheckoutRequest(SubscriptionTier Tier, bool IsAnnual, PaymentMethod PaymentMethod);
+
+    private static string[] ParseFeatures(string json)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<string[]>(json) ?? Array.Empty<string>();
+        }
+        catch
+        {
+            return Array.Empty<string>();
+        }
+    }
 }

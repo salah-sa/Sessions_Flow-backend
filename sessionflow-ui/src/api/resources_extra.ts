@@ -223,3 +223,26 @@ export const studentLocationApi = {
     }),
 };
 
+// Admin Users Governance Module
+export const adminUsersApi = {
+  getAll: (params?: { search?: string; role?: string; page?: number; pageSize?: number }) => {
+    const p = new URLSearchParams();
+    if (params?.search) p.set("search", params.search);
+    if (params?.role) p.set("role", params.role);
+    if (params?.page) p.set("page", String(params.page));
+    if (params?.pageSize) p.set("pageSize", String(params.pageSize ?? 50));
+    return fetchWithAuth<any>(`/admin/users?${p.toString()}`);
+  },
+  restrict: (id: string, days: number, reason?: string) =>
+    fetchWithAuth<any>(`/admin/users/${id}/restrict`, {
+      method: "POST",
+      body: JSON.stringify({ days, reason }),
+    }),
+  restore: (id: string) =>
+    fetchWithAuth<any>(`/admin/users/${id}/restore`, { method: "POST" }),
+  updateBlockedPages: (id: string, pages: string[]) =>
+    fetchWithAuth<any>(`/admin/users/${id}/blocked-pages`, {
+      method: "PUT",
+      body: JSON.stringify({ pages }),
+    }),
+};

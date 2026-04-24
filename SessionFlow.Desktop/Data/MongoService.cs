@@ -115,7 +115,18 @@ public class MongoService
             (BusinessConstants.Settings.LengthLevel1, "8"),
             (BusinessConstants.Settings.LengthLevel2, "12"),
             (BusinessConstants.Settings.LengthLevel3, "16"),
-            (BusinessConstants.Settings.LengthLevel4, "16")
+            (BusinessConstants.Settings.LengthLevel4, "16"),
+            // Subscription Pricing (admin-editable, read by Plans page)
+            (BusinessConstants.Settings.SubPriceProMonthly, "149"),
+            (BusinessConstants.Settings.SubPriceProAnnual, "1490"),
+            (BusinessConstants.Settings.SubPriceEnterpriseMonthly, "499"),
+            (BusinessConstants.Settings.SubPriceEnterpriseAnnual, "4990"),
+            (BusinessConstants.Settings.SubDescriptionFree, "Perfect for getting started and exploring SessionFlow."),
+            (BusinessConstants.Settings.SubDescriptionPro, "For professional engineers who need power and scale."),
+            (BusinessConstants.Settings.SubDescriptionEnterprise, "White-glove service for large educational institutions."),
+            (BusinessConstants.Settings.SubFeaturesFreePlan, "[\"Up to 2 Active Groups\",\"Basic Session Scheduling\",\"Standard Chat Access\",\"Community Support\"]"),
+            (BusinessConstants.Settings.SubFeaturesProPlan, "[\"Unlimited Active Groups\",\"Advanced Analytics & Insights\",\"Premium Badges & Themes\",\"Priority Email Support\",\"Data Export (CSV/PDF)\"]"),
+            (BusinessConstants.Settings.SubFeaturesEnterprisePlan, "[\"Everything in Pro\",\"Admin Portal Access\",\"Custom Feature Development\",\"Dedicated Account Manager\",\"White-labeled Reports\"]")
         };
 
         var allKeys = itemsToSeed.Select(i => i.Key).ToList();

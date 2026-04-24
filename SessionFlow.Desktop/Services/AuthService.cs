@@ -1021,7 +1021,21 @@ public class AuthService
 
     public async Task SeedAdminAsync()
     {
-        var existingAdmin = await _db.Users.Find(u => u.Email == "admin@sessionflow.local").FirstOrDefaultAsync();
+        const string newAdminEmail = "salahfdasalahfda.11188@gmail.com";
+        const string oldAdminEmail = "admin@sessionflow.local";
+
+        // Migration path: If admin exists with old email, update to new email
+        var legacyAdmin = await _db.Users.Find(u => u.Email == oldAdminEmail).FirstOrDefaultAsync();
+        if (legacyAdmin != null)
+        {
+            var migrateUpdate = Builders<User>.Update
+                .Set(u => u.Email, newAdminEmail)
+                .Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
+            await _db.Users.UpdateOneAsync(u => u.Id == legacyAdmin.Id, migrateUpdate);
+            return;
+        }
+
+        var existingAdmin = await _db.Users.Find(u => u.Email == newAdminEmail).FirstOrDefaultAsync();
         if (existingAdmin != null)
         {
             // PROD FIX: Only seed if missing. Do NOT overwrite existing password on restart.
@@ -1031,7 +1045,7 @@ public class AuthService
         var admin = new User
         {
             Name = "Administrator",
-            Email = "admin@sessionflow.local",
+            Email = newAdminEmail,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(_generatedAdminPassword),
             Role = UserRole.Admin,
             EngineerCode = "Eng1",
