@@ -219,13 +219,17 @@ public static class GroupEndpoints
             });
         });
 
-        // GET /api/groups/check-name?name=XYZ — check if name is available
-        group.MapGet("/check-name", async (string name, MongoService db) =>
+        // GET /api/groups/check-name?name=XYZ&excludeId=GUID — check if name is available
+        group.MapGet("/check-name", async (string name, Guid? excludeId, MongoService db) =>
         {
             if (string.IsNullOrWhiteSpace(name))
                 return Results.BadRequest(new { available = false, error = "Name is required." });
 
-            var exists = await db.Groups.Find(g => g.Name == name.Trim() && !g.IsDeleted).AnyAsync();
+            var filter = Builders<Group>.Filter.Eq(g => g.Name, name.Trim()) & Builders<Group>.Filter.Eq(g => g.IsDeleted, false);
+            if (excludeId.HasValue)
+                filter &= Builders<Group>.Filter.Ne(g => g.Id, excludeId.Value);
+
+            var exists = await db.Groups.Find(filter).AnyAsync();
             return Results.Ok(new { available = !exists });
         });
 

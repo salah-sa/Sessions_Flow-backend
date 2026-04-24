@@ -98,6 +98,6 @@ export const useEnrollStudent = () => {
 
 export const useCheckGroupName = () => {
   return useMutation({
-    mutationFn: (name: string) => groupsApi.checkName(name),
+    mutationFn: ({ name, excludeId }: { name: string; excludeId?: string }) => groupsApi.checkName(name, excludeId),
   });
 };

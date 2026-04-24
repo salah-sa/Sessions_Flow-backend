@@ -146,18 +146,22 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
         return;
       }
 
-      // Check if name is taken
-      try {
-        const { available } = await checkName.mutateAsync(name);
-        if (!available) {
-          setError("name", { 
-            type: "manual", 
-            message: t("groups.modal.name_exists") 
-          });
-          return;
+      // Check if name is taken (skip in edit mode if name unchanged)
+      const nameChanged = mode === "edit" ? name.trim() !== selectedGroup?.name?.trim() : true;
+      if (nameChanged) {
+        try {
+          const excludeId = mode === "edit" && selectedGroup?.id ? selectedGroup.id : undefined;
+          const { available } = await checkName.mutateAsync({ name, excludeId });
+          if (!available) {
+            setError("name", { 
+              type: "manual", 
+              message: t("groups.modal.name_exists") 
+            });
+            return;
+          }
+        } catch (error) {
+          console.error("Name check failed:", error);
         }
-      } catch (error) {
-        console.error("Name check failed:", error);
       }
     }
     if (wizardStep === 2) {
