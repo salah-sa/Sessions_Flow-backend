@@ -65,6 +65,21 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify({ email }),
     }),
+  updateDisplayName: (displayName: string) =>
+    fetchWithAuth<{ message: string; displayName: string }>("/auth/profile/display-name", {
+      method: "PUT",
+      body: JSON.stringify({ displayName }),
+    }),
+  requestEmailChange: (newEmail: string) =>
+    fetchWithAuth<{ message: string }>("/auth/profile/request-email-change", {
+      method: "POST",
+      body: JSON.stringify({ newEmail }),
+    }),
+  verifyEmailChange: (code: string) =>
+    fetchWithAuth<{ message: string }>("/auth/profile/verify-email-change", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    }),
 };
 
 // Groups Module

@@ -36,9 +36,46 @@ export const useAuthMutations = () => {
     },
   });
 
+  const updateDisplayNameMutation = useMutation({
+    mutationFn: (displayName: string) => authApi.updateDisplayName(displayName),
+    onSuccess: async () => {
+      try {
+        const freshUser = await authApi.getMe();
+        if (freshUser) {
+          const token = localStorage.getItem("sf_token") || "";
+          setAuth(freshUser, token);
+        }
+      } catch (e) {
+        console.error("[DisplayName] Failed to refresh user:", e);
+      }
+    },
+  });
+
+  const requestEmailChangeMutation = useMutation({
+    mutationFn: (newEmail: string) => authApi.requestEmailChange(newEmail),
+  });
+
+  const verifyEmailChangeMutation = useMutation({
+    mutationFn: (code: string) => authApi.verifyEmailChange(code),
+    onSuccess: async () => {
+      try {
+        const freshUser = await authApi.getMe();
+        if (freshUser) {
+          const token = localStorage.getItem("sf_token") || "";
+          setAuth(freshUser, token);
+        }
+      } catch (e) {
+        console.error("[EmailChange] Failed to refresh user:", e);
+      }
+    },
+  });
+
   return {
     updatePasswordMutation,
-    updateAvatarMutation
+    updateAvatarMutation,
+    updateDisplayNameMutation,
+    requestEmailChangeMutation,
+    verifyEmailChangeMutation,
   };
 };
 

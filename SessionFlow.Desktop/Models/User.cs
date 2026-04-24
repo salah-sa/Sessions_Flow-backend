@@ -17,6 +17,10 @@ public class User
     public Guid Id { get; set; } = Guid.NewGuid();
     
     public string Name { get; set; } = string.Empty;
+    
+    [BsonIgnoreIfNull]
+    public string? DisplayName { get; set; } // Editable by user; Name is the immutable real name
+    
     public string Email { get; set; } = string.Empty;
     
     [BsonIgnoreIfNull]

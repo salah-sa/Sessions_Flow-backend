@@ -222,6 +222,8 @@ public static class SessionEndpoints
                 }),
                 attendanceRecords = attendanceDetails,
                 createdAt = session.CreatedAt,
+                isSkipped = session.IsSkipped,
+                skipReason = session.SkipReason,
                 isEditable = ctx.User.FindFirst(ClaimTypes.Role)?.Value == "Admin" || (session.Status == SessionStatus.Ended && session.EndedAt.HasValue && session.EndedAt.Value.AddHours(24) > DateTimeOffset.UtcNow) || (session.Status == SessionStatus.Active),
                 canStart = ctx.User.FindFirst(ClaimTypes.Role)?.Value == "Admin" || (session.Status == SessionStatus.Scheduled && session.ScheduledAt <= DateTimeOffset.UtcNow.AddMinutes(30))
             });
@@ -371,9 +373,22 @@ public static class SessionEndpoints
 
             return Results.Ok(new { message = "Session cancelled." });
         });
+
+        // POST /api/sessions/{id}/skip — mark session as skipped (does NOT advance session number)
+        group.MapPost("/{id:guid}/skip", async (Guid id, SkipSessionRequest? req,
+            SessionService sessionService, Services.EventBus.IEventBus eventBus) =>
+        {
+            var (session, error) = await sessionService.SkipSessionAsync(id, req?.Reason);
+            if (error != null)
+                return Results.BadRequest(new { error });
+
+            await eventBus.PublishAsync(Services.EventBus.Events.SessionStatusChanged, Services.EventBus.EventTargetType.Group, $"session_{id}", new { sessionId = id.ToString(), status = "Skipped" });
+            return Results.Ok(new { id = session!.Id, status = session.Status.ToString(), isSkipped = true, skipReason = session.SkipReason });
+        });
     }
 
     public record CreateSessionRequest(string GroupId, DateTimeOffset ScheduledAt);
     public record EndSessionRequest(string? Notes);
     public record AttendanceUpdateItem(string StudentId, string Status);
+    public record SkipSessionRequest(string? Reason);
 }

@@ -67,7 +67,7 @@ public class SessionService
         if (futureCount >= 4) return;
 
         var lastSession = await _db.Sessions
-            .Find(s => s.GroupId == group.Id && !s.IsDeleted)
+            .Find(s => s.GroupId == group.Id && !s.IsDeleted && !s.IsSkipped)
             .SortByDescending(s => s.ScheduledAt)
             .FirstOrDefaultAsync();
 
@@ -291,6 +291,28 @@ public class SessionService
         if (session.Status != SessionStatus.Active && session.Status != SessionStatus.Ended)
             return (null, "Can only update attendance for active or ended sessions.");
 
+        // Attendance Lockout: Prevent duplicate attendance per session per day
+        if (userRole != "Admin" && session.Status == SessionStatus.Ended)
+        {
+            var cairoTz = GetConfiguredTimeZone();
+            var cairoNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, cairoTz);
+            if (session.EndedAt.HasValue)
+            {
+                var endedCairo = TimeZoneInfo.ConvertTime(session.EndedAt.Value, cairoTz);
+                if (endedCairo.Date == cairoNow.Date)
+                {
+                    // Check if attendance already has non-Unmarked records (already finalized today)
+                    var existingRecords = await _db.AttendanceRecords
+                        .Find(ar => ar.SessionId == sessionId && ar.Status != AttendanceStatus.Unmarked)
+                        .AnyAsync();
+                    if (existingRecords)
+                    {
+                        return (null, "Attendance already submitted for this session today. Changes are locked until the next session cycle.");
+                    }
+                }
+            }
+        }
+
         // Timing/Role Restriction
         if (userRole != "Admin")
         {
@@ -332,6 +354,37 @@ public class SessionService
         }
 
         return (updatedRecords, null);
+    }
+
+    public async Task<(Session? session, string? error)> SkipSessionAsync(Guid sessionId, string? reason = null)
+    {
+        var session = await _db.Sessions.Find(s => s.Id == sessionId).FirstOrDefaultAsync();
+        if (session == null)
+            return (null, "Session not found.");
+
+        if (session.Status != SessionStatus.Scheduled && session.Status != SessionStatus.Active)
+            return (null, $"Cannot skip a session with status '{session.Status}'. Only scheduled or active sessions can be skipped.");
+
+        // Mark session as cancelled + skipped
+        var update = Builders<Session>.Update
+            .Set(s => s.Status, SessionStatus.Cancelled)
+            .Set(s => s.IsSkipped, true)
+            .Set(s => s.SkipReason, reason ?? "Session did not take place")
+            .Set(s => s.UpdatedAt, DateTimeOffset.UtcNow);
+
+        await _db.Sessions.UpdateOneAsync(s => s.Id == sessionId, update);
+
+        // Cleanup: remove any attendance records for this session
+        await _db.AttendanceRecords.DeleteManyAsync(ar => ar.SessionId == sessionId);
+
+        // Important: Do NOT advance Group.CurrentSessionNumber
+        // The next session generation will reuse the same number
+
+        session.Status = SessionStatus.Cancelled;
+        session.IsSkipped = true;
+        session.SkipReason = reason;
+
+        return (session, null);
     }
 
     public async Task<List<Session>> GetTodaysSessionsAsync()
@@ -531,7 +584,7 @@ public class SessionService
             .Find(s => s.ScheduledAt >= todayStart && s.ScheduledAt < todayEnd && !s.IsDeleted)
             .ToListAsync(ct);
 
-        var existingGroupIds = new HashSet<Guid>(existingSessions.Select(s => s.GroupId));
+        var existingGroupIds = new HashSet<Guid>(existingSessions.Where(s => !s.IsSkipped).Select(s => s.GroupId));
 
         // 4. Generate missing sessions
         var newSessions = new List<Session>();
