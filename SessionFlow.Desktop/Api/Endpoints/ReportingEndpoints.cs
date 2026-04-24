@@ -25,7 +25,7 @@ public static class ReportingEndpoints
         });
 
         // GET /api/reports/group/{id} — group summary report (Future)
-        reports.MapGet("/group/{id:guid}", async (Guid id, ReportingService reporting) => {
+        reports.MapGet("/group/{id:guid}", (Guid id, ReportingService reporting) => {
             return Results.Problem("Not implemented yet. Coming in Phase 25.");
         });
     }
