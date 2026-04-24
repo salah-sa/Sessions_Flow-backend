@@ -813,10 +813,10 @@ public class AuthService
         {
             UserId = userId,
             Tier = tier,
-            IsActive = true,
-            StartDate = DateTimeOffset.UtcNow,
-            EndDate = DateTimeOffset.UtcNow.AddDays(durationDays),
-            AutoRenew = true
+            Status = SubscriptionStatus.Active,
+            CurrentPeriodStart = DateTimeOffset.UtcNow,
+            CurrentPeriodEnd = DateTimeOffset.UtcNow.AddDays(durationDays),
+            CancelAtPeriodEnd = false
         };
 
         await _db.Subscriptions.ReplaceOneAsync(
@@ -834,7 +834,7 @@ public class AuthService
         );
 
         // 4. Publish Event for Real-time UI Refresh
-        await _eventBus.PublishAsync(Events.UserUpdated, EventTargetType.User, userId.ToString(), new { 
+        await _eventBus.PublishAsync(Events.SyncState, EventTargetType.User, userId.ToString(), new { 
             Tier = tier,
             IsPremium = tier != SubscriptionTier.Free 
         });

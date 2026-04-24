@@ -155,8 +155,8 @@ public static class SubscriptionEndpoints
                     var invoice = new Invoice
                     {
                         UserId = myTransaction.UserId,
-                        TransactionId = myTransaction.Id,
-                        Amount = myTransaction.Amount,
+                        PaymentTransactionId = myTransaction.Id,
+                        AmountPaid = (long)myTransaction.Amount, // Amount is decimal, AmountPaid is long
                         Tier = myTransaction.TierSnapshot,
                         InvoiceNumber = $"INV-{DateTime.Now:yyyyMMdd}-{myTransaction.Id.ToString()[..8].ToUpper()}"
                     };

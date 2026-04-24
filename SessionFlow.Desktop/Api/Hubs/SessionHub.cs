@@ -196,11 +196,14 @@ public class SessionHub : Hub
         }
     }
 
-    public async Task Heartbeat()
+    public Task Heartbeat()
     {
         var userId = GetUserId();
-        if (string.IsNullOrEmpty(userId)) return;
-        _presence.RecordHeartbeat(userId);
+        if (!string.IsNullOrEmpty(userId))
+        {
+            _presence.RecordHeartbeat(userId);
+        }
+        return Task.CompletedTask;
     }
 
     public async Task GoOffline()
