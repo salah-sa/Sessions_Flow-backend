@@ -65,6 +65,13 @@ export const studentsApi = {
   delete: (id: string) =>
     fetchWithAuth<void>(`/students/${id}`, { method: "DELETE" }),
   getAttendance: (id: string) => fetchWithAuth<AttendanceRecord[]>(`/students/${id}/attendance`),
+  ban: (id: string) => fetchWithAuth<void>(`/students/${id}/ban`, { method: "POST" }),
+  suspend: (id: string, durationDays?: number) => 
+    fetchWithAuth<void>(`/students/${id}/suspend`, { 
+      method: "POST", 
+      body: JSON.stringify({ durationDays }) 
+    }),
+  restore: (id: string) => fetchWithAuth<void>(`/students/${id}/restore`, { method: "POST" }),
 };
 
 // Timetable Module
@@ -118,6 +125,13 @@ export const engineersApi = {
   getCodes: () => fetchWithAuth<EngineerCode[]>("/engineer-codes"),
   generateCode: () => fetchWithAuth<EngineerCode>("/engineer-codes", { method: "POST" }),
   revokeCode: (id: string) => fetchWithAuth<void>(`/engineer-codes/${id}`, { method: "DELETE" }),
+  ban: (id: string) => fetchWithAuth<void>(`/engineers/${id}/ban`, { method: "POST" }),
+  suspend: (id: string, durationDays?: number) => 
+    fetchWithAuth<void>(`/engineers/${id}/suspend`, { 
+      method: "POST", 
+      body: JSON.stringify({ durationDays }) 
+    }),
+  restore: (id: string) => fetchWithAuth<void>(`/engineers/${id}/restore`, { method: "POST" }),
 };
 
 // Stations Module

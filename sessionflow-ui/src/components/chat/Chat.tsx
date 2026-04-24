@@ -104,15 +104,15 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
         </div>
       )}
 
-      <div className={cn("flex items-end gap-3 md:gap-4 max-w-[92%] md:max-w-[85%]", isMe && "flex-row-reverse")}>
+      <div className={cn("flex items-end gap-2 md:gap-4 max-w-[95%] md:max-w-[85%]", isMe && "flex-row-reverse")}>
         <ProfileImage url={profileImageUrl} initial={initial} isMe={isMe} />
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5 md:gap-2">
           <div className={cn(
-            "px-4 py-3 md:px-6 md:py-4 rounded-xl text-[13px] relative shadow-2xl border transition-all duration-300 group/bubble",
+            "px-3.5 py-2.5 md:px-6 md:py-4 rounded-2xl text-[13px] relative shadow-2xl border transition-all duration-300 group/bubble",
             isMe 
-              ? "bg-ui-accent text-white font-medium border-transparent shadow-ui-accent/20" 
-              : "bg-ui-sidebar-bg/95 text-slate-200 border-white/5 shadow-black/80"
+              ? "bg-ui-accent text-white font-medium border-transparent shadow-ui-accent/20 rounded-tr-none" 
+              : "bg-ui-sidebar-bg/95 text-slate-200 border-white/5 shadow-black/80 rounded-tl-none"
           )}>
             <button 
               onClick={() => {

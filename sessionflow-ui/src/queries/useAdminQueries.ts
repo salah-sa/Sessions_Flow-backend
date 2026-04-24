@@ -93,6 +93,42 @@ export const useAdminMutations = () => {
   };
 };
 
+export const useUserMutations = () => {
+  const queryClient = useQueryClient();
+
+  const banMutation = useMutation({
+    mutationFn: async ({ id, role }: { id: string, role: "Student" | "Engineer" }) => {
+      return role === "Student" ? studentsApi.ban(id) : engineersApi.ban(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.engineers.all });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+    }
+  });
+
+  const suspendMutation = useMutation({
+    mutationFn: async ({ id, role, duration }: { id: string, role: "Student" | "Engineer", duration?: number }) => {
+      return role === "Student" ? studentsApi.suspend(id, duration) : engineersApi.suspend(id, duration);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.engineers.all });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+    }
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: async ({ id, role }: { id: string, role: "Student" | "Engineer" }) => {
+      return role === "Student" ? studentsApi.restore(id) : engineersApi.restore(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.engineers.all });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+    }
+  });
+
+  return { banMutation, suspendMutation, restoreMutation };
+};
+
 export const useEngineerMutations = () => {
   const queryClient = useQueryClient();
   const muts = useAdminMutations();

@@ -1,17 +1,19 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Star, Zap, Shield, Crown, Building2, CreditCard } from "lucide-react";
-import { Button, Badge } from "../components/ui";
+import { Check, Star, Zap, Shield, Crown, Building2, CreditCard, Sparkles } from "lucide-react";
+import { Button, Badge, Skeleton } from "../components/ui";
 import { useTranslation } from "react-i18next";
-import { useSubscriptionStatus, useCheckoutMutation } from "../queries/useSubscriptionQueries";
+import { useSubscriptionStatus, useCheckoutMutation, useSubscriptionPlans } from "../queries/useSubscriptionQueries";
 import { toast } from "sonner";
 import { useAuthStore } from "../store/stores";
 import { SubscriptionTier } from "../types";
+import { cn } from "../lib/utils";
 
 export default function PricingPage() {
   const { t } = useTranslation();
   const [isAnnual, setIsAnnual] = useState(false);
   const { data: statusData, isLoading: loadingStatus } = useSubscriptionStatus();
+  const { data: plansData, isLoading: loadingPlans } = useSubscriptionPlans();
   const checkoutMutation = useCheckoutMutation();
   const user = useAuthStore((s) => s.user);
 
@@ -20,7 +22,6 @@ export default function PricingPage() {
   const handleUpgrade = async (tier: SubscriptionTier) => {
     if (tier === currentTier) return;
     
-    // Disable downgrade or same tier logic is handled by backend, but we can prevent it here too
     if (currentTier === "Enterprise" || (currentTier === "Pro" && tier === "Free")) {
         toast.error("You cannot downgrade from this screen.");
         return;
@@ -43,7 +44,8 @@ export default function PricingPage() {
     }
   };
 
-  const plans = [
+  // Fallback static plans if backend doesn't provide them yet (backward compatibility)
+  const staticPlans = [
     {
       name: "Free",
       tier: "Free" as SubscriptionTier,
@@ -51,17 +53,11 @@ export default function PricingPage() {
       description: "Perfect for getting started and exploring SessionFlow.",
       priceMonthly: "EGP 0",
       priceAnnual: "EGP 0",
-      features: [
-        "Up to 2 Active Groups",
-        "Basic Session Scheduling",
-        "Standard Chat Access",
-        "Community Support",
-      ],
+      features: ["Up to 2 Active Groups", "Basic Session Scheduling", "Standard Chat Access", "Community Support"],
       color: "from-slate-400 to-slate-600",
       bgClass: "bg-white/[0.02] hover:bg-white/[0.05]",
       borderClass: "border-white/10",
       buttonText: "Current Plan",
-      buttonVariant: "outline" as const,
     },
     {
       name: "Pro",
@@ -71,18 +67,11 @@ export default function PricingPage() {
       priceMonthly: "EGP 299",
       priceAnnual: "EGP 2,990",
       popular: true,
-      features: [
-        "Unlimited Active Groups",
-        "Advanced Analytics & Insights",
-        "Premium Badges & Themes",
-        "Priority Email Support",
-        "Data Export (CSV/PDF)",
-      ],
+      features: ["Unlimited Active Groups", "Advanced Analytics & Insights", "Premium Badges & Themes", "Priority Email Support", "Data Export (CSV/PDF)"],
       color: "from-[var(--ui-accent)] to-purple-500",
       bgClass: "bg-[var(--ui-accent)]/5 hover:bg-[var(--ui-accent)]/10",
       borderClass: "border-[var(--ui-accent)]/30",
       buttonText: "Upgrade to Pro",
-      buttonVariant: "primary" as const,
     },
     {
       name: "Enterprise",
@@ -91,135 +80,153 @@ export default function PricingPage() {
       description: "White-glove service for large educational institutions.",
       priceMonthly: "EGP 999",
       priceAnnual: "EGP 9,990",
-      features: [
-        "Everything in Pro",
-        "Admin Portal Access",
-        "Custom Feature Development",
-        "Dedicated Account Manager",
-        "White-labeled Reports",
-      ],
+      features: ["Everything in Pro", "Admin Portal Access", "Custom Feature Development", "Dedicated Account Manager", "White-labeled Reports"],
       color: "from-amber-400 to-orange-500",
       bgClass: "bg-amber-500/5 hover:bg-amber-500/10",
       borderClass: "border-amber-500/30",
       buttonText: "Contact Sales",
-      buttonVariant: "outline" as const,
     }
   ];
 
-  if (loadingStatus) {
+  const plans = plansData?.data || staticPlans;
+
+  if (loadingStatus || loadingPlans) {
     return (
-      <div className="h-full flex items-center justify-center bg-[var(--ui-bg)]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--ui-accent)]"></div>
+      <div className="h-full flex flex-col items-center justify-center bg-[var(--ui-bg)] p-8">
+        <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[1,2,3].map(i => <Skeleton key={i} className="h-[500px] rounded-3xl" />)}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-full bg-[var(--ui-bg)] text-white overflow-y-auto custom-scrollbar relative pb-20">
+    <div className="min-h-full bg-[var(--ui-bg)] text-white overflow-y-auto custom-scrollbar relative pb-20 selection:bg-[var(--ui-accent)]/30">
       {/* Background Effects */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[var(--ui-accent)]/10 blur-[120px] rounded-full pointer-events-none -z-10" />
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-24 relative z-10">
         
         {/* Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16 animate-fade-in">
-          <Badge variant="glow" className="mb-6 mx-auto bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] border-[var(--ui-accent)]/20 px-4 py-1.5 text-xs font-black tracking-widest uppercase">
-            Zenith Pricing
+        <div className="text-center max-w-3xl mx-auto mb-20 animate-fade-in">
+          <Badge variant="glow" className="mb-6 mx-auto bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] border-[var(--ui-accent)]/20 px-5 py-2 text-[10px] font-black tracking-[0.2em] uppercase">
+            Zenith Pricing Architecture
           </Badge>
-          <h1 className="text-4xl md:text-5xl font-black mb-6 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/50">
+          <h1 className="text-[clamp(2.5rem,8vw,4.5rem)] font-black mb-8 tracking-tighter leading-[0.9] bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-white/20">
             Scale Your Teaching Empire
           </h1>
-          <p className="text-slate-400 text-sm md:text-base font-medium max-w-2xl mx-auto leading-relaxed">
+          <p className="text-slate-400 text-sm md:text-lg font-medium max-w-2xl mx-auto leading-relaxed">
             Choose the perfect plan to streamline your sessions, engage your students, and unlock advanced analytics. Upgrade anytime.
           </p>
 
           {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-4 mt-10">
-            <span className={`text-xs font-bold uppercase tracking-wider ${!isAnnual ? "text-white" : "text-slate-500"}`}>Monthly</span>
+          <div className="flex items-center justify-center gap-6 mt-12 bg-white/[0.02] border border-white/5 w-fit mx-auto px-6 py-3 rounded-2xl backdrop-blur-md">
+            <span className={cn("text-[10px] font-black uppercase tracking-widest transition-colors", !isAnnual ? "text-[var(--ui-accent)]" : "text-slate-500")}>Monthly</span>
             <button 
               onClick={() => setIsAnnual(!isAnnual)}
-              className="relative w-14 h-7 rounded-full bg-white/10 border border-white/20 p-1 transition-colors hover:bg-white/20"
+              className="relative w-14 h-7 rounded-full bg-white/5 border border-white/10 p-1 transition-all hover:border-white/20"
             >
               <motion.div 
                 animate={{ x: isAnnual ? 28 : 0 }}
-                className="w-5 h-5 bg-[var(--ui-accent)] rounded-full shadow-glow"
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="w-5 h-5 bg-[var(--ui-accent)] rounded-full shadow-[0_0_15px_rgba(var(--ui-accent-rgb),0.5)]"
               />
             </button>
-            <div className="flex items-center gap-2">
-              <span className={`text-xs font-bold uppercase tracking-wider ${isAnnual ? "text-white" : "text-slate-500"}`}>Annually</span>
-              <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">Save 20%</span>
+            <div className="flex items-center gap-3">
+              <span className={cn("text-[10px] font-black uppercase tracking-widest transition-colors", isAnnual ? "text-[var(--ui-accent)]" : "text-slate-500")}>Annually</span>
+              <span className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-glow shadow-emerald-500/5">Save 20%</span>
             </div>
           </div>
         </div>
 
-        {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {plans.map((plan, i) => {
+        {/* Pricing Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+          {plans.map((plan: any, i: number) => {
             const isCurrent = currentTier === plan.tier;
-            const Icon = plan.icon;
+            const Icon = i === 0 ? Star : i === 1 ? Zap : Crown;
             
             return (
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
                 key={plan.name}
-                className={`relative rounded-3xl border backdrop-blur-xl p-8 flex flex-col transition-all duration-500 group ${plan.bgClass} ${plan.borderClass}`}
+                className={cn(
+                  "relative rounded-[2.5rem] border backdrop-blur-2xl p-8 lg:p-10 flex flex-col transition-all duration-500 group",
+                  plan.bgClass || (i === 1 ? "bg-[var(--ui-accent)]/[0.03]" : "bg-white/[0.01]"),
+                  plan.borderClass || (i === 1 ? "border-[var(--ui-accent)]/20" : "border-white/5"),
+                  "hover:translate-y-[-8px] hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)]"
+                )}
               >
                 {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <div className="px-4 py-1 rounded-full bg-gradient-to-r from-[var(--ui-accent)] to-purple-500 text-white text-[10px] font-black uppercase tracking-widest shadow-glow">
-                      Most Popular
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20">
+                    <div className="px-5 py-1.5 rounded-full bg-gradient-to-r from-[var(--ui-accent)] to-purple-500 text-white text-[9px] font-black uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(var(--ui-accent-rgb),0.4)] flex items-center gap-2">
+                      <Sparkles className="w-3 h-3" /> Most Popular
                     </div>
                   </div>
                 )}
 
                 {isCurrent && (
-                  <div className="absolute top-4 right-4">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] animate-pulse" />
+                  <div className="absolute top-8 right-8">
+                    <Badge variant="success" className="bg-emerald-500/10 text-emerald-400 border-none text-[9px] font-black tracking-widest uppercase py-1">Active</Badge>
                   </div>
                 )}
 
-                <div className="mb-8">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 bg-gradient-to-br ${plan.color} shadow-lg`}>
-                    <Icon className="w-6 h-6 text-white" />
+                <div className="mb-10">
+                  <div className={cn(
+                    "w-14 h-14 rounded-2xl flex items-center justify-center mb-8 bg-gradient-to-br shadow-2xl transition-transform duration-500 group-hover:scale-110",
+                    plan.color || (i === 0 ? "from-slate-500 to-slate-700" : i === 1 ? "from-[var(--ui-accent)] to-purple-600" : "from-amber-400 to-orange-500")
+                  )}>
+                    <Icon className="w-7 h-7 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold text-white uppercase tracking-wider mb-2">{plan.name}</h3>
-                  <p className="text-xs text-slate-400 font-medium h-10">{plan.description}</p>
+                  <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-3 group-hover:text-[var(--ui-accent)] transition-colors">{plan.name}</h3>
+                  <p className="text-xs text-slate-500 font-bold leading-relaxed line-clamp-2 uppercase tracking-wide">{plan.description}</p>
                 </div>
 
-                <div className="mb-8">
+                <div className="mb-10">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-3xl sm:text-4xl font-black text-white">{isAnnual ? plan.priceAnnual : plan.priceMonthly}</span>
-                    <span className="text-xs font-bold text-slate-500 uppercase">/{isAnnual ? 'yr' : 'mo'}</span>
+                    <span className="text-[clamp(2.5rem,4vw,3.5rem)] font-black text-white tracking-tighter">
+                        {isAnnual ? plan.priceAnnual : plan.priceMonthly}
+                    </span>
+                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">/{isAnnual ? 'yr' : 'mo'}</span>
                   </div>
                 </div>
 
-                <div className="flex-1 space-y-4 mb-8">
-                  {plan.features.map((feature, j) => (
-                    <div key={j} className="flex items-start gap-3">
-                      <div className="w-5 h-5 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 mt-0.5">
-                        <Check className="w-3 h-3 text-[var(--ui-accent)]" />
+                <div className="flex-1 space-y-5 mb-12">
+                  {plan.features.map((feature: string, j: number) => (
+                    <div key={j} className="flex items-center gap-4 group/item">
+                      <div className="w-6 h-6 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center shrink-0 transition-colors group-hover/item:border-[var(--ui-accent)]/30 group-hover/item:bg-[var(--ui-accent)]/5">
+                        <Check className="w-3.5 h-3.5 text-[var(--ui-accent)] transition-transform group-hover/item:scale-125" />
                       </div>
-                      <span className="text-sm font-medium text-slate-300">{feature}</span>
+                      <span className="text-[13px] font-semibold text-slate-400 group-hover/item:text-white transition-colors">{feature}</span>
                     </div>
                   ))}
                 </div>
 
                 <Button
-                  variant={isCurrent ? "outline" : plan.buttonVariant}
-                  className={`w-full h-12 rounded-xl text-sm font-bold uppercase tracking-widest transition-all ${
-                    isCurrent ? "opacity-50 cursor-not-allowed" : "group-hover:shadow-glow"
-                  }`}
+                  variant={isCurrent ? "outline" : (plan.buttonVariant || (i === 1 ? "primary" : "outline"))}
+                  className={cn(
+                    "w-full h-14 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all relative overflow-hidden",
+                    isCurrent ? "opacity-50 cursor-not-allowed border-white/10" : "hover:shadow-[0_0_30px_rgba(var(--ui-accent-rgb),0.3)]"
+                  )}
                   disabled={isCurrent || checkoutMutation.isPending}
                   isLoading={checkoutMutation.isPending && checkoutMutation.variables?.tier === plan.tier}
                   onClick={() => handleUpgrade(plan.tier)}
                 >
-                  {isCurrent ? "Current Plan" : plan.buttonText}
+                  <span className="relative z-10">{isCurrent ? "Current Matrix" : plan.buttonText}</span>
+                  {i === 1 && !isCurrent && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />}
                 </Button>
               </motion.div>
             );
           })}
+        </div>
+
+        {/* Dynamic Footer Info */}
+        <div className="mt-24 text-center">
+            <p className="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4">
+                <Building2 className="w-4 h-4 opacity-30" /> Secure Enterprise Protocol Active <CreditCard className="w-4 h-4 opacity-30" />
+            </p>
         </div>
 
       </div>

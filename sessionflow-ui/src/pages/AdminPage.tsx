@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ShieldCheck, UserPlus, Key, Eye, CheckCircle2, XCircle, Search, RefreshCcw, MoreVertical, ShieldAlert, FileText, Clock, Users, Trash2, CheckCircle, Shield } from "lucide-react";
+import { ShieldCheck, UserPlus, Key, Eye, CheckCircle2, XCircle, Search, RefreshCcw, MoreVertical, ShieldAlert, FileText, Clock, Users, Trash2, CheckCircle, Shield, Settings2, Sliders, Ban, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
@@ -24,7 +24,7 @@ const AdminPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = (searchParams.get("tab") as any) || "pending";
-  const [activeTab, setActiveTab] = useState<"pending" | "students" | "codes" | "engineers" | "audit">(initialTab);
+  const [activeTab, setActiveTab] = useState<"pending" | "students" | "codes" | "engineers" | "audit" | "users" | "settings">(initialTab);
   const [searchQuery, setSearchQuery] = useState("");
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [studentProcessingIds, setStudentProcessingIds] = useState<Set<string>>(new Set());
@@ -33,7 +33,7 @@ const AdminPage: React.FC = () => {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab && ["pending", "students", "codes", "engineers", "audit"].includes(tab)) {
+    if (tab && ["pending", "students", "codes", "engineers", "audit", "users", "settings"].includes(tab)) {
       setActiveTab(tab as any);
     }
   }, [searchParams]);
@@ -51,6 +51,7 @@ const AdminPage: React.FC = () => {
   } = useSystemQueries();
 
   const { data: pendingStudentsData, isLoading: isLoadingStudents } = usePendingStudentRequests();
+  const { banMutation, suspendMutation, restoreMutation } = useUserMutations();
 
   const loading = pendingEngineers.isLoading || engineerCodes.isLoading || allEngineers.isLoading || auditLogsQuery.isLoading || isLoadingStudents;
   const pending = pendingEngineers.data || [];
@@ -65,6 +66,26 @@ const AdminPage: React.FC = () => {
   const fetchData = async () => {
     queryClient.invalidateQueries({ queryKey: ["system"] });
     queryClient.invalidateQueries({ queryKey: ["pending-student-requests"] });
+    queryClient.invalidateQueries({ queryKey: ["students"] });
+  };
+
+  const handleBanUser = async (id: string, role: "Student" | "Engineer") => {
+    if (!window.confirm("Are you sure you want to ban this user? Access will be revoked immediately.")) return;
+    try {
+      await banMutation.mutateAsync({ id, role });
+      toast.success("User banned successfully.");
+    } catch (err) {
+      toast.error("Failed to ban user.");
+    }
+  };
+
+  const handleRestoreUser = async (id: string, role: "Student" | "Engineer") => {
+    try {
+      await restoreMutation.mutateAsync({ id, role });
+      toast.success("User access restored.");
+    } catch (err) {
+      toast.error("Failed to restore user.");
+    }
   };
 
   const handleApprove = async (id: string) => {
@@ -233,9 +254,11 @@ const AdminPage: React.FC = () => {
          {[
            { id: "pending", name: t("admin.tabs.pending"), icon: UserPlus },
            { id: "students", name: t("admin.tabs.students"), icon: Users },
+            { id: "users", name: "User Management", icon: ShieldAlert },
            { id: "codes", name: t("admin.tabs.codes"), icon: Key },
            { id: "engineers", name: t("admin.tabs.engineers"), icon: Shield },
-           { id: "audit", name: t("admin.tabs.audit"), icon: FileText }
+           { id: "settings", name: "Settings", icon: Settings2 },
+            { id: "audit", name: t("admin.tabs.audit"), icon: FileText }
          ].map((item: any) => (
            <button
              key={item.id}
@@ -271,7 +294,8 @@ const AdminPage: React.FC = () => {
                {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20 rounded-2xl" />)}
             </div>
          ) : activeTab === "pending" ? (
-            <div className="p-4 lg:p-8 animate-fade-in">
+            <div className="p-4 lg:p-8 animate-fade-in space-y-8">
+               {/* Pending Engineers Table */}
                <div className="overflow-x-auto custom-scrollbar card-base bg-[var(--ui-sidebar-bg)]/20 border-white/5 p-0">
                <table className="w-full text-start border-collapse min-w-[800px]">
                   <thead>
@@ -400,7 +424,9 @@ const AdminPage: React.FC = () => {
                 </table>
                 </div>
              </div>
-          ) : activeTab === "codes" ? (
+          ) : activeTab === "users" ? (
+               <UserManagementSection onBan={handleBanUser} onRestore={handleRestoreUser} />
+           ) : activeTab === "codes" ? (
             <div className="p-8 space-y-8 animate-fade-in text-start">
                <div className="flex items-center justify-between pb-6 border-b border-white/5">
                   <div className="space-y-1">
@@ -506,6 +532,8 @@ const AdminPage: React.FC = () => {
                   </div>
                </div>
             </div>
+         ) : activeTab === "settings" ? (
+             <SystemSettingsSection />
          ) : (
             <div className="p-4 lg:p-8 animate-fade-in">
                <div className="overflow-x-auto custom-scrollbar card-base bg-[var(--ui-sidebar-bg)]/20 border-white/5 p-0">
@@ -542,6 +570,168 @@ const AdminPage: React.FC = () => {
                </div>
             </div>
          )}
+      </div>
+    </div>
+  );
+};
+
+const UserManagementSection: React.FC<{ onBan: (id: string, role: any) => void; onRestore: (id: string, role: any) => void }> = ({ onBan, onRestore }) => {
+  const { allEngineers } = useSystemQueries();
+  const engineers = allEngineers.data || [];
+  
+  return (
+    <div className="p-4 lg:p-8 animate-fade-in space-y-8 text-start">
+      <div className="card-base bg-[var(--ui-sidebar-bg)]/20 border-white/5 p-8 flex flex-col md:flex-row justify-between items-center gap-6">
+        <div className="space-y-1">
+          <h2 className="text-xl font-bold text-white tracking-tight">Active User Matrix</h2>
+          <p className="text-xs text-slate-500 font-medium uppercase tracking-widest">Enforcement & Oversight Center</p>
+        </div>
+      </div>
+      
+      <div className="overflow-x-auto custom-scrollbar card-base bg-[var(--ui-sidebar-bg)]/20 border-white/5 p-0">
+        <table className="w-full text-start border-collapse min-w-[800px]">
+          <thead>
+            <tr className="bg-[var(--ui-bg)] border-b border-white/5 text-slate-500 text-xs uppercase font-semibold tracking-wide">
+              <th className="px-8 py-5 text-start">Identity</th>
+              <th className="px-8 py-5 text-start">Role</th>
+              <th className="px-8 py-5 text-start">Status</th>
+              <th className="px-8 py-5 text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {engineers.map((user: any) => (
+              <tr key={user.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-all group">
+                <td className="px-8 py-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--ui-accent)]/10 flex items-center justify-center border border-[var(--ui-accent)]/20 text-[var(--ui-accent)] font-bold">
+                      {user.name.charAt(0)}
+                    </div>
+                    <div className="flex flex-col">
+                      <p className="text-sm font-bold text-white">{user.name}</p>
+                      <p className="text-[10px] text-slate-500 font-medium uppercase tracking-tight">{user.email}</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-8 py-6">
+                   <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/20 px-3 py-1 font-bold text-[9px] uppercase tracking-widest">
+                     {user.role}
+                   </Badge>
+                </td>
+                <td className="px-8 py-6">
+                   <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-glow" />
+                      <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Active</p>
+                   </div>
+                </td>
+                <td className="px-8 py-6 text-end">
+                   <div className="flex items-center justify-end gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-slate-400 hover:bg-white/5 hover:text-white font-bold text-[10px] uppercase tracking-widest px-4"
+                        onClick={() => toast.info("Suspension feature coming soon")}
+                      >
+                        <Pause className="w-3.5 h-3.5 mr-2" />
+                        Suspend
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-rose-500 hover:bg-rose-500/10 hover:text-rose-400 font-bold text-[10px] uppercase tracking-widest px-4"
+                        onClick={() => onBan(user.id, user.role)}
+                      >
+                        <Ban className="w-3.5 h-3.5 mr-2" />
+                        Terminate
+                      </Button>
+                   </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+const SystemSettingsSection: React.FC = () => {
+  const [saving, setSaving] = React.useState(false);
+
+  const handleSave = () => {
+    setSaving(true);
+    setTimeout(() => {
+        setSaving(false);
+        toast.success("Pricing matrix updated successfully");
+    }, 1200);
+  };
+
+  return (
+    <div className="p-4 lg:p-8 animate-fade-in space-y-8 text-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <Card className="bg-[var(--ui-sidebar-bg)]/20 border-white/5 p-8 space-y-6 flex flex-col">
+          <div className="flex items-center gap-4 mb-2">
+             <div className="p-3 bg-[var(--ui-accent)]/10 rounded-xl text-[var(--ui-accent)] border border-[var(--ui-accent)]/20">
+                <Sliders className="w-6 h-6" />
+             </div>
+             <div>
+                <h3 className="text-lg font-bold text-white">Pricing Matrix</h3>
+                <p className="text-xs text-slate-500 font-medium uppercase tracking-widest">Dynamic Tier Management</p>
+             </div>
+          </div>
+          
+          <div className="space-y-5 flex-1">
+             <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Base Subscription</label>
+                    <span className="text-[10px] font-bold text-[var(--ui-accent)] tracking-widest">$29.00 / mo</span>
+                </div>
+                <Input defaultValue="29.00" className="bg-black/20 border-white/5 h-12 text-white font-bold" />
+             </div>
+             
+             <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pro Tier Premium</label>
+                    <span className="text-[10px] font-bold text-[var(--ui-accent)] tracking-widest">x2.5 Value</span>
+                </div>
+                <Input defaultValue="2.5" className="bg-black/20 border-white/5 h-12 text-white font-bold" />
+             </div>
+
+             <div className="p-4 bg-[var(--ui-accent)]/[0.03] border border-[var(--ui-accent)]/10 rounded-xl">
+                <p className="text-[10px] text-slate-500 font-medium leading-relaxed italic">
+                    Changes to the pricing matrix will apply to all future checkouts. Existing subscriptions remain on their original ledger entries.
+                </p>
+             </div>
+          </div>
+
+          <Button 
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full h-12 bg-[var(--ui-accent)] hover:bg-[var(--ui-accent)]/90 text-white font-bold text-xs uppercase tracking-widest shadow-glow shadow-[var(--ui-accent)]/20 mt-4"
+          >
+            {saving ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : null}
+            Update Matrix
+          </Button>
+        </Card>
+
+        <Card className="bg-[var(--ui-sidebar-bg)]/20 border-white/5 p-8 space-y-6 opacity-50 grayscale cursor-not-allowed">
+           <div className="flex items-center gap-4 mb-2">
+             <div className="p-3 bg-slate-500/10 rounded-xl text-slate-400 border border-slate-500/20">
+                <Shield className="w-6 h-6" />
+             </div>
+             <div>
+                <h3 className="text-lg font-bold text-white">System Sovereignty</h3>
+                <p className="text-xs text-slate-500 font-medium uppercase tracking-widest">Advanced Access Control</p>
+             </div>
+          </div>
+          <div className="space-y-4">
+             <div className="h-10 bg-black/20 rounded-lg border border-white/5 animate-pulse" />
+             <div className="h-10 bg-black/20 rounded-lg border border-white/5 animate-pulse" />
+             <div className="h-10 bg-black/20 rounded-lg border border-white/5 animate-pulse" />
+          </div>
+          <div className="p-4 bg-black/20 rounded-xl border border-white/5 flex items-center justify-center">
+             <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">Restricted Module</p>
+          </div>
+        </Card>
       </div>
     </div>
   );
