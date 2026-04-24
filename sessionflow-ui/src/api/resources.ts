@@ -78,6 +78,8 @@ export const groupsApi = {
     return fetchWithAuth<PaginatedResponse<Group>>(`/groups?${p.toString()}`);
   },
   getById: (id: string) => fetchWithAuth<Group>(`/groups/${id}`),
+  checkName: (name: string) =>
+    fetchWithAuth<{ available: boolean }>(`/groups/check-name?name=${encodeURIComponent(name)}`),
   create: (data: GroupCreateData) =>
     fetchWithAuth<Group>("/groups", {
       method: "POST",

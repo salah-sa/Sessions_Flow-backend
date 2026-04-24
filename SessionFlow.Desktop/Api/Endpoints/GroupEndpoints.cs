@@ -219,6 +219,16 @@ public static class GroupEndpoints
             });
         });
 
+        // GET /api/groups/check-name?name=XYZ — check if name is available
+        group.MapGet("/check-name", async (string name, MongoService db) =>
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return Results.BadRequest(new { available = false, error = "Name is required." });
+
+            var exists = await db.Groups.Find(g => g.Name == name.Trim() && !g.IsDeleted).AnyAsync();
+            return Results.Ok(new { available = !exists });
+        });
+
         // POST /api/groups — create group + auto-generate sessions
         group.MapPost("/", async (CreateGroupRequest req, MongoService db, SessionService sessionService, HttpContext ctx) =>
         {
