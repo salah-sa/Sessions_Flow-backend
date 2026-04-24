@@ -302,6 +302,7 @@ public static class ApiHost
         AuditEndpoints.Map(app);
         ImportEndpoints.Map(app);
         GoogleAuthEndpoints.Map(app);
+        SubscriptionEndpoints.Map(app);
         ReportingEndpoints.Map(app);
 
         // 6. Map Real-time Hubs
