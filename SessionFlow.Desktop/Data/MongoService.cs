@@ -190,6 +190,7 @@ public class MongoService
     public IMongoCollection<Invoice> Invoices => _database.GetCollection<Invoice>("Invoices");
     public IMongoCollection<SupportTicket> SupportTickets => _database.GetCollection<SupportTicket>("SupportTickets");
     public IMongoCollection<SystemBroadcast> SystemBroadcasts => _database.GetCollection<SystemBroadcast>("SystemBroadcasts");
+    public IMongoCollection<EmailChangeToken> EmailChangeTokens => _database.GetCollection<EmailChangeToken>("EmailChangeTokens");
 
     public IMongoDatabase Database => _database;
 }

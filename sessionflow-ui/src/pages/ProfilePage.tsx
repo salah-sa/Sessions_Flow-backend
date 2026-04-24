@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { User, Mail, Shield, Calendar, Clock, Activity, Lock, Save, Loader2, Key, Target, ShieldCheck, ArrowUpRight, TrendingUp, History, Camera, Upload, Copy, Check, LogOut } from "lucide-react";
+import { User, Mail, Shield, Calendar, Clock, Activity, Lock, Save, Loader2, Key, Target, ShieldCheck, ArrowUpRight, TrendingUp, History, Camera, Upload, Copy, Check, LogOut, Pencil, MailCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Card, Button, Input, Badge, Skeleton } from "../components/ui";
@@ -25,9 +25,18 @@ const ProfilePage: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+  // Display Name state
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [displayName, setDisplayName] = useState(user?.displayName || user?.name || "");
+
+  // Email Change state
+  const [emailStep, setEmailStep] = useState<'idle' | 'requesting' | 'verifying'>('idle');
+  const [newEmail, setNewEmail] = useState("");
+  const [emailCode, setEmailCode] = useState("");
+
   const { data: allLogs, isLoading: logsLoading } = useAuditLogs();
   const { data: stats, isLoading: statsLoading } = useDashboardSummary();
-  const { updatePasswordMutation, updateAvatarMutation } = useAuthMutations();
+  const { updatePasswordMutation, updateAvatarMutation, updateDisplayNameMutation, requestEmailChangeMutation, verifyEmailChangeMutation } = useAuthMutations();
 
   const logs = (allLogs || []).filter((l: any) => l.userName === user?.name).slice(0, 10);
   const loading = logsLoading || statsLoading;
@@ -154,7 +163,52 @@ const ProfilePage: React.FC = () => {
                          </div>
                       </div>
                       <input type="file" ref={fileInputRef} onChange={handleAvatarUpload} accept="image/*" className="hidden" />
-                    <h2 className="text-2xl font-sora font-semibold text-white mb-2">{user?.name}</h2>
+                    <h2 className="text-2xl font-sora font-semibold text-white mb-0.5">{user?.displayName || user?.name}</h2>
+                    {user?.displayName && user?.displayName !== user?.name && (
+                      <p className="text-xs text-slate-500 font-medium mb-1">{user?.name}</p>
+                    )}
+                    <div className="flex items-center gap-2 mb-2">
+                      {isEditingName ? (
+                        <div className="flex items-center gap-2 w-full">
+                          <input
+                            type="text"
+                            value={displayName}
+                            onChange={e => setDisplayName(e.target.value)}
+                            maxLength={30}
+                            className="flex-1 h-9 bg-white/5 border border-white/10 rounded-lg px-3 text-xs font-semibold text-white focus:ring-2 focus:ring-[var(--ui-accent)]/30 focus:outline-none text-center"
+                            placeholder="Display name..."
+                            autoFocus
+                          />
+                          <button
+                            onClick={async () => {
+                              if (!displayName.trim() || displayName.length < 2) {
+                                toast.error("Display name must be at least 2 characters.");
+                                return;
+                              }
+                              try {
+                                await updateDisplayNameMutation.mutateAsync(displayName.trim());
+                                toast.success("Display name updated!");
+                                setIsEditingName(false);
+                              } catch (err: any) {
+                                toast.error(err?.message || "Failed to update display name.");
+                              }
+                            }}
+                            disabled={updateDisplayNameMutation.isPending}
+                            className="w-9 h-9 rounded-lg bg-[var(--ui-accent)]/20 border border-[var(--ui-accent)]/30 flex items-center justify-center text-[var(--ui-accent)] hover:bg-[var(--ui-accent)] hover:text-white transition-all"
+                          >
+                            {updateDisplayNameMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => { setDisplayName(user?.displayName || user?.name || ""); setIsEditingName(true); }}
+                          className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500 hover:text-[var(--ui-accent)] transition-colors uppercase"
+                        >
+                          <Pencil className="w-3 h-3" />
+                          Edit Display Name
+                        </button>
+                      )}
+                    </div>
                     <Badge variant="primary" className="bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] border-none px-6 py-1.5 font-semibold text-xs uppercase mb-8">{user?.role}</Badge>
                     
                     <div className="w-full space-y-4 pt-8 border-t border-white/5">
@@ -222,6 +276,100 @@ const ProfilePage: React.FC = () => {
                       {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : t("profile.submit_password")}
                     </Button>
                  </form>
+              </div>
+
+              {/* Email Change Card */}
+              <div className="card-base p-8 bg-[var(--ui-bg)] border-white/10 space-y-6">
+                <div className="flex items-center gap-3">
+                  <MailCheck className="w-4 h-4 text-amber-500" />
+                  <h3 className="text-[11px] font-semibold text-white uppercase">Update Email Address</h3>
+                </div>
+                <p className="text-xs text-slate-500 font-medium">A 5-digit verification code will be sent to your <strong className="text-slate-400">current email</strong> for security.</p>
+                
+                {emailStep === 'idle' && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-slate-600 uppercase ps-1">New Email Address</label>
+                      <input
+                        type="email"
+                        value={newEmail}
+                        onChange={e => setNewEmail(e.target.value)}
+                        placeholder="new.email@example.com"
+                        className="w-full h-11 bg-[var(--ui-sidebar-bg)] border border-white/10 rounded-xl px-4 text-xs font-semibold text-white placeholder-slate-600 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
+                      />
+                    </div>
+                    <Button
+                      onClick={async () => {
+                        if (!newEmail.includes('@')) { toast.error("Please enter a valid email."); return; }
+                        setEmailStep('requesting');
+                        try {
+                          await requestEmailChangeMutation.mutateAsync(newEmail);
+                          toast.success("Verification code sent to your current email!");
+                          setEmailStep('verifying');
+                        } catch (err: any) {
+                          toast.error(err?.message || "Failed to request email change.");
+                          setEmailStep('idle');
+                        }
+                      }}
+                      variant="primary"
+                      disabled={!newEmail || requestEmailChangeMutation.isPending}
+                      className="w-full h-12 bg-amber-500/10 text-amber-500 border border-amber-500/20 hover:bg-amber-500 hover:text-white"
+                    >
+                      {requestEmailChangeMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send Verification Code"}
+                    </Button>
+                  </div>
+                )}
+
+                {emailStep === 'verifying' && (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl text-center">
+                      <p className="text-xs text-amber-500 font-semibold">Code sent to: {user?.email}</p>
+                      <p className="text-[10px] text-slate-500 mt-1">Changing to: {newEmail}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-slate-600 uppercase ps-1">5-Digit Verification Code</label>
+                      <input
+                        type="text"
+                        value={emailCode}
+                        onChange={e => {
+                          const v = e.target.value.replace(/\D/g, '').slice(0, 5);
+                          setEmailCode(v);
+                        }}
+                        maxLength={5}
+                        placeholder="00000"
+                        className="w-full h-14 bg-[var(--ui-sidebar-bg)] border border-amber-500/20 rounded-xl px-4 text-center text-2xl font-mono font-bold text-amber-500 tracking-[16px] focus:ring-2 focus:ring-amber-500/30 focus:outline-none"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => { setEmailStep('idle'); setEmailCode(''); }}
+                        className="flex-1 h-12 bg-white/5 border border-white/10 rounded-xl text-xs font-semibold text-slate-400 hover:bg-white/10 transition-all"
+                      >
+                        Cancel
+                      </button>
+                      <Button
+                        onClick={async () => {
+                          if (emailCode.length !== 5) { toast.error("Enter the full 5-digit code."); return; }
+                          try {
+                            await verifyEmailChangeMutation.mutateAsync(emailCode);
+                            toast.success("Email updated successfully!");
+                            setEmailStep('idle');
+                            setNewEmail('');
+                            setEmailCode('');
+                          } catch (err: any) {
+                            toast.error(err?.message || "Verification failed.");
+                          }
+                        }}
+                        variant="primary"
+                        disabled={emailCode.length !== 5 || verifyEmailChangeMutation.isPending}
+                        className="flex-1 h-12 bg-amber-500 text-white hover:bg-amber-600"
+                      >
+                        {verifyEmailChangeMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Verify & Update"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
                {/* Sign Out */}

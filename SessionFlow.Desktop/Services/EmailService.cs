@@ -117,6 +117,7 @@ public class EmailReminderService : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<EmailReminderService> _logger;
     private DateTimeOffset _lastDailySummary = DateTimeOffset.MinValue;
+    private DateTimeOffset _lastMissedAttendanceCheck = DateTimeOffset.MinValue;
     private readonly HashSet<Guid> _sentReminders = new();
 
     public EmailReminderService(IServiceProvider serviceProvider, ILogger<EmailReminderService> logger)
@@ -135,6 +136,7 @@ public class EmailReminderService : BackgroundService
             {
                 await CheckAndSendRemindersAsync(stoppingToken);
                 await CheckAndSendDailySummaryAsync(stoppingToken);
+                await CheckAndSendMissedAttendanceRemindersAsync(stoppingToken);
             }
             catch (OperationCanceledException)
             {
@@ -272,6 +274,73 @@ public class EmailReminderService : BackgroundService
                 $"SessionFlow: Your schedule for {tomorrowStart:MMMM dd}",
                 body,
                 ct);
+        }
+    }
+
+    private async Task CheckAndSendMissedAttendanceRemindersAsync(CancellationToken ct)
+    {
+        var cairoOffset = TimeSpan.FromHours(2);
+        var cairoNow = DateTimeOffset.UtcNow.ToOffset(cairoOffset);
+
+        // Only run at 11:30 PM Cairo time, once per day
+        if (cairoNow.Hour != 23 || cairoNow.Minute < 30 || cairoNow.Date == _lastMissedAttendanceCheck.Date)
+            return;
+
+        _logger.LogInformation("Checking for missed attendance at 11:30 PM Cairo...");
+        _lastMissedAttendanceCheck = cairoNow;
+
+        using var scope = _serviceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MongoService>();
+        var emailService = scope.ServiceProvider.GetRequiredService<EmailService>();
+
+        // Find today's sessions that are still Scheduled or Active (attendance not completed)
+        var todayStart = new DateTimeOffset(cairoNow.Date, cairoOffset);
+        var todayEnd = todayStart.AddDays(1);
+
+        var missedSessions = await db.Sessions
+            .Find(s => s.ScheduledAt >= todayStart && s.ScheduledAt < todayEnd
+                        && !s.IsDeleted && !s.IsSkipped
+                        && (s.Status == SessionStatus.Scheduled || s.Status == SessionStatus.Active))
+            .ToListAsync(ct);
+
+        if (missedSessions.Count == 0) return;
+
+        var byEngineer = missedSessions.GroupBy(s => s.EngineerId);
+
+        foreach (var engineerGroup in byEngineer)
+        {
+            if (ct.IsCancellationRequested) break;
+
+            var engineer = await db.Users.Find(u => u.Id == engineerGroup.Key).FirstOrDefaultAsync(ct);
+            if (engineer == null || string.IsNullOrEmpty(engineer.Email)) continue;
+
+            var sessionRows = new List<string>();
+            foreach (var session in engineerGroup)
+            {
+                var group = await db.Groups.Find(g => g.Id == session.GroupId).FirstOrDefaultAsync(ct);
+                var time = session.ScheduledAt.ToOffset(cairoOffset);
+                sessionRows.Add($"<tr><td style='padding:8px 12px; border-bottom: 1px solid #1e293b;'>{time:hh:mm tt}</td><td style='padding:8px 12px; border-bottom: 1px solid #1e293b;'>{group?.Name ?? "N/A"}</td><td style='padding:8px 12px; border-bottom: 1px solid #1e293b; color: #f59e0b;'>{session.Status}</td></tr>");
+            }
+
+            var body = $@"
+                <div style='font-family: sans-serif; background: #020617; color: white; padding: 40px; border-radius: 20px; max-width: 600px; margin: auto;'>
+                    <h2 style='color: #f59e0b;'>⚠️ Missed Attendance Alert</h2>
+                    <p>Hi {engineer.DisplayName ?? engineer.Name}, the following sessions were <strong>not completed</strong> today:</p>
+                    <table style='width: 100%; border-collapse: collapse; margin: 20px 0; background: #0f172a; border-radius: 12px; overflow: hidden;'>
+                        <tr style='background: #1e293b;'><th style='padding:12px; text-align:left;'>Time</th><th style='padding:12px; text-align:left;'>Group</th><th style='padding:12px; text-align:left;'>Status</th></tr>
+                        {string.Join("", sessionRows)}
+                    </table>
+                    <p style='font-size: 0.95em; color: #94a3b8;'>If these sessions did not take place, you can mark them as <strong>Skipped</strong> in the system to prevent session number advancement.</p>
+                    <p style='color: #64748b; font-size: 12px; margin-top: 30px; text-align: center;'>SESSIONFLOW — AUTOMATED SYSTEM RELAY</p>
+                </div>";
+
+            await emailService.SendEmailAsync(
+                engineer.Email,
+                $"⚠️ Missed Attendance: {engineerGroup.Count()} session(s) not completed today",
+                body,
+                ct);
+
+            _logger.LogInformation("Missed attendance reminder sent to {Email} for {Count} sessions", engineer.Email, engineerGroup.Count());
         }
     }
 }

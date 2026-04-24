@@ -94,10 +94,21 @@ export const useSessionMutations = () => {
     },
   });
 
+  const skipMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      sessionsApi.skip(id, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups.all });
+    },
+  });
+
   return {
     createMutation,
     startMutation,
     endMutation,
-    updateAttendanceMutation
+    updateAttendanceMutation,
+    skipMutation,
   };
 };

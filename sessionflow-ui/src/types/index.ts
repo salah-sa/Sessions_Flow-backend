@@ -5,6 +5,7 @@ export type SubscriptionStatus = "None" | "Active" | "PastDue" | "Canceled" | "U
 export interface User {
   id: string;
   name: string;
+  displayName?: string;
   email: string;
   username?: string; // For student login
   role: UserRole;
@@ -101,6 +102,8 @@ export interface Session {
   attendance?: AttendanceRecord[];
   canStart?: boolean;
   isEditable?: boolean;
+  isSkipped?: boolean;
+  skipReason?: string;
 }
 
 export type AttendanceStatus = "Unmarked" | "Absent" | "Present" | "Late";

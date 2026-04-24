@@ -53,6 +53,7 @@ public static class AuthEndpoints
                 {
                     id = user!.Id,
                     name = user.Name,
+                    displayName = user.DisplayName ?? user.Name,
                     email = user.Email,
                     username = user.Username,
                     role = user.Role.ToString(),
@@ -348,6 +349,7 @@ public static class AuthEndpoints
             {
                 id = user.Id,
                 name = user.Name,
+                displayName = user.DisplayName ?? user.Name,
                 email = user.Email,
                 username = user.Username,
                 role = user.Role.ToString(),
@@ -405,6 +407,54 @@ public static class AuthEndpoints
 
             return Results.Ok(new { message = "Password updated successfully." });
         }).RequireAuthorization();
+
+        // PUT /api/auth/profile/display-name
+        group.MapPut("/profile/display-name", async (UpdateDisplayNameRequest req, HttpContext ctx, AuthService auth) =>
+        {
+            var user = await auth.GetUserFromClaimsAsync(ctx.User);
+            if (user == null) return Results.Unauthorized();
+
+            if (string.IsNullOrWhiteSpace(req.DisplayName))
+                return Results.BadRequest(new { error = "Display name is required." });
+
+            var (success, error) = await auth.UpdateDisplayNameAsync(user.Id, req.DisplayName);
+            if (!success)
+                return Results.BadRequest(new { error });
+
+            return Results.Ok(new { message = "Display name updated.", displayName = req.DisplayName.Trim() });
+        }).RequireAuthorization();
+
+        // POST /api/auth/profile/request-email-change
+        group.MapPost("/profile/request-email-change", async (RequestEmailChangeRequest req, HttpContext ctx, AuthService auth) =>
+        {
+            var user = await auth.GetUserFromClaimsAsync(ctx.User);
+            if (user == null) return Results.Unauthorized();
+
+            if (string.IsNullOrWhiteSpace(req.NewEmail))
+                return Results.BadRequest(new { error = "New email is required." });
+
+            var (success, error) = await auth.RequestEmailChangeAsync(user.Id, req.NewEmail);
+            if (!success)
+                return Results.BadRequest(new { error });
+
+            return Results.Ok(new { message = "Verification code sent to your current email address." });
+        }).RequireAuthorization();
+
+        // POST /api/auth/profile/verify-email-change
+        group.MapPost("/profile/verify-email-change", async (VerifyEmailChangeRequest req, HttpContext ctx, AuthService auth) =>
+        {
+            var user = await auth.GetUserFromClaimsAsync(ctx.User);
+            if (user == null) return Results.Unauthorized();
+
+            if (string.IsNullOrWhiteSpace(req.Code))
+                return Results.BadRequest(new { error = "Verification code is required." });
+
+            var (success, error) = await auth.VerifyEmailChangeAsync(user.Id, req.Code.Trim());
+            if (!success)
+                return Results.BadRequest(new { error });
+
+            return Results.Ok(new { message = "Email updated successfully." });
+        }).RequireAuthorization();
     }
 
     public static string? ResolveAvatarUrl(string? relativeUrl, HttpRequest request)
@@ -443,4 +493,7 @@ public static class AuthEndpoints
     public record VerifyResetCodeRequest(string Email, string Code);
     public record ResetPasswordRequest(Guid TokenId, string NewPassword);
     public record ResendCredentialsRequest(string Email);
+    public record UpdateDisplayNameRequest(string DisplayName);
+    public record RequestEmailChangeRequest(string NewEmail);
+    public record VerifyEmailChangeRequest(string Code);
 }

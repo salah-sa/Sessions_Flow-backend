@@ -795,6 +795,136 @@ public class AuthService
         return (true, null);
     }
 
+    public async Task<(bool success, string? error)> UpdateDisplayNameAsync(Guid userId, string displayName, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(displayName) || displayName.Length < 2 || displayName.Length > 30)
+            return (false, "Display name must be between 2 and 30 characters.");
+
+        // Only allow letters, numbers, spaces, and basic punctuation
+        if (!System.Text.RegularExpressions.Regex.IsMatch(displayName, @"^[\p{L}\p{N}\s.\-_]+$"))
+            return (false, "Display name can only contain letters, numbers, spaces, dots, hyphens, and underscores.");
+
+        var update = Builders<User>.Update
+            .Set(u => u.DisplayName, displayName.Trim())
+            .Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
+
+        await _db.Users.UpdateOneAsync(u => u.Id == userId, update, cancellationToken: ct);
+        return (true, null);
+    }
+
+    public async Task<(bool success, string? error)> RequestEmailChangeAsync(Guid userId, string newEmail, CancellationToken ct = default)
+    {
+        var user = await GetUserByIdAsync(userId);
+        if (user == null) return (false, "User not found.");
+
+        // Validate email format
+        if (string.IsNullOrWhiteSpace(newEmail) || !newEmail.Contains('@') || !newEmail.Contains('.'))
+            return (false, "Invalid email format.");
+
+        newEmail = newEmail.Trim().ToLowerInvariant();
+
+        if (newEmail == user.Email.ToLowerInvariant())
+            return (false, "New email is the same as your current email.");
+
+        // Check uniqueness
+        var emailFilter = Builders<User>.Filter.Regex(u => u.Email, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(newEmail)}$", "i"));
+        if (await _db.Users.Find(emailFilter).AnyAsync(ct))
+            return (false, "This email address is already registered to another account.");
+
+        // Rate limit (60s cooldown)
+        var lastToken = await _db.EmailChangeTokens
+            .Find(t => t.UserId == userId && t.CreatedAt > DateTimeOffset.UtcNow.AddSeconds(-60))
+            .SortByDescending(t => t.CreatedAt)
+            .FirstOrDefaultAsync(ct);
+
+        if (lastToken != null)
+            return (false, "Please wait 60 seconds before requesting another verification code.");
+
+        // Generate 5-digit numeric code
+        var code = Generate5DigitCode();
+
+        var token = new EmailChangeToken
+        {
+            UserId = userId,
+            OldEmail = user.Email,
+            NewEmail = newEmail,
+            Code = code,
+            ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(15)
+        };
+        await _db.EmailChangeTokens.InsertOneAsync(token, cancellationToken: ct);
+
+        // Send verification code to OLD email
+        using (var scope = _scopeFactory.CreateScope())
+        {
+            var mail = scope.ServiceProvider.GetRequiredService<EmailService>();
+            var body = $@"
+                <div style='font-family: sans-serif; background: #020617; color: white; padding: 40px; border-radius: 20px; text-align: center; max-width: 500px; margin: auto;'>
+                    <h2 style='color: #f59e0b; font-size: 24px; margin-bottom: 20px;'>Email Change Verification</h2>
+                    <p style='color: #94a3b8; font-size: 16px; margin-bottom: 10px;'>A request was made to change your email to:</p>
+                    <p style='color: #60a5fa; font-size: 18px; font-weight: bold; margin-bottom: 30px;'>{newEmail}</p>
+                    <p style='color: #94a3b8; font-size: 14px; margin-bottom: 20px;'>Enter this verification code to confirm:</p>
+                    <div style='background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); padding: 20px; border-radius: 12px; display: inline-block;'>
+                        <span style='font-size: 36px; font-weight: bold; letter-spacing: 16px; color: #f59e0b;'>{code}</span>
+                    </div>
+                    <p style='color: #64748b; font-size: 12px; margin-top: 40px;'>This code expires in 15 minutes. If you did not request this, please ignore this email.</p>
+                </div>";
+
+            var (sent, mailError) = await mail.SendEmailAsync(user.Email, "SessionFlow: Email Change Verification Code", body, ct);
+            if (!sent) return (false, mailError ?? "Failed to send verification email.");
+        }
+
+        return (true, null);
+    }
+
+    public async Task<(bool success, string? error)> VerifyEmailChangeAsync(Guid userId, string code, CancellationToken ct = default)
+    {
+        var token = await _db.EmailChangeTokens
+            .Find(t => t.UserId == userId && !t.IsUsed && t.ExpiresAt > DateTimeOffset.UtcNow)
+            .SortByDescending(t => t.CreatedAt)
+            .FirstOrDefaultAsync(ct);
+
+        if (token == null)
+            return (false, "No pending email change request found, or the code has expired.");
+
+        if (token.Attempts >= 3)
+            return (false, "Too many failed attempts. Please request a new verification code.");
+
+        if (token.Code != code)
+        {
+            await _db.EmailChangeTokens.UpdateOneAsync(
+                t => t.Id == token.Id,
+                Builders<EmailChangeToken>.Update.Inc(t => t.Attempts, 1),
+                cancellationToken: ct);
+            return (false, $"Invalid code. {2 - token.Attempts} attempt(s) remaining.");
+        }
+
+        // Code matches — update email
+        var userUpdate = Builders<User>.Update
+            .Set(u => u.Email, token.NewEmail)
+            .Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
+
+        await _db.Users.UpdateOneAsync(u => u.Id == userId, userUpdate, cancellationToken: ct);
+
+        // Mark token as used
+        await _db.EmailChangeTokens.UpdateOneAsync(
+            t => t.Id == token.Id,
+            Builders<EmailChangeToken>.Update.Set(t => t.IsUsed, true),
+            cancellationToken: ct);
+
+        return (true, null);
+    }
+
+    private string Generate5DigitCode()
+    {
+        var randomBytes = new byte[4];
+        using (var rng = System.Security.Cryptography.RandomNumberGenerator.Create())
+        {
+            rng.GetBytes(randomBytes);
+        }
+        var num = Math.Abs(BitConverter.ToInt32(randomBytes, 0)) % 90000 + 10000; // 10000-99999
+        return num.ToString();
+    }
+
     public async Task<(bool success, string? error)> UpgradeSubscriptionTierAsync(Guid userId, SubscriptionTier tier, bool isAnnual, CancellationToken ct = default)
     {
         var user = await GetUserByIdAsync(userId);

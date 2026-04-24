@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
-import { Calendar, CheckCircle, Clock, Users, Zap, Search, ExternalLink } from "lucide-react";
+import { Calendar, CheckCircle, Clock, Users, Zap, Search, ExternalLink, SkipForward, Loader2, X } from "lucide-react";
 import { useInfiniteSessions, useSessionMutations } from "../queries/useSessionQueries";
 import { Session } from "../types";
 import { Card, Button, Badge } from "../components/ui";
 import { AttendanceWizard } from "./attendance/AttendanceWizard";
 import { cn } from "../lib/utils";
+import { toast } from "sonner";
 
 const AttendancePage: React.FC = () => {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
   const [wizardSession, setWizardSession] = useState<Session | null>(null);
+  const [skipSessionId, setSkipSessionId] = useState<string | null>(null);
+  const [skipReason, setSkipReason] = useState<string>("");
 
   useEffect(() => {
     (window as any).onWizardComplete = (id: string) => {
@@ -31,7 +34,7 @@ const AttendancePage: React.FC = () => {
     pageSize: 100
   });
 
-  const { startMutation, endMutation } = useSessionMutations();
+  const { startMutation, endMutation, skipMutation } = useSessionMutations();
 
   const sessions = data?.pages.flatMap(p => p.items) || [];
   
@@ -150,7 +153,7 @@ const AttendancePage: React.FC = () => {
                   </Badge>
                 </div>
                 
-                <div className="mt-auto pt-6 border-t border-white/5">
+                <div className="mt-auto pt-6 border-t border-white/5 space-y-2">
                   <Button 
                     variant={isScheduled ? "outline" : "primary"}
                     className={cn(
@@ -177,6 +180,21 @@ const AttendancePage: React.FC = () => {
                       </>
                     )}
                   </Button>
+                  {(session.status === "Scheduled" || session.status === "Active") && !session.isSkipped && (
+                    <button
+                      onClick={() => { setSkipSessionId(session.id); setSkipReason(""); }}
+                      className="w-full h-9 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-amber-500 bg-white/[0.02] border border-white/5 rounded-xl hover:border-amber-500/20 hover:bg-amber-500/5 transition-all"
+                    >
+                      <SkipForward className="w-3.5 h-3.5" />
+                      Skip Session
+                    </button>
+                  )}
+                  {session.isSkipped && (
+                    <div className="w-full h-9 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-amber-500/60 bg-amber-500/5 border border-amber-500/10 rounded-xl">
+                      <SkipForward className="w-3.5 h-3.5" />
+                      Skipped{session.skipReason ? ` · ${session.skipReason}` : ""}
+                    </div>
+                  )}
                 </div>
               </Card>
               );
@@ -221,6 +239,68 @@ const AttendancePage: React.FC = () => {
           session={wizardSession}
           onClose={() => setWizardSession(null)}
         />
+      )}
+
+      {/* Skip Session Confirmation Modal */}
+      {skipSessionId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <Card className="max-w-md w-full p-6 sm:p-8 border border-amber-500/20 bg-[var(--ui-sidebar-bg)] shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-amber-500 to-transparent" />
+            <button onClick={() => setSkipSessionId(null)} className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                <SkipForward className="w-5 h-5 text-amber-500" />
+              </div>
+              <h3 className="text-lg font-bold text-white">Skip This Session</h3>
+            </div>
+            <p className="text-slate-400 text-sm mb-6 leading-relaxed">
+              Marking this session as <strong className="text-amber-400">"Skipped"</strong> means it did not take place today. 
+              The session number <strong className="text-white">will NOT advance</strong>, and the next scheduled session will reuse the same number.
+            </p>
+            <div className="space-y-3 mb-6">
+              <label className="text-xs font-semibold text-slate-500 uppercase">Reason (optional)</label>
+              <div className="grid grid-cols-2 gap-2">
+                {["Holiday", "Student cancelled", "Engineer unavailable", "Other"].map(reason => (
+                  <button
+                    key={reason}
+                    onClick={() => setSkipReason(reason)}
+                    className={cn(
+                      "px-3 py-2 rounded-lg text-xs font-semibold border transition-all",
+                      skipReason === reason
+                        ? "bg-amber-500/20 border-amber-500/40 text-amber-400"
+                        : "bg-white/[0.03] border-white/10 text-slate-400 hover:bg-white/[0.06]"
+                    )}
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setSkipSessionId(null)} className="h-10 px-5 text-sm">
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={async () => {
+                  try {
+                    await skipMutation.mutateAsync({ id: skipSessionId, reason: skipReason || undefined });
+                    toast.success("Session marked as skipped. Session number preserved.");
+                    setSkipSessionId(null);
+                  } catch (err: any) {
+                    toast.error(err?.message || "Failed to skip session.");
+                  }
+                }}
+                disabled={skipMutation.isPending}
+                className="h-10 px-6 text-sm bg-amber-500 hover:bg-amber-400 border-amber-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.3)]"
+              >
+                {skipMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm Skip"}
+              </Button>
+            </div>
+          </Card>
+        </div>
       )}
     </div>
   );

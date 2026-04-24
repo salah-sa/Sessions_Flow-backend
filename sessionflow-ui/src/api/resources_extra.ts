@@ -39,6 +39,11 @@ export const sessionsApi = {
       body: JSON.stringify(records),
     }),
   getAttendance: (id: string) => fetchWithAuth<AttendanceRecord[]>(`/sessions/${id}/attendance`),
+  skip: (id: string, reason?: string) =>
+    fetchWithAuth<{ id: string; status: string; isSkipped: boolean; skipReason?: string }>(`/sessions/${id}/skip`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
 };
 
 // Students Module
