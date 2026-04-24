@@ -10,11 +10,11 @@ export interface BroadcastUpdatePayload {
 export function useBroadcastUpdate() {
   return useMutation({
     mutationFn: async (payload: BroadcastUpdatePayload) => {
-      const res = await fetchWithAuth("/api/system/broadcast-update", {
+      const res = await fetchWithAuth("/system/broadcast-update", {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      return (res as any).data;
+      return res;
     },
   });
 }
@@ -31,8 +31,8 @@ export function useBroadcastHistory() {
   return useQuery({
     queryKey: ["system-broadcast-history"],
     queryFn: async () => {
-      const res = await fetchWithAuth("/api/system/broadcast-update/history");
-      return (res as any).data as BroadcastHistoryItem[];
+      const res = await fetchWithAuth("/system/broadcast-update/history");
+      return res as BroadcastHistoryItem[];
     },
   });
 }
@@ -42,8 +42,8 @@ export function useLatestBroadcast() {
     queryKey: ["latest-broadcast"],
     queryFn: async () => {
       try {
-        const res = await fetchWithAuth("/api/system/broadcast-update/latest");
-        return (res as any).data as BroadcastHistoryItem;
+        const res = await fetchWithAuth("/system/broadcast-update/latest");
+        return res as BroadcastHistoryItem;
       } catch (error: any) {
         // If no broadcast exists (404), return null instead of throwing
         if (error.message?.includes("404")) return null;

@@ -9,7 +9,7 @@ import { format } from "date-fns";
 
 export default function SupportAdminPanel() {
   const [updateVersion, setUpdateVersion] = useState("1.1.0");
-  const [updateNotes, setUpdateNotes] = useState("Bug fixes and performance improvements.\\nNew features added.");
+  const [updateNotes, setUpdateNotes] = useState("Bug fixes and performance improvements.\nNew features added.");
 
   const { data: ticketsData, isLoading } = useSupportTickets(50);
   const { data: historyData, isLoading: historyLoading, refetch: refetchHistory } = useBroadcastHistory();
@@ -17,7 +17,7 @@ export default function SupportAdminPanel() {
   const broadcastUpdateMutation = useBroadcastUpdate();
 
   const handleBroadcastUpdate = () => {
-    const notesArray = updateNotes.split("\\n").filter(n => n.trim().length > 0);
+    const notesArray = updateNotes.split("\n").filter(n => n.trim().length > 0);
     broadcastUpdateMutation.mutate(
       { version: updateVersion, notes: notesArray, forceRefresh: true },
       {
