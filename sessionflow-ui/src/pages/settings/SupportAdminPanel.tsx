@@ -1,52 +1,33 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchWithAuth } from "../../api/client";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Textarea } from "../../components/ui/textarea";
-import { Label } from "../../components/ui/label";
+import { useState } from "react";
+import { useSupportTickets, useUpdateTicketStatus } from "../../queries/useSupportQueries";
+import { useBroadcastUpdate } from "../../queries/useSystemQueries";
+import { Button, Input } from "../../components/ui";
 import { Loader2, Headset, RefreshCw, Send, Radio } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "../../lib/utils";
 import { format } from "date-fns";
 
 export default function SupportAdminPanel() {
-  const queryClient = useQueryClient();
   const [updateVersion, setUpdateVersion] = useState("1.1.0");
   const [updateNotes, setUpdateNotes] = useState("Bug fixes and performance improvements.\\nNew features added.");
 
-  const { data: ticketsData, isLoading } = useQuery({
-    queryKey: ["supportTickets"],
-    queryFn: () => fetchWithAuth("/api/support/tickets?pageSize=50").then(res => res.data)
-  });
+  const { data: ticketsData, isLoading } = useSupportTickets(50);
+  const updateTicketStatus = useUpdateTicketStatus();
+  const broadcastUpdateMutation = useBroadcastUpdate();
 
-  const updateTicketStatus = useMutation({
-    mutationFn: (args: { id: string, status: string }) => 
-      fetchWithAuth(`/api/support/tickets/${args.id}/status`, {
-        method: "PUT",
-        body: JSON.stringify({ status: args.status })
-      }),
-    onSuccess: () => {
-      toast.success("Ticket status updated");
-      queryClient.invalidateQueries({ queryKey: ["supportTickets"] });
-    },
-    onError: () => toast.error("Failed to update status")
-  });
-
-  const broadcastUpdate = useMutation({
-    mutationFn: () => {
-      const notesArray = updateNotes.split("\\n").filter(n => n.trim().length > 0);
-      return fetchWithAuth("/api/system/broadcast-update", {
-        method: "POST",
-        body: JSON.stringify({ version: updateVersion, notes: notesArray })
-      });
-    },
-    onSuccess: () => {
-      toast.success("System update broadcasted to all connected users!");
-      setUpdateNotes("");
-    },
-    onError: () => toast.error("Failed to broadcast update")
-  });
+  const handleBroadcastUpdate = () => {
+    const notesArray = updateNotes.split("\\n").filter(n => n.trim().length > 0);
+    broadcastUpdateMutation.mutate(
+      { version: updateVersion, message: notesArray.join("\\n"), forceRefresh: true },
+      {
+        onSuccess: () => {
+          toast.success("System update broadcasted to all connected users!");
+          setUpdateNotes("");
+        },
+        onError: () => toast.error("Failed to broadcast update")
+      }
+    );
+  };
 
   return (
     <div className="space-y-12">
@@ -65,29 +46,29 @@ export default function SupportAdminPanel() {
         <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Version Number</Label>
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-300">Version Number</label>
               <Input 
                 value={updateVersion} 
-                onChange={e => setUpdateVersion(e.target.value)} 
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUpdateVersion(e.target.value)} 
                 className="bg-black/20"
               />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label>Release Notes (One per line)</Label>
-            <Textarea 
+          <div className="space-y-2 flex flex-col">
+            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-300">Release Notes (One per line)</label>
+            <textarea 
               value={updateNotes} 
-              onChange={e => setUpdateNotes(e.target.value)} 
-              className="min-h-[100px] bg-black/20"
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setUpdateNotes(e.target.value)} 
+              className="flex min-h-[100px] w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ui-accent/50 focus:bg-black/60 transition-all"
               placeholder="Added new chat ordering...\nFixed group visibility bug..."
             />
           </div>
           <Button 
-            onClick={() => broadcastUpdate.mutate()}
-            disabled={broadcastUpdate.isPending || !updateNotes.trim()}
+            onClick={handleBroadcastUpdate}
+            disabled={broadcastUpdateMutation.isPending || !updateNotes.trim()}
             className="bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30"
           >
-            {broadcastUpdate.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+            {broadcastUpdateMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
             Broadcast Mandatory Update
           </Button>
         </div>
@@ -134,10 +115,10 @@ export default function SupportAdminPanel() {
                 </div>
                 
                 <div className="flex flex-col gap-2 shrink-0 md:w-48">
-                  <Label className="text-xs">Update Status</Label>
+                  <label className="text-xs text-slate-300 font-medium">Update Status</label>
                   <select 
                     value={ticket.status}
-                    onChange={(e) => updateTicketStatus.mutate({ id: ticket.id, status: e.target.value })}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateTicketStatus.mutate({ id: ticket.id, status: e.target.value })}
                     className="flex h-10 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-ui-accent"
                   >
                     <option value="Open">Open</option>
