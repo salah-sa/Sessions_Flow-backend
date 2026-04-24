@@ -795,6 +795,53 @@ public class AuthService
         return (true, null);
     }
 
+    public async Task<(bool success, string? error)> UpgradeSubscriptionTierAsync(Guid userId, SubscriptionTier tier, bool isAnnual, CancellationToken ct = default)
+    {
+        var user = await GetUserByIdAsync(userId);
+        if (user == null) return (false, "User not found.");
+
+        // 1. Update User Record
+        var userUpdate = Builders<User>.Update
+            .Set(u => u.SubscriptionTier, tier)
+            .Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
+        
+        await _db.Users.UpdateOneAsync(u => u.Id == userId, userUpdate, cancellationToken: ct);
+
+        // 2. Upsert Subscription Record
+        var durationDays = isAnnual ? 365 : 30;
+        var subscription = new Subscription
+        {
+            UserId = userId,
+            Tier = tier,
+            IsActive = true,
+            StartDate = DateTimeOffset.UtcNow,
+            EndDate = DateTimeOffset.UtcNow.AddDays(durationDays),
+            AutoRenew = true
+        };
+
+        await _db.Subscriptions.ReplaceOneAsync(
+            s => s.UserId == userId, 
+            subscription, 
+            new ReplaceOptions { IsUpsert = true }, 
+            ct);
+
+        // 3. Notify User
+        await _notificationService.CreateNotificationAsync(
+            userId,
+            "Premium Activated",
+            $"Welcome to the {tier} tier! Your premium features are now unlocked.",
+            NotificationType.Success
+        );
+
+        // 4. Publish Event for Real-time UI Refresh
+        await _eventBus.PublishAsync(Events.UserUpdated, EventTargetType.User, userId.ToString(), new { 
+            Tier = tier,
+            IsPremium = tier != SubscriptionTier.Free 
+        });
+
+        return (true, null);
+    }
+
     public string GenerateJwtToken(User user)
     {
         var secretKey = _config["Jwt:SecretKey"]

@@ -36,10 +36,13 @@ public class PaymentTransaction
     public Guid? SubscriptionId { get; set; }
 
     public long AmountPiasters { get; set; }
+    public decimal Amount { get; set; } // Added for higher-level API usage
     public string Currency { get; set; } = "EGP";
     
     public PaymentMethod Method { get; set; }
     public TransactionStatus Status { get; set; } = TransactionStatus.Pending;
+    public SubscriptionTier TierSnapshot { get; set; } // Track what they bought
+    public bool IsAnnual { get; set; } // Track cycle
 
     [BsonIgnoreIfNull]
     public string? PaymobOrderId { get; set; } // Required for reconciliation
