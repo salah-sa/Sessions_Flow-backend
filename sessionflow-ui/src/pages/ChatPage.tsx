@@ -174,14 +174,14 @@ const ChatPage: React.FC = () => {
 
       {/* Zenith Sidebar */}
       <div className={cn(
-        "fixed inset-y-0 start-0 z-50 w-full sm:w-[280px] md:w-[320px] md:relative border-e border-white/5 flex flex-col h-full bg-[var(--ui-sidebar-bg)] backdrop-blur-3xl transition-transform duration-500",
+        "fixed inset-y-0 start-0 z-50 w-full md:w-[320px] md:relative border-e border-white/5 flex flex-col h-full bg-[var(--ui-sidebar-bg)] backdrop-blur-3xl transition-transform duration-500",
         activeGroupId ? "hidden md:flex" : "flex",
         !isSidebarOpen && "-translate-x-full md:translate-x-0"
       )}>
-        <div className="p-4 space-y-4 md:p-8 md:space-y-8 flex-none">
+        <div className="p-4 space-y-4 md:p-6 md:space-y-6 flex-none">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
+              <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
                 {t("chat.title")}
               </h1>
               <p className="text-[var(--ui-accent)] text-xs font-bold uppercase flex items-center gap-2">
@@ -202,7 +202,7 @@ const ChatPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 pb-10 space-y-2 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto px-3 pb-6 sm:px-5 sm:pb-10 space-y-1 sm:space-y-2 custom-scrollbar">
           {(loadingActive || loadingArchived) ? (
             [1, 2, 3].map(i => <div key={i} className="h-16 rounded-xl bg-white/[0.02] border border-white/5 animate-pulse" />)
           ) : (
@@ -220,7 +220,7 @@ const ChatPage: React.FC = () => {
                         key={group.id}
                         onClick={() => { setActiveGroup(group.id); clearUnread(group.id); }}
                         className={cn(
-                          "w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 relative group overflow-hidden border",
+                          "w-full flex items-center gap-3 sm:gap-4 px-3 py-3 sm:px-4 rounded-xl transition-all duration-300 relative group overflow-hidden border",
                           isSelected
                             ? "bg-[var(--ui-accent)]/5 border-[var(--ui-accent)]/20 shadow-xl shadow-[var(--ui-accent)]/5"
                             : "bg-transparent border-transparent hover:bg-white/[0.02] hover:border-white/5"
@@ -257,7 +257,7 @@ const ChatPage: React.FC = () => {
                         key={group.id}
                         onClick={() => { setActiveGroup(group.id); clearUnread(group.id); }}
                         className={cn(
-                          "w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 relative group opacity-50 hover:opacity-100",
+                          "w-full flex items-center gap-3 sm:gap-4 px-3 py-3 sm:px-4 rounded-xl transition-all duration-300 relative group opacity-50 hover:opacity-100",
                           isSelected ? "bg-[var(--ui-accent)]/5 border border-[var(--ui-accent)]/20" : "bg-transparent"
                         )}
                       >
@@ -277,8 +277,8 @@ const ChatPage: React.FC = () => {
           )}
         </div>
 
-        <div className="p-6 bg-black/40 border-t border-white/5">
-          <div className="flex items-center gap-4 bg-white/[0.02] p-4 rounded-xl border border-white/5 relative overflow-hidden group">
+        <div className="p-3 sm:p-4 md:p-6 bg-black/40 border-t border-white/5">
+          <div className="flex items-center gap-3 bg-white/[0.02] p-3 sm:p-4 rounded-xl border border-white/5 relative overflow-hidden group">
             <div className="absolute inset-0 bg-[var(--ui-accent)]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative">
               <div className="w-10 h-10 rounded-full bg-[var(--ui-sidebar-bg)] flex items-center justify-center border border-white/5 text-slate-600 group-hover:text-[var(--ui-accent)] transition-colors overflow-hidden">
@@ -308,7 +308,7 @@ const ChatPage: React.FC = () => {
             />
 
             <div className="flex-1 flex min-h-0">
-              <div className="flex-1 min-h-0 p-0 md:p-4 lg:p-8 relative overflow-hidden flex flex-col">
+              <div className="flex-1 min-h-0 p-0 md:p-2 lg:p-4 relative overflow-hidden flex flex-col">
                 <ChatWindow
                   messages={messages}
                   onSendMessage={handleSendMessage}
