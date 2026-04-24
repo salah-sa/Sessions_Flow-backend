@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/utils";
-import { groupsApi } from "../../api/resources";
+import { useCheckGroupName } from "../../queries/useGroupQueries";
 import { 
   groupSchema, GroupFormValues, TIME_SLOTS, 
   LEVEL_SESSION_MAP, LEVEL_CAPACITY_MAP 
@@ -35,7 +35,7 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
 }) => {
   const { t } = useTranslation();
   const [wizardStep, setWizardStep] = useState(1);
-  const [isCheckingName, setIsCheckingName] = useState(false);
+  const checkName = useCheckGroupName();
 
   const { register, handleSubmit, reset, control, setValue, watch, getValues, setError, formState: { errors, isSubmitting } } = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
@@ -139,9 +139,8 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
       }
 
       // Check if name is taken
-      setIsCheckingName(true);
       try {
-        const { available } = await groupsApi.checkName(name);
+        const { available } = await checkName.mutateAsync(name);
         if (!available) {
           setError("name", { 
             type: "manual", 
@@ -151,8 +150,6 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
         }
       } catch (error) {
         console.error("Name check failed:", error);
-      } finally {
-        setIsCheckingName(false);
       }
     }
     if (wizardStep === 2) {
@@ -485,11 +482,11 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
           {wizardStep < 4 ? (
             <Button 
               type="button" 
-              disabled={isSubmitting || isCheckingName}
+              disabled={isSubmitting || checkName.isPending}
               onClick={handleNext} 
               className={cn("flex-1 h-12 shadow-[var(--ui-accent)]/20", wizardStep === 1 ? "col-span-2" : "")}
             >
-              {isCheckingName ? t("common.loading") : t("groups.modal.next", { next: wizardStep + 1 })} 
+              {checkName.isPending ? t("common.loading") : t("groups.modal.next", { next: wizardStep + 1 })} 
               <ChevronRight className="w-4 h-4 ms-2 rtl:rotate-180" />
             </Button>
           ) : (
