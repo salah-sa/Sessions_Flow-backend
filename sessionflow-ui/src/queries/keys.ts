@@ -49,4 +49,11 @@ export const queryKeys = {
     all: ["notifications"] as const,
     recent: ["notifications", "recent"] as const,
   },
+  support: {
+    all: ["support"] as const,
+    tickets: ["support", "tickets"] as const,
+  },
+  system: {
+    all: ["system"] as const,
+  },
 };

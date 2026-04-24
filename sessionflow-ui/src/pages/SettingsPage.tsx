@@ -98,7 +98,7 @@ const SettingsPage: React.FC = () => {
   const [importPreviewData, setImportPreviewData] = useState<any>(null);
   const [connectionStatus, setConnectionStatus] = useState<"idle" | "success" | "error">("idle");
   const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
-  const [activeTab, setActiveTab] = useState<"system" | "notifications" | "security" | "codes" | "import" | "billing">("system");
+  const [activeTab, setActiveTab] = useState<"system" | "notifications" | "security" | "codes" | "import" | "billing" | "support">("system");
 
   useEffect(() => {
     if (settings.length > 0) {
