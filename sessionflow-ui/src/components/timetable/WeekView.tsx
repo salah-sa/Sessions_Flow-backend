@@ -156,20 +156,23 @@ export const WeekView: React.FC<WeekViewProps> = ({ sessions, groupSchedules, cu
                                        onAddSession(date, gs.groupId);
                                     }}
                                     className={cn(
-                                      "absolute left-2.5 right-2.5 rounded-xl border-2 border-dashed border-white/5 bg-white/[0.01] transition-all z-0 flex flex-col p-3 overflow-hidden",
-                                      !isStudent ? "hover:border-[var(--ui-accent)]/30 hover:bg-[var(--ui-accent)]/5 cursor-pointer group/blueprint" : ""
+                                      "absolute left-2.5 right-2.5 rounded-xl transition-all z-0 flex flex-col p-3 overflow-hidden",
+                                      !isStudent 
+                                        ? "border-2 border-dashed border-white/5 bg-white/[0.01] hover:border-[var(--ui-accent)]/30 hover:bg-[var(--ui-accent)]/5 cursor-pointer group/blueprint" 
+                                        : "border border-white/10 bg-[var(--ui-sidebar-bg)]/80 shadow-md"
                                     )}
                                     style={{ top: `${top + 3}px`, height: `${height - 6}px` }}
                                  >
-                                    <div className="flex items-center justify-between opacity-30 group-hover/blueprint:opacity-100 transition-opacity">
-                                       <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest truncate max-w-[80%]">
+                                    <div className={cn("flex items-center justify-between transition-opacity", !isStudent ? "opacity-30 group-hover/blueprint:opacity-100" : "opacity-100")}>
+                                       <span className={cn("text-[9px] font-bold uppercase tracking-widest truncate max-w-[80%]", !isStudent ? "text-slate-400" : "text-white")}>
                                           {gs.groupName}
                                        </span>
                                        {!isStudent && <Plus className="w-2.5 h-2.5 text-[var(--ui-accent)]" />}
                                     </div>
-                                    <div className="mt-auto opacity-20 group-hover/blueprint:opacity-40 transition-opacity">
-                                       <span className="text-[7.5px] font-bold text-slate-500 uppercase tracking-widest">
-                                          Template Matrix
+                                    <div className={cn("mt-auto transition-opacity", !isStudent ? "opacity-20 group-hover/blueprint:opacity-40" : "opacity-80 flex items-center gap-1.5")}>
+                                       {isStudent && <Clock className="w-2.5 h-2.5 text-[var(--ui-accent)]" />}
+                                       <span className={cn("text-[7.5px] font-bold uppercase tracking-widest", !isStudent ? "text-slate-500" : "text-[var(--ui-accent)]")}>
+                                          {isStudent ? "Upcoming Session" : "Template Matrix"}
                                        </span>
                                     </div>
                                  </div>

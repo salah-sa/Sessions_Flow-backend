@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useSupportTickets, useUpdateTicketStatus } from "../../queries/useSupportQueries";
-import { useBroadcastUpdate } from "../../queries/useSystemQueries";
+import { useBroadcastUpdate, useBroadcastHistory } from "../../queries/useSystemQueries";
 import { Button, Input } from "../../components/ui";
-import { Loader2, Headset, RefreshCw, Send, Radio } from "lucide-react";
+import { Loader2, Headset, RefreshCw, Send, Radio, History } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "../../lib/utils";
 import { format } from "date-fns";
@@ -12,6 +12,7 @@ export default function SupportAdminPanel() {
   const [updateNotes, setUpdateNotes] = useState("Bug fixes and performance improvements.\\nNew features added.");
 
   const { data: ticketsData, isLoading } = useSupportTickets(50);
+  const { data: historyData, isLoading: historyLoading, refetch: refetchHistory } = useBroadcastHistory();
   const updateTicketStatus = useUpdateTicketStatus();
   const broadcastUpdateMutation = useBroadcastUpdate();
 
@@ -23,6 +24,7 @@ export default function SupportAdminPanel() {
         onSuccess: () => {
           toast.success("System update broadcasted to all connected users!");
           setUpdateNotes("");
+          refetchHistory();
         },
         onError: () => toast.error("Failed to broadcast update")
       }
@@ -43,34 +45,64 @@ export default function SupportAdminPanel() {
           </p>
         </div>
 
-        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-300">Version Number</label>
-              <Input 
-                value={updateVersion} 
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUpdateVersion(e.target.value)} 
-                className="bg-black/20"
+        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 space-y-6">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-300">Version Number</label>
+                <Input 
+                  value={updateVersion} 
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUpdateVersion(e.target.value)} 
+                  className="bg-black/20"
+                />
+              </div>
+            </div>
+            <div className="space-y-2 flex flex-col">
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-300">Release Notes (One per line)</label>
+              <textarea 
+                value={updateNotes} 
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setUpdateNotes(e.target.value)} 
+                className="flex min-h-[100px] w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ui-accent/50 focus:bg-black/60 transition-all"
+                placeholder="Added new chat ordering...\nFixed group visibility bug..."
               />
             </div>
+            <Button 
+              onClick={handleBroadcastUpdate}
+              disabled={broadcastUpdateMutation.isPending || !updateNotes.trim()}
+              className="bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30"
+            >
+              {broadcastUpdateMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+              Broadcast Mandatory Update
+            </Button>
           </div>
-          <div className="space-y-2 flex flex-col">
-            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-300">Release Notes (One per line)</label>
-            <textarea 
-              value={updateNotes} 
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setUpdateNotes(e.target.value)} 
-              className="flex min-h-[100px] w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ui-accent/50 focus:bg-black/60 transition-all"
-              placeholder="Added new chat ordering...\nFixed group visibility bug..."
-            />
+
+          <div className="pt-6 border-t border-white/5">
+             <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                <History className="w-4 h-4 text-slate-400" />
+                Broadcast History
+             </h3>
+             <div className="space-y-2 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
+                {historyLoading ? (
+                  <div className="flex justify-center p-4"><Loader2 className="w-4 h-4 animate-spin text-ui-accent" /></div>
+                ) : historyData?.length === 0 ? (
+                  <p className="text-xs text-slate-500 text-center py-4">No broadcast history.</p>
+                ) : (
+                  historyData?.map((item: any) => (
+                    <div key={item.id} className="bg-black/20 rounded-lg p-3 border border-white/5">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-[var(--ui-accent)] uppercase tracking-widest">v{item.version}</span>
+                        <span className="text-[10px] text-slate-500">{format(new Date(item.createdAt), "MMM d, yyyy h:mm a")}</span>
+                      </div>
+                      <ul className="list-disc list-inside text-xs text-slate-300 space-y-1">
+                         {item.notes.map((note: string, i: number) => (
+                           <li key={i}>{note}</li>
+                         ))}
+                      </ul>
+                    </div>
+                  ))
+                )}
+             </div>
           </div>
-          <Button 
-            onClick={handleBroadcastUpdate}
-            disabled={broadcastUpdateMutation.isPending || !updateNotes.trim()}
-            className="bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30"
-          >
-            {broadcastUpdateMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-            Broadcast Mandatory Update
-          </Button>
         </div>
       </section>
 

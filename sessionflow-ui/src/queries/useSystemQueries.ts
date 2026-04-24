@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { fetchWithAuth } from "../api/client";
 
 export interface BroadcastUpdatePayload {
@@ -15,6 +15,24 @@ export function useBroadcastUpdate() {
         body: JSON.stringify(payload),
       });
       return (res as any).data;
+    },
+  });
+}
+
+export interface BroadcastHistoryItem {
+  id: string;
+  version: string;
+  notes: string[];
+  broadcastedBy: string;
+  createdAt: string;
+}
+
+export function useBroadcastHistory() {
+  return useQuery({
+    queryKey: ["system-broadcast-history"],
+    queryFn: async () => {
+      const res = await fetchWithAuth("/api/system/broadcast-update/history");
+      return (res as any).data as BroadcastHistoryItem[];
     },
   });
 }
