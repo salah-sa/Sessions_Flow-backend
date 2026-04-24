@@ -174,11 +174,12 @@ const ChatPage: React.FC = () => {
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[var(--ui-accent)]/5 blur-[120px] rounded-full pointer-events-none -z-10" />
 
       {/* Zenith Sidebar */}
-    "fixed inset-y-0 start-0 z-50 w-full md:w-[320px] md:relative border-e border-white/5 flex flex-col h-[100dvh] md:h-full bg-[var(--ui-sidebar-bg)] backdrop-blur-3xl transition-transform duration-500",
-    activeGroupId ? "hidden md:flex" : "flex",
-    !isSidebarOpen && "-translate-x-full md:translate-x-0"
-  )}>
-    <div className="p-4 space-y-4 md:p-6 md:space-y-6 flex-none">
+      <div className={cn(
+        "fixed inset-y-0 start-0 z-50 w-full md:w-[320px] md:relative border-e border-white/5 flex flex-col h-[100dvh] md:h-full bg-[var(--ui-sidebar-bg)] backdrop-blur-3xl transition-transform duration-500",
+        activeGroupId ? "hidden md:flex" : "flex",
+        !isSidebarOpen && "-translate-x-full md:translate-x-0"
+      )}>
+        <div className="p-4 space-y-4 md:p-6 md:space-y-6 flex-none">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
