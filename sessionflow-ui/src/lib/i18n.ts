@@ -249,6 +249,7 @@ const resources = {
         "progression": "Progress",
         "action_create": "Create New Group",
         "system_active": "Active",
+        "error_generic": "Something went wrong. Please try again.",
         "tabs": {
           "active": "Active Groups",
           "completed": "Completed / Archived",
@@ -1160,6 +1161,7 @@ const resources = {
         "level": "المستوى",
         "capacity": "السعة",
         "progression": "التقدم",
+        "error_generic": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
         "tabs": {
           "active": "المجموعات النشطة",
           "completed": "المكتملة / المؤرشفة",
