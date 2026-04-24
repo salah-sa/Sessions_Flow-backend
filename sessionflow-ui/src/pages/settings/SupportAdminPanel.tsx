@@ -19,7 +19,7 @@ export default function SupportAdminPanel() {
   const handleBroadcastUpdate = () => {
     const notesArray = updateNotes.split("\\n").filter(n => n.trim().length > 0);
     broadcastUpdateMutation.mutate(
-      { version: updateVersion, message: notesArray.join("\\n"), forceRefresh: true },
+      { version: updateVersion, notes: notesArray, forceRefresh: true },
       {
         onSuccess: () => {
           toast.success("System update broadcasted to all connected users!");
