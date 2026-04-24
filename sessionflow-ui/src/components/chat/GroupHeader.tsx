@@ -165,7 +165,7 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
           </button>
           <button onClick={onToggleMembers} className={cn("h-10 md:h-11 px-3 md:px-5 rounded-xl flex items-center gap-2 md:gap-3 transition-all border font-bold text-[9px] uppercase tracking-widest", membersOpen ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/40 text-[var(--ui-accent)]" : "bg-white/[0.02] border-white/5 text-slate-600 hover:text-white hover:border-white/10")}>
             <Users className="w-4 h-4" />
-            <span>{members.length}</span>
+            <span>{members.length} <span className="hidden sm:inline ml-1">{t("chat.members") || "Members"}</span></span>
           </button>
         </div>
       </div>

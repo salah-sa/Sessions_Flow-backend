@@ -81,7 +81,8 @@ const ChatPage: React.FC = () => {
 
   const messages = React.useMemo(() => {
     if (!messagesData) return [];
-    const flat = messagesData.pages.slice().reverse().flatMap(page => page.slice().reverse());
+    // Keep them newest-first for flex-col-reverse
+    const flat = messagesData.pages.flatMap(page => page);
     const seen = new Set();
     return flat.filter(m => {
       if (seen.has(m.id)) return false;

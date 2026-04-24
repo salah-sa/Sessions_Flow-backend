@@ -31,7 +31,8 @@ import {
   Globe, 
   Bell, 
   Shield,
-  Crown
+  Crown,
+  Headset
 } from "lucide-react";
 
 import SystemConfig from "./settings/SystemConfig";
@@ -40,9 +41,10 @@ import ImportBridge from "./settings/ImportBridge";
 import CommsRelay from "./settings/CommsRelay";
 import SecurityPanel from "./settings/SecurityPanel";
 import BillingPanel from "./settings/BillingPanel";
+import SupportAdminPanel from "./settings/SupportAdminPanel";
 
 interface SettingsTab {
-  id: "system" | "notifications" | "security" | "codes" | "import" | "billing";
+  id: "system" | "notifications" | "security" | "codes" | "import" | "billing" | "support";
   name: string;
   icon: React.ElementType;
   color: string;
@@ -196,7 +198,8 @@ const SettingsPage: React.FC = () => {
     { id: "import", name: t("settings.tabs.external_bridge"), icon: Globe, color: "blue" },
     { id: "notifications", name: t("settings.tabs.comms_relay"), icon: Bell, color: "amber" },
     { id: "security", name: t("settings.tabs.firewall_keys"), icon: Shield, color: "rose" },
-    { id: "billing", name: "Subscription & Billing", icon: Crown, color: "purple" }
+    { id: "billing", name: "Subscription & Billing", icon: Crown, color: "purple" },
+    { id: "support", name: "Support & Updates", icon: Headset, color: "indigo", hidden: !isAdmin }
   ];
 
   return (
@@ -419,6 +422,8 @@ const SettingsPage: React.FC = () => {
                   />
                ) : activeTab === "billing" ? (
                   <BillingPanel />
+               ) : activeTab === "support" ? (
+                  <SupportAdminPanel />
                ) : (
                   <SecurityPanel />
                )}

@@ -166,9 +166,7 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
   const { invoke } = useSignalR();
   const user = useAuthStore((s) => s.user);
 
-  useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages]);
+  // Removed manual scroll logic as flex-col-reverse handles automatic bottom anchoring
 
   const mentionEngine = useMemo(() => {
     const members: MentionableMember[] = [
@@ -242,12 +240,12 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
   return (
     <div className="flex flex-col h-full bg-ui-sidebar-bg/40 backdrop-blur-3xl rounded-none md:rounded-xl border-0 md:border border-white/5 overflow-hidden shadow-2xl relative">
       <div className="flex-1 min-h-0 relative">
-        <div ref={scrollRef} className="absolute inset-0 overflow-y-auto p-3 md:p-6 space-y-2 custom-scrollbar">
-          {isLoading && <div className="flex flex-col items-center justify-center py-20"><Loader2 className="w-10 h-10 text-ui-accent animate-spin mb-4" /><p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">establishing link...</p></div>}
+        <div ref={scrollRef} className="absolute inset-0 overflow-y-auto p-3 md:p-6 flex flex-col-reverse gap-2 custom-scrollbar">
+          {messages.map((msg, i) => <MessageBubble key={msg.id} message={msg} isMe={msg.senderId === user?.id} showSender={i === messages.length - 1 || messages[i+1]?.senderId !== msg.senderId} />)}
           {hasNextPage && <div className="flex justify-center py-6"><Button variant="ghost" size="sm" onClick={() => fetchNextPage?.()} className="text-[10px] font-bold text-slate-500 hover:text-white uppercase tracking-widest bg-white/[0.02] border border-white/5 rounded-xl px-8">{isFetchingNextPage ? "Accessing Archive..." : "Load Older Records"}</Button></div>}
-          {messages.map((msg, i) => <MessageBubble key={msg.id} message={msg} isMe={msg.senderId === user?.id} showSender={i === 0 || messages[i-1]?.senderId !== msg.senderId} />)}
+          {isLoading && <div className="flex flex-col items-center justify-center py-20"><Loader2 className="w-10 h-10 text-ui-accent animate-spin mb-4" /><p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">establishing link...</p></div>}
         </div>
-        <AnimatePresence>{showScrollButton && <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} onClick={() => scrollRef.current?.scroll({ top: scrollRef.current.scrollHeight, behavior: "smooth" })} className="absolute bottom-8 right-4 md:right-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-ui-accent text-white flex items-center justify-center shadow-glow shadow-ui-accent/40 border border-ui-accent/20 hover:scale-110 transition-all"><ChevronDown className="w-5 h-5 md:w-6 md:h-6" /></motion.button>}</AnimatePresence>
+        <AnimatePresence>{showScrollButton && <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} onClick={() => scrollRef.current?.scroll({ top: 0, behavior: "smooth" })} className="absolute bottom-8 right-4 md:right-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-ui-accent text-white flex items-center justify-center shadow-glow shadow-ui-accent/40 border border-ui-accent/20 hover:scale-110 transition-all"><ChevronDown className="w-5 h-5 md:w-6 md:h-6" /></motion.button>}</AnimatePresence>
       </div>
 
       <div className="p-2 sm:p-3 md:p-5 bg-ui-bg/80 border-t border-white/5 flex flex-col gap-3 md:gap-4 relative z-50">
