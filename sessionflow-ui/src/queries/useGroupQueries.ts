@@ -95,3 +95,9 @@ export const useEnrollStudent = () => {
     },
   });
 };
+
+export const useCheckGroupName = () => {
+  return useMutation({
+    mutationFn: (name: string) => groupsApi.checkName(name),
+  });
+};
