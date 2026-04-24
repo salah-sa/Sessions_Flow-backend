@@ -2,13 +2,14 @@ import React, { useState, useEffect } from "react";
 import { Modal, Button, Input } from "../../components/ui";
 import { 
   Info, Settings, Users, CheckCircle2, Plus, Minus, X, Trash2, 
-  Calendar, ShieldCheck, PlayCircle, ChevronRight, Loader2, AlertTriangle, GraduationCap 
+  Calendar, ShieldCheck, PlayCircle, ChevronRight, Loader2, AlertTriangle, GraduationCap
 } from "lucide-react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/utils";
+import { groupsApi } from "../../api/resources";
 import { 
   groupSchema, GroupFormValues, TIME_SLOTS, 
   LEVEL_SESSION_MAP, LEVEL_CAPACITY_MAP 
@@ -34,8 +35,9 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
 }) => {
   const { t } = useTranslation();
   const [wizardStep, setWizardStep] = useState(1);
+  const [isCheckingName, setIsCheckingName] = useState(false);
 
-  const { register, handleSubmit, reset, control, setValue, watch, getValues, formState: { errors } } = useForm<GroupFormValues>({
+  const { register, handleSubmit, reset, control, setValue, watch, getValues, setError, formState: { errors, isSubmitting } } = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
     defaultValues: { 
       level: 1, 
@@ -128,12 +130,29 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
     }
   }, [watchedStudentCount, setValue, getValues, mode]);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (wizardStep === 1) {
       const name = watch("name");
       if (!name || name.trim().length < 3) {
         toast.error(t("groups.modal.name_min_length"));
         return;
+      }
+
+      // Check if name is taken
+      setIsCheckingName(true);
+      try {
+        const { available } = await groupsApi.checkName(name);
+        if (!available) {
+          setError("name", { 
+            type: "manual", 
+            message: t("groups.modal.name_exists") 
+          });
+          return;
+        }
+      } catch (error) {
+        console.error("Name check failed:", error);
+      } finally {
+        setIsCheckingName(false);
       }
     }
     if (wizardStep === 2) {
@@ -464,8 +483,14 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
           )}
           
           {wizardStep < 4 ? (
-            <Button type="button" onClick={handleNext} className={cn("flex-1 h-12 shadow-[var(--ui-accent)]/20", wizardStep === 1 ? "col-span-2" : "")}>
-              {t("groups.modal.next", { next: wizardStep + 1 })} <ChevronRight className="w-4 h-4 ms-2 rtl:rotate-180" />
+            <Button 
+              type="button" 
+              disabled={isSubmitting || isCheckingName}
+              onClick={handleNext} 
+              className={cn("flex-1 h-12 shadow-[var(--ui-accent)]/20", wizardStep === 1 ? "col-span-2" : "")}
+            >
+              {isCheckingName ? t("common.loading") : t("groups.modal.next", { next: wizardStep + 1 })} 
+              <ChevronRight className="w-4 h-4 ms-2 rtl:rotate-180" />
             </Button>
           ) : (
             <Button type="submit" disabled={submitting} className="flex-1 h-12 shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-500 text-white">
