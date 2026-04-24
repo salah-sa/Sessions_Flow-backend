@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Modal, Button, Input } from "../../components/ui";
 import { 
   Info, Settings, Users, CheckCircle2, Plus, Minus, X, Trash2, 
-  Calendar, ShieldCheck, PlayCircle, ChevronRight, Loader2, AlertTriangle, GraduationCap
+  Calendar, ShieldCheck, PlayCircle, ChevronRight, Loader2, AlertTriangle, GraduationCap, Pencil, Check
 } from "lucide-react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/utils";
 import { useCheckGroupName } from "../../queries/useGroupQueries";
+import { useGroupStudents, useStudentMutations } from "../../queries/useStudentQueries";
 import { 
   groupSchema, GroupFormValues, TIME_SLOTS, 
   LEVEL_SESSION_MAP, LEVEL_CAPACITY_MAP 
@@ -36,6 +37,13 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
   const { t } = useTranslation();
   const [wizardStep, setWizardStep] = useState(1);
   const checkName = useCheckGroupName();
+
+  // Edit-mode live student management
+  const { data: existingStudents, refetch: refetchStudents } = useGroupStudents(mode === "edit" ? selectedGroup?.id : undefined);
+  const { createMutation: addStudentMut, updateMutation: updateStudentMut, deleteMutation: deleteStudentMut } = useStudentMutations();
+  const [newStudentName, setNewStudentName] = useState("");
+  const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
+  const [editingStudentName, setEditingStudentName] = useState("");
 
   const { register, handleSubmit, reset, control, setValue, watch, getValues, setError, formState: { errors, isSubmitting } } = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
@@ -157,10 +165,6 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
         toast.error("Strict Rule: At least 1 session per week schedule must be defined.");
         return;
       }
-      if (mode === "edit") {
-        setWizardStep(4);
-        return;
-      }
     }
     if (wizardStep === 3) {
       const cadets = watch("cadets") || [];
@@ -185,7 +189,7 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
         {[
           { id: 1, label: t("groups.wizard.steps.identity"), icon: Info },
           { id: 2, label: t("groups.wizard.steps.params"), icon: Settings },
-          ...(mode === "create" ? [{ id: 3, label: t("groups.wizard.steps.roster"), icon: Users }] : []),
+          { id: 3, label: t("groups.wizard.steps.roster"), icon: Users },
           { id: 4, label: t("groups.wizard.steps.confirm"), icon: CheckCircle2 }
         ].map(step => (
           <div 
@@ -428,6 +432,148 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
           </div>
         )}
 
+        {wizardStep === 3 && mode === "edit" && (
+          <div className="space-y-6 animate-fade-in max-h-[400px] overflow-y-auto custom-scrollbar pe-2">
+            <div className="p-4 bg-[var(--ui-sidebar-bg)] border border-white/5 rounded-2xl flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-[var(--ui-accent)]/10 border border-[var(--ui-accent)]/20 flex items-center justify-center shadow-glow shadow-[var(--ui-accent)]/5">
+                <GraduationCap className="w-6 h-6 text-[var(--ui-accent)]" />
+              </div>
+              <div className="space-y-0.5 flex-1">
+                <p className="text-sm font-black text-white uppercase tracking-tighter">{t("groups.wizard.step3.title")}</p>
+                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                  {existingStudents?.length ?? 0} / {watch("numberOfStudents")} ENROLLED
+                </p>
+              </div>
+            </div>
+
+            {/* Existing Students List */}
+            <div className="grid grid-cols-1 gap-3">
+              {existingStudents?.map((student, index) => (
+                <div key={student.id} className="flex gap-3 p-4 bg-[var(--ui-bg)]/50 border border-white/5 rounded-2xl group/student transition-all hover:bg-[var(--ui-sidebar-bg)]/50">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--ui-sidebar-bg)] border border-white/5 flex items-center justify-center text-[10px] font-black text-slate-500 shrink-0">
+                    #{index + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {editingStudentId === student.id ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          value={editingStudentName}
+                          onChange={e => setEditingStudentName(e.target.value)}
+                          autoFocus
+                          className="flex-1 h-10 rounded-xl border border-[var(--ui-accent)]/50 bg-black/40 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--ui-accent)]/50"
+                        />
+                        <button
+                          type="button"
+                          disabled={updateStudentMut.isPending}
+                          onClick={async () => {
+                            if (!editingStudentName.trim() || editingStudentName.trim().length < 2) {
+                              toast.error("Name must be at least 2 characters");
+                              return;
+                            }
+                            try {
+                              await updateStudentMut.mutateAsync({ id: student.id, name: editingStudentName.trim() });
+                              toast.success("Student updated");
+                              setEditingStudentId(null);
+                              refetchStudents();
+                            } catch { toast.error("Update failed"); }
+                          }}
+                          className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 hover:bg-emerald-500/20 transition-all shrink-0"
+                        >
+                          {updateStudentMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingStudentId(null)}
+                          className="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all shrink-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 h-10">
+                        <p className="text-sm font-bold text-white truncate flex-1">{student.name}</p>
+                        <button
+                          type="button"
+                          onClick={() => { setEditingStudentId(student.id); setEditingStudentName(student.name); }}
+                          className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:text-[var(--ui-accent)] hover:bg-white/5 transition-all shrink-0 opacity-0 group-hover/student:opacity-100"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={deleteStudentMut.isPending}
+                          onClick={async () => {
+                            if (!window.confirm(`Remove "${student.name}" from this group?`)) return;
+                            try {
+                              await deleteStudentMut.mutateAsync(student.id);
+                              toast.success("Student removed");
+                              refetchStudents();
+                            } catch { toast.error("Delete failed"); }
+                          }}
+                          className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:text-rose-500 hover:bg-rose-500/5 transition-all shrink-0 opacity-0 group-hover/student:opacity-100"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {(!existingStudents || existingStudents.length === 0) && (
+                <div className="p-10 border border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center grayscale opacity-30 gap-4">
+                  <Users className="w-8 h-8 text-slate-600" />
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em]">No students enrolled</p>
+                </div>
+              )}
+            </div>
+
+            {/* Add New Student */}
+            {(existingStudents?.length ?? 0) < watch("numberOfStudents") && (
+              <div className="flex gap-3 p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                  <Plus className="w-5 h-5" />
+                </div>
+                <div className="flex-1 flex gap-2">
+                  <input
+                    value={newStudentName}
+                    onChange={e => setNewStudentName(e.target.value)}
+                    placeholder="New student name..."
+                    className="flex-1 h-10 rounded-xl border border-white/5 bg-black/40 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter" && newStudentName.trim()) {
+                        e.preventDefault();
+                        try {
+                          await addStudentMut.mutateAsync({ groupId: selectedGroup!.id, name: newStudentName.trim() });
+                          toast.success("Student added");
+                          setNewStudentName("");
+                          refetchStudents();
+                        } catch { toast.error("Failed to add student"); }
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    disabled={addStudentMut.isPending || !newStudentName.trim()}
+                    onClick={async () => {
+                      if (!newStudentName.trim()) return;
+                      try {
+                        await addStudentMut.mutateAsync({ groupId: selectedGroup!.id, name: newStudentName.trim() });
+                        toast.success("Student added");
+                        setNewStudentName("");
+                        refetchStudents();
+                      } catch { toast.error("Failed to add student"); }
+                    }}
+                    className="h-10 px-5 rounded-xl bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 transition-colors disabled:opacity-50 shrink-0"
+                  >
+                    {addStudentMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "ADD"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {wizardStep === 4 && (
           <div className="space-y-8 animate-in zoom-in-95 duration-500">
             <div className="p-8 bg-[var(--ui-accent)]/5 border border-[var(--ui-accent)]/20 rounded-3xl text-center space-y-4 relative overflow-hidden group">
@@ -469,10 +615,7 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
             <Button 
               type="button" 
               variant="ghost" 
-              onClick={() => {
-                if (mode === "edit" && wizardStep === 4) setWizardStep(2);
-                else setWizardStep(w => w - 1);
-              }} 
+              onClick={() => setWizardStep(w => w - 1)} 
               className="flex-1"
             >
               <ChevronRight className="w-4 h-4 me-2 rotate-180 rtl:rotate-0" /> {t("groups.modal.back")}

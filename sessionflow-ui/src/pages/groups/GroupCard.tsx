@@ -32,9 +32,9 @@ export const GroupCard: React.FC<GroupCardProps> = ({
       exit={{ opacity: 0, scale: 0.9 }}
       transition={{ delay: index * 0.05, duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
       whileHover={{ y: -5, transition: { duration: 0.2 } }}
-      className="relative w-full min-h-[320px] h-auto md:h-[380px]"
+      className="relative w-full"
     >
-      <div className="card-base absolute inset-0 flex flex-col group transition-all duration-500 border-white/5 hover:border-[var(--ui-accent)]/40 shadow-2xl overflow-hidden">
+      <div className="card-base flex flex-col group transition-all duration-500 border-white/5 hover:border-[var(--ui-accent)]/40 shadow-2xl overflow-hidden">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--ui-accent)]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         
         <div className="p-5 md:p-8 space-y-6 md:space-y-8 flex-1 relative z-20">
