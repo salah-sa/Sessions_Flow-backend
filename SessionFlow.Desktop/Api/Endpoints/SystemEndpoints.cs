@@ -59,6 +59,22 @@ public static class SystemEndpoints
 
             return Results.Ok(history);
         });
+        // GET /api/system/broadcast-update/latest - Retrieve the latest broadcast (Accessible to all authenticated users)
+        system.MapGet("/broadcast-update/latest", async (SessionFlow.Desktop.Data.MongoService db, HttpContext ctx) =>
+        {
+            var latest = await db.SystemBroadcasts
+                .Find(MongoDB.Driver.Builders<SessionFlow.Desktop.Models.SystemBroadcast>.Filter.Empty)
+                .SortByDescending(b => b.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (latest == null) return Results.NotFound();
+
+            return Results.Ok(new {
+                version = latest.Version,
+                notes = latest.Notes,
+                timestamp = latest.CreatedAt
+            });
+        });
     }
 
     public record BroadcastUpdateRequest(string? Version, List<string> Notes);

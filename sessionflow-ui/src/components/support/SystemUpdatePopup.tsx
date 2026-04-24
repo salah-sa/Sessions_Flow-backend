@@ -1,16 +1,34 @@
 import { useEffect, useState } from "react";
 import { Button } from "../ui";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { AlertTriangle, RefreshCw, CheckCircle } from "lucide-react";
 import { useSignalR } from "../../providers/SignalRProvider";
+import { useLatestBroadcast } from "../../queries/useSystemQueries";
 
 export function SystemUpdatePopup() {
   const [isOpen, setIsOpen] = useState(false);
   const [updateData, setUpdateData] = useState<{ version: string; notes: string[] } | null>(null);
+  const [isStartupMode, setIsStartupMode] = useState(false);
   const { on, off } = useSignalR();
+  
+  const { data: latestBroadcast } = useLatestBroadcast();
 
+  // Check on startup if there is a new update that hasn't been acknowledged
+  useEffect(() => {
+    if (latestBroadcast && latestBroadcast.version) {
+      const lastSeen = localStorage.getItem("lastSeenUpdateVersion");
+      if (lastSeen !== latestBroadcast.version) {
+        setUpdateData({ version: latestBroadcast.version, notes: latestBroadcast.notes || [] });
+        setIsStartupMode(true);
+        setIsOpen(true);
+      }
+    }
+  }, [latestBroadcast]);
+
+  // Listen for real-time broadcasts
   useEffect(() => {
     const handler = (payload: { version: string; notes: string[] }) => {
       setUpdateData(payload);
+      setIsStartupMode(false);
       setIsOpen(true);
     };
 
@@ -21,8 +39,16 @@ export function SystemUpdatePopup() {
     };
   }, [on, off]);
 
-  const handleRefresh = () => {
-    window.location.reload();
+  const handleAcknowledge = () => {
+    if (updateData?.version) {
+      localStorage.setItem("lastSeenUpdateVersion", updateData.version);
+    }
+    
+    if (isStartupMode) {
+      setIsOpen(false);
+    } else {
+      window.location.reload();
+    }
   };
 
   if (!updateData || !isOpen) return null;
@@ -35,9 +61,13 @@ export function SystemUpdatePopup() {
           <div className="w-16 h-16 rounded-full bg-ui-accent/10 flex items-center justify-center mb-2">
             <AlertTriangle className="w-8 h-8 text-ui-accent animate-pulse" />
           </div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">System Update Required</h2>
+          <h2 className="text-2xl font-bold text-white tracking-tight">
+            {isStartupMode ? "What's New in SessionFlow" : "System Update Required"}
+          </h2>
           <p className="text-slate-300 text-sm max-w-sm">
-            A new version of SessionFlow ({updateData.version}) has just been released! Please refresh your application to continue.
+            {isStartupMode 
+              ? `Version ${updateData.version} has been released. Here are the latest changes.`
+              : `A new version of SessionFlow (${updateData.version}) has just been released! Please refresh your application to continue.`}
           </p>
         </div>
 
@@ -52,12 +82,21 @@ export function SystemUpdatePopup() {
 
         <div className="flex justify-center">
           <Button 
-            onClick={handleRefresh} 
+            onClick={handleAcknowledge} 
             className="w-full bg-ui-accent text-white py-6 text-lg font-bold rounded-xl"
             variant="glow"
           >
-            <RefreshCw className="w-5 h-5 mr-3 animate-spin-slow" />
-            Refresh Application
+            {isStartupMode ? (
+              <>
+                <CheckCircle className="w-5 h-5 mr-3" />
+                Continue to App
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-5 h-5 mr-3 animate-spin-slow" />
+                Refresh Application
+              </>
+            )}
           </Button>
         </div>
       </div>
