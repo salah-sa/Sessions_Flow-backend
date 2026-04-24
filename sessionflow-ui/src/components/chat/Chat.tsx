@@ -104,7 +104,7 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
         </div>
       )}
 
-      <div className={cn("flex items-end gap-4 max-w-[85%]", isMe && "flex-row-reverse")}>
+      <div className={cn("flex items-end gap-3 md:gap-4 max-w-[92%] md:max-w-[85%]", isMe && "flex-row-reverse")}>
         <ProfileImage url={profileImageUrl} initial={initial} isMe={isMe} />
 
         <div className="flex flex-col gap-2">
@@ -240,17 +240,17 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
   };
 
   return (
-    <div className="flex flex-col h-full bg-ui-sidebar-bg/40 backdrop-blur-3xl rounded-xl border border-white/5 overflow-hidden shadow-2xl relative">
+    <div className="flex flex-col h-full bg-ui-sidebar-bg/40 backdrop-blur-3xl rounded-none md:rounded-xl border-0 md:border border-white/5 overflow-hidden shadow-2xl relative">
       <div className="flex-1 min-h-0 relative">
-        <div ref={scrollRef} className="absolute inset-0 overflow-y-auto p-4 md:p-8 space-y-2 custom-scrollbar">
+        <div ref={scrollRef} className="absolute inset-0 overflow-y-auto p-3 md:p-6 space-y-2 custom-scrollbar">
           {isLoading && <div className="flex flex-col items-center justify-center py-20"><Loader2 className="w-10 h-10 text-ui-accent animate-spin mb-4" /><p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">establishing link...</p></div>}
           {hasNextPage && <div className="flex justify-center py-6"><Button variant="ghost" size="sm" onClick={() => fetchNextPage?.()} className="text-[10px] font-bold text-slate-500 hover:text-white uppercase tracking-widest bg-white/[0.02] border border-white/5 rounded-xl px-8">{isFetchingNextPage ? "Accessing Archive..." : "Load Older Records"}</Button></div>}
           {messages.map((msg, i) => <MessageBubble key={msg.id} message={msg} isMe={msg.senderId === user?.id} showSender={i === 0 || messages[i-1]?.senderId !== msg.senderId} />)}
         </div>
-        <AnimatePresence>{showScrollButton && <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} onClick={() => scrollRef.current?.scroll({ top: scrollRef.current.scrollHeight, behavior: "smooth" })} className="absolute bottom-8 right-10 w-12 h-12 rounded-full bg-ui-accent text-white flex items-center justify-center shadow-glow shadow-ui-accent/40 border border-ui-accent/20 hover:scale-110 transition-all"><ChevronDown className="w-6 h-6" /></motion.button>}</AnimatePresence>
+        <AnimatePresence>{showScrollButton && <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} onClick={() => scrollRef.current?.scroll({ top: scrollRef.current.scrollHeight, behavior: "smooth" })} className="absolute bottom-8 right-4 md:right-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-ui-accent text-white flex items-center justify-center shadow-glow shadow-ui-accent/40 border border-ui-accent/20 hover:scale-110 transition-all"><ChevronDown className="w-5 h-5 md:w-6 md:h-6" /></motion.button>}</AnimatePresence>
       </div>
 
-      <div className="p-3 md:p-6 bg-ui-bg/80 border-t border-white/5 flex flex-col gap-4 relative z-50">
+      <div className="p-2 sm:p-3 md:p-5 bg-ui-bg/80 border-t border-white/5 flex flex-col gap-3 md:gap-4 relative z-50">
         <TypingIndicator activeGroupId={activeGroupId} />
         
         <AnimatePresence>
@@ -260,7 +260,7 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              className="absolute bottom-full left-0 right-0 md:left-6 md:right-auto mb-4 z-[60] shadow-2xl rounded-2xl overflow-hidden border border-white/10"
+              className="absolute bottom-full left-2 right-2 md:left-6 md:right-auto mb-4 z-[60] shadow-2xl rounded-2xl overflow-hidden border border-white/10"
             >
               <Picker 
                 data={data} 
@@ -288,7 +288,7 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
 
         {selectedFile && <div className="p-3 bg-black/40 border border-white/5 rounded-xl self-start flex gap-4 items-center relative"><img src={selectedFileUrl!} className="w-12 h-12 rounded-lg object-cover" /><div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{selectedFile.name}</div><button onClick={() => setSelectedFile(null)} className="p-1 hover:text-rose-500 transition-colors"><X className="w-4 h-4" /></button></div>}
 
-        <div className="flex items-center gap-2 md:gap-3 bg-black/40 rounded-xl border border-white/5 px-3 md:px-4 h-12 md:h-16 shadow-inner transition-all focus-within:border-ui-accent/30">
+        <div className="flex items-center gap-1.5 md:gap-3 bg-black/40 rounded-xl border border-white/5 px-2 md:px-4 h-12 md:h-14 shadow-inner transition-all focus-within:border-ui-accent/30">
           <Button variant="ghost" size="icon" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="text-slate-500 hover:text-ui-accent"><Smile className="w-5 h-5" /></Button>
           <input 
             ref={inputRef} value={text} onChange={(e) => handleInputChange(e.target.value)} 
@@ -296,7 +296,7 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
             placeholder="ENCRYPTED TRANSMISSION..." className="border-none bg-transparent focus:ring-0 h-full flex-1 text-sm font-medium text-white placeholder:text-slate-700 placeholder:uppercase placeholder:font-bold placeholder:tracking-[0.2em] placeholder:text-[10px]" 
           />
           <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="text-slate-500 hover:text-ui-accent"><Paperclip className="w-5 h-5" /></Button>
-          <button onClick={handleSend} disabled={!text.trim() && !selectedFile} className="w-11 h-11 rounded-lg bg-ui-accent text-white flex items-center justify-center shadow-glow shadow-ui-accent/20 transition-all active:scale-95 disabled:opacity-20 disabled:grayscale"><Send className="w-4 h-4" /></button>
+          <button onClick={handleSend} disabled={!text.trim() && !selectedFile} className="w-10 h-10 md:w-11 md:h-11 rounded-lg bg-ui-accent text-white flex items-center justify-center shadow-glow shadow-ui-accent/20 transition-all active:scale-95 disabled:opacity-20 disabled:grayscale shrink-0"><Send className="w-4 h-4" /></button>
           <input type="file" ref={fileInputRef} onChange={(e) => { if (e.target.files?.[0]) setSelectedFile(e.target.files[0]); }} className="hidden" />
         </div>
       </div>

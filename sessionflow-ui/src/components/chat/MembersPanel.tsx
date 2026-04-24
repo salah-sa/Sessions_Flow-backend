@@ -113,7 +113,7 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
 
       <div className="flex items-center gap-3">
         {status === "online" && !isMe && (
-          <button onClick={handleCall} className="w-8 h-8 rounded-lg bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] hover:bg-[var(--ui-accent)] hover:text-white flex items-center justify-center transition-all opacity-0 group-hover/member:opacity-100"><Phone className="w-3.5 h-3.5" /></button>
+          <button onClick={handleCall} className="w-9 h-9 rounded-lg bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] hover:bg-[var(--ui-accent)] hover:text-white flex items-center justify-center transition-all opacity-0 group-hover/member:opacity-100 touch-show"><Phone className="w-3.5 h-3.5" /></button>
         )}
         <StatusDot status={status} confidence={confidence} />
       </div>
@@ -182,7 +182,7 @@ const MembersPanel: React.FC<MembersPanelProps> = ({ group, isOpen, onClose }) =
           >
           <div className="absolute top-0 right-0 w-full h-[300px] bg-[var(--ui-accent)]/5 blur-[100px] pointer-events-none" />
 
-          <div className="px-8 py-8 border-b border-white/5 flex items-center justify-between flex-none relative z-10">
+          <div className="px-4 py-5 sm:px-6 md:px-8 md:py-8 border-b border-white/5 flex items-center justify-between flex-none relative z-10">
             <div>
               <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-3">
                 <Users className="w-4 h-4 text-[var(--ui-accent)]" />
@@ -195,7 +195,7 @@ const MembersPanel: React.FC<MembersPanelProps> = ({ group, isOpen, onClose }) =
             <button onClick={onClose} className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-slate-500 hover:text-white transition-all"><X className="w-4 h-4" /></button>
           </div>
 
-          <div className="px-8 py-3 border-b border-white/[0.02] bg-white/[0.01] flex items-center gap-3 relative z-10">
+          <div className="px-4 py-3 sm:px-6 md:px-8 border-b border-white/[0.02] bg-white/[0.01] flex items-center gap-3 relative z-10">
             <Activity className="w-3.5 h-3.5 text-[var(--ui-accent)]/60" />
             <span className="text-[8px] font-bold text-[var(--ui-accent)]/60 uppercase tracking-widest">Neural Stream Matrix Established</span>
           </div>
