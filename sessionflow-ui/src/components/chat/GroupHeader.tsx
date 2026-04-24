@@ -103,22 +103,22 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
   const overflow = members.length - visibleAvatars.length;
 
   return (
-    <div className="relative px-4 md:px-10 py-3 md:py-6 bg-[var(--ui-sidebar-bg)]/80 backdrop-blur-3xl border-b border-white/5 flex-none z-20">
+    <div className="relative px-3 py-3 md:px-8 md:py-5 bg-[var(--ui-sidebar-bg)]/80 backdrop-blur-3xl border-b border-white/5 flex-none z-20">
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--ui-accent)]/40 to-transparent" />
 
-      <div className="flex items-center justify-between gap-8">
-        <button onClick={() => useChatStore.getState().setActiveGroup(null)} className="md:hidden p-2 rounded-xl text-slate-500 hover:text-white bg-white/[0.02] border border-white/5 transition-all shrink-0">
+      <div className="flex items-center justify-between gap-3 md:gap-6">
+        <button onClick={() => useChatStore.getState().setActiveGroup(null)} className="md:hidden p-2.5 rounded-xl text-slate-500 hover:text-white bg-white/[0.02] border border-white/5 transition-all shrink-0">
           <ChevronLeft className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-6 min-w-0 flex-1">
+        <div className="flex items-center gap-3 md:gap-5 min-w-0 flex-1">
           <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-xl bg-gradient-to-br from-[var(--ui-accent)]/20 to-[#7c3aed]/10 border border-[var(--ui-accent)]/30 flex items-center justify-center text-white font-bold text-xs shadow-glow shadow-[var(--ui-accent)]/10">
             L{group.level}
           </div>
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3">
-              <h2 className="text-base font-bold text-white uppercase tracking-widest truncate leading-none">
+              <h2 className="text-sm md:text-base font-bold text-white uppercase tracking-widest truncate leading-none">
                 {group.name}
               </h2>
               {isArchived && (
@@ -140,7 +140,7 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
             </div>
 
             {group.description && (
-              <div className="flex items-center gap-3 mt-2">
+              <div className="hidden md:flex items-center gap-3 mt-2">
                 <p className="text-[9px] text-slate-500 font-medium uppercase tracking-widest truncate max-w-md">
                   {group.description}
                 </p>
@@ -159,7 +159,7 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 md:gap-3 shrink-0">
           <button onClick={onToggleMute} className={cn("w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center transition-all border", isMuted ? "bg-rose-500/10 border-rose-500/30 text-rose-500" : "bg-white/[0.02] border-white/5 text-slate-600 hover:text-[var(--ui-accent)] hover:border-[var(--ui-accent)]/20")}>
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
