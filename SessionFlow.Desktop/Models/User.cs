@@ -42,6 +42,13 @@ public class User
     public string? StudentId { get; set; } // Unique student identifier
     
     public string? EngineerCode { get; set; } // The engineer code used during student registration
+
+    // Premium System fields
+    public SubscriptionTier SubscriptionTier { get; set; } = SubscriptionTier.Free;
+    
+    [BsonIgnoreIfNull]
+    public string? PaymobCustomerId { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 

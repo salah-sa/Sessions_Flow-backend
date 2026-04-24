@@ -142,6 +142,7 @@ public static class ApiHost
         builder.Services.AddScoped<GmailSessionService>();
         builder.Services.AddScoped<GoogleAuthService>();
         builder.Services.AddScoped<ReportingService>();
+        builder.Services.AddScoped<PaymobService>();
         builder.Services.AddHostedService<EmailReminderService>();
         builder.Services.AddHostedService<SessionMaintenanceService>();
         builder.Services.AddHostedService<Services.EventBus.EventDispatcher>();

@@ -143,6 +143,28 @@ public class MongoService
         await PasswordResetTokens.Indexes.CreateOneAsync(new CreateIndexModel<PasswordResetToken>(
             Builders<PasswordResetToken>.IndexKeys.Ascending(t => t.ExpiresAt),
             new CreateIndexOptions { ExpireAfter = TimeSpan.Zero }));
+
+        // PREMIUM SYSTEM INDEXES
+        // Subscriptions: Unique User
+        await Subscriptions.Indexes.CreateOneAsync(new CreateIndexModel<Subscription>(
+            Builders<Subscription>.IndexKeys.Ascending(s => s.UserId),
+            new CreateIndexOptions { Unique = true }));
+
+        // PaymentTransactions: Unique Paymob ID (Sparse to allow nulls for pending wallet/fawry)
+        await PaymentTransactions.Indexes.CreateOneAsync(new CreateIndexModel<PaymentTransaction>(
+            Builders<PaymentTransaction>.IndexKeys.Ascending(t => t.PaymobTransactionId),
+            new CreateIndexOptions { Unique = true, Sparse = true }));
+        
+        await PaymentTransactions.Indexes.CreateOneAsync(new CreateIndexModel<PaymentTransaction>(
+            Builders<PaymentTransaction>.IndexKeys.Ascending(t => t.UserId)));
+
+        // Invoices: Unique Number
+        await Invoices.Indexes.CreateOneAsync(new CreateIndexModel<Invoice>(
+            Builders<Invoice>.IndexKeys.Ascending(i => i.InvoiceNumber),
+            new CreateIndexOptions { Unique = true }));
+
+        await Invoices.Indexes.CreateOneAsync(new CreateIndexModel<Invoice>(
+            Builders<Invoice>.IndexKeys.Ascending(i => i.UserId)));
     }
 
     public IMongoCollection<User> Users => _database.GetCollection<User>("Users");
@@ -161,6 +183,11 @@ public class MongoService
     public IMongoCollection<Notification> Notifications => _database.GetCollection<Notification>("Notifications");
     public IMongoCollection<AuditLog> AuditLogs => _database.GetCollection<AuditLog>("AuditLogs");
     public IMongoCollection<PasswordResetToken> PasswordResetTokens => _database.GetCollection<PasswordResetToken>("PasswordResetTokens");
+    
+    // Premium System Collections
+    public IMongoCollection<Subscription> Subscriptions => _database.GetCollection<Subscription>("Subscriptions");
+    public IMongoCollection<PaymentTransaction> PaymentTransactions => _database.GetCollection<PaymentTransaction>("PaymentTransactions");
+    public IMongoCollection<Invoice> Invoices => _database.GetCollection<Invoice>("Invoices");
 
     public IMongoDatabase Database => _database;
 }
