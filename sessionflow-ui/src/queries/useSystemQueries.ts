@@ -41,8 +41,14 @@ export function useLatestBroadcast() {
   return useQuery({
     queryKey: ["latest-broadcast"],
     queryFn: async () => {
-      const res = await fetchWithAuth("/api/system/broadcast-update/latest");
-      return (res as any).data as BroadcastHistoryItem;
+      try {
+        const res = await fetchWithAuth("/api/system/broadcast-update/latest");
+        return (res as any).data as BroadcastHistoryItem;
+      } catch (error: any) {
+        // If no broadcast exists (404), return null instead of throwing
+        if (error.message?.includes("404")) return null;
+        throw error;
+      }
     },
     retry: false,
   });

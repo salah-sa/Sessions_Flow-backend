@@ -195,6 +195,7 @@ const Sidebar: React.FC = () => {
         )}
         
         <NavItem to="/archive" icon={Archive} label={t("nav.archive") || "Archive"} locked={isStudent} />
+        <NavItem to="/plans" icon={Crown} label={t("nav.plans") || "Plans & Upgrades"} locked={isStudent} />
         <NavItem to="/profile" icon={UserCircle} label={t("nav.profile") || "Profile"} />
         <NavItem to="/settings" icon={Settings} label={t("nav.settings")} locked={isStudent} />
 
