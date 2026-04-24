@@ -49,4 +49,7 @@ public static class PlanLimit
         SubscriptionTier.Enterprise => 4990_00, // ~2 months free
         _ => 0
     };
+
+    public static long GetPrice(SubscriptionTier tier, bool isAnnual)
+        => isAnnual ? GetPriceAnnualPiasters(tier) : GetPriceMonthlyPiasters(tier);
 }
