@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Send, User as UserIcon, Smile, Paperclip, X, MessageSquare, Loader2, Clock, Check, CheckCheck, Lock, ChevronDown, Zap, Target } from "lucide-react";
+import { Send, User as UserIcon, Smile, Paperclip, X, MessageSquare, Loader2, Clock, Check, CheckCheck, Lock, ChevronDown, Zap, Target, Copy } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../../lib/utils";
 import { Card, Button, Input, EmptyState, Skeleton, Badge } from "../ui";
@@ -109,11 +109,25 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
 
         <div className="flex flex-col gap-2">
           <div className={cn(
-            "px-4 py-3 md:px-6 md:py-4 rounded-xl text-[13px] relative shadow-2xl border transition-all duration-300",
+            "px-4 py-3 md:px-6 md:py-4 rounded-xl text-[13px] relative shadow-2xl border transition-all duration-300 group/bubble",
             isMe 
               ? "bg-ui-accent text-white font-medium border-transparent shadow-ui-accent/20" 
               : "bg-ui-sidebar-bg/95 text-slate-200 border-white/5 shadow-black/80"
           )}>
+            <button 
+              onClick={() => {
+                navigator.clipboard.writeText(message.text || "");
+                toast.success("Copied to clipboard");
+              }}
+              className={cn(
+                "absolute -top-2 opacity-0 group-hover/bubble:opacity-100 transition-all p-1.5 rounded-lg bg-black/50 backdrop-blur-md border border-white/10 hover:text-ui-accent z-20",
+                isMe ? "-left-2" : "-right-2"
+              )}
+              title="Copy Message"
+            >
+              <Copy className="w-3.5 h-3.5" />
+            </button>
+
             <BlockMessageRenderer message={message} />
             
             {message.fileUrl && (
