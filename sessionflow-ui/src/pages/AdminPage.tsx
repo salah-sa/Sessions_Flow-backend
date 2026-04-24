@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { ShieldCheck, UserPlus, Key, Eye, CheckCircle2, XCircle, Search, RefreshCcw, MoreVertical, ShieldAlert, FileText, Clock, Users, Trash2, CheckCircle, Shield, Settings2, Sliders, Ban, RotateCcw } from "lucide-react";
+import { ShieldCheck, UserPlus, Key, Eye, CheckCircle2, XCircle, Search, RefreshCcw, MoreVertical, ShieldAlert, FileText, Clock, Users, Trash2, CheckCircle, Shield, Settings2, Sliders, Ban, RotateCcw, PauseCircle as Pause } from "lucide-react";
 import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
 import { Card, Button, Input, Badge, Skeleton } from "../components/ui";
-import { useSystemQueries, useAdminMutations } from "../queries/useAdminQueries";
+import { useSystemQueries, useAdminMutations, useUserMutations } from "../queries/useAdminQueries";
 import { usePendingStudentRequests, useEngineerMutations } from "../queries/useEngineerQueries";
 import { PendingEngineer, EngineerCode } from "../types";
 import { cn } from "../lib/utils";

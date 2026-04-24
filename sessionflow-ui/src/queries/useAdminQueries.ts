@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, UseQueryResult } from "@tanstack/react-query";
-import { auditApi, engineersApi } from "../api/resources_extra";
+import { auditApi, engineersApi, studentsApi } from "../api/resources_extra";
 import { groupsApi as coreGroupsApi } from "../api/resources";
 import { queryKeys } from "./keys";
 import { useAuthStore } from "../store/stores";
