@@ -1,4 +1,6 @@
 export type UserRole = "Admin" | "Engineer" | "Student";
+export type SubscriptionTier = "Free" | "Pro" | "Enterprise";
+export type SubscriptionStatus = "None" | "Active" | "PastDue" | "Canceled" | "Unpaid";
 
 export interface User {
   id: string;
@@ -14,6 +16,8 @@ export interface User {
   longitude?: number;
   city?: string;
   createdAt: string;
+  subscriptionTier?: SubscriptionTier;
+  paymobCustomerId?: string;
 }
 
 export type GroupStatus = "Active" | "Completed" | "Archived";
