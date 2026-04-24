@@ -1,8 +1,17 @@
 import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { studentsApi } from "../api/resources_extra";
 import { groupsApi } from "../api/resources";
+import { fetchWithAuth } from "../api/client";
 import { queryKeys } from "./keys";
 import { Student } from "../types";
+
+export const useGroupStudents = (groupId: string | undefined) => {
+  return useQuery({
+    queryKey: ["groups", "students", groupId],
+    queryFn: () => fetchWithAuth<{ id: string; name: string; studentId?: string; uniqueStudentCode?: string }[]>(`/groups/${groupId}/students`),
+    enabled: !!groupId,
+  });
+};
 
 export const useInfiniteStudents = (filters: { search?: string; groupId?: string } = {}) => {
   return useInfiniteQuery({
