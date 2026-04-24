@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { fetchWithAuth } from "../api/client";
 
 export interface BroadcastUpdatePayload {
-  message: string;
+  notes: string[];
   forceRefresh: boolean;
   version?: string;
 }
