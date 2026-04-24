@@ -36,3 +36,14 @@ export function useBroadcastHistory() {
     },
   });
 }
+
+export function useLatestBroadcast() {
+  return useQuery({
+    queryKey: ["latest-broadcast"],
+    queryFn: async () => {
+      const res = await fetchWithAuth("/api/system/broadcast-update/latest");
+      return (res as any).data as BroadcastHistoryItem;
+    },
+    retry: false,
+  });
+}
