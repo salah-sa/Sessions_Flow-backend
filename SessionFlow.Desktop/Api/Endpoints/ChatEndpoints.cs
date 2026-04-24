@@ -78,7 +78,7 @@ public static class ChatEndpoints
             var senderDict = senders.ToDictionary(u => u.Id);
 
             var result = new List<object>();
-            foreach (var m in messages.OrderBy(m => m.SentAt))
+            foreach (var m in messages.OrderByDescending(m => m.SentAt))
             {
                 senderDict.TryGetValue(m.SenderId, out var sender);
                 result.Add(new
