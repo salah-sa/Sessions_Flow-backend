@@ -2,7 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
-using SessionFlow.Desktop.Hubs;
+using SessionFlow.Desktop.Api.Hubs;
 
 namespace SessionFlow.Desktop.Api.Endpoints;
 
@@ -13,7 +13,7 @@ public static class SystemEndpoints
         var system = app.MapGroup("/api/system").RequireAuthorization();
 
         // POST /api/system/broadcast-update - Broadcasts a system update to all connected users
-        system.MapPost("/broadcast-update", async (BroadcastUpdateRequest req, IHubContext<ChatHub> hubContext, HttpContext ctx) =>
+        system.MapPost("/broadcast-update", async (BroadcastUpdateRequest req, IHubContext<SessionHub> hubContext, HttpContext ctx) =>
         {
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
             if (role != "Admin") return Results.Forbid();
