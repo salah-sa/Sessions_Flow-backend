@@ -1,6 +1,7 @@
-import React from "react";
-import { Navigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../store/stores";
+import { toast } from "sonner";
 
 interface RoleGuardProps {
   children: React.ReactNode;
@@ -10,6 +11,7 @@ interface RoleGuardProps {
 const RoleGuard: React.FC<RoleGuardProps> = ({ children, allowedRoles }) => {
   const user = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.token);
+  const location = useLocation();
 
   if (!token || !user) {
     return <Navigate to="/login" replace />;
@@ -17,6 +19,13 @@ const RoleGuard: React.FC<RoleGuardProps> = ({ children, allowedRoles }) => {
 
   if (!allowedRoles.includes(user.role)) {
     // If user doesn't have permission, send them back to dashboard
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // Page-level blocking enforcement
+  const currentPage = location.pathname.split("/")[1]; // e.g. "chat", "groups"
+  if (user.blockedPages?.includes(currentPage)) {
+    toast.error("Access to this page has been restricted by an administrator.", { id: "page-blocked" });
     return <Navigate to="/dashboard" replace />;
   }
 

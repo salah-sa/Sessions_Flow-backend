@@ -2,6 +2,7 @@ import React from "react";
 import { 
   BarChart3, 
   Users, 
+  UsersRound,
   Settings, 
   MessageSquare, 
   Calendar, 
@@ -14,7 +15,8 @@ import {
   UserCircle,
   Lock,
   CheckCircle,
-  Crown
+  Crown,
+  ShieldBan
 } from "lucide-react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore, useSectionBadgeStore, useChatStore } from "../../store/stores";
@@ -55,9 +57,12 @@ const LanguageBridge: React.FC = () => {
   );
 };
 
-const NavItem = ({ to, icon: Icon, label, badge, locked, premiumLocked }: { to: string; icon: any; label: string; badge?: number; locked?: boolean; premiumLocked?: boolean }) => {
+const NavItem = ({ to, icon: Icon, label, badge, locked, premiumLocked, pageBlocked }: { to: string; icon: any; label: string; badge?: number; locked?: boolean; premiumLocked?: boolean; pageBlocked?: boolean }) => {
   const handleClick = (e: React.MouseEvent) => {
-    if (locked) {
+    if (pageBlocked) {
+      e.preventDefault();
+      toast.error("Access to this page has been restricted by an administrator.");
+    } else if (locked) {
       e.preventDefault();
       toast.error("Not allowed, only for engineer");
     } else if (premiumLocked) {
@@ -72,8 +77,8 @@ const NavItem = ({ to, icon: Icon, label, badge, locked, premiumLocked }: { to: 
       onClick={handleClick}
       className={({ isActive }) => cn(
         "group relative flex items-center gap-4 px-6 py-2.5 rounded-xl transition-all duration-300 overflow-hidden",
-        isActive && !locked ? "bg-[var(--ui-accent)]/10 text-white" : "text-slate-500 hover:text-white hover:bg-white/[0.02]",
-        locked && "opacity-75"
+        isActive && !locked && !pageBlocked ? "bg-[var(--ui-accent)]/10 text-white" : "text-slate-500 hover:text-white hover:bg-white/[0.02]",
+        (locked || pageBlocked) && "opacity-75"
       )}
     >
       {({ isActive }) => (
@@ -90,9 +95,9 @@ const NavItem = ({ to, icon: Icon, label, badge, locked, premiumLocked }: { to: 
           )} />
           <span className="text-[11px] font-bold uppercase tracking-[0.2em] flex-1">{label}</span>
           
-          {locked ? (
-            <div className="w-6 h-6 rounded-md bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shadow-glow shadow-rose-500/10 backdrop-blur-md">
-               <Lock className="w-3 h-3 text-rose-500" />
+          {locked || pageBlocked ? (
+            <div className={cn("w-6 h-6 rounded-md flex items-center justify-center backdrop-blur-md", pageBlocked ? "bg-orange-500/10 border border-orange-500/20 shadow-glow shadow-orange-500/10" : "bg-rose-500/10 border border-rose-500/20 shadow-glow shadow-rose-500/10")}>
+               <Lock className={cn("w-3 h-3", pageBlocked ? "text-orange-400" : "text-rose-500")} />
             </div>
           ) : premiumLocked ? (
             <div className="w-6 h-6 rounded-md bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shadow-glow shadow-purple-500/10 backdrop-blur-md">
@@ -155,6 +160,8 @@ const Sidebar: React.FC = () => {
 
   const userTier = user?.subscriptionTier || "Free";
   const isPremium = isAdmin || userTier === "Pro" || userTier === "Enterprise";
+  const blockedPages = user?.blockedPages ?? [];
+  const isBlocked = (routePath: string) => blockedPages.includes(routePath.replace("/", ""));
 
   return (
     <aside className="h-full w-[280px] bg-[var(--ui-sidebar-bg)] border-e border-white/5 flex flex-col z-[50]">
@@ -173,14 +180,14 @@ const Sidebar: React.FC = () => {
       </div>
 
       <nav className="flex-1 px-4 space-y-2 overflow-y-auto min-h-0 custom-scrollbar">
-        <NavItem to="/dashboard" icon={BarChart3} label={t("nav.dashboard")} />
-        <NavItem to="/groups" icon={Users} label={t("nav.groups") || "Groups"} locked={isStudent} />
-        <NavItem to="/sessions" icon={Target} label={t("nav.sessions") || "Sessions"} locked={isStudent} />
-        <NavItem to="/students" icon={User} label={t("nav.students")} locked={isStudent} premiumLocked={isAdmin && !isPremium} />
-        <NavItem to="/timetable" icon={Calendar} label={t("nav.timetable")} />
-        <NavItem to="/attendance" icon={CheckCircle} label={t("nav.attendance") || "Attendance"} locked={isStudent} premiumLocked={isAdmin && !isPremium} />
-        <NavItem to="/chat" icon={MessageSquare} label={t("nav.chat")} badge={chatBadgeCount} />
-        <NavItem to="/history" icon={Clock} label={t("nav.history") || "History"} />
+        <NavItem to="/dashboard" icon={BarChart3} label={t("nav.dashboard")} pageBlocked={isBlocked("/dashboard")} />
+        <NavItem to="/groups" icon={Users} label={t("nav.groups") || "Groups"} locked={isStudent} pageBlocked={isBlocked("/groups")} />
+        <NavItem to="/sessions" icon={Target} label={t("nav.sessions") || "Sessions"} locked={isStudent} pageBlocked={isBlocked("/sessions")} />
+        <NavItem to="/students" icon={User} label={t("nav.students")} locked={isStudent} premiumLocked={isAdmin && !isPremium} pageBlocked={isBlocked("/students")} />
+        <NavItem to="/timetable" icon={Calendar} label={t("nav.timetable")} pageBlocked={isBlocked("/timetable")} />
+        <NavItem to="/attendance" icon={CheckCircle} label={t("nav.attendance") || "Attendance"} locked={isStudent} premiumLocked={isAdmin && !isPremium} pageBlocked={isBlocked("/attendance")} />
+        <NavItem to="/chat" icon={MessageSquare} label={t("nav.chat")} badge={chatBadgeCount} pageBlocked={isBlocked("/chat")} />
+        <NavItem to="/history" icon={Clock} label={t("nav.history") || "History"} pageBlocked={isBlocked("/history")} />
         
         <div className="py-3 px-6">
            <p className="text-[9px] font-bold text-slate-700 uppercase tracking-widest mb-4">Core Modules</p>
@@ -189,6 +196,9 @@ const Sidebar: React.FC = () => {
 
         {user?.role === "Admin" && (
           <NavItem to="/admin" icon={ShieldCheck} label={t("staff.portal_title")} badge={adminBadgeCount} />
+        )}
+        {user?.role === "Admin" && (
+          <NavItem to="/users" icon={UsersRound} label="Users" />
         )}
         {user?.role === "Engineer" && (
           <NavItem to="/staff" icon={Zap} label={t("staff.portal_title")} badge={staffBadgeCount} />

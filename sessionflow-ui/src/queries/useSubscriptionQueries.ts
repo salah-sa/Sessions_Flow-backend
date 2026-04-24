@@ -16,7 +16,7 @@ export const useSubscriptionPlans = () => {
     queryFn: async () => {
       return fetchWithAuth<any>("/subscription/plans");
     },
-    staleTime: 1000 * 60 * 60, // 1 hour - pricing doesn't change often
+    staleTime: 1000 * 60 * 5, // 5 minutes — admin pricing edits should reflect quickly
   });
 };
 

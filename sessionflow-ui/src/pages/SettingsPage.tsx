@@ -87,6 +87,11 @@ const SettingsPage: React.FC = () => {
   const [priceL4, setPriceL4] = useState("");
   const [adminEmail, setAdminEmail] = useState("salahfdasalahfda.11188@gmail.com");
   const [adminAppPassword, setAdminAppPassword] = useState("shkp mvzk wsei qzed");
+  // Subscription pricing state
+  const [subProMonthly, setSubProMonthly] = useState("");
+  const [subProAnnual, setSubProAnnual] = useState("");
+  const [subEntMonthly, setSubEntMonthly] = useState("");
+  const [subEntAnnual, setSubEntAnnual] = useState("");
 
   const isSaving = updateSettings.isPending;
   const isGenerating = generateCode.isPending;
@@ -111,6 +116,11 @@ const SettingsPage: React.FC = () => {
       setPriceL4(settings.find(s => s.key === "session_price_level_4")?.value || "150");
       setAdminEmail(settings.find(s => s.key === "admin_email")?.value || "salahfdasalahfda.11188@gmail.com");
       setAdminAppPassword(settings.find(s => s.key === "admin_email_app_password")?.value || "shkp mvzk wsei qzed");
+      // Subscription pricing
+      setSubProMonthly(settings.find(s => s.key === "subscription_pro_monthly_price")?.value || "149");
+      setSubProAnnual(settings.find(s => s.key === "subscription_pro_annual_price")?.value || "1199");
+      setSubEntMonthly(settings.find(s => s.key === "subscription_enterprise_monthly_price")?.value || "299");
+      setSubEntAnnual(settings.find(s => s.key === "subscription_enterprise_annual_price")?.value || "2399");
     }
   }, [settings]);
 
@@ -133,7 +143,11 @@ const SettingsPage: React.FC = () => {
         session_price_level_3: priceL3,
         session_price_level_4: priceL4,
         admin_email: adminEmail || "salahfdasalahfda.11188@gmail.com",
-        admin_email_app_password: adminAppPassword || "shkp mvzk wsei qzed"
+        admin_email_app_password: adminAppPassword || "shkp mvzk wsei qzed",
+        subscription_pro_monthly_price: subProMonthly,
+        subscription_pro_annual_price: subProAnnual,
+        subscription_enterprise_monthly_price: subEntMonthly,
+        subscription_enterprise_annual_price: subEntAnnual
       };
       await updateSettings.mutateAsync(payload);
       toast.success(t("settings.save_success"));
@@ -393,6 +407,10 @@ const SettingsPage: React.FC = () => {
                     priceL2={priceL2} setPriceL2={setPriceL2}
                     priceL3={priceL3} setPriceL3={setPriceL3}
                     priceL4={priceL4} setPriceL4={setPriceL4}
+                    subProMonthly={subProMonthly} setSubProMonthly={setSubProMonthly}
+                    subProAnnual={subProAnnual} setSubProAnnual={setSubProAnnual}
+                    subEntMonthly={subEntMonthly} setSubEntMonthly={setSubEntMonthly}
+                    subEntAnnual={subEntAnnual} setSubEntAnnual={setSubEntAnnual}
                     theme={theme} setTheme={setTheme}
                     customTheme={customTheme} updateCustomTheme={updateCustomTheme}
                     activeStyle={activeStyle} handleToggleTheme={handleToggleTheme}

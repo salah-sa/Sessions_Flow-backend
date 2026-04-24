@@ -53,6 +53,16 @@ public class User
     [BsonIgnoreIfNull]
     public string? PaymobCustomerId { get; set; }
 
+    // User Governance — Access Restrictions & Page Blocking
+    [BsonIgnoreIfNull]
+    public DateTimeOffset? RestrictedUntil { get; set; }
+
+    [BsonIgnoreIfNull]
+    public string? RestrictionReason { get; set; }
+
+    [BsonIgnoreIfNull]
+    public List<string>? BlockedPages { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
