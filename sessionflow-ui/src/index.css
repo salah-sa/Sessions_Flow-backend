@@ -353,6 +353,18 @@
       justify-content: center;
     }
   }
+
+  /* Touch devices: force hover-dependent actions to be visible */
+  @media (hover: none), (pointer: coarse) {
+    .touch-show {
+      opacity: 1 !important;
+    }
+  }
+
+  /* Safe area bottom padding for notch/gesture-bar devices */
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
 }
 
 /* Custom Scrollbar for the Void */

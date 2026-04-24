@@ -343,7 +343,7 @@ const ChatPage: React.FC = () => {
                 </div>
              </div>
              <div className="text-center space-y-3 relative z-10">
-                <h2 className="text-2xl font-bold text-white uppercase">Select Frequency</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-white uppercase">Select Frequency</h2>
                 <p className="text-xs text-slate-500 font-bold uppercase">Establish direct neural link to begin.</p>
              </div>
           </div>

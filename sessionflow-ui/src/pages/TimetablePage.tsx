@@ -241,9 +241,9 @@ const TimetablePage: React.FC = () => {
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#7c3aed]/5 blur-[100px] rounded-full pointer-events-none -z-10" />
 
       {/* Header */}
-      <div className="px-8 py-8 flex flex-col md:flex-row md:items-center justify-between gap-8 shrink-0 relative z-10">
+      <div className="px-4 py-4 sm:px-6 md:px-8 md:py-6 flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-8 shrink-0 relative z-10">
         <div className="space-y-1 text-start">
-          <h1 className="text-3xl font-bold text-white tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
             {t("timetable.title")}
           </h1>
           <p className="text-slate-500 text-xs font-bold uppercase flex items-center gap-2">
@@ -252,7 +252,7 @@ const TimetablePage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full sm:w-auto">
            {/* Date Navigation */}
            <div className="flex items-center bg-[var(--ui-sidebar-bg)]/80 backdrop-blur-3xl border border-white/5 rounded-xl p-1.5 shadow-xl">
              <button onClick={handlePrevWeek} className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 transition-all">
@@ -267,7 +267,7 @@ const TimetablePage: React.FC = () => {
            </div>
            
             {!isStudent && (
-             <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
                <button 
                   onClick={async () => {
                     const loadingToast = toast.loading(t("timetable.syncing") || "Initializing synchronization protocols...");
@@ -278,16 +278,16 @@ const TimetablePage: React.FC = () => {
                       toast.error(err.message || t("timetable.sync_failure") || "Sync Failure", { id: loadingToast });
                     }
                   }} 
-                 className="h-12 px-6 rounded-xl bg-[var(--ui-accent)]/5 border border-[var(--ui-accent)]/20 text-xs font-bold uppercase text-[var(--ui-accent)] hover:bg-[var(--ui-accent)]/10 transition-all flex items-center gap-2"
+                 className="h-11 sm:h-12 px-4 sm:px-6 rounded-xl bg-[var(--ui-accent)]/5 border border-[var(--ui-accent)]/20 text-xs font-bold uppercase text-[var(--ui-accent)] hover:bg-[var(--ui-accent)]/10 transition-all flex items-center justify-center gap-2 w-full sm:w-auto"
                >
                  <Activity className="w-4 h-4" /> {t("timetable.controls.sync") || "SYNC NODES"}
                </button>
 
-               <button onClick={() => setIsAvailOpen(true)} className="h-12 px-6 rounded-xl bg-white/[0.02] border border-white/5 text-xs font-bold uppercase text-slate-400 hover:text-white transition-all flex items-center gap-2">
+               <button onClick={() => setIsAvailOpen(true)} className="h-11 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/[0.02] border border-white/5 text-xs font-bold uppercase text-slate-400 hover:text-white transition-all flex items-center justify-center gap-2 w-full sm:w-auto">
                  <Clock className="w-4 h-4 text-[var(--ui-accent)]" /> {t("timetable.modal.avail_title")}
                </button>
 
-               <button onClick={() => setIsCreateOpen(true)} className="btn-primary h-12 px-8 flex items-center gap-2">
+               <button onClick={() => setIsCreateOpen(true)} className="btn-primary h-11 sm:h-12 px-6 sm:px-8 flex items-center justify-center gap-2 w-full sm:w-auto">
                  <Plus className="w-4 h-4" /> {t("timetable.modal.schedule_title")}
                </button>
              </div>
@@ -296,7 +296,7 @@ const TimetablePage: React.FC = () => {
       </div>
 
       {/* Main Content - Full Height WeekView */}
-      <div className="flex-1 px-8 pb-8 overflow-hidden relative z-10">
+      <div className="flex-1 px-3 pb-4 sm:px-4 md:px-6 lg:px-8 md:pb-8 overflow-hidden relative z-10">
         <div className="h-full rounded-xl border border-white/5 bg-[var(--ui-sidebar-bg)]/40 backdrop-blur-3xl overflow-hidden relative shadow-2xl">
            {loading ? (
              <div className="h-full w-full flex items-center justify-center">
@@ -319,8 +319,8 @@ const TimetablePage: React.FC = () => {
       </div>
 
       {/* Bottom Toolbar / Legend */}
-      <div className="px-10 py-5 border-t border-white/5 bg-[var(--ui-sidebar-bg)]/80 backdrop-blur-3xl flex items-center justify-between shrink-0 relative z-10">
-          <div className="flex items-center gap-10">
+      <div className="px-4 py-3 sm:px-6 md:px-10 sm:py-5 border-t border-white/5 bg-[var(--ui-sidebar-bg)]/80 backdrop-blur-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 shrink-0 relative z-10">
+          <div className="flex flex-wrap items-center gap-4 sm:gap-10">
              <div className="flex items-center gap-3">
                 <div className="w-2.5 h-2.5 rounded-full bg-[var(--ui-accent)] shadow-[0_0_10px_rgba(var(--ui-accent-rgb),0.5)]" />
                 <span className="text-xs font-bold text-slate-500 uppercase">{t("timetable.legend.projected") || "PROJECTED"}</span>
@@ -334,7 +334,7 @@ const TimetablePage: React.FC = () => {
                 <span className="text-xs font-bold text-slate-600 uppercase">{t("timetable.legend.archive") || "ARCHIVE"}</span>
              </div>
           </div>
-          <button onClick={handleExportICS} className="h-10 px-6 rounded-xl bg-white/[0.02] border border-white/5 text-xs font-bold uppercase text-slate-500 hover:text-white transition-all flex items-center gap-3">
+          <button onClick={handleExportICS} className="h-10 px-4 sm:px-6 rounded-xl bg-white/[0.02] border border-white/5 text-xs font-bold uppercase text-slate-500 hover:text-white transition-all flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-center">
             <Download className="w-4 h-4 opacity-50" /> {t("timetable.controls.export") || "EXPORT GRID"}
           </button>
       </div>
@@ -362,7 +362,7 @@ const TimetablePage: React.FC = () => {
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div className="space-y-3">
                 <label className="text-xs font-bold text-slate-600 uppercase ps-1">{t("timetable.modal.launch_date")}</label>
                 <input 
