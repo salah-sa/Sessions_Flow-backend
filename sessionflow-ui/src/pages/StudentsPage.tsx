@@ -204,9 +204,9 @@ const StudentsPage: React.FC = () => {
       <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-[var(--ui-accent)]/5 blur-[100px] rounded-full pointer-events-none -z-10" />
 
       {/* Header */}
-      <div className="p-8 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-8 shrink-0 relative z-10">
+      <div className="px-4 py-4 sm:px-6 md:px-8 md:pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-8 shrink-0 relative z-10">
         <div className="space-y-1 text-start">
-          <h1 className="text-3xl font-bold text-white tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
             {t("students.title_roster")}
           </h1>
            <p className="text-slate-500 text-xs font-medium">
@@ -214,13 +214,13 @@ const StudentsPage: React.FC = () => {
           </p>
         </div>
         
-        <div className="flex gap-4">
-           <button onClick={exportToCSV} className="h-12 px-6 rounded-xl bg-white/[0.02] border border-white/5 text-[13px] font-semibold text-slate-400 hover:text-white flex items-center gap-2 transition-all">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
+           <button onClick={exportToCSV} className="h-11 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/[0.02] border border-white/5 text-[13px] font-semibold text-slate-400 hover:text-white flex items-center justify-center gap-2 transition-all">
             <Download className="w-4 h-4" /> {t("students.export_csv_btn")}
           </button>
           <button 
              onClick={openAddModal} 
-             className="btn-primary h-12 px-8 shadow-2xl"
+             className="btn-primary h-11 sm:h-12 px-6 sm:px-8 shadow-2xl"
           >
             <Plus className="w-4 h-4" /> {t("students.enroll_cadet")}
           </button>
@@ -228,17 +228,17 @@ const StudentsPage: React.FC = () => {
       </div>
 
       {/* Stats Summary Area */}
-      <div className="px-8 py-6 grid grid-cols-1 md:grid-cols-4 gap-6 shrink-0 relative z-10">
+      <div className="px-4 py-4 sm:px-6 sm:py-6 md:px-8 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 shrink-0 relative z-10">
         {[
           { label: t("students.stats.active"), value: students.length, icon: Users, color: "text-[var(--ui-accent)]", bg: "bg-[var(--ui-accent)]/5" },
           { label: t("students.stats.synced"), value: students.filter(s => s.userId).length, icon: ShieldCheck, color: "text-[var(--ui-accent)]", bg: "bg-[var(--ui-accent)]/5" },
           { label: t("students.stats.units"), value: groups.length, icon: LayoutGrid, color: "text-[var(--ui-accent)]", bg: "bg-[var(--ui-accent)]/5" },
           { label: t("students.stats.readiness"), value: "98.2%", icon: ArrowUpRight, color: "text-[var(--ui-accent)]", bg: "bg-[var(--ui-accent)]/5" }
         ].map((stat, i) => (
-          <div key={i} className="card-base p-6 bg-[var(--ui-sidebar-bg)]/80 backdrop-blur-3xl border-white/5 flex items-center justify-between group hover:border-[var(--ui-accent)]/20 transition-all shadow-xl">
+          <div key={i} className="card-base p-4 sm:p-6 bg-[var(--ui-sidebar-bg)]/80 backdrop-blur-3xl border-white/5 flex items-center justify-between group hover:border-[var(--ui-accent)]/20 transition-all shadow-xl">
             <div className="space-y-1 text-start">
-               <p className="text-xs font-medium text-slate-600">{stat.label}</p>
-               <p className="text-2xl font-bold text-white tracking-tight tabular-nums">{stat.value}</p>
+               <p className="text-[10px] sm:text-xs font-medium text-slate-600">{stat.label}</p>
+               <p className="text-xl sm:text-2xl font-bold text-white tracking-tight tabular-nums">{stat.value}</p>
             </div>
             <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center border border-white/5 transition-all group-hover:scale-110", stat.bg)}>
               <stat.icon className={cn("w-4 h-4", stat.color)} />
@@ -248,8 +248,8 @@ const StudentsPage: React.FC = () => {
       </div>
 
       {/* Toolbar & Filters */}
-      <div className="px-8 py-4 flex flex-wrap gap-6 items-center shrink-0 relative z-10">
-        <div className="relative flex-1 min-w-[320px] group">
+      <div className="px-4 py-3 sm:px-6 sm:py-4 md:px-8 flex flex-wrap gap-3 sm:gap-6 items-center shrink-0 relative z-10">
+        <div className="relative flex-1 min-w-0 w-full sm:w-auto group">
            <Search className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 transition-colors group-focus-within:text-[var(--ui-accent)]" />
            <input 
              placeholder={t("students.search_placeholder_roster")} 
@@ -259,7 +259,7 @@ const StudentsPage: React.FC = () => {
            />
         </div>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
            {selectedStudentIds.size > 0 ? (
               <div className="flex items-center gap-4 bg-[var(--ui-accent)]/10 px-4 py-2 rounded-xl border border-[var(--ui-accent)]/20 shadow-glow shadow-[var(--ui-accent)]/10 animate-fade-in">
                  <span className="text-xs font-semibold text-[var(--ui-accent)]">{selectedStudentIds.size} Selected</span>
@@ -281,7 +281,7 @@ const StudentsPage: React.FC = () => {
                <option key={g.id} value={g.id} className="bg-[var(--ui-sidebar-bg)]">{g.name}</option>
              ))}
            </select>
-           <div className="w-px h-6 bg-white/5 mx-2" />
+           <div className="hidden sm:block w-px h-6 bg-white/5 mx-2" />
            <div className="flex bg-black/40 rounded-xl p-1 border border-white/5">
               <button 
                 onClick={() => setViewMode("grid")}
@@ -300,9 +300,9 @@ const StudentsPage: React.FC = () => {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 w-full h-full p-4 lg:p-8 space-y-8 animate-fade-in custom-scrollbar overflow-y-auto relative z-10">
+      <div className="flex-1 w-full h-full px-3 py-4 sm:px-4 md:px-6 lg:px-8 space-y-4 sm:space-y-8 animate-fade-in custom-scrollbar overflow-y-auto relative z-10">
          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
               {[1,2,3,4,5,6,7,8].map(i => (
                 <div key={i} className="card-base h-72 animate-pulse flex flex-col p-6 space-y-6">
                    <div className="flex items-start justify-between">
@@ -322,7 +322,7 @@ const StudentsPage: React.FC = () => {
                 <p className="text-sm font-semibold">{t("students.no_personnel")}</p>
             </div>
          ) : viewMode === "grid" ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 relative px-2 pb-20">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 relative px-1 sm:px-2 pb-20">
                {filteredStudents.map((student) => {
                  const isSelected = selectedStudentIds.has(student.id);
                  
@@ -350,7 +350,7 @@ const StudentsPage: React.FC = () => {
                       <div className="ps-8">
                          <StudentAvatar name={student.name} color={student.group?.colorTag} />
                       </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 touch-show transition-all">
                          <button onClick={(e) => { e.stopPropagation(); openDeleteModal(student); }} className="w-9 h-9 flex items-center justify-center text-slate-500 hover:text-rose-500 transition-all">
                              <Trash2 className="w-4 h-4" />
                          </button>
@@ -465,7 +465,7 @@ const StudentsPage: React.FC = () => {
                               )}
                            </td>
                             <td className="px-8 py-6 text-end">
-                               <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                               <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 touch-show transition-opacity">
                                   <button onClick={(e) => { e.stopPropagation(); openEditModal(student); }} className="p-2 text-slate-500 hover:text-white transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
                                   <button onClick={(e) => { e.stopPropagation(); openDeleteModal(student); }} className="p-2 text-slate-500 hover:text-rose-500 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                                </div>
@@ -491,7 +491,7 @@ const StudentsPage: React.FC = () => {
 
        {/* Slide-out Intelligence Drawer */}
        <Drawer open={!!drawerStudent} onOpenChange={(open: boolean) => !open && setDrawerStudent(null)}>
-         <DrawerContent className="bg-[#0c0c0e]/95 backdrop-blur-3xl border-white/5 p-4 lg:p-8 max-w-2xl border-s shadow-[0_0_100px_rgba(0,0,0,0.8)] overflow-y-auto custom-scrollbar">
+         <DrawerContent className="bg-[#0c0c0e]/95 backdrop-blur-3xl border-white/5 p-4 sm:p-6 lg:p-8 max-w-full sm:max-w-2xl border-s shadow-[0_0_100px_rgba(0,0,0,0.8)] overflow-y-auto custom-scrollbar">
             {drawerStudent && (
                <div className="space-y-10 animate-fade-in duration-500">
                   <div className="flex items-start justify-between">
@@ -510,7 +510,7 @@ const StudentsPage: React.FC = () => {
                      </button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-6 text-start">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 text-start">
                      <div className="card-base p-6 bg-white/[0.01] border-white/5">
                          <p className="text-xs font-medium text-slate-600 mb-4">{t("students.assigned_unit")}</p>
                         <div className="flex items-center gap-3">
@@ -536,7 +536,7 @@ const StudentsPage: React.FC = () => {
                         <Database className="w-4 h-4 text-[var(--ui-accent)]" />
                         {t("students.system_telemetry")}
                      </h4>
-                     <div className="grid grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <div className="p-4 bg-white/[0.01] rounded-xl border border-white/5 flex flex-col gap-1">
                             <span className="text-xs text-slate-600 font-medium">{t("common.date")}</span>
                            <span className="text-[11px] text-slate-300 font-bold tracking-tight">{format(new Date(drawerStudent.createdAt), "yyyy.MM.dd")}</span>
