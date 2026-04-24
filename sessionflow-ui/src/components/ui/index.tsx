@@ -20,13 +20,15 @@ const useCursorGlow = () => {
 };
 
 // Button
-interface ButtonProps extends Omit<HTMLMotionProps<"button">, "ref"> {
+interface ButtonProps extends Omit<HTMLMotionProps<"button">, "ref" | "children"> {
   variant?: "primary" | "secondary" | "outline" | "ghost" | "danger" | "success" | "glow";
   size?: "sm" | "md" | "lg" | "icon";
+  isLoading?: boolean;
+  children?: React.ReactNode;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", size = "md", ...props }, ref) => {
+  ({ className, variant = "primary", size = "md", isLoading, children, disabled, ...props }, ref) => {
     const variants = {
       primary: "bg-ui-accent text-white shadow-xl hover:opacity-90 shadow-ui-accent/20 active:scale-[0.98]",
       secondary: "bg-ui-bg text-slate-100 border border-white/5 hover:bg-white/[0.05] hover:border-white/10",
@@ -47,18 +49,22 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <motion.button
         whileTap={{ scale: 0.98 }}
         ref={ref}
+        disabled={disabled || isLoading}
         className={cn(
-          "inline-flex relative overflow-hidden items-center justify-center rounded-xl font-bold transition-all duration-300 disabled:opacity-30 disabled:pointer-events-none",
+          "inline-flex relative overflow-hidden items-center justify-center gap-2 rounded-xl font-bold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed",
           variants[variant],
           sizes[size],
           className
         )}
         {...props}
-      />
+      >
+        {isLoading && <Loader2 className="w-4 h-4 border-current border-t-transparent" />}
+        {children}
+      </motion.button>
     );
 
     if (variant === "primary" || variant === "glow") {
-      return <Magnetic strength={0.3}>{button}</Magnetic>;
+      return <Magnetic strength={0.3}>{button as any}</Magnetic>;
     }
 
     return button;

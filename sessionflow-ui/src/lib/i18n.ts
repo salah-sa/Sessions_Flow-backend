@@ -77,6 +77,7 @@ const resources = {
         "archive": "Archive",
         "profile": "Profile",
         "settings": "Settings",
+        "plans": "Plans & Upgrades",
         "logout": "Sign Out"
       },
       "dashboard": {
@@ -1104,6 +1105,7 @@ const resources = {
         "archive": "الأرشيف",
         "profile": "الملف الشخصي",
         "settings": "الإعدادات",
+        "plans": "الباقات والترقيات",
         "logout": "تسجيل الخروج"
       },
       "dashboard": {

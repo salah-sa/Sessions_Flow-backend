@@ -21,6 +21,7 @@ const StaffPortalPage = lazy(() => import("./pages/StaffPortalPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const ArchivePage = lazy(() => import("./pages/ArchivePage"));
+const PricingPage = lazy(() => import("./pages/PricingPage"));
 
 const PageLoader = () => (
   <div className="h-full w-full flex items-center justify-center bg-slate-950/50 backdrop-blur-md animate-fade-in">
@@ -202,6 +203,16 @@ export const router = createBrowserRouter([
           <RoleGuard allowedRoles={["Admin", "Engineer"]}>
             <Suspense fallback={<PageLoader />}>
               <ArchivePage />
+            </Suspense>
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "plans",
+        element: (
+          <RoleGuard allowedRoles={["Admin", "Engineer"]}>
+            <Suspense fallback={<PageLoader />}>
+              <PricingPage />
             </Suspense>
           </RoleGuard>
         ),

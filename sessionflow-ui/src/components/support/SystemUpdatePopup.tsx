@@ -74,9 +74,13 @@ export function SystemUpdatePopup() {
         <div className="bg-black/40 border border-white/5 rounded-xl p-5 mb-8">
           <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Release Notes:</h4>
           <ul className="list-disc pl-5 space-y-1.5 text-sm text-slate-200">
-            {updateData.notes.map((note, idx) => (
-              <li key={idx}>{note}</li>
-            ))}
+            {updateData.notes.length > 0 ? (
+              updateData.notes.map((note, idx) => (
+                <li key={idx}>{note}</li>
+              ))
+            ) : (
+              <li>General improvements and stability fixes.</li>
+            )}
           </ul>
         </div>
 
