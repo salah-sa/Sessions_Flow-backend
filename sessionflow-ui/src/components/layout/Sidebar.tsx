@@ -13,7 +13,8 @@ import {
   User,
   UserCircle,
   Lock,
-  CheckCircle
+  CheckCircle,
+  Crown
 } from "lucide-react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore, useSectionBadgeStore, useChatStore } from "../../store/stores";
@@ -54,11 +55,14 @@ const LanguageBridge: React.FC = () => {
   );
 };
 
-const NavItem = ({ to, icon: Icon, label, badge, locked }: { to: string; icon: any; label: string; badge?: number; locked?: boolean }) => {
+const NavItem = ({ to, icon: Icon, label, badge, locked, premiumLocked }: { to: string; icon: any; label: string; badge?: number; locked?: boolean; premiumLocked?: boolean }) => {
   const handleClick = (e: React.MouseEvent) => {
     if (locked) {
       e.preventDefault();
       toast.error("Not allowed, only for engineer");
+    } else if (premiumLocked) {
+      e.preventDefault();
+      toast.error("Premium Feature. Please upgrade your subscription to access.");
     }
   };
 
@@ -89,6 +93,10 @@ const NavItem = ({ to, icon: Icon, label, badge, locked }: { to: string; icon: a
           {locked ? (
             <div className="w-6 h-6 rounded-md bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shadow-glow shadow-rose-500/10 backdrop-blur-md">
                <Lock className="w-3 h-3 text-rose-500" />
+            </div>
+          ) : premiumLocked ? (
+            <div className="w-6 h-6 rounded-md bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shadow-glow shadow-purple-500/10 backdrop-blur-md">
+               <Crown className="w-3 h-3 text-purple-400" />
             </div>
           ) : badge !== undefined && badge > 0 ? (
             <span className="px-2 py-0.5 rounded-md bg-rose-500 text-white text-[8px] font-bold shadow-glow shadow-rose-500/20">
@@ -145,6 +153,9 @@ const Sidebar: React.FC = () => {
     }
   }, [location.pathname, isAdmin, isEngineer, pendingEngineerIds.join(","), pendingStudentIds.join(","), markSectionSeen]);
 
+  const userTier = user?.subscriptionTier || "Free";
+  const isPremium = userTier === "Pro" || userTier === "Enterprise";
+
   return (
     <aside className="h-full w-[280px] bg-[var(--ui-sidebar-bg)] border-e border-white/5 flex flex-col z-[50]">
       <div className="px-6 py-4 mb-1 relative">
@@ -165,9 +176,9 @@ const Sidebar: React.FC = () => {
         <NavItem to="/dashboard" icon={BarChart3} label={t("nav.dashboard")} />
         <NavItem to="/groups" icon={Users} label={t("nav.groups") || "Groups"} locked={isStudent} />
         <NavItem to="/sessions" icon={Target} label={t("nav.sessions") || "Sessions"} locked={isStudent} />
-        <NavItem to="/students" icon={User} label={t("nav.students")} locked={isStudent} />
+        <NavItem to="/students" icon={User} label={t("nav.students")} locked={isStudent} premiumLocked={isAdmin && !isPremium} />
         <NavItem to="/timetable" icon={Calendar} label={t("nav.timetable")} />
-        <NavItem to="/attendance" icon={CheckCircle} label={t("nav.attendance") || "Attendance"} locked={isStudent} />
+        <NavItem to="/attendance" icon={CheckCircle} label={t("nav.attendance") || "Attendance"} locked={isStudent} premiumLocked={isAdmin && !isPremium} />
         <NavItem to="/chat" icon={MessageSquare} label={t("nav.chat")} badge={chatBadgeCount} />
         <NavItem to="/history" icon={Clock} label={t("nav.history") || "History"} />
         

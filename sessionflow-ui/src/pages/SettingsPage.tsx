@@ -30,7 +30,8 @@ import {
   Key, 
   Globe, 
   Bell, 
-  Shield 
+  Shield,
+  Crown
 } from "lucide-react";
 
 import SystemConfig from "./settings/SystemConfig";
@@ -38,9 +39,10 @@ import AccessCodesSettings from "./settings/AccessCodesSettings";
 import ImportBridge from "./settings/ImportBridge";
 import CommsRelay from "./settings/CommsRelay";
 import SecurityPanel from "./settings/SecurityPanel";
+import BillingPanel from "./settings/BillingPanel";
 
 interface SettingsTab {
-  id: "system" | "notifications" | "security" | "codes" | "import";
+  id: "system" | "notifications" | "security" | "codes" | "import" | "billing";
   name: string;
   icon: React.ElementType;
   color: string;
@@ -94,7 +96,7 @@ const SettingsPage: React.FC = () => {
   const [importPreviewData, setImportPreviewData] = useState<any>(null);
   const [connectionStatus, setConnectionStatus] = useState<"idle" | "success" | "error">("idle");
   const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
-  const [activeTab, setActiveTab] = useState<"system" | "notifications" | "security" | "codes" | "import">("system");
+  const [activeTab, setActiveTab] = useState<"system" | "notifications" | "security" | "codes" | "import" | "billing">("system");
 
   useEffect(() => {
     if (settings.length > 0) {
@@ -193,7 +195,8 @@ const SettingsPage: React.FC = () => {
     { id: "codes", name: t("settings.tabs.engineer_access"), icon: Key, color: "emerald", hidden: !isAdmin },
     { id: "import", name: t("settings.tabs.external_bridge"), icon: Globe, color: "blue" },
     { id: "notifications", name: t("settings.tabs.comms_relay"), icon: Bell, color: "amber" },
-    { id: "security", name: t("settings.tabs.firewall_keys"), icon: Shield, color: "rose" }
+    { id: "security", name: t("settings.tabs.firewall_keys"), icon: Shield, color: "rose" },
+    { id: "billing", name: "Subscription & Billing", icon: Crown, color: "purple" }
   ];
 
   return (
@@ -414,6 +417,8 @@ const SettingsPage: React.FC = () => {
                     adminAppPassword={adminAppPassword} setAdminAppPassword={setAdminAppPassword}
                     isSaving={isSaving} handleSave={handleSave} testEmail={testEmail}
                   />
+               ) : activeTab === "billing" ? (
+                  <BillingPanel />
                ) : (
                   <SecurityPanel />
                )}
