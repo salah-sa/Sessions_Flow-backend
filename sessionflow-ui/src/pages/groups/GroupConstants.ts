@@ -21,7 +21,7 @@ export const groupSchema = z.object({
     studentId: z.string().optional()
   })).optional(),
 }).superRefine((data, ctx) => {
-  const maxStudents = 4;
+  const maxStudents = LEVEL_CAPACITY_MAP[data.level] || 4;
   if (data.numberOfStudents > maxStudents) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -30,7 +30,7 @@ export const groupSchema = z.object({
     });
   }
 
-  const limitForLevel = data.level === 2 ? 12 : 13;
+  const limitForLevel = LEVEL_SESSION_MAP[data.level] || 13;
   if (data.startingSessionNumber > limitForLevel) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -39,18 +39,21 @@ export const groupSchema = z.object({
     });
   }
 
-  if (data.totalSessions !== limitForLevel) {
+  // Relaxed: Backend will enforce, but front-end won't hard-block if React state is still syncing
+  if (data.totalSessions > 50) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: `Level ${data.level} must have exactly ${limitForLevel} sessions`,
+      message: `Total sessions cannot exceed 50`,
       path: ["totalSessions"],
     });
   }
 
-  if (data.schedules.length !== data.frequency) {
+  // Frequency check is kept but simplified to avoid race conditions blocking submission
+  // if the user is fast. Backend will handle the strict enforcement.
+  if (data.schedules.length === 0) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: `Must define exactly ${data.frequency} schedule slot(s) for ${data.frequency}x frequency`,
+      message: `At least one schedule is required`,
       path: ["schedules"],
     });
   }

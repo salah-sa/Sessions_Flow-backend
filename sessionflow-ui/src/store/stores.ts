@@ -311,8 +311,6 @@ interface AppState {
   setConnectionMode: (mode: ConnectionMode) => void;
   setSyncing: (isSyncing: boolean) => void;
   dismissOfflineModal: () => void;
-  showConnectionPopup: boolean;
-  setConnectionPopup: (show: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -337,6 +335,4 @@ export const useAppStore = create<AppState>((set) => ({
   setSyncing: (isSyncing) => 
     set((state) => (state.isSyncing === isSyncing ? state : { isSyncing })),
   dismissOfflineModal: () => set({ userDismissedOffline: true }),
-  showConnectionPopup: false,
-  setConnectionPopup: (show) => set({ showConnectionPopup: show }),
 }));

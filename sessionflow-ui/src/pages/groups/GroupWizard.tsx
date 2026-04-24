@@ -45,9 +45,9 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
       totalSessions: 13,
       startingSessionNumber: 1, 
       schedules: [{ dayOfWeek: 1, startTime: "17:00", durationMinutes: 60 }], 
-      cadets: Array(4).fill({ name: "", studentId: "" }) 
-    }
-  });
+        cadets: Array.from({ length: 4 }, () => ({ name: "", studentId: "" })) 
+      }
+    });
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -90,7 +90,7 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
         totalSessions: 13,
         startingSessionNumber: 1, 
         schedules: [{ dayOfWeek: 1, startTime: "17:00", durationMinutes: 60 }], 
-        cadets: Array(capacity).fill({ name: "", studentId: "" }) 
+        cadets: Array.from({ length: capacity }, () => ({ name: "", studentId: "" })) 
       });
     }
   }, [isOpen, mode, selectedGroup, reset]);
@@ -450,7 +450,15 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
 
         <div className="flex gap-3 pt-6 border-t border-white/5 mt-8">
           {wizardStep > 1 && (
-            <Button type="button" variant="ghost" onClick={() => setWizardStep(w => w - 1)} className="flex-1">
+            <Button 
+              type="button" 
+              variant="ghost" 
+              onClick={() => {
+                if (mode === "edit" && wizardStep === 4) setWizardStep(2);
+                else setWizardStep(w => w - 1);
+              }} 
+              className="flex-1"
+            >
               <ChevronRight className="w-4 h-4 me-2 rotate-180 rtl:rotate-0" /> {t("groups.modal.back")}
             </Button>
           )}

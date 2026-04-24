@@ -127,20 +127,6 @@ export function useHeartbeat() {
     };
 
     // Network status
-    const handleOnline = () => {
-      setClientOnline(userId);
-      setSelfStatus("active");
-      useAppStore.getState().setOnline(true);
-      // Reconnection intelligence: request bulk presence snapshot
-      invoke("RequestPresenceSnapshot").catch(() => {});
-    };
-
-    const handleOffline = () => {
-      setClientOffline(userId);
-      setSelfStatus("offline");
-      setServerHealth(false);
-      useAppStore.getState().setOnline(false);
-    };
 
     // User activity tracking (mouse, keyboard, touch)
     const handleActivity = () => {
@@ -150,7 +136,6 @@ export function useHeartbeat() {
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("focus", handleFocus);
     window.addEventListener("blur", handleBlur);
-    window.addEventListener("online", handleOnline);
     document.addEventListener("mousemove", handleActivity, { passive: true });
     document.addEventListener("keydown", handleActivity, { passive: true });
     document.addEventListener("touchstart", handleActivity, { passive: true });
@@ -164,7 +149,6 @@ export function useHeartbeat() {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("focus", handleFocus);
       window.removeEventListener("blur", handleBlur);
-      window.removeEventListener("online", handleOnline);
       document.removeEventListener("mousemove", handleActivity);
       document.removeEventListener("keydown", handleActivity);
       document.removeEventListener("touchstart", handleActivity);

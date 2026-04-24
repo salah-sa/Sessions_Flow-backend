@@ -1,190 +1,165 @@
-import React, { useEffect, useState } from "react";
-import { Wifi, WifiOff, AlertTriangle, CheckCircle, X, Info } from "lucide-react";
+import React, { useEffect, useState, useRef } from "react";
+import { Wifi, WifiOff, CheckCircle, X, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore } from "../../store/stores";
 import { useShallow } from "zustand/shallow";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/utils";
-import { Button } from "../ui";
 
 const OfflineNotification: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.dir() === "rtl";
+  
   const { 
     networkQuality, 
     userDismissedOffline, 
-    dismissOfflineModal,
-    showConnectionPopup,
-    setConnectionPopup 
+    dismissOfflineModal
   } = useAppStore(useShallow((s) => ({
     networkQuality: s.networkQuality,
     userDismissedOffline: s.userDismissedOffline,
     dismissOfflineModal: s.dismissOfflineModal,
-    showConnectionPopup: s.showConnectionPopup,
-    setConnectionPopup: s.setConnectionPopup,
   })));
 
-  const [lastQuality, setLastQuality] = useState(networkQuality);
-  const [internalVisible, setInternalVisible] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const [activeType, setActiveType] = useState<"offline" | "weak" | "restored" | null>(null);
+  const prevQualityRef = useRef(networkQuality);
+  const autoHideTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Auto-show logic
-    useEffect(() => {
-      if (networkQuality === "offline" && !userDismissedOffline) {
-        setInternalVisible(true);
-      } else if (networkQuality === "weak") {
-        setInternalVisible(true);
-      } else if ((networkQuality === "excellent" || networkQuality === "good") && lastQuality !== "excellent" && lastQuality !== "good" && lastQuality !== "offline") {
-        // Show reconnection success
-        setInternalVisible(true);
-        const timer = setTimeout(() => {
-          setInternalVisible(false);
-          setConnectionPopup(false);
-        }, 4000);
-        return () => clearTimeout(timer);
-      }
-      setLastQuality(networkQuality);
-    }, [networkQuality, userDismissedOffline, lastQuality, setConnectionPopup]);
+  useEffect(() => {
+    const prev = prevQualityRef.current;
     
-    // Sync with store popup trigger
-    useEffect(() => {
-      if (showConnectionPopup) {
-        setInternalVisible(true);
-      }
-    }, [showConnectionPopup]);
-  
-    const handleClose = () => {
-      setInternalVisible(false);
-      setConnectionPopup(false);
-      if (networkQuality === "offline") {
-        dismissOfflineModal();
-      }
-    };
-  
-    if (!internalVisible && !showConnectionPopup) return null;
-  
-    const getStatusConfig = () => {
-      switch (networkQuality) {
-        case "offline":
-          return {
-            title: t("connection.popup_title_offline", "Connection Lost"),
-            desc: t("connection.popup_desc_offline", "Your link to the neural network has been severed. Some features are restricted until synchronization is restored."),
-            theme: "rose",
-            icon: (
-              <div className="relative">
-                <motion.div
-                  animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="absolute inset-0 bg-rose-500/20 blur-2xl rounded-full"
-                />
-                <WifiOff className="w-16 h-16 text-rose-500 relative z-10" />
-              </div>
-            )
-          };
-        case "weak":
-          return {
-            title: t("connection.popup_title_weak", "Unstable Frequency"),
-            desc: t("connection.popup_desc_weak", "The current data stream is experiencing high latency. Operational efficiency may be degraded."),
-            theme: "amber",
-            icon: (
-              <div className="relative">
-                 <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                  className="absolute -inset-4 border border-dashed border-amber-500/30 rounded-full"
-                />
-                <motion.div
-                  animate={{ opacity: [0.3, 1, 0.3] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                >
-                  <Wifi className="w-16 h-16 text-amber-500 relative z-10" />
-                </motion.div>
-              </div>
-            )
-          };
-        case "excellent":
-        case "good":
-        default:
-          return {
-            title: t("connection.popup_title_strong", "Link Synchronized"),
-            desc: t("connection.popup_desc_strong", "High-fidelity neural connection re-established. All systems operational."),
-            theme: "emerald",
-            icon: (
-               <motion.div
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", damping: 12 }}
-                className="relative"
-              >
-                <div className="absolute inset-0 bg-emerald-500/20 blur-2xl rounded-full" />
-                <CheckCircle className="w-16 h-16 text-emerald-500 relative z-10" />
-              </motion.div>
-            )
-          };
-      }
-    };
-  
-    const config = getStatusConfig();
-  
-    return (
-      <AnimatePresence>
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={handleClose}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-          />
-  
-          {/* Modal Content */}
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="relative w-full max-w-[420px] bg-[var(--ui-sidebar-bg)] border border-white/10 rounded-[32px] p-10 overflow-hidden shadow-2xl"
-          >
-            {/* Decorative gradients */}
-            <div className={cn(
-              "absolute top-0 right-0 w-48 h-48 blur-[80px] rounded-full translate-x-1/2 -translate-y-1/2 opacity-20",
-              config.theme === "rose" ? "bg-rose-500" : config.theme === "amber" ? "bg-amber-500" : "bg-emerald-500"
-            )} />
-            
-            <div className="relative z-10 flex flex-col items-center text-center">
-              <div className="mb-8">
-                {config.icon}
-              </div>
-  
-              <h2 className="text-2xl font-sora font-black text-white uppercase tracking-tighter mb-4">
-                {config.title}
-              </h2>
-              
-              <p className="text-slate-400 text-sm font-medium leading-relaxed mb-10 px-2">
-                {config.desc}
-              </p>
-  
-              <Button
-                onClick={handleClose}
-                className={cn(
-                  "w-full h-14 rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg",
-                  config.theme === "rose" ? "bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/20" :
-                  config.theme === "amber" ? "bg-amber-500 hover:bg-amber-600 text-black shadow-amber-500/20" :
-                  "bg-white hover:bg-slate-100 text-black shadow-white/10"
-                )}
-              >
-                {(networkQuality === "excellent" || networkQuality === "good") ? t("common.continue", "Dismiss") : t("connection.ok_button", "Acknowledge")}
-              </Button>
-  
-              {(networkQuality !== "excellent" && networkQuality !== "good") && (
-                <p className="mt-6 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <Info className="w-3 h-3" />
-                  Secondary systems remain active locally
-                </p>
-              )}
-            </div>
-          </motion.div>
+    // Logic: Transition from Offline -> Online (Good/Excellent)
+    if (prev === "offline" && (networkQuality === "good" || networkQuality === "excellent")) {
+      showToast("restored", 5000);
+    } 
+    // Logic: Transition to Offline
+    else if (networkQuality === "offline" && !userDismissedOffline) {
+      showToast("offline", 0); // Persistent until reconnected or dismissed
+    }
+    // Logic: Transition to Weak
+    else if (networkQuality === "weak" && prev !== "weak") {
+      showToast("weak", 6000);
+    }
+    // Logic: If reconnected while "offline" toast is showing, auto-switch to "restored"
+    else if (activeType === "offline" && (networkQuality === "good" || networkQuality === "excellent")) {
+        showToast("restored", 5000);
+    }
+
+    prevQualityRef.current = networkQuality;
+  }, [networkQuality, userDismissedOffline]);
+
+  const showToast = (type: "offline" | "weak" | "restored", duration: number) => {
+    if (autoHideTimerRef.current) clearTimeout(autoHideTimerRef.current);
+    
+    setActiveType(type);
+    setVisible(true);
+
+    if (duration > 0) {
+      autoHideTimerRef.current = setTimeout(() => {
+        setVisible(false);
+      }, duration);
+    }
+  };
+
+  const handleClose = () => {
+    setVisible(false);
+    if (activeType === "offline") {
+      dismissOfflineModal();
+    }
+  };
+
+  const getConfig = () => {
+    switch (activeType) {
+      case "offline":
+        return {
+          title: t("connection.toast_title_offline", "Connection Lost"),
+          desc: t("connection.toast_desc_offline", "We'll keep things ready for when you're back 💫"),
+          color: "rose",
+          icon: <WifiOff className="w-5 h-5 text-rose-400" />,
+          showProgress: false
+        };
+      case "weak":
+        return {
+          title: t("connection.toast_title_weak", "Unstable Frequency"),
+          desc: t("connection.toast_desc_weak", "Adapting to keep your experience smooth..."),
+          color: "amber",
+          icon: <Loader2 className="w-5 h-5 text-amber-400 animate-spin" />,
+          showProgress: true,
+          duration: 6000
+        };
+      case "restored":
+      default:
+        return {
+          title: t("connection.toast_title_restored", "Link Restored"),
+          desc: t("connection.toast_desc_restored", "Welcome back! Everything is synced 🎉"),
+          color: "emerald",
+          icon: <CheckCircle className="w-5 h-5 text-emerald-400" />,
+          showProgress: true,
+          duration: 5000
+        };
+    }
+  };
+
+  if (!visible || !activeType) return null;
+  const config = getConfig();
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0, y: 50, scale: 0.9, filter: "blur(10px)" }}
+        animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+        exit={{ opacity: 0, scale: 0.95, filter: "blur(10px)", transition: { duration: 0.2 } }}
+        className={cn(
+          "fixed z-[9999] bottom-6 flex items-center gap-4 p-4 pr-5 rounded-[24px]",
+          "bg-[#0A0A0B]/80 backdrop-blur-2xl border border-white/10 shadow-2xl overflow-hidden",
+          "w-full max-w-[380px]",
+          isRTL ? "left-6" : "right-6"
+        )}
+      >
+        {/* Animated Background Pulse */}
+        <div className={cn(
+            "absolute -left-10 -top-10 w-32 h-32 blur-[40px] rounded-full opacity-20",
+            config.color === "rose" ? "bg-rose-500" : config.color === "amber" ? "bg-amber-500" : "bg-emerald-500"
+        )} />
+
+        <div className={cn(
+            "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border border-white/5",
+            config.color === "rose" ? "bg-rose-500/10" : config.color === "amber" ? "bg-amber-500/10" : "bg-emerald-500/10"
+        )}>
+          {config.icon}
         </div>
-      </AnimatePresence>
-    );
+
+        <div className="flex-1 space-y-0.5">
+          <h4 className="text-[11px] font-black uppercase tracking-[0.1em] text-white">
+            {config.title}
+          </h4>
+          <p className="text-[10px] font-bold text-slate-500 leading-tight">
+            {config.desc}
+          </p>
+        </div>
+
+        <button 
+          onClick={handleClose}
+          className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-600 hover:text-white hover:bg-white/5 transition-all"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        {/* Auto-dismiss progress bar */}
+        {config.showProgress && (
+          <motion.div 
+            initial={{ width: "100%" }}
+            animate={{ width: "0%" }}
+            transition={{ duration: (config.duration || 5000) / 1000, ease: "linear" }}
+            className={cn(
+                "absolute bottom-0 left-0 h-[2px]",
+                config.color === "rose" ? "bg-rose-500" : config.color === "amber" ? "bg-amber-500" : "bg-emerald-500"
+            )}
+          />
+        )}
+      </motion.div>
+    </AnimatePresence>
+  );
 };
 
 export default OfflineNotification;
