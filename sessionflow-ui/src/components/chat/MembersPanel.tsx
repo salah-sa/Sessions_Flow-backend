@@ -100,7 +100,7 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
         )}>
           {member.avatarUrl ? <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" /> : member.name?.charAt(0)}
         </div>
-        <div className="absolute -bottom-0.5 -right-0.5">
+        <div className="absolute -bottom-0.5 -end-0.5">
           <div className={cn("w-2.5 h-2.5 xs:w-3 xs:h-3 rounded-full border border-[var(--ui-bg)] transition-all duration-500 relative", status === "online" ? "bg-[var(--ui-accent)] shadow-[0_0_8px_rgba(var(--ui-accent-rgb),0.6)]" : "bg-[var(--ui-surface)]")}>
             {status === "online" && (
               <motion.div
@@ -116,7 +116,7 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-[10px] xs:text-[11px] font-bold text-white uppercase tracking-widest truncate">
-            {member.name} {isMe && <span className="text-[var(--ui-accent)] lowercase opacity-50 ml-1">(node)</span>}
+            {member.name} {isMe && <span className="text-[var(--ui-accent)] lowercase opacity-50 ms-1">(node)</span>}
           </span>
         </div>
         <div className="flex items-center gap-2 mt-1">
@@ -210,10 +210,10 @@ const MembersPanel: React.FC<MembersPanelProps> = ({ group, isOpen, onClose }) =
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className={cn(
               "h-full border-s border-white/5 bg-[var(--ui-sidebar-bg)]/95 backdrop-blur-3xl overflow-hidden flex flex-col shrink-0 transition-all",
-              "fixed inset-y-0 right-0 z-[60] w-full xs:w-[320px] sm:w-[340px] md:relative lg:w-[360px] md:z-auto"
+              "fixed inset-y-0 end-0 z-[60] w-full xs:w-[320px] sm:w-[340px] md:relative lg:w-[360px] md:z-auto"
             )}
           >
-          <div className="absolute top-0 right-0 w-full h-[300px] bg-[var(--ui-accent)]/5 blur-[100px] pointer-events-none" />
+          <div className="absolute top-0 end-0 w-full h-[300px] bg-[var(--ui-accent)]/5 blur-[100px] pointer-events-none" />
 
           <div className="px-4 py-5 xs:px-5 sm:px-6 md:px-8 md:py-8 border-b border-white/5 flex items-center justify-between flex-none relative z-10">
             <div>

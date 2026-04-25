@@ -63,7 +63,7 @@ const MemberAvatar: React.FC<{
       )}>
         {avatarUrl ? <img src={avatarUrl} alt={name} className="w-full h-full object-cover" /> : name?.charAt(0)}
       </div>
-      <div className="absolute -bottom-0.5 -right-0.5">
+      <div className="absolute -bottom-0.5 -end-0.5">
         <PresenceDot userId={userId} size="sm" />
       </div>
     </div>
@@ -182,7 +182,7 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
           </button>
           <button onClick={onToggleMembers} className={cn("h-10 xs:h-11 px-2.5 xs:px-3 md:px-5 rounded-xl flex items-center gap-2 md:gap-3 transition-all border font-bold text-[9px] uppercase tracking-widest shrink-0 touch-target-min", membersOpen ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/40 text-[var(--ui-accent)]" : "bg-white/[0.02] border-white/5 text-slate-600 hover:text-white hover:border-white/10")}>
             <Users className="w-4 h-4" />
-            <span className="hidden xs:inline">{members.length} <span className="hidden md:inline ml-1">{t("chat.members") || "Members"}</span></span>
+            <span className="hidden xs:inline">{members.length} <span className="hidden md:inline ms-1">{t("chat.members") || "Members"}</span></span>
           </button>
         </div>
       </div>

@@ -17,7 +17,7 @@ export function useSupportTickets(pageSize: number = 50) {
   return useQuery({
     queryKey: queryKeys.support.tickets,
     queryFn: async () => {
-      const res = await fetchWithAuth(`/api/support/tickets?pageSize=${pageSize}`);
+      const res = await fetchWithAuth(`/support/tickets?pageSize=${pageSize}`);
       return (res as any).data;
     },
   });
@@ -28,7 +28,7 @@ export function useCreateTicket() {
   
   return useMutation({
     mutationFn: async (payload: CreateTicketPayload) => {
-      const res = await fetchWithAuth("/api/support/tickets", {
+      const res = await fetchWithAuth("/support/tickets", {
         method: "POST",
         body: JSON.stringify(payload),
       });
@@ -45,7 +45,7 @@ export function useUpdateTicketStatus() {
   
   return useMutation({
     mutationFn: async ({ id, status }: UpdateTicketStatusPayload) => {
-      const res = await fetchWithAuth(`/api/support/tickets/${id}/status`, {
+      const res = await fetchWithAuth(`/support/tickets/${id}/status`, {
         method: "PUT",
         body: JSON.stringify({ status }),
       });

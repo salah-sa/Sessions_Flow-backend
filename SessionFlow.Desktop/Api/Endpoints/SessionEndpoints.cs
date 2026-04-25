@@ -304,13 +304,29 @@ public static class SessionEndpoints
         });
 
         // POST /api/sessions/{id}/end
-        group.MapPost("/{id:guid}/end", async (Guid id, EndSessionRequest? req, bool? force, SessionService sessionService, Services.EventBus.IEventBus eventBus) =>
+        group.MapPost("/{id:guid}/end", async (Guid id, EndSessionRequest? req, bool? force, SessionService sessionService, Services.EventBus.IEventBus eventBus, MongoService db) =>
         {
             var (session, error) = await sessionService.EndSessionAsync(id, req?.Notes, force ?? false);
             if (error != null)
                 return Results.BadRequest(new { error });
 
             await eventBus.PublishAsync(Services.EventBus.Events.SessionStatusChanged, Services.EventBus.EventTargetType.Group, $"session_{id}", new { sessionId = id.ToString(), status = "Ended" });
+
+            // AUTO-ARCHIVE: Check if all sessions in the group are now completed
+            var groupId = session!.GroupId;
+            var remainingSessions = await db.Sessions.CountDocumentsAsync(
+                s => s.GroupId == groupId && !s.IsDeleted && s.Status != SessionStatus.Ended && s.Status != SessionStatus.Cancelled && !s.IsSkipped
+            );
+
+            if (remainingSessions == 0)
+            {
+                // All sessions completed — auto-transition group to Completed
+                var groupUpdate = Builders<Group>.Update
+                    .Set(g => g.Status, GroupStatus.Completed)
+                    .Set(g => g.UpdatedAt, DateTimeOffset.UtcNow);
+                await db.Groups.UpdateOneAsync(g => g.Id == groupId && g.Status == GroupStatus.Active, groupUpdate);
+            }
+
             return Results.Ok(new { id = session!.Id, status = session.Status.ToString(), endedAt = session.EndedAt, notes = session.Notes });
         });
 
