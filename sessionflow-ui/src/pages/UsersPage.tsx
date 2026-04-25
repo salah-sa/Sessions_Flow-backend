@@ -76,6 +76,7 @@ const UsersPage: React.FC = () => {
     restricted: users.filter(u => u.status === "Restricted" || u.status === "Banned").length,
     students: users.filter(u => u.role === "Student").length,
     engineers: users.filter(u => u.role === "Engineer").length,
+    admins: users.filter(u => u.role === "Admin").length,
   }), [users, totalCount]);
 
   const handleRestrict = async (userId: string, days: number) => {
@@ -140,13 +141,14 @@ const UsersPage: React.FC = () => {
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-6">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mt-6">
           {[
             { label: "Total", value: stats.total, color: "purple" },
             { label: "Active", value: stats.active, color: "emerald" },
             { label: "Restricted", value: stats.restricted, color: "amber" },
             { label: "Students", value: stats.students, color: "blue" },
             { label: "Engineers", value: stats.engineers, color: "cyan" },
+            { label: "Admins", value: stats.admins, color: "rose" },
           ].map(s => (
             <div key={s.label} className={cn(
               "p-3 rounded-xl border bg-[var(--ui-surface)] text-start",
@@ -177,7 +179,7 @@ const UsersPage: React.FC = () => {
           )}
         </div>
         <div className="flex gap-2">
-          {["", "Student", "Engineer"].map(role => (
+          {["", "Student", "Engineer", "Admin"].map(role => (
             <button
               key={role}
               onClick={() => setRoleFilter(role)}
