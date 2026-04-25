@@ -357,96 +357,104 @@ const UsersPage: React.FC = () => {
 
               {/* Actions */}
               <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
-                {/* Access Restrictions */}
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold text-slate-500 uppercase flex items-center gap-2">
-                    <ShieldAlert className="w-3.5 h-3.5" /> Access Restrictions
-                  </p>
-
-                  {selectedUser.status !== "Active" && (
-                    <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 text-start">
-                      <p className="text-xs font-semibold text-amber-400">
-                        {selectedUser.status === "Banned" ? "🚫 Permanently Banned" : "⏳ Temporarily Restricted"}
+                {selectedUser.role === "Admin" ? (
+                  <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 text-center mt-4">
+                    <ShieldAlert className="w-8 h-8 text-purple-400 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm font-bold text-purple-400">Admin Protected</p>
+                    <p className="text-xs text-purple-400/70 mt-1">Administrators cannot be restricted or have pages blocked.</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Access Restrictions */}
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold text-slate-500 uppercase flex items-center gap-2">
+                        <ShieldAlert className="w-3.5 h-3.5" /> Access Restrictions
                       </p>
-                      {selectedUser.restrictionReason && (
-                        <p className="text-[11px] text-amber-400/60 mt-1">{selectedUser.restrictionReason}</p>
-                      )}
-                    </div>
-                  )}
 
-                  <div className="grid grid-cols-1 gap-2">
-                    <button
-                      onClick={() => setConfirmAction({ type: "restrict", user: selectedUser, days: 7 })}
-                      disabled={restrictMutation.isPending}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10 hover:border-amber-500/30 hover:bg-amber-500/10 transition-all text-start group"
-                    >
-                      <div className="p-2 rounded-lg bg-amber-500/10"><Clock className="w-4 h-4 text-amber-400" /></div>
-                      <div>
-                        <p className="text-xs font-semibold text-white group-hover:text-amber-300 transition-colors">Restrict 1 Week</p>
-                        <p className="text-[10px] text-slate-500">Prevent access for 7 days</p>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => setConfirmAction({ type: "restrict", user: selectedUser, days: 30 })}
-                      disabled={restrictMutation.isPending}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-orange-500/5 border border-orange-500/10 hover:border-orange-500/30 hover:bg-orange-500/10 transition-all text-start group"
-                    >
-                      <div className="p-2 rounded-lg bg-orange-500/10"><Calendar className="w-4 h-4 text-orange-400" /></div>
-                      <div>
-                        <p className="text-xs font-semibold text-white group-hover:text-orange-300 transition-colors">Restrict 1 Month</p>
-                        <p className="text-[10px] text-slate-500">Prevent access for 30 days</p>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => setConfirmAction({ type: "ban", user: selectedUser, days: -1 })}
-                      disabled={restrictMutation.isPending}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-red-500/5 border border-red-500/10 hover:border-red-500/30 hover:bg-red-500/10 transition-all text-start group"
-                    >
-                      <div className="p-2 rounded-lg bg-red-500/10"><Ban className="w-4 h-4 text-red-400" /></div>
-                      <div>
-                        <p className="text-xs font-semibold text-white group-hover:text-red-300 transition-colors">Lifetime Ban</p>
-                        <p className="text-[10px] text-slate-500">Permanently prevent access</p>
-                      </div>
-                    </button>
-
-                    {(selectedUser.status === "Restricted" || selectedUser.status === "Banned") && (
-                      <button
-                        onClick={() => handleRestore(selectedUser.id)}
-                        disabled={restoreMutation.isPending}
-                        className="flex items-center gap-3 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 hover:border-emerald-500/30 hover:bg-emerald-500/10 transition-all text-start group"
-                      >
-                        <div className="p-2 rounded-lg bg-emerald-500/10"><RotateCcw className="w-4 h-4 text-emerald-400" /></div>
-                        <div>
-                          <p className="text-xs font-semibold text-white group-hover:text-emerald-300 transition-colors">Restore Access</p>
-                          <p className="text-[10px] text-slate-500">Remove all restrictions immediately</p>
+                      {selectedUser.status !== "Active" && (
+                        <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 text-start">
+                          <p className="text-xs font-semibold text-amber-400">
+                            {selectedUser.status === "Banned" ? "🚫 Permanently Banned" : "⏳ Temporarily Restricted"}
+                          </p>
+                          {selectedUser.restrictionReason && (
+                            <p className="text-[11px] text-amber-400/60 mt-1">{selectedUser.restrictionReason}</p>
+                          )}
                         </div>
-                      </button>
-                    )}
-                  </div>
-                </div>
+                      )}
 
-                {/* Divider */}
-                <div className="border-t border-white/5" />
+                      <div className="grid grid-cols-1 gap-2">
+                        <button
+                          onClick={() => setConfirmAction({ type: "restrict", user: selectedUser, days: 7 })}
+                          disabled={restrictMutation.isPending}
+                          className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10 hover:border-amber-500/30 hover:bg-amber-500/10 transition-all text-start group"
+                        >
+                          <div className="p-2 rounded-lg bg-amber-500/10"><Clock className="w-4 h-4 text-amber-400" /></div>
+                          <div>
+                            <p className="text-xs font-semibold text-white group-hover:text-amber-300 transition-colors">Restrict 1 Week</p>
+                            <p className="text-[10px] text-slate-500">Prevent access for 7 days</p>
+                          </div>
+                        </button>
 
-                {/* Page Blocking */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold text-slate-500 uppercase flex items-center gap-2">
-                      <Lock className="w-3.5 h-3.5" /> Page Restrictions
-                    </p>
-                    <button
-                      onClick={() => openBlockedPages(selectedUser)}
-                      className="text-[10px] font-semibold text-purple-400 hover:text-purple-300 transition-colors uppercase"
-                    >
-                      {showBlockedPagesPanel ? "Close" : "Manage"}
-                    </button>
-                  </div>
+                        <button
+                          onClick={() => setConfirmAction({ type: "restrict", user: selectedUser, days: 30 })}
+                          disabled={restrictMutation.isPending}
+                          className="flex items-center gap-3 p-3 rounded-xl bg-orange-500/5 border border-orange-500/10 hover:border-orange-500/30 hover:bg-orange-500/10 transition-all text-start group"
+                        >
+                          <div className="p-2 rounded-lg bg-orange-500/10"><Calendar className="w-4 h-4 text-orange-400" /></div>
+                          <div>
+                            <p className="text-xs font-semibold text-white group-hover:text-orange-300 transition-colors">Restrict 1 Month</p>
+                            <p className="text-[10px] text-slate-500">Prevent access for 30 days</p>
+                          </div>
+                        </button>
 
-                  {selectedUser.blockedPages?.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {selectedUser.blockedPages.map(p => (
+                        <button
+                          onClick={() => setConfirmAction({ type: "ban", user: selectedUser, days: -1 })}
+                          disabled={restrictMutation.isPending}
+                          className="flex items-center gap-3 p-3 rounded-xl bg-red-500/5 border border-red-500/10 hover:border-red-500/30 hover:bg-red-500/10 transition-all text-start group"
+                        >
+                          <div className="p-2 rounded-lg bg-red-500/10"><Ban className="w-4 h-4 text-red-400" /></div>
+                          <div>
+                            <p className="text-xs font-semibold text-white group-hover:text-red-300 transition-colors">Lifetime Ban</p>
+                            <p className="text-[10px] text-slate-500">Permanently prevent access</p>
+                          </div>
+                        </button>
+
+                        {(selectedUser.status === "Restricted" || selectedUser.status === "Banned") && (
+                          <button
+                            onClick={() => handleRestore(selectedUser.id)}
+                            disabled={restoreMutation.isPending}
+                            className="flex items-center gap-3 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 hover:border-emerald-500/30 hover:bg-emerald-500/10 transition-all text-start group"
+                          >
+                            <div className="p-2 rounded-lg bg-emerald-500/10"><RotateCcw className="w-4 h-4 text-emerald-400" /></div>
+                            <div>
+                              <p className="text-xs font-semibold text-white group-hover:text-emerald-300 transition-colors">Restore Access</p>
+                              <p className="text-[10px] text-slate-500">Remove all restrictions immediately</p>
+                            </div>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="border-t border-white/5" />
+
+                    {/* Page Blocking */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-semibold text-slate-500 uppercase flex items-center gap-2">
+                          <Lock className="w-3.5 h-3.5" /> Page Restrictions
+                        </p>
+                        <button
+                          onClick={() => openBlockedPages(selectedUser)}
+                          className="text-[10px] font-semibold text-purple-400 hover:text-purple-300 transition-colors uppercase"
+                        >
+                          {showBlockedPagesPanel ? "Close" : "Manage"}
+                        </button>
+                      </div>
+
+                      {selectedUser.blockedPages?.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {selectedUser.blockedPages.map(p => (
                         <span key={p} className="px-2 py-1 rounded-md bg-orange-500/10 text-[10px] font-bold text-orange-400 border border-orange-500/20 flex items-center gap-1">
                           <Lock className="w-3 h-3" /> {PLATFORM_PAGES.find(pp => pp.key === p)?.label || p}
                         </span>
@@ -492,6 +500,8 @@ const UsersPage: React.FC = () => {
                     </motion.div>
                   )}
                 </div>
+                </>
+                )}
               </div>
             </motion.div>
           </>
