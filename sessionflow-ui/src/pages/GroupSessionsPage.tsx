@@ -49,17 +49,13 @@ const GroupSessionsPage: React.FC = () => {
     }
   }, [loading, group, sessions.length]);
 
-  // Robust offset detection: check group metadata or the first session's number
-  // For Level 4, we default to starting from 9 as requested
-  const baseOffset = group?.level === 4 ? 8 : 0;
-  const startingOffset = Math.max(baseOffset, (group?.startingSessionNumber || 1) - 1);
+  const logicalCompleted = (group?.currentSessionNumber || 1) - 1;
   const completedCount = sessions.filter(s => s.status === "Ended" || s.status === "Cancelled").length;
   const activeCount = sessions.filter(s => s.status === "Active").length;
   const scheduledCount = sessions.filter(s => s.status === "Scheduled").length;
   // Progress is calculated based on what's actually finished PLUS what was skipped by starting mid-way
   // Level 2 has exactly 12 sessions.
-  const totalSessions = group?.level === 2 ? 12 : (group?.totalSessions || sessions.length);
-  const logicalCompleted = (group?.currentSessionNumber || 1) - 1;
+  const totalSessions = group?.totalSessions || sessions.length;
   const progressPercent = totalSessions > 0 ? Math.round((logicalCompleted / totalSessions) * 100) : 0;
 
   if (loading) {
@@ -305,7 +301,7 @@ const GroupSessionsPage: React.FC = () => {
             <div className="absolute left-[19px] top-6 bottom-6 w-[2px] bg-[var(--ui-surface)] shadow-[0_0_10px_rgba(0,0,0,0.5)]" />
 
             {sessions.map((session, index) => {
-              const logicalNumber = session.sessionNumber ?? (startingOffset + index + 1);
+              const logicalNumber = session.sessionNumber;
               const isCompleted = session.status === "Ended";
               const isActive = session.status === "Active";
               const isCurrentLogical = logicalNumber === group?.currentSessionNumber;
