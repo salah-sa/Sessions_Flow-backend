@@ -12,6 +12,8 @@ WORKDIR /app/src
 COPY SessionFlow.Desktop/*.csproj SessionFlow.Desktop/
 COPY HeadlessHost/*.csproj HeadlessHost/
 RUN dotnet restore HeadlessHost/HeadlessHost.csproj
+# Force cache refresh for source copy
+ARG CACHEBUST=1
 COPY SessionFlow.Desktop/ SessionFlow.Desktop/
 COPY HeadlessHost/ HeadlessHost/
 RUN dotnet publish HeadlessHost/HeadlessHost.csproj -c Release -o /app/publish
