@@ -371,6 +371,12 @@ public static class GroupEndpoints
                 var total = CurriculumConstants.GetTotalSessions(level);
                 if (req.StartingSessionNumber > total) return Results.BadRequest(new { error = $"Security Restriction: Starting session number cannot exceed {total} for Level {level}." });
                 update = update.Set(x => x.StartingSessionNumber, req.StartingSessionNumber.Value);
+                
+                // Sync CurrentSessionNumber if it hasn't progressed past the new start
+                if (g.CurrentSessionNumber < req.StartingSessionNumber.Value)
+                {
+                    update = update.Set(x => x.CurrentSessionNumber, req.StartingSessionNumber.Value);
+                }
             }
             
             if (req.Frequency.HasValue && req.Frequency >= 1 && req.Frequency <= 3)
@@ -382,7 +388,7 @@ public static class GroupEndpoints
             await db.Groups.UpdateOneAsync(x => x.Id == id, update);
 
             // AUTO-REGENERATE if schedule-impacting fields changed
-            if (req.Frequency.HasValue || req.Level.HasValue || req.Schedules != null)
+            if (req.Frequency.HasValue || req.Level.HasValue || req.Schedules != null || req.StartingSessionNumber.HasValue)
             {
                 var finalGroup = await db.Groups.Find(x => x.Id == id).FirstOrDefaultAsync();
                 if (finalGroup != null)

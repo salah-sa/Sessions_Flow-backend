@@ -479,8 +479,7 @@ public class SessionService
     {
         // 1. Delete all future scheduled sessions
         var filter = Builders<Session>.Filter.Eq(s => s.GroupId, group.Id) & 
-                     Builders<Session>.Filter.Eq(s => s.Status, SessionStatus.Scheduled) &
-                     Builders<Session>.Filter.Gte(s => s.ScheduledAt, DateTimeOffset.UtcNow);
+                     Builders<Session>.Filter.Eq(s => s.Status, SessionStatus.Scheduled);
         
         await _db.Sessions.DeleteManyAsync(filter);
 
