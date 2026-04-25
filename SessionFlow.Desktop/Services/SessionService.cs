@@ -85,7 +85,8 @@ public class SessionService
         var newSessions = new List<Session>();
 
         // Find the next available schedule slots after lastDate
-        var currentRefDate = TimeZoneInfo.ConvertTime(lastDate, cairoTz);
+        var cairoNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, cairoTz);
+        var currentRefDate = new DateTimeOffset(cairoNow.Date, cairoTz.GetUtcOffset(cairoNow.Date));
         int generated = 0;
         int safetyBreak = 0;
 
@@ -100,11 +101,10 @@ public class SessionService
             {
                 if (generated >= sessionsToGenerate) break;
 
-                var scheduledAt = new DateTimeOffset(
-                    currentRefDate.Year, currentRefDate.Month, currentRefDate.Day,
-                    schedule.StartTime.Hours, schedule.StartTime.Minutes, 0,
-                    cairoTz.GetUtcOffset(currentRefDate.DateTime)
-                );
+                var targetCairoDate = new DateTime(currentRefDate.Year, currentRefDate.Month, currentRefDate.Day,
+                    schedule.StartTime.Hours, schedule.StartTime.Minutes, 0);
+                var offset = cairoTz.GetUtcOffset(targetCairoDate);
+                var scheduledAt = new DateTimeOffset(targetCairoDate, offset);
 
                 if (scheduledAt > lastDate)
                 {
@@ -502,8 +502,9 @@ public class SessionService
         if (sessionsToGenerate <= 0) return;
 
         var cairoTz = GetConfiguredTimeZone();
+        var cairoNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, cairoTz);
+        var currentRefDate = new DateTimeOffset(cairoNow.Date, cairoTz.GetUtcOffset(cairoNow.Date));
         var lastDate = lastCompletedSession?.ScheduledAt ?? DateTimeOffset.UtcNow;
-        var currentRefDate = TimeZoneInfo.ConvertTime(lastDate, cairoTz);
         
         var newSessions = new List<Session>();
         int generated = 0;
@@ -521,11 +522,10 @@ public class SessionService
             {
                 if (generated >= sessionsToGenerate) break;
 
-                var scheduledAt = new DateTimeOffset(
-                    currentRefDate.Year, currentRefDate.Month, currentRefDate.Day,
-                    schedule.StartTime.Hours, schedule.StartTime.Minutes, 0,
-                    cairoTz.GetUtcOffset(currentRefDate.DateTime)
-                );
+                var targetCairoDate = new DateTime(currentRefDate.Year, currentRefDate.Month, currentRefDate.Day,
+                    schedule.StartTime.Hours, schedule.StartTime.Minutes, 0);
+                var offset = cairoTz.GetUtcOffset(targetCairoDate);
+                var scheduledAt = new DateTimeOffset(targetCairoDate, offset);
 
                 if (scheduledAt > lastDate)
                 {
