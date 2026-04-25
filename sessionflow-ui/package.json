@@ -39,7 +39,6 @@
     "i18next": "^26.0.3",
     "i18next-browser-languagedetector": "^8.2.1",
     "lucide-react": "^0.460.0",
-    "playwright": "^1.59.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.72.1",
@@ -62,6 +61,7 @@
     "tsx": "^4.21.0",
     "typescript": "~5.6.3",
     "vite": "^6.0.1",
+    "playwright": "^1.59.1",
     "electron": "^31.0.0",
     "electron-builder": "^24.13.3"
   },

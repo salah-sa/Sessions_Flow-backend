@@ -2,6 +2,7 @@
 FROM node:20-alpine AS build-ui
 WORKDIR /app/ui
 COPY sessionflow-ui/package*.json ./
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 RUN npm ci
 COPY sessionflow-ui/ ./
 RUN npm run build
