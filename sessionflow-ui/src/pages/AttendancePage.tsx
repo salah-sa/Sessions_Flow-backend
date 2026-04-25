@@ -6,7 +6,7 @@ import { useInfiniteSessions, useSessionMutations } from "../queries/useSessionQ
 import { Session } from "../types";
 import { Card, Button, Badge } from "../components/ui";
 import { AttendanceWizard } from "./attendance/AttendanceWizard";
-import { cn, formatDateTo12h } from "../lib/utils";
+import { cn, formatDateTo12h, getCairoDateStr } from "../lib/utils";
 import { toast } from "sonner";
 
 const AttendancePage: React.FC = () => {
@@ -26,7 +26,8 @@ const AttendancePage: React.FC = () => {
     };
   }, []);
 
-  const todayStr = format(new Date(), "yyyy-MM-dd");
+  // Ensure we fetch the exact day in Cairo, bypassing the local machine timezone
+  const todayStr = getCairoDateStr();
   
   const { data, isLoading } = useInfiniteSessions({
     startDate: todayStr,
@@ -81,7 +82,7 @@ const AttendancePage: React.FC = () => {
           <div className="flex items-center gap-2 px-4 py-2 bg-white/[0.03] border border-white/10 rounded-xl">
             <Calendar className="w-4 h-4 text-[var(--ui-accent)]" />
             <span className="text-sm font-medium text-white">
-              {format(new Date(), "MMM d, yyyy")}
+              {new Intl.DateTimeFormat('en-US', { timeZone: 'Africa/Cairo', month: 'short', day: 'numeric', year: 'numeric' }).format(new Date())}
             </span>
           </div>
         </div>
