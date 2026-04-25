@@ -84,7 +84,6 @@ const UsersPage: React.FC = () => {
       await restrictMutation.mutateAsync({ id: userId, days });
       toast.success(days === -1 ? "User banned permanently." : `User restricted for ${days} day(s).`);
       setConfirmAction(null);
-      setSelectedUser(null);
     } catch {
       toast.error("Failed to restrict user.");
     }
@@ -94,11 +93,22 @@ const UsersPage: React.FC = () => {
     try {
       await restoreMutation.mutateAsync(userId);
       toast.success("User access restored.");
-      setSelectedUser(null);
     } catch {
       toast.error("Failed to restore user.");
     }
   };
+
+  // Keep selectedUser in sync with latest query data so UI updates immediately
+  React.useEffect(() => {
+    if (selectedUser && users.length > 0) {
+      const updatedUser = users.find(u => u.id === selectedUser.id);
+      if (updatedUser && updatedUser.status !== selectedUser.status) {
+        setSelectedUser(updatedUser);
+      } else if (updatedUser && JSON.stringify(updatedUser.blockedPages) !== JSON.stringify(selectedUser.blockedPages)) {
+        setSelectedUser(updatedUser);
+      }
+    }
+  }, [users, selectedUser]);
 
   const handleSaveBlockedPages = async (userId: string) => {
     try {
