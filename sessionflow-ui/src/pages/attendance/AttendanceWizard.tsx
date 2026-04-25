@@ -32,8 +32,8 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
     if (activeSession && isOpen) {
       // Backend stores Cairo local time AS UTC — extract raw UTC values
       const raw = new Date(activeSession.scheduledAt);
-      const h = raw.getUTCHours();
-      const m = raw.getUTCMinutes();
+      const h = raw.getHours();
+      const m = raw.getMinutes();
       const dateStr = format(raw, "yyyy-MM-dd");
       
       const startTimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;

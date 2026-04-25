@@ -112,16 +112,16 @@ const AttendancePage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredSessions.map((session) => {
               const rawUtcStart = new Date(session.scheduledAt);
-              const h = rawUtcStart.getUTCHours();
-              const m = rawUtcStart.getUTCMinutes();
+              const h = rawUtcStart.getHours();
+              const m = rawUtcStart.getMinutes();
               
               const startTimeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
               
               let endTimeStr = "";
               if (session.endedAt) {
                  const rawUtcEnd = new Date(session.endedAt);
-                 const eh = rawUtcEnd.getUTCHours();
-                 const em = rawUtcEnd.getUTCMinutes();
+                 const eh = rawUtcEnd.getHours();
+                 const em = rawUtcEnd.getMinutes();
                  endTimeStr = `${eh.toString().padStart(2, '0')}:${em.toString().padStart(2, '0')}`;
               }
               
