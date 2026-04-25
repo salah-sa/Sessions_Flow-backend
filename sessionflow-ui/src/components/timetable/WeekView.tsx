@@ -90,7 +90,7 @@ export const WeekView: React.FC<WeekViewProps> = ({ sessions, groupSchedules, cu
                      >
                         <div className="w-[12.5%] flex justify-end pr-4">
                            <span className="bg-[var(--ui-accent)] text-white text-[8px] font-bold px-2 py-0.5 rounded-md shadow-glow shadow-[var(--ui-accent)]/30">
-                              {format(now, "HH:mm")}
+                              {format(now, "h:mm a")}
                            </span>
                         </div>
                         <div className="flex-1 h-px bg-[var(--ui-accent)]/60 relative shadow-glow shadow-[var(--ui-accent)]/20">

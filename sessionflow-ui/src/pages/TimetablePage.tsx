@@ -5,7 +5,7 @@ import { format, startOfWeek, endOfWeek, addDays, isSameDay, addWeeks, subWeeks 
 import { useNavigate } from "react-router-dom";
 import { Button, Input, Badge, Modal, ConfirmDialog } from "../components/ui";
 import { WeekView } from "../components/timetable/WeekView";
-import { cn } from "../lib/utils";
+import { cn, formatTime12h } from "../lib/utils";
 import { useGroups } from "../queries/useGroupQueries";
 import { useTimetableEntries, useTimetableMutations } from "../queries/useTimetableQueries";
 import { useInfiniteSessions, useSessionMutations } from "../queries/useSessionQueries";
@@ -380,7 +380,7 @@ const TimetablePage: React.FC = () => {
                   className="w-full h-14 rounded-xl border border-white/5 bg-black/40 px-5 text-xs font-bold uppercase text-white focus:ring-1 focus:ring-[var(--ui-accent)]/30 focus:outline-none transition-all"
                 >
                   {availableSlots.length > 0 ? (
-                    availableSlots.map(t => <option key={t} value={t} className="bg-[var(--ui-sidebar-bg)]">{t}</option>)
+                    availableSlots.map(t => <option key={t} value={t} className="bg-[var(--ui-sidebar-bg)]">{formatTime12h(t)}</option>)
                   ) : (
                     <option disabled className="bg-[var(--ui-sidebar-bg)]">{t("timetable.modal.no_slots")}</option>
                   )}
@@ -450,7 +450,7 @@ const TimetablePage: React.FC = () => {
                              onChange={(e) => updateSegmentTime(i, sIdx, "startTime", e.target.value)}
                              className="bg-black/40 border border-white/5 rounded-lg h-11 px-4 text-[11px] font-bold text-slate-300 w-36 focus:outline-none focus:ring-1 focus:ring-[var(--ui-accent)]/30"
                            >
-                             {TIME_SLOTS.map(t => <option key={t} value={t} className="bg-[var(--ui-sidebar-bg)]">{t}</option>)}
+                             {TIME_SLOTS.map(t => <option key={t} value={t} className="bg-[var(--ui-sidebar-bg)]">{formatTime12h(t)}</option>)}
                            </select>
                            <div className="w-4 h-px bg-white/10" />
                            <select 

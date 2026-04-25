@@ -6,7 +6,7 @@ import { useInfiniteSessions, useSessionMutations } from "../queries/useSessionQ
 import { Session } from "../types";
 import { Card, Button, Badge } from "../components/ui";
 import { AttendanceWizard } from "./attendance/AttendanceWizard";
-import { cn } from "../lib/utils";
+import { cn, formatDateTo12h } from "../lib/utils";
 import { toast } from "sonner";
 
 const AttendancePage: React.FC = () => {
@@ -112,17 +112,12 @@ const AttendancePage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredSessions.map((session) => {
               const rawUtcStart = new Date(session.scheduledAt);
-              const h = rawUtcStart.getHours();
-              const m = rawUtcStart.getMinutes();
-              
-              const startTimeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+              const startTimeStr = formatDateTo12h(rawUtcStart);
               
               let endTimeStr = "";
               if (session.endedAt) {
                  const rawUtcEnd = new Date(session.endedAt);
-                 const eh = rawUtcEnd.getHours();
-                 const em = rawUtcEnd.getMinutes();
-                 endTimeStr = `${eh.toString().padStart(2, '0')}:${em.toString().padStart(2, '0')}`;
+                 endTimeStr = formatDateTo12h(rawUtcEnd);
               }
               
               const studentCount = session.totalStudents || 0;
