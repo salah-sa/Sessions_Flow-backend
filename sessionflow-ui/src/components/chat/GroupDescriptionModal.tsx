@@ -57,45 +57,37 @@ const GroupDescriptionModal: React.FC<GroupDescriptionModalProps> = ({ group, is
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-2xl"
-          onClick={onClose}
-        >
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 xs:p-4 md:p-6 overflow-hidden">
           <motion.div
-            initial={{ scale: 0.95, y: 20 }}
-            animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.95, y: 20 }}
-            className="w-full max-w-lg bg-[var(--ui-bg)] border border-white/10 rounded-3xl shadow-2xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-black/80 backdrop-blur-md"
+          />
+          
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            className="relative w-full max-w-lg max-h-[90dvh] bg-[var(--ui-sidebar-bg)] border border-white/10 rounded-2xl xs:rounded-3xl shadow-2xl overflow-hidden flex flex-col"
           >
-            {/* Header */}
-            <div className="px-8 py-6 border-b border-white/5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[var(--ui-accent)]/10 border border-[var(--ui-accent)]/20 flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-[var(--ui-accent)]" />
+            <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-[var(--ui-accent)]/5 via-transparent to-transparent pointer-events-none" />
+
+            <div className="p-5 xs:p-6 md:p-8 flex items-center justify-between border-b border-white/5 relative z-10 flex-none">
+              <div className="flex items-center gap-3 xs:gap-4">
+                <div className="w-10 h-10 xs:w-12 xs:h-12 rounded-xl bg-[var(--ui-accent)]/10 border border-[var(--ui-accent)]/30 flex items-center justify-center text-[var(--ui-accent)]">
+                  <Info className="w-5 h-5 xs:w-6 xs:h-6" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-sora font-black text-white uppercase tracking-widest">
-                    {t("chat.edit_description", "Edit Description")}
-                  </h3>
-                  <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest mt-0.5">
-                    {group.name}
-                  </p>
+                  <h3 className="text-sm xs:text-base font-bold text-white uppercase tracking-widest">{t("chat.group_info", "Group Info")}</h3>
+                  <p className="text-[9px] xs:text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Classification: Restricted</p>
                 </div>
               </div>
-              <button
-                onClick={onClose}
-                className="p-2 rounded-xl bg-white/5 text-slate-500 hover:text-white hover:bg-white/10 transition-all"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <button onClick={onClose} className="p-2.5 xs:p-3 rounded-xl bg-white/[0.02] border border-white/5 text-slate-500 hover:text-white transition-all"><X className="w-4 h-4 xs:w-5 xs:h-5" /></button>
             </div>
 
-            {/* Body */}
-            <div className="px-8 py-6 space-y-4">
+            <div className="p-5 xs:p-6 md:p-8 space-y-6 xs:space-y-8 overflow-y-auto custom-scrollbar overscroll-contain flex-1 relative z-10">
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -109,7 +101,6 @@ const GroupDescriptionModal: React.FC<GroupDescriptionModalProps> = ({ group, is
                 )}
               />
 
-              {/* Character counter + progress bar */}
               <div className="space-y-2">
                 <div className="h-1 rounded-full bg-[var(--ui-sidebar-bg)] overflow-hidden">
                   <div
@@ -140,28 +131,42 @@ const GroupDescriptionModal: React.FC<GroupDescriptionModalProps> = ({ group, is
                   )}
                 </div>
               </div>
+
+              <div className="flex gap-4 xs:gap-5 items-start">
+                <div className="w-9 h-9 xs:w-10 xs:h-10 rounded-lg bg-white/[0.02] border border-white/5 flex items-center justify-center text-slate-500 shrink-0">
+                  <Zap className="w-4 h-4 xs:w-5 xs:h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[9px] xs:text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("chat.description", "Description")}</p>
+                  <p className="text-xs xs:text-sm text-slate-300 mt-2 xs:mt-3 leading-relaxed break-words">{group.description || "NO DATA ENCRYPTED IN THIS MATRIX SECTOR."}</p>
+                </div>
+              </div>
+
+              <div className="flex gap-4 xs:gap-5 items-start">
+                <div className="w-9 h-9 xs:w-10 xs:h-10 rounded-lg bg-white/[0.02] border border-white/5 flex items-center justify-center text-slate-500 shrink-0">
+                  <Shield className="w-4 h-4 xs:w-5 xs:h-5" />
+                </div>
+                <div>
+                  <p className="text-[9px] xs:text-[10px] font-bold text-slate-500 uppercase tracking-widest">Security Protocol</p>
+                  <p className="text-xs xs:text-sm text-slate-300 mt-2 xs:mt-3 leading-relaxed">Level {group.level || 1} Encryption Mandatory. Unauthorized access will trigger neural dampening.</p>
+                </div>
+              </div>
             </div>
 
-            {/* Footer */}
-            <div className="px-8 py-5 border-t border-white/5 flex items-center justify-end gap-3">
+            <div className="px-5 xs:px-6 md:px-8 py-5 border-t border-white/5 flex items-center justify-end gap-3 flex-none bg-black/20">
               <button
                 onClick={onClose}
-                className="h-10 px-6 rounded-xl bg-[var(--ui-surface)] text-slate-300 font-black text-[10px] uppercase tracking-widest hover:bg-slate-700 transition-all"
+                className="h-10 xs:h-11 px-5 xs:px-6 rounded-xl bg-[var(--ui-surface)] text-slate-300 font-bold text-[10px] uppercase tracking-widest hover:bg-slate-700 transition-all touch-target-min"
               >
                 {t("common.cancel", "Cancel")}
               </button>
               <button
                 onClick={handleSave}
-                disabled={!hasChanged || isOverLimit || updateMutation.isPending}
-                className={cn(
-                  "h-10 px-6 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2",
-                  hasChanged && !isOverLimit
-                    ? "bg-[var(--ui-accent)] text-white hover:opacity-90 shadow-lg shadow-[var(--ui-accent)]/20"
-                    : "bg-[var(--ui-surface)] text-slate-600 cursor-not-allowed"
-                )}
+                disabled={isOverLimit || !hasChanged || updateMutation.isPending}
+                className="h-10 xs:h-11 px-5 xs:px-6 rounded-xl bg-[var(--ui-accent)] text-white font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-[var(--ui-accent)]/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale disabled:hover:scale-100 touch-target-min flex items-center gap-2"
               >
                 {updateMutation.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
-                {t("common.save", "Save")}
+                {t("common.save", "Save Changes")}
               </button>
             </div>
           </motion.div>

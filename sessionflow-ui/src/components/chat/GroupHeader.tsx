@@ -103,39 +103,42 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
   const overflow = members.length - visibleAvatars.length;
 
   return (
-    <div className="relative px-3 py-3 md:px-8 md:py-5 bg-[var(--ui-sidebar-bg)]/80 backdrop-blur-3xl border-b border-white/5 flex-none z-20">
+    <div className="relative px-3 py-2.5 xs:py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 bg-[var(--ui-sidebar-bg)]/80 backdrop-blur-3xl border-b border-white/5 flex-none z-20">
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--ui-accent)]/40 to-transparent" />
 
-      <div className="flex items-center justify-between gap-3 md:gap-6">
-        <button onClick={() => useChatStore.getState().setActiveGroup(null)} className="md:hidden p-2.5 rounded-xl text-slate-500 hover:text-white bg-white/[0.02] border border-white/5 transition-all shrink-0">
+      <div className="flex items-center justify-between gap-2 xs:gap-3 md:gap-6">
+        <button 
+          onClick={() => useChatStore.getState().setActiveGroup(null)} 
+          className="md:hidden p-2.5 rounded-xl text-slate-500 hover:text-white bg-white/[0.02] border border-white/5 transition-all shrink-0 touch-target-min"
+        >
           <ChevronLeft className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-3 md:gap-5 min-w-0 flex-1">
-          <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-xl bg-gradient-to-br from-[var(--ui-accent)]/20 to-[#7c3aed]/10 border border-[var(--ui-accent)]/30 flex items-center justify-center text-white font-bold text-xs shadow-glow shadow-[var(--ui-accent)]/10">
+        <div className="flex items-center gap-2 xs:gap-3 md:gap-5 min-w-0 flex-1">
+          <div className="w-9 h-9 xs:w-10 xs:h-10 md:w-12 md:h-12 shrink-0 rounded-xl bg-gradient-to-br from-[var(--ui-accent)]/20 to-[#7c3aed]/10 border border-[var(--ui-accent)]/30 flex items-center justify-center text-white font-bold text-[10px] xs:text-xs shadow-glow shadow-[var(--ui-accent)]/10">
             L{group.level}
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-3">
-              <h2 className="text-sm md:text-base font-bold text-white uppercase tracking-widest truncate leading-none">
+            <div className="flex items-center gap-2 xs:gap-3">
+              <h2 className="text-xs xs:text-sm md:text-base font-bold text-white uppercase tracking-widest truncate leading-none">
                 {group.name}
               </h2>
               {isArchived && (
-                <span className="text-[7px] font-bold text-[var(--ui-accent)] bg-[var(--ui-accent)]/10 border border-[var(--ui-accent)]/20 px-2 py-0.5 rounded-md uppercase tracking-[0.2em]">
+                <span className="text-[7px] font-bold text-[var(--ui-accent)] bg-[var(--ui-accent)]/10 border border-[var(--ui-accent)]/20 px-1.5 xs:px-2 py-0.5 rounded-md uppercase tracking-[0.2em] shrink-0">
                   ARCHIVE
                 </span>
               )}
             </div>
 
-            <div className="flex items-center gap-3 mt-1.5 opacity-60">
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">
-                {members.length} USERS
+            <div className="flex items-center gap-2 xs:gap-3 mt-1.5 opacity-60">
+              <span className="text-[8px] xs:text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+                {members.length} <span className="hidden xs:inline">USERS</span>
               </span>
               <div className="w-1 h-1 rounded-full bg-[var(--ui-surface)]" />
-              <div className="flex items-center gap-1.5 text-[9px] font-bold text-[var(--ui-accent)] uppercase tracking-[0.2em]">
+              <div className="flex items-center gap-1.5 text-[8px] xs:text-[9px] font-bold text-[var(--ui-accent)] uppercase tracking-[0.2em]">
                 <Activity className="w-3 h-3" />
-                {onlineCount} ACTIVE
+                {onlineCount} <span className="hidden xs:inline">ACTIVE</span>
               </div>
             </div>
 
@@ -152,20 +155,26 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
           </div>
         </div>
 
-        <div className="hidden lg:flex items-center">
+        <div className="hidden md:flex items-center">
           <div className="flex -space-x-3">
-            {visibleAvatars.map((m) => <MemberAvatar key={m.id} name={m.name} userId={m.userId} isEngineer={m.isEngineer} />)}
-            {overflow > 0 && <div className="w-8 h-8 rounded-full bg-[var(--ui-sidebar-bg)] border border-white/10 flex items-center justify-center text-[8px] font-bold text-slate-500">+{overflow}</div>}
+            {(window.innerWidth < 1024 ? members.slice(0, 3) : visibleAvatars).map((m) => (
+              <MemberAvatar key={m.id} name={m.name} userId={m.userId} isEngineer={m.isEngineer} />
+            ))}
+            {(overflow > 0 || (window.innerWidth < 1024 && members.length > 3)) && (
+              <div className="w-8 h-8 rounded-full bg-[var(--ui-sidebar-bg)] border border-white/10 flex items-center justify-center text-[8px] font-bold text-slate-500 relative z-10">
+                +{window.innerWidth < 1024 ? members.length - 3 : overflow}
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2 md:gap-3 shrink-0">
-          <button onClick={onToggleMute} className={cn("w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center transition-all border", isMuted ? "bg-rose-500/10 border-rose-500/30 text-rose-500" : "bg-white/[0.02] border-white/5 text-slate-600 hover:text-[var(--ui-accent)] hover:border-[var(--ui-accent)]/20")}>
+        <div className="flex items-center gap-1.5 xs:gap-2 md:gap-3 shrink-0">
+          <button onClick={onToggleMute} className={cn("w-10 h-10 xs:w-11 xs:h-11 rounded-xl flex items-center justify-center transition-all border shrink-0 touch-target-min", isMuted ? "bg-rose-500/10 border-rose-500/30 text-rose-500" : "bg-white/[0.02] border-white/5 text-slate-600 hover:text-[var(--ui-accent)] hover:border-[var(--ui-accent)]/20")}>
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
-          <button onClick={onToggleMembers} className={cn("h-10 md:h-11 px-3 md:px-5 rounded-xl flex items-center gap-2 md:gap-3 transition-all border font-bold text-[9px] uppercase tracking-widest", membersOpen ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/40 text-[var(--ui-accent)]" : "bg-white/[0.02] border-white/5 text-slate-600 hover:text-white hover:border-white/10")}>
+          <button onClick={onToggleMembers} className={cn("h-10 xs:h-11 px-2.5 xs:px-3 md:px-5 rounded-xl flex items-center gap-2 md:gap-3 transition-all border font-bold text-[9px] uppercase tracking-widest shrink-0 touch-target-min", membersOpen ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/40 text-[var(--ui-accent)]" : "bg-white/[0.02] border-white/5 text-slate-600 hover:text-white hover:border-white/10")}>
             <Users className="w-4 h-4" />
-            <span>{members.length} <span className="hidden sm:inline ml-1">{t("chat.members") || "Members"}</span></span>
+            <span className="hidden xs:inline">{members.length} <span className="hidden md:inline ml-1">{t("chat.members") || "Members"}</span></span>
           </button>
         </div>
       </div>

@@ -169,23 +169,24 @@ const ChatPage: React.FC = () => {
   };
 
   return (
-    <div className="h-[100dvh] flex bg-[var(--ui-bg)] animate-fade-in overflow-hidden relative">
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[var(--ui-accent)]/5 blur-[120px] rounded-full pointer-events-none -z-10" />
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[var(--ui-accent)]/5 blur-[120px] rounded-full pointer-events-none -z-10" />
+    <div className="h-full flex bg-[var(--ui-bg)] animate-fade-in overflow-hidden relative">
+      {/* Decorative Orbs - Hidden on mobile for performance and clarity */}
+      <div className="hidden sm:block absolute top-0 right-0 w-[clamp(300px,40vw,600px)] h-[clamp(300px,40vw,600px)] bg-[var(--ui-accent)]/5 blur-[120px] rounded-full pointer-events-none -z-10" />
+      <div className="hidden sm:block absolute bottom-0 left-0 w-[clamp(250px,35vw,500px)] h-[clamp(250px,35vw,500px)] bg-[var(--ui-accent)]/5 blur-[120px] rounded-full pointer-events-none -z-10" />
 
       {/* Zenith Sidebar */}
       <div className={cn(
-        "fixed inset-y-0 start-0 z-50 w-full md:w-[320px] md:relative border-e border-white/5 flex flex-col h-[100dvh] md:h-full bg-[var(--ui-sidebar-bg)] backdrop-blur-3xl transition-transform duration-500",
-        activeGroupId ? "hidden md:flex" : "flex",
+        "fixed inset-y-0 start-0 z-50 w-full md:chat-sidebar-width md:relative border-e border-white/5 flex flex-col h-full bg-[var(--ui-sidebar-bg)] backdrop-blur-3xl transition-all duration-500",
+        activeGroupId ? "translate-x-full md:translate-x-0 opacity-0 md:opacity-100 pointer-events-none md:pointer-events-auto" : "translate-x-0 opacity-100",
         !isSidebarOpen && "-translate-x-full md:translate-x-0"
       )}>
-        <div className="p-4 space-y-4 md:p-6 md:space-y-6 flex-none">
+        <div className="p-4 space-y-4 xs:p-5 xs:space-y-5 md:p-6 md:space-y-6 flex-none">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
+              <h1 className="text-xl xs:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
                 {t("chat.title")}
               </h1>
-              <p className="text-[var(--ui-accent)] text-xs font-bold uppercase flex items-center gap-2">
+              <p className="text-[var(--ui-accent)] text-[10px] xs:text-xs font-bold uppercase flex items-center gap-2">
                 <Zap className="w-3.5 h-3.5" /> {connectionMode === "full" ? "Neural Link Active" : "Disconnected"}
               </p>
             </div>
@@ -198,7 +199,7 @@ const ChatPage: React.FC = () => {
               placeholder={t("chat.search_placeholder")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-12 ps-12 rounded-xl border border-white/5 bg-black/40 text-xs font-bold uppercase text-white focus:ring-1 focus:ring-[var(--ui-accent)]/30 focus:outline-none transition-all"
+              className="w-full h-11 xs:h-12 ps-11 xs:ps-12 rounded-xl border border-white/5 bg-black/40 text-[10px] xs:text-xs font-bold uppercase text-white focus:ring-1 focus:ring-[var(--ui-accent)]/30 focus:outline-none transition-all"
             />
           </div>
         </div>
@@ -221,25 +222,25 @@ const ChatPage: React.FC = () => {
                         key={group.id}
                         onClick={() => { setActiveGroup(group.id); clearUnread(group.id); }}
                         className={cn(
-                          "w-full flex items-center gap-3 sm:gap-4 px-3 py-3 sm:px-4 rounded-xl transition-all duration-300 relative group overflow-hidden border",
+                          "w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 relative group overflow-hidden border",
                           isSelected
-                            ? "bg-[var(--ui-accent)]/5 border-[var(--ui-accent)]/20 shadow-xl shadow-[var(--ui-accent)]/5"
+                            ? "bg-[var(--ui-accent)]/5 border-[var(--ui-accent)]/20 shadow-xl shadow-[var(--ui-accent)]/10"
                             : "bg-transparent border-transparent hover:bg-white/[0.02] hover:border-white/5"
                         )}
                       >
                         <div className={cn(
-                          "w-10 h-10 shrink-0 rounded-lg flex items-center justify-center font-bold text-xs transition-all duration-500 relative z-10",
+                          "w-9 h-9 xs:w-10 xs:h-10 shrink-0 rounded-lg flex items-center justify-center font-bold text-xs transition-all duration-500 relative z-10",
                           isSelected ? "bg-[var(--ui-accent)] text-white shadow-glow" : "bg-white/[0.03] border border-white/5 text-slate-500"
                         )}>
-                          <Hash className="w-4 h-4" />
+                          <Hash className="w-3.5 h-3.5 xs:w-4 xs:h-4" />
                         </div>
                         <div className="flex-1 text-start min-w-0 relative z-10">
-                          <p className="text-[11px] font-bold truncate uppercase text-white">{group.name}</p>
-                          <p className={cn("text-xs font-bold truncate uppercase mt-0.5 tracking-wider", isSelected ? "text-[var(--ui-accent)]/70" : "text-slate-600")}>
+                          <p className="text-[10px] xs:text-[11px] font-bold truncate uppercase text-white">{group.name}</p>
+                          <p className={cn("text-[9px] xs:text-xs font-bold truncate uppercase mt-0.5 tracking-wider", isSelected ? "text-[var(--ui-accent)]/70" : "text-slate-600")}>
                             {lastMsg ? `${lastMsg.senderName}: ${lastMsg.text}` : `L${group.level} Matrix`}
                           </p>
                         </div>
-                        {unread > 0 && !isSelected && <div className="ms-2 w-5 h-5 flex items-center justify-center bg-[var(--ui-accent)] text-white text-xs font-bold rounded-full shadow-glow animate-pulse">{unread}</div>}
+                        {unread > 0 && !isSelected && <div className="ms-2 w-4 h-4 xs:w-5 xs:h-5 flex items-center justify-center bg-[var(--ui-accent)] text-white text-[9px] xs:text-xs font-bold rounded-full shadow-glow animate-pulse">{unread}</div>}
                       </button>
                     );
                   })}
@@ -278,25 +279,28 @@ const ChatPage: React.FC = () => {
           )}
         </div>
 
-        <div className="p-3 sm:p-4 md:p-6 bg-black/40 border-t border-white/5">
-          <div className="flex items-center gap-3 bg-white/[0.02] p-3 sm:p-4 rounded-xl border border-white/5 relative overflow-hidden group">
+        <div className="p-3 xs:p-4 md:p-6 bg-black/40 border-t border-white/5 mt-auto">
+          <div className="flex items-center gap-3 bg-white/[0.02] p-3 xs:p-4 rounded-xl border border-white/5 relative overflow-hidden group">
             <div className="absolute inset-0 bg-[var(--ui-accent)]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative">
-              <div className="w-10 h-10 rounded-full bg-[var(--ui-sidebar-bg)] flex items-center justify-center border border-white/5 text-slate-600 group-hover:text-[var(--ui-accent)] transition-colors overflow-hidden">
-                {user?.avatarUrl ? <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" /> : <UserIcon className="w-5 h-5" />}
+              <div className="w-9 h-9 xs:w-10 xs:h-10 rounded-full bg-[var(--ui-sidebar-bg)] flex items-center justify-center border border-white/5 text-slate-600 group-hover:text-[var(--ui-accent)] transition-colors overflow-hidden">
+                {user?.avatarUrl ? <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" /> : <UserIcon className="w-4 h-4 xs:w-5 xs:h-5" />}
               </div>
-              <div className="absolute -bottom-0.5 -end-0.5 w-3 h-3 rounded-full bg-[var(--ui-accent)] border border-[#060608] shadow-glow" />
+              <div className="absolute -bottom-0.5 -end-0.5 w-2.5 h-2.5 xs:w-3 xs:h-3 rounded-full bg-[var(--ui-accent)] border border-[#060608] shadow-glow" />
             </div>
             <div className="flex flex-col flex-1 min-w-0 relative z-10">
-              <span className="text-xs font-bold text-white uppercase truncate">{user?.name}</span>
-              <span className="text-xs font-bold text-slate-600 uppercase truncate">{user?.role} Unit</span>
+              <span className="text-[10px] xs:text-xs font-bold text-white uppercase truncate">{user?.name}</span>
+              <span className="text-[9px] xs:text-[10px] font-bold text-slate-600 uppercase truncate">{user?.role} Unit</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Zenith Chat Area */}
-      <div className={cn("flex-1 flex h-full bg-[var(--ui-bg)]/40 relative z-0", !activeGroupId && "hidden md:flex")}>
+      <div className={cn(
+        "flex-1 flex h-full bg-[var(--ui-bg)]/40 relative z-0 transition-all duration-500",
+        activeGroupId ? "translate-x-0 opacity-100" : "translate-x-full md:translate-x-0 opacity-0 md:opacity-100 pointer-events-none md:pointer-events-auto"
+      )}>
         {currentGroup ? (
           <div className="flex-1 flex flex-col h-full">
             <GroupHeader

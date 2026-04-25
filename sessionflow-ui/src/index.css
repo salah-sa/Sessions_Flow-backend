@@ -8,6 +8,9 @@
   --color-ui-surface-hover: var(--ui-surface-hover);
   --color-ui-accent: var(--ui-accent);
   --color-ui-accent-secondary: var(--ui-accent-secondary);
+
+  --breakpoint-xs: 375px;
+  --breakpoint-3xl: 1920px;
 }
 
 :root {
@@ -364,6 +367,20 @@
   /* Safe area bottom padding for notch/gesture-bar devices */
   .safe-bottom {
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  /* Chat Specific Utilities */
+  .chat-sidebar-width {
+    width: clamp(280px, 25vw, 380px);
+  }
+
+  .chat-bubble-max {
+    max-width: clamp(65%, 75vw, 88%);
+  }
+
+  .touch-target-min {
+    min-width: 44px;
+    min-height: 44px;
   }
 }
 
