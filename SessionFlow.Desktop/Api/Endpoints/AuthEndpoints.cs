@@ -64,7 +64,11 @@ public static class AuthEndpoints
                     latitude = user.Latitude,
                     longitude = user.Longitude,
                     city = user.City,
-                    createdAt = user.CreatedAt
+                    createdAt = user.CreatedAt,
+                    subscriptionTier = user.SubscriptionTier.ToString(),
+                    restrictedUntil = user.RestrictedUntil,
+                    restrictionReason = user.RestrictionReason,
+                    blockedPages = user.BlockedPages ?? new List<string>()
                 }
             });
         });
@@ -360,7 +364,11 @@ public static class AuthEndpoints
                 latitude = user.Latitude,
                 longitude = user.Longitude,
                 city = user.City,
-                createdAt = user.CreatedAt
+                createdAt = user.CreatedAt,
+                subscriptionTier = user.SubscriptionTier.ToString(),
+                restrictedUntil = user.RestrictedUntil,
+                restrictionReason = user.RestrictionReason,
+                blockedPages = user.BlockedPages ?? new List<string>()
             });
         }).RequireAuthorization();
 

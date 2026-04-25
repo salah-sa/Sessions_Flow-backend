@@ -58,10 +58,13 @@ const LanguageBridge: React.FC = () => {
 };
 
 const NavItem = ({ to, icon: Icon, label, badge, locked, premiumLocked, pageBlocked }: { to: string; icon: any; label: string; badge?: number; locked?: boolean; premiumLocked?: boolean; pageBlocked?: boolean }) => {
+  const user = useAuthStore((s) => s.user);
+  
   const handleClick = (e: React.MouseEvent) => {
     if (pageBlocked) {
       e.preventDefault();
-      toast.error("Access to this page has been restricted by an administrator.");
+      const reason = user?.restrictionReason ? ` Reason: ${user.restrictionReason}` : "";
+      toast.error(`Access to this page has been restricted by an administrator.${reason}`);
     } else if (locked) {
       e.preventDefault();
       toast.error("Not allowed, only for engineer");
@@ -96,8 +99,12 @@ const NavItem = ({ to, icon: Icon, label, badge, locked, premiumLocked, pageBloc
           <span className="text-[11px] font-bold uppercase tracking-[0.2em] flex-1">{label}</span>
           
           {locked || pageBlocked ? (
-            <div className={cn("w-6 h-6 rounded-md flex items-center justify-center backdrop-blur-md", pageBlocked ? "bg-orange-500/10 border border-orange-500/20 shadow-glow shadow-orange-500/10" : "bg-rose-500/10 border border-rose-500/20 shadow-glow shadow-rose-500/10")}>
-               <Lock className={cn("w-3 h-3", pageBlocked ? "text-orange-400" : "text-rose-500")} />
+            <div className={cn("w-6 h-6 rounded-md flex items-center justify-center backdrop-blur-md", pageBlocked ? "bg-rose-500/10 border border-rose-500/20 shadow-glow shadow-rose-500/10" : "bg-rose-500/10 border border-rose-500/20 shadow-glow shadow-rose-500/10")}>
+               {pageBlocked ? (
+                 <ShieldBan className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
+               ) : (
+                 <Lock className="w-3 h-3 text-rose-500" />
+               )}
             </div>
           ) : premiumLocked ? (
             <div className="w-6 h-6 rounded-md bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shadow-glow shadow-purple-500/10 backdrop-blur-md">
@@ -161,7 +168,11 @@ const Sidebar: React.FC = () => {
   const userTier = user?.subscriptionTier || "Free";
   const isPremium = isAdmin || userTier === "Pro" || userTier === "Enterprise";
   const blockedPages = user?.blockedPages ?? [];
-  const isBlocked = (routePath: string) => blockedPages.includes(routePath.replace("/", ""));
+  const isBlocked = (routePath: string) => {
+    let key = routePath.replace("/", "");
+    if (key === "plans") key = "pricing"; // Handle route vs key mismatch
+    return blockedPages.includes(key);
+  };
 
   return (
     <aside className="h-full w-[280px] bg-[var(--ui-sidebar-bg)] border-e border-white/5 flex flex-col z-[50]">

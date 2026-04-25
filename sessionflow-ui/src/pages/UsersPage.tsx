@@ -10,21 +10,23 @@ import { ar, enUS } from "date-fns/locale";
 import {
   Users, Search, Shield, ShieldAlert, ShieldOff, ShieldCheck,
   Filter, ChevronDown, X, Lock, Unlock, Eye, EyeOff, Clock,
-  Ban, RotateCcw, UserCircle2, Mail, Crown, Calendar, FileWarning
+  Ban, RotateCcw, UserCircle2, Mail, Crown, Calendar, FileWarning,
+  BarChart3, Target, User, CheckCircle, MessageSquare, Settings, Map
 } from "lucide-react";
 
 // Available platform pages for blocking
 const PLATFORM_PAGES = [
-  { key: "dashboard", label: "Dashboard", icon: "📊" },
-  { key: "groups", label: "Groups", icon: "👥" },
-  { key: "sessions", label: "Sessions", icon: "📅" },
-  { key: "students", label: "Students", icon: "🎓" },
-  { key: "chat", label: "Chat", icon: "💬" },
-  { key: "history", label: "History", icon: "📜" },
-  { key: "pricing", label: "Plans & Pricing", icon: "💎" },
-  { key: "settings", label: "Settings", icon: "⚙️" },
-  { key: "timetable", label: "Timetable", icon: "🗓️" },
-  { key: "map", label: "Student Map", icon: "🗺️" },
+  { key: "dashboard", label: "Dashboard", icon: BarChart3 },
+  { key: "groups", label: "Groups", icon: Users },
+  { key: "sessions", label: "Sessions", icon: Target },
+  { key: "students", label: "Students", icon: User },
+  { key: "attendance", label: "Attendance", icon: CheckCircle },
+  { key: "chat", label: "Chat", icon: MessageSquare },
+  { key: "history", label: "History", icon: Clock },
+  { key: "plans", label: "Plans & Pricing", icon: Crown },
+  { key: "settings", label: "Settings", icon: Settings },
+  { key: "timetable", label: "Timetable", icon: Calendar },
+  { key: "map", label: "Student Map", icon: Map },
 ];
 
 interface UserItem {
@@ -443,8 +445,8 @@ const UsersPage: React.FC = () => {
                   {selectedUser.blockedPages?.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5">
                       {selectedUser.blockedPages.map(p => (
-                        <span key={p} className="px-2 py-1 rounded-md bg-orange-500/10 text-[10px] font-bold text-orange-400 border border-orange-500/20">
-                          🔒 {PLATFORM_PAGES.find(pp => pp.key === p)?.label || p}
+                        <span key={p} className="px-2 py-1 rounded-md bg-orange-500/10 text-[10px] font-bold text-orange-400 border border-orange-500/20 flex items-center gap-1">
+                          <Lock className="w-3 h-3" /> {PLATFORM_PAGES.find(pp => pp.key === p)?.label || p}
                         </span>
                       ))}
                     </div>
@@ -469,7 +471,7 @@ const UsersPage: React.FC = () => {
                               : "bg-[var(--ui-surface)] border-white/5 text-slate-400 hover:border-white/20"
                           )}
                         >
-                          <span className="text-sm">{page.icon}</span>
+                          <span className="text-sm"><page.icon className="w-4 h-4 text-slate-400" /></span>
                           <span className="text-xs font-semibold flex-1">{page.label}</span>
                           {pendingBlockedPages.includes(page.key) ? (
                             <EyeOff className="w-3.5 h-3.5 text-red-400" />
@@ -501,8 +503,8 @@ const UsersPage: React.FC = () => {
         title={confirmAction?.type === "ban" ? "Confirm Lifetime Ban" : "Confirm Access Restriction"}
         description={
           confirmAction?.type === "ban"
-            ? `This will permanently ban ${confirmAction.user.name}. They will lose all access to the platform. Are you sure?`
-            : `This will restrict ${confirmAction?.user.name}'s access for ${confirmAction?.days} day(s). They will not be able to log in during this period.`
+            ? `This will permanently ban ${confirmAction.user.name}. They will lose access to all features but can still log in to view their status. Are you sure?`
+            : `This will restrict ${confirmAction?.user.name}'s access for ${confirmAction?.days} day(s). They will be restricted from using platform features during this period.`
         }
         confirmLabel={confirmAction?.type === "ban" ? "Ban Permanently" : "Apply Restriction"}
         variant="danger"

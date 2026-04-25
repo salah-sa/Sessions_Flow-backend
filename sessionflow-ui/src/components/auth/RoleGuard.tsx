@@ -23,9 +23,12 @@ const RoleGuard: React.FC<RoleGuardProps> = ({ children, allowedRoles }) => {
   }
 
   // Page-level blocking enforcement
-  const currentPage = location.pathname.split("/")[1]; // e.g. "chat", "groups"
+  let currentPage = location.pathname.split("/")[1]; // e.g. "chat", "groups"
+  if (currentPage === "plans") currentPage = "pricing";
+  
   if (user.blockedPages?.includes(currentPage)) {
-    toast.error("Access to this page has been restricted by an administrator.", { id: "page-blocked" });
+    const reason = user.restrictionReason ? ` Reason: ${user.restrictionReason}` : "";
+    toast.error(`Access to this page has been restricted by an administrator.${reason}`, { id: "page-blocked" });
     return <Navigate to="/dashboard" replace />;
   }
 

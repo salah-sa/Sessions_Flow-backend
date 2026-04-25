@@ -79,7 +79,7 @@ public static class AdminUserEndpoints
         });
 
         // POST: /api/admin/users/{id}/restrict — Apply timed access restriction
-        group.MapPost("/{id}/restrict", async (Guid id, HttpContext ctx, AuthService auth, MongoService db) =>
+        group.MapPost("/{id}/restrict", async (Guid id, HttpContext ctx, AuthService auth, MongoService db, NotificationService notifService, SessionFlow.Desktop.Services.EventBus.IEventBus eventBus) =>
         {
             var caller = await auth.GetUserFromClaimsAsync(ctx.User);
             if (caller?.Role != UserRole.Admin) return Results.Forbid();
@@ -92,6 +92,7 @@ public static class AdminUserEndpoints
 
             var user = await db.Users.Find(u => u.Id == id).FirstOrDefaultAsync();
             if (user == null) return Results.NotFound(new { error = "User not found." });
+            if (user.Role == UserRole.Admin) return Results.BadRequest(new { error = "Cannot restrict an admin." });
 
             DateTimeOffset restrictUntil;
             string reason;
@@ -135,17 +136,25 @@ public static class AdminUserEndpoints
             };
             await db.AuditLogs.InsertOneAsync(audit);
 
+            string notificationTitle = payload.Days == -1 ? "🚫 Account Banned" : "⚠️ Access Restricted";
+            string notificationMessage = payload.Days == -1 
+                ? $"Your account has been permanently banned. Reason: {reason}"
+                : $"Your account has been restricted for {payload.Days} days. Reason: {reason}";
+            await notifService.CreateNotificationAsync(id, notificationTitle, notificationMessage, NotificationType.Warning);
+            await eventBus.PublishAsync(SessionFlow.Desktop.Services.EventBus.Events.UserUpdated, SessionFlow.Desktop.Services.EventBus.EventTargetType.User, id.ToString(), new { });
+
             return Results.Ok(new { success = true, restrictedUntil = restrictUntil, reason });
         });
 
         // POST: /api/admin/users/{id}/restore — Clear restriction
-        group.MapPost("/{id}/restore", async (Guid id, HttpContext ctx, AuthService auth, MongoService db) =>
+        group.MapPost("/{id}/restore", async (Guid id, HttpContext ctx, AuthService auth, MongoService db, NotificationService notifService, SessionFlow.Desktop.Services.EventBus.IEventBus eventBus) =>
         {
             var caller = await auth.GetUserFromClaimsAsync(ctx.User);
             if (caller?.Role != UserRole.Admin) return Results.Forbid();
 
             var user = await db.Users.Find(u => u.Id == id).FirstOrDefaultAsync();
             if (user == null) return Results.NotFound(new { error = "User not found." });
+            if (user.Role == UserRole.Admin) return Results.BadRequest(new { error = "Cannot modify governance for an admin." });
 
             var update = Builders<User>.Update
                 .Set(u => u.RestrictedUntil, (DateTimeOffset?)null)
@@ -166,11 +175,14 @@ public static class AdminUserEndpoints
             };
             await db.AuditLogs.InsertOneAsync(audit);
 
+            await notifService.CreateNotificationAsync(id, "✅ Access Restored", "All restrictions on your account have been lifted.", NotificationType.Success);
+            await eventBus.PublishAsync(SessionFlow.Desktop.Services.EventBus.Events.UserUpdated, SessionFlow.Desktop.Services.EventBus.EventTargetType.User, id.ToString(), new { });
+
             return Results.Ok(new { success = true });
         });
 
         // PUT: /api/admin/users/{id}/blocked-pages — Update blocked pages
-        group.MapPut("/{id}/blocked-pages", async (Guid id, HttpContext ctx, AuthService auth, MongoService db) =>
+        group.MapPut("/{id}/blocked-pages", async (Guid id, HttpContext ctx, AuthService auth, MongoService db, NotificationService notifService, SessionFlow.Desktop.Services.EventBus.IEventBus eventBus) =>
         {
             var caller = await auth.GetUserFromClaimsAsync(ctx.User);
             if (caller?.Role != UserRole.Admin) return Results.Forbid();
@@ -183,6 +195,7 @@ public static class AdminUserEndpoints
 
             var user = await db.Users.Find(u => u.Id == id).FirstOrDefaultAsync();
             if (user == null) return Results.NotFound(new { error = "User not found." });
+            if (user.Role == UserRole.Admin) return Results.BadRequest(new { error = "Cannot modify governance for an admin." });
 
             var update = Builders<User>.Update
                 .Set(u => u.BlockedPages, payload.Pages ?? new List<string>())
@@ -201,6 +214,9 @@ public static class AdminUserEndpoints
                 Details = $"{caller.Name} updated blocked pages for {user.Name}: [{string.Join(", ", payload.Pages ?? new List<string>())}]"
             };
             await db.AuditLogs.InsertOneAsync(audit);
+
+            await notifService.CreateNotificationAsync(id, "🔒 Page Access Changed", "Access to certain pages has been restricted. Contact your admin for details.", NotificationType.Warning);
+            await eventBus.PublishAsync(SessionFlow.Desktop.Services.EventBus.Events.UserUpdated, SessionFlow.Desktop.Services.EventBus.EventTargetType.User, id.ToString(), new { });
 
             return Results.Ok(new { success = true, blockedPages = payload.Pages });
         });
