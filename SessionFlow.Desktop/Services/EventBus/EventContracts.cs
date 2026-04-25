@@ -71,4 +71,5 @@ public static class Events
     // System / Sync
     // ═══════════════════════════════════════════════
     public const string SyncState = "sync:state";
+    public const string UserUpdated = "user:updated";
 }
