@@ -40,8 +40,7 @@ public static class AdminUserEndpoints
                 filters.Add(filterBuilder.Eq(u => u.Role, parsedRole));
             }
 
-            // Exclude the admin themselves from the list
-            filters.Add(filterBuilder.Ne(u => u.Id, caller.Id));
+            // Removed exclusion so admins can see themselves in the dashboard
 
             var filter = filters.Count > 0 ? filterBuilder.And(filters) : filterBuilder.Empty;
 
