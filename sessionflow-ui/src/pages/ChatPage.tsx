@@ -68,7 +68,7 @@ const ChatPage: React.FC = () => {
     if (!fullSelectedGroup) return null;
     return {
       ...fullSelectedGroup,
-      students: studentsInGroup.length > 0 ? studentsInGroup : fullSelectedGroup.students || []
+      students: fullSelectedGroup.students?.length ? fullSelectedGroup.students : (studentsInGroup.length > 0 ? studentsInGroup : [])
     };
   }, [fullSelectedGroup, studentsInGroup]);
 
