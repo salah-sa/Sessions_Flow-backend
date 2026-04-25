@@ -2,7 +2,8 @@ import React, { useMemo } from "react";
 import { X, Shield, User as UserIcon, Crown, Wifi, WifiOff, Phone, Activity, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../../lib/utils";
-import { Group } from "../../types";
+import { Group, Student } from "../../types";
+import { toast } from "sonner";
 import { usePresenceStore, PresenceStatus } from "../../store/presenceStore";
 import { useAuthStore } from "../../store/stores";
 import { useCallStore } from "../../store/callStore";
@@ -79,7 +80,7 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
     useCallStore.getState().startCall(member.userId, member.name, member.avatarUrl || undefined);
     invoke("CallUser", member.userId).catch((err) => {
       console.error("SignalR CallUser failed:", err);
-      toast.error(t("chat.call_failed", "Failed to reach member node"));
+      toast.error("Failed to reach member node");
     });
   };
 

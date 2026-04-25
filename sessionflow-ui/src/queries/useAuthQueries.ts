@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { authApi } from "../api/resources";
 import { useAuthStore } from "../store/stores";
 import { queryKeys } from "./keys";
+import { AuthResponse } from "../types";
 
 export const useAuthMutations = () => {
   const queryClient = useQueryClient();

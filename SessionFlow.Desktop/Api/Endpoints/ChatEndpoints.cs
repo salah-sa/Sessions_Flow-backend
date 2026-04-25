@@ -224,7 +224,7 @@ public static class ChatEndpoints
             };
 
             // IMPORTANT MESSAGE NOTIFICATION TRIGGER
-            if (textParams.Trim().StartsWith("--"))
+            if (textParams.Trim().StartsWith("//"))
             {
                 _ = Task.Run(async () =>
                 {
@@ -245,7 +245,7 @@ public static class ChatEndpoints
 
                         foreach (var recipient in recipients)
                         {
-                            if (!await presence.IsOnline(recipient.Id.ToString()))
+                            if (!presence.IsOnline(recipient.Id.ToString()))
                             {
                                 var subject = $"[SessionFlow] Important Message in {g.Name}";
                                 var body = $@"
