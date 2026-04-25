@@ -15,6 +15,7 @@ import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { Group, Student, User as ProjectUser } from "../../types";
 import { createMentionEngine, MentionEngine, MentionableMember } from "../../lib/MentionEngine";
+import { usePresenceStore, PresenceStatus } from "../../store/presenceStore";
 import AnimatedChatIcon from "../ui/AnimatedChatIcon";
 
 const BlockMessageRenderer: React.FC<{ message: ChatMessage }> = ({ message }) => {
@@ -64,7 +65,10 @@ const BlockMessageRenderer: React.FC<{ message: ChatMessage }> = ({ message }) =
   return <div className="whitespace-pre-wrap break-words leading-relaxed">{text}</div>;
 };
 
-const ProfileImage: React.FC<{ url?: string | null; initial?: string; isMe: boolean; }> = ({ url, initial, isMe }) => {
+const ProfileImage: React.FC<{ userId?: string; url?: string | null; initial?: string; isMe: boolean; }> = ({ userId, url, initial, isMe }) => {
+  const presence = usePresenceStore((s) => userId ? s.getPresence(userId) : { status: "offline" as PresenceStatus, confidence: 0 });
+  const status = isMe ? "online" : presence.status;
+  
   return (
     <div className={cn(
       "w-9 h-9 rounded-full flex items-center justify-center shrink-0 relative overflow-hidden ring-1 ring-white/10",
@@ -75,7 +79,23 @@ const ProfileImage: React.FC<{ url?: string | null; initial?: string; isMe: bool
       ) : (
         <span className={cn("text-[10px] font-bold uppercase", isMe ? "text-ui-accent" : "text-slate-500")}>{initial || "U"}</span>
       )}
-      <div className={cn("absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-ui-bg", isMe ? "bg-ui-accent" : "bg-emerald-500")} />
+      
+      <div className="absolute -bottom-0.5 -right-0.5">
+        <div className={cn(
+          "w-2.5 h-2.5 rounded-full border border-ui-bg transition-all duration-500 relative",
+          status === "online" ? "bg-ui-accent shadow-[0_0_8px_rgba(var(--ui-accent-rgb),0.6)]" : 
+          status === "away" ? "bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.4)]" : 
+          "bg-slate-700"
+        )}>
+          {status === "online" && (
+            <motion.div
+              animate={{ scale: [1, 2], opacity: [0.4, 0] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+              className="absolute inset-0 rounded-full bg-ui-accent"
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 };
@@ -105,7 +125,7 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
       )}
 
       <div className={cn("flex items-end gap-2 md:gap-4 chat-bubble-max", isMe && "flex-row-reverse")}>
-        <ProfileImage url={profileImageUrl} initial={initial} isMe={isMe} />
+        <ProfileImage userId={isMe ? currentUser?.id : message.senderId} url={profileImageUrl} initial={initial} isMe={isMe} />
 
         <div className="flex flex-col gap-1.5 md:gap-2 min-w-0">
           <div className={cn(

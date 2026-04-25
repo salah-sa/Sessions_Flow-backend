@@ -25,19 +25,27 @@ const PresenceDot: React.FC<{ userId: string; size?: "sm" | "md" }> = ({ userId,
   
   if (status === "online") {
     bgColor = "bg-[var(--ui-accent)]";
-    shadow = "shadow-[0_0_8px_rgba(var(--ui-accent-rgb),0.6)]";
+    shadow = "shadow-[0_0_10px_rgba(var(--ui-accent-rgb),0.6)]";
   } else if (status === "away") {
-    bgColor = "bg-[#7c3aed]/60";
-    shadow = "shadow-[0_0_6px_rgba(124,58,237,0.4)]";
+    bgColor = "bg-[#7c3aed]";
+    shadow = "shadow-[0_0_8px_rgba(124,58,237,0.4)]";
   }
   
   return (
     <div className={cn(
       dotSize,
-      "rounded-full border border-[var(--ui-bg)] transition-all duration-500",
+      "rounded-full border border-[var(--ui-bg)] transition-all duration-500 relative",
       bgColor,
       shadow
-    )} />
+    )}>
+      {status === "online" && (
+        <motion.div
+          animate={{ scale: [1, 2], opacity: [0.4, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+          className="absolute inset-0 rounded-full bg-[var(--ui-accent)]"
+        />
+      )}
+    </div>
   );
 };
 
