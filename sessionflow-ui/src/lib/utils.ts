@@ -20,11 +20,25 @@ export function formatTime12h(time: string | null) {
 }
 
 export function formatDateTo12h(date: Date): string {
-  const h = date.getHours();
-  const m = date.getMinutes();
-  const ampm = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 || 12;
-  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+  // Enforce Africa/Cairo timezone to prevent local OS offset mismatch
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Africa/Cairo',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+  return formatter.format(date);
+}
+
+export function getCairoDateStr(): string {
+  // Always query based on the active day in Cairo, bypassing local browser time.
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Cairo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  return formatter.format(new Date());
 }
 
 export function formatDate(date: string | Date) {
