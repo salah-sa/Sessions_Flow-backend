@@ -213,6 +213,39 @@ const resources = {
            "subtitle": "Select operational node to initiate."
         }
       },
+      "student_dashboard": {
+        "identity_resolution": "Neural Identity",
+        "sync_neural": "Synchronizing Neural Environment...",
+        "identity_failed": "Identity Resolution Failed",
+        "verify_error": "Your student records could not be verified.",
+        "priority_directive": "Priority Directive",
+        "enter_operations": "Enter Operations",
+        "no_active_nodes": "No Active Nodes",
+        "course_trajectory": "Course Trajectory",
+        "target_edge": "Target Edge",
+        "remaining": "Remaining",
+        "recent_sessions": "Recent Sessions",
+        "neural_link_active": "Neural Link Active",
+        "countdown": {
+          "title": "Next Mission Start",
+          "days": "Days",
+          "hours": "Hours",
+          "minutes": "Minutes",
+          "seconds": "Seconds",
+          "ready": "GET READY",
+          "starting_now": "STARTING NOW"
+        },
+        "prep": {
+          "title": "Pre-Mission Checklist",
+          "internet": "Check Internet Connection",
+          "hw": "Verify Homework Completion",
+          "charged": "Device Fully Charged",
+          "quiet": "Find Quiet Environment",
+          "forgot_hw": "Forgot your homework? Ask your instructor in the chat.",
+          "go_to_chat": "Go to Chat",
+          "reminder_tomorrow": "Your session is tomorrow! Are you ready?"
+        }
+      },
       "sidebar": {
         "levels": {
           "level": "Level",
@@ -669,7 +702,9 @@ const resources = {
         "system_id": "ID: {{id}}",
         "production_segment": "Support Segment",
         "send": "Send Message",
-        "placeholder": "Type your message..."
+        "placeholder": "Type your message...",
+        "members": "Members",
+        "call_failed": "Failed to reach member node"
       },
       "admin": {
         "title": "Administration",
@@ -966,7 +1001,8 @@ const resources = {
           "step_verify": "Confirm",
           "step_reset": "Finish",
           "no_email": "No recovery email found. Contact support."
-        }
+        },
+        "social_login_restricted": "Social login is only available for linked accounts. Please sign in with email first."
       },
       "group_sessions": {
         "page_title": "Session Overview",
@@ -1029,7 +1065,10 @@ const resources = {
           "system_action": "System Process"
         },
         "student_restricted": "Restricted Access",
-        "student_restricted_desc": "Full data is only available to administrative staff."
+        "student_restricted_desc": "Full data is only available to administrative staff.",
+        "social": {
+          "link_success": "Social account linked successfully"
+        }
       }
     }
   },
@@ -1153,6 +1192,39 @@ const resources = {
           "avg_rate": "متوسط الحضور",
           "completion_rate": "معدل الإنجاز",
           "groups_by_level": "المجموعات حسب المستوى"
+        }
+      },
+      "student_dashboard": {
+        "identity_resolution": "الهوية الرقمية",
+        "sync_neural": "جاري مزامنة البيئة العصبية...",
+        "identity_failed": "فشل التحقق من الهوية",
+        "verify_error": "تعذر التحقق من سجلاتك الطلابية.",
+        "priority_directive": "التوجيه الأساسي",
+        "enter_operations": "دخول العمليات",
+        "no_active_nodes": "لا توجد جلسات نشطة",
+        "course_trajectory": "مسار الدورة",
+        "target_edge": "الهدف",
+        "remaining": "المتبقي",
+        "recent_sessions": "الجلسات الأخيرة",
+        "neural_link_active": "الارتباط نشط",
+        "countdown": {
+          "title": "بداية المهمة القادمة",
+          "days": "أيام",
+          "hours": "ساعات",
+          "minutes": "دقائق",
+          "seconds": "ثواني",
+          "ready": "استعد",
+          "starting_now": "تبدأ الآن"
+        },
+        "prep": {
+          "title": "قائمة التحضير للمهمة",
+          "internet": "تحقق من اتصال الإنترنت",
+          "hw": "تأكد من إكمال الواجب",
+          "charged": "الجهاز مشحون بالكامل",
+          "quiet": "ابحث عن بيئة هادئة",
+          "forgot_hw": "نسيت واجبك؟ اسأل معلمك في المحادثة.",
+          "go_to_chat": "اذهب للمحادثة",
+          "reminder_tomorrow": "جلستك غداً! هل أنت مستعد؟"
         }
       },
       "groups": {
@@ -1531,7 +1603,9 @@ const resources = {
         "system_id": "معرف_النظام: {{id}}",
         "production_segment": "قطاع الإنتاج 104",
         "send": "إرسال",
-        "placeholder": "اكتب رسالتك..."
+        "placeholder": "اكتب رسالتك...",
+        "members": "الأعضاء",
+        "call_failed": "فشل الوصول إلى عضو المجموعة"
       },
       "admin": {
         "title": "لوحة التحكم",
@@ -1875,8 +1949,11 @@ const resources = {
         "activity_title": "سجل النشاط",
         "live_feed": "بث-مباشر",
         "no_activity": "لا توجد بيانات نشاط",
-        "student_restricted": "تصريح الأكاديمية مقيد",
-        "student_restricted_desc": "بيانات النظام التفصيلية متاحة فقط للمهندسين المعتمدين."
+        "student_restricted": "وصول محدود",
+        "student_restricted_desc": "البيانات الكاملة متاحة فقط للموظفين الإداريين.",
+        "social": {
+          "link_success": "تم ربط الحساب بنجاح"
+        }
       },
       "connection": {
         "strong": "اتصال قوي",

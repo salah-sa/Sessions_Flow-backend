@@ -502,7 +502,13 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
                   <span className="mx-4 text-[9px] text-slate-600 uppercase font-bold">Or continue with</span>
                   <div className="flex-grow h-[1px] bg-white/5" />
                 </div>
-                <SocialButtons mode="icon-only" layout="row" theme="dark" />
+                <SocialButtons 
+                  mode="icon-only" 
+                  layout="row" 
+                  theme="dark" 
+                  onGoogleClick={() => props.onSocialLogin?.("Google")}
+                  onFacebookClick={() => props.onSocialLogin?.("Facebook")}
+                />
                 
                 <p className="text-[12px] text-slate-500 mt-6">
                   {isRegister ? (

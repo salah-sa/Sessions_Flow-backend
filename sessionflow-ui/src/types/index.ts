@@ -23,6 +23,8 @@ export interface User {
   restrictedUntil?: string;
   restrictionReason?: string;
   blockedPages?: string[];
+  googleId?: string;
+  facebookId?: string;
 }
 
 export type GroupStatus = "Active" | "Completed" | "Archived";

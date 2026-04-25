@@ -101,40 +101,40 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-full bg-[var(--ui-bg)] text-white overflow-y-auto custom-scrollbar relative pb-20 selection:bg-[var(--ui-accent)]/30">
+    <div className="h-full bg-[var(--ui-bg)] text-white overflow-y-auto custom-scrollbar relative pb-10 md:pb-20 selection:bg-[var(--ui-accent)]/30">
       {/* Background Effects */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[var(--ui-accent)]/10 blur-[120px] rounded-full pointer-events-none -z-10" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-24 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 md:pt-12 pb-10 md:pb-24 relative z-10">
         
         {/* Header */}
-        <div className="text-center max-w-3xl mx-auto mb-20 animate-fade-in">
-          <Badge variant="glow" className="mb-6 mx-auto bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] border-[var(--ui-accent)]/20 px-5 py-2 text-[10px] font-black tracking-[0.2em] uppercase">
+        <div className="text-center max-w-3xl mx-auto mb-8 md:mb-20 animate-fade-in">
+          <Badge variant="glow" className="mb-4 md:mb-6 mx-auto bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] border-[var(--ui-accent)]/20 px-4 md:px-5 py-1.5 md:py-2 text-[8px] md:text-[10px] font-black tracking-[0.2em] uppercase">
             Zenith Pricing Architecture
           </Badge>
-          <h1 className="text-[clamp(2.5rem,8vw,4.5rem)] font-black mb-8 tracking-tighter leading-[0.9] bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-white/20">
+          <h1 className="text-[clamp(2rem,7vw,4.5rem)] font-black mb-6 md:mb-8 tracking-tighter leading-[0.95] md:leading-[0.9] bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-white/20">
             Scale Your Teaching Empire
           </h1>
-          <p className="text-slate-400 text-sm md:text-lg font-medium max-w-2xl mx-auto leading-relaxed">
+          <p className="text-slate-400 text-xs md:text-lg font-medium max-w-2xl mx-auto leading-relaxed px-4 md:px-0">
             Choose the perfect plan to streamline your sessions, engage your students, and unlock advanced analytics. Upgrade anytime.
           </p>
 
           {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-6 mt-12 bg-white/[0.02] border border-white/5 w-fit mx-auto px-6 py-3 rounded-2xl backdrop-blur-md">
-            <span className={cn("text-[10px] font-black uppercase tracking-widest transition-colors", !isAnnual ? "text-[var(--ui-accent)]" : "text-slate-500")}>Monthly</span>
+          <div className="flex items-center justify-center gap-4 md:gap-6 mt-6 md:mt-12 bg-white/[0.02] border border-white/5 w-fit mx-auto px-5 md:px-6 py-2.5 md:py-3 rounded-2xl backdrop-blur-md">
+            <span className={cn("text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-colors", !isAnnual ? "text-[var(--ui-accent)]" : "text-slate-500")}>Monthly</span>
             <button 
               onClick={() => setIsAnnual(!isAnnual)}
-              className="relative w-14 h-7 rounded-full bg-white/5 border border-white/10 p-1 transition-all hover:border-white/20"
+              className="relative w-12 h-6 md:w-14 md:h-7 rounded-full bg-white/5 border border-white/10 p-1 transition-all hover:border-white/20"
             >
               <motion.div 
-                animate={{ x: isAnnual ? 28 : 0 }}
+                animate={{ x: isAnnual ? 24 : 0 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                className="w-5 h-5 bg-[var(--ui-accent)] rounded-full shadow-[0_0_15px_rgba(var(--ui-accent-rgb),0.5)]"
+                className="w-4 h-4 md:w-5 md:h-5 bg-[var(--ui-accent)] rounded-full shadow-[0_0_15px_rgba(var(--ui-accent-rgb),0.5)]"
               />
             </button>
-            <div className="flex items-center gap-3">
-              <span className={cn("text-[10px] font-black uppercase tracking-widest transition-colors", isAnnual ? "text-[var(--ui-accent)]" : "text-slate-500")}>Annually</span>
-              <span className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-glow shadow-emerald-500/5">Save 20%</span>
+            <div className="flex items-center gap-2 md:gap-3">
+              <span className={cn("text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-colors", isAnnual ? "text-[var(--ui-accent)]" : "text-slate-500")}>Annually</span>
+              <span className="px-1.5 md:px-2 py-0.5 rounded-md text-[7px] md:text-[8px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-glow shadow-emerald-500/5">Save 20%</span>
             </div>
           </div>
         </div>
@@ -153,7 +153,7 @@ export default function PricingPage() {
                 transition={{ delay: i * 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
                 key={plan.name}
                 className={cn(
-                  "relative rounded-[2.5rem] border backdrop-blur-2xl p-8 lg:p-10 flex flex-col transition-all duration-500 group",
+                  "relative rounded-3xl sm:rounded-[2.5rem] border backdrop-blur-2xl p-5 sm:p-8 lg:p-10 flex flex-col transition-all duration-500 group",
                   plan.bgClass || (i === 1 ? "bg-[var(--ui-accent)]/[0.03]" : "bg-white/[0.01]"),
                   plan.borderClass || (i === 1 ? "border-[var(--ui-accent)]/20" : "border-white/5"),
                   "hover:translate-y-[-8px] hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)]"
@@ -173,7 +173,7 @@ export default function PricingPage() {
                   </div>
                 )}
 
-                <div className="mb-10">
+                <div className="mb-6 md:mb-10">
                   <div className={cn(
                     "w-14 h-14 rounded-2xl flex items-center justify-center mb-8 bg-gradient-to-br shadow-2xl transition-transform duration-500 group-hover:scale-110",
                     plan.color || (i === 0 ? "from-slate-500 to-slate-700" : i === 1 ? "from-[var(--ui-accent)] to-purple-600" : "from-amber-400 to-orange-500")
@@ -184,16 +184,16 @@ export default function PricingPage() {
                   <p className="text-xs text-slate-500 font-bold leading-relaxed line-clamp-2 uppercase tracking-wide">{plan.description}</p>
                 </div>
 
-                <div className="mb-10">
+                <div className="mb-6 md:mb-10">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-[clamp(2.5rem,4vw,3.5rem)] font-black text-white tracking-tighter">
+                    <span className="text-[clamp(1.8rem,4vw,3.5rem)] font-black text-white tracking-tighter">
                         {isAnnual ? plan.priceAnnual : plan.priceMonthly}
                     </span>
                     <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">/{isAnnual ? 'yr' : 'mo'}</span>
                   </div>
                 </div>
 
-                <div className="flex-1 space-y-5 mb-12">
+                <div className="flex-1 space-y-3 md:space-y-5 mb-6 md:mb-12">
                   {plan.features.map((feature: string, j: number) => (
                     <div key={j} className="flex items-center gap-4 group/item">
                       <div className="w-6 h-6 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center shrink-0 transition-colors group-hover/item:border-[var(--ui-accent)]/30 group-hover/item:bg-[var(--ui-accent)]/5">
@@ -223,7 +223,7 @@ export default function PricingPage() {
         </div>
 
         {/* Dynamic Footer Info */}
-        <div className="mt-24 text-center">
+        <div className="mt-12 md:mt-24 text-center">
             <p className="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4">
                 <Building2 className="w-4 h-4 opacity-30" /> Secure Enterprise Protocol Active <CreditCard className="w-4 h-4 opacity-30" />
             </p>

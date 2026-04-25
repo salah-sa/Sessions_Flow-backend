@@ -80,6 +80,16 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify({ code }),
     }),
+  linkSocial: (provider: string, id: string) =>
+    fetchWithAuth<{ message: string }>("/auth/profile/link-social", {
+      method: "POST",
+      body: JSON.stringify({ provider, id }),
+    }),
+  loginSocial: (provider: string, id: string) =>
+    fetchPublic<AuthResponse>("/auth/login-social", {
+      method: "POST",
+      body: JSON.stringify({ provider, id }),
+    }),
 };
 
 // Groups Module

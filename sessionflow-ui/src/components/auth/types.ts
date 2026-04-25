@@ -15,6 +15,7 @@ export interface SharedAuthProps {
   handleFieldBlur: () => void;
   handlePasswordChange: (e: any) => void;
   onNavigate: (path: string) => void;
+  onSocialLogin?: (provider: string) => void;
 }
 
 export interface LoginStyleProps extends SharedAuthProps {

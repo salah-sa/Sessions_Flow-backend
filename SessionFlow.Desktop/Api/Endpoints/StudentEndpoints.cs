@@ -138,7 +138,8 @@ public static class StudentEndpoints
                     avatarUrl = user.AvatarUrl,
                     latitude = user.Latitude,
                     longitude = user.Longitude,
-                    city = user.City
+                    city = user.City,
+                    groupScheduleTime = groupEntity.ParsedTime
                 },
                 todaySession = todaySession == null ? null : new { id = todaySession.Id, number = todaySession.SessionNumber, status = todaySession.Status.ToString(), scheduledAt = todaySession.ScheduledAt },
                 nextSession = nextSession == null ? null : new { id = nextSession.Id, number = nextSession.SessionNumber, status = nextSession.Status.ToString(), scheduledAt = nextSession.ScheduledAt },

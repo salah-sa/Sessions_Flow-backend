@@ -75,9 +75,12 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
   const { invoke } = useSignalR();
 
   const handleCall = () => {
-    if (status !== "online" || isMe) return;
+    if (isMe) return;
     useCallStore.getState().startCall(member.userId, member.name, member.avatarUrl || undefined);
-    invoke("CallUser", member.userId).catch(console.error);
+    invoke("CallUser", member.userId).catch((err) => {
+      console.error("SignalR CallUser failed:", err);
+      toast.error(t("chat.call_failed", "Failed to reach member node"));
+    });
   };
 
   return (
@@ -127,12 +130,19 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
       </div>
 
       <div className="flex items-center gap-2 xs:gap-3 shrink-0">
-        {status === "online" && !isMe && (
+        {!isMe && (
           <button 
             onClick={handleCall} 
-            className="w-8 h-8 xs:w-9 xs:h-9 rounded-lg bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] hover:bg-[var(--ui-accent)] hover:text-white flex items-center justify-center transition-all opacity-100 md:opacity-0 md:group-hover/member:opacity-100 touch-show touch-target-min"
+            disabled={status === "unknown"}
+            className={cn(
+              "w-8 h-8 xs:w-9 xs:h-9 rounded-lg flex items-center justify-center transition-all opacity-100 md:opacity-0 md:group-hover/member:opacity-100 touch-show touch-target-min",
+              status === "online" 
+                ? "bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] hover:bg-[var(--ui-accent)] hover:text-white" 
+                : "bg-white/[0.05] text-slate-500 hover:bg-white/[0.1] hover:text-white"
+            )}
+            title={status === "online" ? "Initiate Direct Neural Link" : "Signal Node (User Offline)"}
           >
-            <Phone className="w-3.5 h-3.5" />
+            <Phone className={cn("w-3.5 h-3.5", status === "online" && "animate-pulse")} />
           </button>
         )}
         <StatusDot status={status} confidence={confidence} />
@@ -150,19 +160,20 @@ const MembersPanel: React.FC<MembersPanelProps> = ({ group, isOpen, onClose }) =
     if (group.engineerId) result.push({ id: group.engineerId, userId: group.engineerId, name: group.engineerName || "Engineer", role: "Engineer", avatarUrl: group.engineer?.avatarUrl });
     
     if (group.students) {
-      // Deduplicate by name to prevent legcay duplicate records from cluttering the UI
-      const uniqueStudentsMap = new Map<string, any>();
+      // Deduplicate by ID to prevent masking students with identical names
+      const uniqueStudentsMap = new Map<string, Student>();
       group.students.forEach(s => {
-        const key = s.name.toLowerCase().trim();
-        const existing = uniqueStudentsMap.get(key);
-        // Prioritize records with a userId (linked to an account)
-        if (!existing || (!existing.userId && s.userId)) {
-          uniqueStudentsMap.set(key, s);
-        }
+        uniqueStudentsMap.set(s.id, s);
       });
 
       Array.from(uniqueStudentsMap.values()).forEach(s => {
-        result.push({ id: s.id, userId: s.userId || s.id, name: s.name, role: "Student" });
+        result.push({ 
+          id: s.id, 
+          userId: s.userId || s.id, 
+          name: s.name, 
+          role: "Student",
+          avatarUrl: undefined // Students don't currently have avatars in this mapping, but could be added
+        });
       });
     }
     return result;

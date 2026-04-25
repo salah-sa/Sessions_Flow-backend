@@ -448,7 +448,6 @@ public static class AuthEndpoints
             return Results.Ok(new { message = "Verification code sent to your current email address." });
         }).RequireAuthorization();
 
-        // POST /api/auth/profile/verify-email-change
         group.MapPost("/profile/verify-email-change", async (VerifyEmailChangeRequest req, HttpContext ctx, AuthService auth) =>
         {
             var user = await auth.GetUserFromClaimsAsync(ctx.User);
@@ -463,6 +462,52 @@ public static class AuthEndpoints
 
             return Results.Ok(new { message = "Email updated successfully." });
         }).RequireAuthorization();
+
+        // Social Linking Endpoints
+        group.MapPost("/profile/link-social", async (LinkSocialRequest req, HttpContext ctx, AuthService auth) =>
+        {
+            var user = await auth.GetUserFromClaimsAsync(ctx.User);
+            if (user == null) return Results.Unauthorized();
+
+            if (string.IsNullOrWhiteSpace(req.Provider) || string.IsNullOrWhiteSpace(req.SocialId))
+                return Results.BadRequest(new { error = "Provider and SocialId are required." });
+
+            var (success, error) = await auth.LinkSocialAccountAsync(user.Id, req.Provider, req.SocialId);
+            if (!success)
+                return Results.BadRequest(new { error });
+
+            return Results.Ok(new { message = $"{req.Provider} linked successfully." });
+        }).RequireAuthorization();
+
+        group.MapPost("/login-social", async (LoginSocialRequest req, AuthService auth, HttpContext ctx) =>
+        {
+            if (string.IsNullOrWhiteSpace(req.Provider) || string.IsNullOrWhiteSpace(req.SocialId))
+                return Results.BadRequest(new { error = "Provider and SocialId are required." });
+
+            var (user, token, error) = await auth.LoginWithSocialAsync(req.Provider, req.SocialId);
+            if (error != null)
+                return Results.BadRequest(new { error });
+
+            return Results.Ok(new
+            {
+                token,
+                user = new
+                {
+                    id = user!.Id,
+                    name = user.Name,
+                    displayName = user.DisplayName ?? user.Name,
+                    email = user.Email,
+                    username = user.Username,
+                    role = user.Role.ToString(),
+                    isApproved = user.IsApproved,
+                    studentId = user.StudentId,
+                    engineerCode = user.EngineerCode,
+                    avatarUrl = ResolveAvatarUrl(user.AvatarUrl, ctx.Request),
+                    subscriptionTier = user.SubscriptionTier.ToString(),
+                    blockedPages = user.BlockedPages ?? new List<string>()
+                }
+            });
+        }).AllowAnonymous();
     }
 
     public static string? ResolveAvatarUrl(string? relativeUrl, HttpRequest request)
@@ -504,4 +549,6 @@ public static class AuthEndpoints
     public record UpdateDisplayNameRequest(string DisplayName);
     public record RequestEmailChangeRequest(string NewEmail);
     public record VerifyEmailChangeRequest(string Code);
+    public record LinkSocialRequest(string Provider, string SocialId);
+    public record LoginSocialRequest(string Provider, string SocialId);
 }

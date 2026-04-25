@@ -106,7 +106,8 @@ public static class ChatEndpoints
         });
 
         group.MapPost("/{groupIdStr}/messages", async (string groupIdStr, HttpRequest req,
-            MongoService db, HttpContext ctx, Services.EventBus.IEventBus eventBus, Microsoft.AspNetCore.Hosting.IWebHostEnvironment env, AuthService auth, StorageService storage) =>
+            MongoService db, HttpContext ctx, Services.EventBus.IEventBus eventBus, Microsoft.AspNetCore.Hosting.IWebHostEnvironment env, 
+            AuthService auth, StorageService storage, EmailService emailService, IPresenceService presence) =>
         {
             if (!Guid.TryParse(groupIdStr, out var groupId)) return Results.BadRequest("Invalid Group ID");
             var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -222,14 +223,47 @@ public static class ChatEndpoints
                 sentAt = message.SentAt
             };
 
-            // Standard publish (reliable delivery)
-            try 
+            // IMPORTANT MESSAGE NOTIFICATION TRIGGER
+            if (textParams.Trim().StartsWith("--"))
             {
-                await eventBus.PublishAsync(Services.EventBus.Events.MessageReceive, Services.EventBus.EventTargetType.Group, $"chat_{groupId}", new { groupId = groupId.ToString(), message = msgData });
-            }
-            catch (Exception)
-            {
-                // We still return Created because it's in DB, but logs help debug infrastructure issues
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var groupMembers = await db.Students.Find(s => s.GroupId == groupId && s.UserId != null && !s.IsDeleted).ToListAsync();
+                        var engineer = await db.Users.Find(u => u.Id == g.EngineerId).FirstOrDefaultAsync();
+                        
+                        var recipients = new List<User>();
+                        if (engineer != null && engineer.Id != userGuid) recipients.Add(engineer);
+                        
+                        foreach (var stu in groupMembers)
+                        {
+                            if (stu.UserId == userGuid) continue;
+                            var stuUser = await db.Users.Find(u => u.Id == stu.UserId).FirstOrDefaultAsync();
+                            if (stuUser != null) recipients.Add(stuUser);
+                        }
+
+                        foreach (var recipient in recipients)
+                        {
+                            if (!await presence.IsOnline(recipient.Id.ToString()))
+                            {
+                                var subject = $"[SessionFlow] Important Message in {g.Name}";
+                                var body = $@"
+                                    <h2>Important Notification</h2>
+                                    <p><b>{sender?.Name}</b> sent an important message in your group <b>{g.Name}</b>:</p>
+                                    <blockquote style='border-left: 5px solid #007bff; padding: 10px; background: #f8f9fa;'>
+                                        {textParams.Trim().Substring(2).Trim()}
+                                    </blockquote>
+                                    <p>Please check the chat for more details.</p>
+                                    <hr/>
+                                    <p><small>This is an automated notification because you are currently offline.</small></p>";
+                                
+                                await emailService.SendEmailAsync(recipient.Email, subject, body);
+                            }
+                        }
+                    }
+                    catch (Exception) { /* Silently fail background notifications */ }
+                });
             }
 
             return Results.Created($"/api/chat/{groupId}/messages", msgData);
