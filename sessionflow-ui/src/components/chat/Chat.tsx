@@ -225,6 +225,16 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showEmojiPicker]);
 
+  useEffect(() => {
+    if (!selectedFile) {
+      setSelectedFileUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(selectedFile);
+    setSelectedFileUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [selectedFile]);
+
   const handleEmojiSelect = (emoji: any) => {
     const input = inputRef.current;
     if (!input) return;
@@ -322,7 +332,31 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
           )}
         </AnimatePresence>
 
-        {selectedFile && <div className="p-3 bg-black/40 border border-white/5 rounded-xl self-start flex gap-4 items-center relative"><img src={selectedFileUrl!} className="w-12 h-12 rounded-lg object-cover" /><div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{selectedFile.name}</div><button onClick={() => setSelectedFile(null)} className="p-1 hover:text-rose-500 transition-colors"><X className="w-4 h-4" /></button></div>}
+        {selectedFile && (
+          <div className="p-3 bg-black/40 border border-white/5 rounded-xl self-start flex gap-4 items-center relative animate-in fade-in slide-in-from-bottom-2">
+            {selectedFile.type.startsWith("image/") ? (
+              <img src={selectedFileUrl || ""} className="w-12 h-12 rounded-lg object-cover shadow-lg" alt="Preview" />
+            ) : (
+              <div className="w-12 h-12 rounded-lg bg-ui-sidebar-bg flex items-center justify-center border border-white/10">
+                <Paperclip className="w-6 h-6 text-ui-accent" />
+              </div>
+            )}
+            <div className="flex flex-col min-w-0">
+              <div className="text-[10px] font-bold text-slate-300 uppercase tracking-widest truncate max-w-[200px]">
+                {selectedFile.name}
+              </div>
+              <div className="text-[8px] font-bold text-slate-600 uppercase tracking-widest">
+                {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+              </div>
+            </div>
+            <button 
+              onClick={() => setSelectedFile(null)} 
+              className="p-1.5 rounded-lg hover:bg-rose-500/10 hover:text-rose-500 transition-all ml-2"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 bg-black/40 rounded-xl border border-white/5 px-1.5 xs:px-2 md:px-4 h-13 md:h-14 shadow-inner transition-all focus-within:border-ui-accent/30">
           <Button variant="ghost" size="icon" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="text-slate-500 hover:text-ui-accent shrink-0 touch-target-min"><Smile className="w-5 h-5" /></Button>
@@ -333,7 +367,13 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
           />
           <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="text-slate-500 hover:text-ui-accent shrink-0 touch-target-min"><Paperclip className="w-5 h-5" /></Button>
           <button onClick={handleSend} disabled={!text.trim() && !selectedFile} className="w-10 h-10 xs:w-11 xs:h-11 md:w-12 md:h-12 rounded-lg bg-ui-accent text-white flex items-center justify-center shadow-glow shadow-ui-accent/20 transition-all active:scale-95 disabled:opacity-20 disabled:grayscale shrink-0"><Send className="w-4 h-4" /></button>
-          <input type="file" ref={fileInputRef} onChange={(e) => { if (e.target.files?.[0]) setSelectedFile(e.target.files[0]); }} className="hidden" />
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={(e) => { if (e.target.files?.[0]) setSelectedFile(e.target.files[0]); }} 
+            className="hidden" 
+            accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,audio/*,video/*"
+          />
         </div>
       </div>
     </div>
