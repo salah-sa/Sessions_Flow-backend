@@ -19,6 +19,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http;
 using System.Linq;
+using SessionFlow.Desktop.Helpers;
 
 namespace SessionFlow.Desktop.Api;
 
@@ -331,7 +332,7 @@ public static class ApiHost
                     services,
                     version,
                     time = DateTimeOffset.UtcNow,
-                    cairoTime = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(2))
+                    cairoTime = DateTimeOffset.UtcNow.ToCairoTime(app.Configuration)
                 };
                 
                 await context.Response.WriteAsJsonAsync(response);

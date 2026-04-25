@@ -9,6 +9,8 @@ using Microsoft.Extensions.Hosting;
 using System.Threading;
 using SessionFlow.Desktop.Data;
 using SessionFlow.Desktop.Models;
+using Microsoft.Extensions.Configuration;
+using SessionFlow.Desktop.Helpers;
 
 namespace SessionFlow.Desktop.Services;
 
@@ -21,12 +23,14 @@ public class EmailService
     private readonly MongoService _db;
     private readonly ILogger<EmailService> _logger;
     private readonly HttpClient _httpClient;
+    private readonly IConfiguration? _config;
 
-    public EmailService(MongoService db, ILogger<EmailService> logger, HttpClient httpClient)
+    public EmailService(MongoService db, ILogger<EmailService> logger, HttpClient httpClient, IConfiguration? config = null)
     {
         _db = db;
         _logger = logger;
         _httpClient = httpClient;
+        _config = config;
     }
 
     private async Task<string?> GetApiKeyAsync(CancellationToken ct = default)
@@ -116,14 +120,16 @@ public class EmailReminderService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<EmailReminderService> _logger;
+    private readonly IConfiguration _config;
     private DateTimeOffset _lastDailySummary = DateTimeOffset.MinValue;
     private DateTimeOffset _lastMissedAttendanceCheck = DateTimeOffset.MinValue;
     private readonly HashSet<Guid> _sentReminders = new();
 
-    public EmailReminderService(IServiceProvider serviceProvider, ILogger<EmailReminderService> logger)
+    public EmailReminderService(IServiceProvider serviceProvider, ILogger<EmailReminderService> logger, IConfiguration config)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
+        _config = config;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -177,7 +183,7 @@ public class EmailReminderService : BackgroundService
                 continue;
 
             var group = await db.Groups.Find(g => g.Id == session.GroupId).FirstOrDefaultAsync(ct);
-            var cairoTime = session.ScheduledAt.ToOffset(TimeSpan.FromHours(2));
+            var cairoTime = session.ScheduledAt.ToCairoTime(_config);
             var minutesUntil = (int)(session.ScheduledAt - now).TotalMinutes;
 
             var body = $@"
@@ -215,7 +221,7 @@ public class EmailReminderService : BackgroundService
 
     private async Task CheckAndSendDailySummaryAsync(CancellationToken ct)
     {
-        var cairoOffset = TimeSpan.FromHours(2);
+        var cairoOffset = TimeZoneHelper.GetCairoOffset(_config);
         var cairoNow = DateTimeOffset.UtcNow.ToOffset(cairoOffset);
 
         if (cairoNow.Hour != 22 || cairoNow.Date == _lastDailySummary.Date)
@@ -279,7 +285,7 @@ public class EmailReminderService : BackgroundService
 
     private async Task CheckAndSendMissedAttendanceRemindersAsync(CancellationToken ct)
     {
-        var cairoOffset = TimeSpan.FromHours(2);
+        var cairoOffset = TimeZoneHelper.GetCairoOffset(_config);
         var cairoNow = DateTimeOffset.UtcNow.ToOffset(cairoOffset);
 
         // Only run at 11:30 PM Cairo time, once per day

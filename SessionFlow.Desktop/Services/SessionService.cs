@@ -2,6 +2,7 @@ using MongoDB.Driver;
 using Microsoft.Extensions.Configuration;
 using SessionFlow.Desktop.Data;
 using SessionFlow.Desktop.Models;
+using SessionFlow.Desktop.Helpers;
 
 namespace SessionFlow.Desktop.Services;
 
@@ -626,19 +627,8 @@ public class SessionService
     /// Resolves the configured timezone with fallback chain: Windows ID → IANA ID → UTC+2 custom.
     /// Reads from Application:Timezone in appsettings.json (default: "Africa/Cairo").
     /// </summary>
-    private TimeZoneInfo GetConfiguredTimeZone()
+    internal TimeZoneInfo GetConfiguredTimeZone()
     {
-        var tzId = _config?.GetValue<string>("Application:Timezone") ?? "Africa/Cairo";
-        
-        // Try the configured value first (supports both Windows and IANA IDs)
-        try { return TimeZoneInfo.FindSystemTimeZoneById(tzId); }
-        catch (TimeZoneNotFoundException) { }
-        
-        // Fallback: try Windows-style "Egypt Standard Time"
-        try { return TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time"); }
-        catch (TimeZoneNotFoundException) { }
-        
-        // Final fallback: UTC+2
-        return TimeZoneInfo.CreateCustomTimeZone("Cairo", TimeSpan.FromHours(2), "Cairo", "Cairo");
+        return TimeZoneHelper.GetConfiguredTimeZone(_config);
     }
 }

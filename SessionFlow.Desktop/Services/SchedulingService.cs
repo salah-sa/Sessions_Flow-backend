@@ -1,16 +1,20 @@
 using MongoDB.Driver;
 using SessionFlow.Desktop.Data;
 using SessionFlow.Desktop.Models;
+using SessionFlow.Desktop.Helpers;
+using Microsoft.Extensions.Configuration;
 
 namespace SessionFlow.Desktop.Services;
 
 public class SchedulingService
 {
     private readonly MongoService _db;
+    private readonly IConfiguration? _config;
 
-    public SchedulingService(MongoService db)
+    public SchedulingService(MongoService db, IConfiguration? config = null)
     {
         _db = db;
+        _config = config;
     }
 
     /// <summary>
@@ -51,7 +55,7 @@ public class SchedulingService
             return new List<string>();
 
         // 2. Get all existing sessions for this engineer on this date
-        var cairoTz = GetCairoTimeZone();
+        var cairoTz = TimeZoneHelper.GetConfiguredTimeZone(_config);
         var dayStart = new DateTimeOffset(date, cairoTz.GetUtcOffset(date)).ToUniversalTime();
         var dayEnd = dayStart.AddDays(1);
 
@@ -113,25 +117,4 @@ public class SchedulingService
         return freeSlots.Distinct().OrderBy(t => t).ToList();
     }
 
-    private static TimeZoneInfo GetCairoTimeZone()
-    {
-        try
-        {
-            // Windows naming
-            return TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
-        }
-        catch (TimeZoneNotFoundException)
-        {
-            try
-            {
-                // IANA (Linux/macOS) naming
-                return TimeZoneInfo.FindSystemTimeZoneById("Africa/Cairo");
-            }
-            catch (TimeZoneNotFoundException)
-            {
-                // Fallback to UTC+2 if both fail
-                return TimeZoneInfo.CreateCustomTimeZone("Cairo", TimeSpan.FromHours(2), "Cairo", "Cairo");
-            }
-        }
-    }
 }
