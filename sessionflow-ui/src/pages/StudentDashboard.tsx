@@ -295,7 +295,7 @@ export const StudentDashboard: React.FC = () => {
                         <User className="w-6 h-6 text-cyan-400" />
                       </div>
                       <div>
-                        <h4 className="text-lg font-sora font-semibold text-white leading-tight">{identity.engineerName || "Assigned Instructor"}</h4>
+                        <h4 className="text-lg font-sora font-semibold text-white leading-tight">{(identity as any).engineerName || "Assigned Instructor"}</h4>
                         <p className="text-[10px] font-bold text-cyan-500/60 uppercase tracking-widest">{t("common.status_online", "System Engineer")}</p>
                       </div>
                     </div>
