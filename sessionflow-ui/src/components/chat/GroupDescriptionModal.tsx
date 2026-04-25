@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, FileText, Loader2 } from "lucide-react";
+import { X, FileText, Loader2, Info, Zap, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../../lib/utils";
 import { Group } from "../../types";
@@ -170,7 +170,7 @@ const GroupDescriptionModal: React.FC<GroupDescriptionModalProps> = ({ group, is
               </button>
             </div>
           </motion.div>
-        </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );
