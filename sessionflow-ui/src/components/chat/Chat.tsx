@@ -66,8 +66,7 @@ const BlockMessageRenderer: React.FC<{ message: ChatMessage }> = ({ message }) =
 };
 
 const ProfileImage: React.FC<{ userId?: string; url?: string | null; initial?: string; isMe: boolean; }> = ({ userId, url, initial, isMe }) => {
-  const presence = usePresenceStore((s) => userId ? s.getPresence(userId) : { status: "offline" as PresenceStatus, confidence: 0 });
-  const status = isMe ? "online" : presence.status;
+  const status = usePresenceStore((s) => isMe ? "online" : (userId ? s.getPresence(userId).status : "offline"));
   
   return (
     <div className={cn(
