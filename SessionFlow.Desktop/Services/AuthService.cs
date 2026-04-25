@@ -532,33 +532,77 @@ public class AuthService
         }
         await _db.TimetableEntries.InsertManyAsync(timetableEntries);
 
-        // Send Approval Email asynchronously (don't block the UI/API response)
+        // Send Approval Email asynchronously with retry (matches student flow robustness)
+        _ = Task.Run(async () =>
+        {
+            const int maxRetries = 3;
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
+            {
+                try
+                {
+                    using var scope = _scopeFactory.CreateScope();
+                    var mail = scope.ServiceProvider.GetRequiredService<EmailService>();
+                    var (emailSuccess, emailError) = await mail.SendEmailAsync(
+                        user.Email,
+                        "SessionFlow: Identity Clearance Granted",
+                        $@"<div style='font-family: sans-serif; background: #020617; color: white; padding: 40px; border-radius: 20px;'>
+                            <h2 style='color: #3b82f6;'>Clearance Granted</h2>
+                            <p>Welcome, <strong>{user.Name}</strong>. Your registration request has been approved by the central command.</p>
+                            <div style='background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;'>
+                                <p style='font-size: 12px; color: #64748b; margin: 0;'>Your Unique Engineer Code:</p>
+                                <p style='font-size: 24px; font-weight: bold; color: #3b82f6; margin: 5px 0; letter-spacing: 2px;'>{newCode}</p>
+                            </div>
+                            <p>You can now log in and manage your units.</p>
+                            <p style='color: #64748b; font-size: 10px; margin-top: 40px;'>SESSIONFLOW SECURITY ENFORCEMENT PROTOCOL</p>
+                        </div>"
+                    );
+
+                    if (emailSuccess) break; // Success — exit retry loop
+
+                    if (attempt == maxRetries && !emailSuccess)
+                    {
+                        // Final attempt failed — notify admins
+                        var notifService = scope.ServiceProvider.GetRequiredService<NotificationService>();
+                        await notifService.NotifyAdminsAsync(
+                            "Email Delivery Failed",
+                            $"Could not send approval email to engineer {user.Email}: {emailError}. Engineer Code: {newCode}. Please notify them manually.",
+                            NotificationType.Warning
+                        );
+                    }
+
+                    // Wait before retry (exponential backoff: 2s, 4s, 8s)
+                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+                }
+                catch (Exception ex)
+                {
+                    if (attempt == maxRetries)
+                    {
+                        Console.Error.WriteLine($"[EMAIL] Failed after {maxRetries} retries for engineer {user.Email}: {ex.Message}");
+                    }
+                    else
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+                    }
+                }
+            }
+        });
+
+        // Create an internal notification for the engineer as a fallback to email
         _ = Task.Run(async () => {
             try {
                 using var scope = _scopeFactory.CreateScope();
-                var mail = scope.ServiceProvider.GetRequiredService<EmailService>();
-                var (success, error) = await mail.SendEmailAsync(
-                    user.Email,
-                    "SessionFlow: Identity Clearance Granted",
-                    $@"<div style='font-family: sans-serif; background: #020617; color: white; padding: 40px; border-radius: 20px;'>
-                        <h2 style='color: #3b82f6;'>Clearance Granted</h2>
-                        <p>Welcome, <strong>{user.Name}</strong>. Your registration request has been approved by the central command.</p>
-                        <div style='background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;'>
-                            <p style='font-size: 12px; color: #64748b; margin: 0;'>Your Unique Engineer Code:</p>
-                            <p style='font-size: 24px; font-weight: bold; color: #3b82f6; margin: 5px 0; letter-spacing: 2px;'>{newCode}</p>
-                        </div>
-                        <p>You can now log in and manage your units.</p>
-                        <p style='color: #64748b; font-size: 10px; margin-top: 40px;'>SESSIONFLOW SECURITY ENFORCEMENT PROTOCOL</p>
-                    </div>"
+                var notifService = scope.ServiceProvider.GetRequiredService<NotificationService>();
+                await notifService.CreateNotificationAsync(
+                    user.Id,
+                    "Registration Approved",
+                    $"Welcome! Your registration has been approved.\nEngineer Code: {newCode}\nYou can now log in and manage your units.",
+                    NotificationType.Success
                 );
-                if (!success)
-                {
-                    Console.Error.WriteLine($"[EMAIL] Engineer approval email dispatch failed for {user.Email}: {error}");
-                }
             } catch (Exception ex) {
-                Console.Error.WriteLine($"[EMAIL] Engineer approval email exception for {user.Email}: {ex.Message}");
+                Console.Error.WriteLine($"[NOTIF] Failed to create approval notification for engineer {user.Id}: {ex.Message}");
             }
         });
+
 
         return (user, null);
     }
