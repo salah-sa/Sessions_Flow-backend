@@ -57,7 +57,7 @@ const GroupDescriptionModal: React.FC<GroupDescriptionModalProps> = ({ group, is
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 xs:p-4 md:p-6 overflow-hidden">
+        <motion.div className="fixed inset-0 z-[100] flex items-center justify-center p-3 xs:p-4 md:p-6 overflow-hidden">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -170,7 +170,7 @@ const GroupDescriptionModal: React.FC<GroupDescriptionModalProps> = ({ group, is
               </button>
             </div>
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );
