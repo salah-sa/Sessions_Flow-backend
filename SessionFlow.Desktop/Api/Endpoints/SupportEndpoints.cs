@@ -17,32 +17,39 @@ public static class SupportEndpoints
         // POST /api/support/tickets - Submit a new ticket (Any authenticated user)
         support.MapPost("/tickets", async (CreateTicketRequest req, MongoService db, HttpContext ctx) =>
         {
-            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var userName = ctx.User.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown User";
-            var userRole = ctx.User.FindFirst(ClaimTypes.Role)?.Value ?? "Unknown Role";
-
-            if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
-            if (string.IsNullOrWhiteSpace(req.Title) || string.IsNullOrWhiteSpace(req.Description))
-                return Results.BadRequest(new { error = "Title and Description are required." });
-
-            if (!Enum.TryParse<SupportDepartment>(req.Department, true, out var department))
-                department = SupportDepartment.General;
-
-            var ticket = new SupportTicket
+            try
             {
-                Title = req.Title.Trim(),
-                Description = req.Description.Trim(),
-                Department = department,
-                Status = TicketStatus.Open,
-                CreatedByUserId = userId,
-                CreatedByUserName = userName,
-                CreatedByUserRole = userRole,
-                CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow
-            };
+                var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userName = ctx.User.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown User";
+                var userRole = ctx.User.FindFirst(ClaimTypes.Role)?.Value ?? "Unknown Role";
 
-            await db.SupportTickets.InsertOneAsync(ticket);
-            return Results.Created($"/api/support/tickets/{ticket.Id}", ticket);
+                if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
+                if (string.IsNullOrWhiteSpace(req.Title) || string.IsNullOrWhiteSpace(req.Description))
+                    return Results.BadRequest(new { error = "Title and Description are required." });
+
+                if (!Enum.TryParse<SupportDepartment>(req.Department, true, out var department))
+                    department = SupportDepartment.General;
+
+                var ticket = new SupportTicket
+                {
+                    Title = req.Title.Trim(),
+                    Description = req.Description.Trim(),
+                    Department = department,
+                    Status = TicketStatus.Open,
+                    CreatedByUserId = userId,
+                    CreatedByUserName = userName,
+                    CreatedByUserRole = userRole,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                };
+
+                await db.SupportTickets.InsertOneAsync(ticket);
+                return Results.Created($"/api/support/tickets/{ticket.Id}", ticket);
+            }
+            catch (Exception ex)
+            {
+                return Results.Json(new { error = "Failed to create ticket.", detail = ex.Message }, statusCode: 500);
+            }
         });
 
         // GET /api/support/tickets - List tickets (Admin sees all, Users see their own)

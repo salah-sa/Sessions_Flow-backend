@@ -1,4 +1,5 @@
 using System;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace SessionFlow.Desktop.Models;
@@ -21,17 +22,19 @@ public enum TicketStatus
 public class SupportTicket
 {
     [BsonId]
+    [BsonRepresentation(BsonType.String)]
     public Guid Id { get; set; } = Guid.NewGuid();
     
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     
-    [BsonRepresentation(MongoDB.Bson.BsonType.String)]
+    [BsonRepresentation(BsonType.String)]
     public SupportDepartment Department { get; set; } = SupportDepartment.General;
     
-    [BsonRepresentation(MongoDB.Bson.BsonType.String)]
+    [BsonRepresentation(BsonType.String)]
     public TicketStatus Status { get; set; } = TicketStatus.Open;
     
+    [BsonRepresentation(BsonType.String)]
     public Guid CreatedByUserId { get; set; }
     public string CreatedByUserName { get; set; } = string.Empty;
     public string CreatedByUserRole { get; set; } = string.Empty;
