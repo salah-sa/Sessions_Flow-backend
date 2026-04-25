@@ -19,6 +19,14 @@ export function formatTime12h(time: string | null) {
   return `${h12}:${minutes} ${ampm}`;
 }
 
+export function formatDateTo12h(date: Date): string {
+  const h = date.getHours();
+  const m = date.getMinutes();
+  const ampm = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
 export function formatDate(date: string | Date) {
   return new Date(date).toLocaleDateString("en-EG", {
     weekday: "long",

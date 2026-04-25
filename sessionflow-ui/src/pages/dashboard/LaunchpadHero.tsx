@@ -50,7 +50,7 @@ export const LaunchpadHero: React.FC = () => {
                  <Zap className="w-5 h-5 text-white fill-white" />
              </div>
          </div>
-         <p className="text-[9px] sm:text-[10px] font-bold text-slate-600 uppercase tracking-wider pe-1 hidden md:block">{t("dashboard.last_sync")}: {new Date().toLocaleTimeString()}</p>
+         <p className="text-[9px] sm:text-[10px] font-bold text-slate-600 uppercase tracking-wider pe-1 hidden md:block">{t("dashboard.last_sync")}: {new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</p>
       </div>
     </div>
   );

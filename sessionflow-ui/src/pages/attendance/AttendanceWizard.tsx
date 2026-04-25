@@ -7,7 +7,7 @@ import { useSession, useSessionMutations } from "../../queries/useSessionQueries
 import { StudentFeedback, AttendanceFormData, generateAttendanceFormUrl } from "./AttendanceGoogleFormService";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
-import { cn } from "../../lib/utils";
+import { cn, formatDateTo12h, formatTime12h } from "../../lib/utils";
 
 interface AttendanceWizardProps {
   isOpen: boolean;
@@ -197,7 +197,9 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2 text-start">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><Clock className="w-4 h-4"/> Start Time (24H)</label>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <Clock className="w-4 h-4"/> Start Time ({formatTime12h(formData.startTime || null)})
+                </label>
                 <Input 
                   value={formData.startTime} 
                   onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
@@ -205,7 +207,9 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
                 />
               </div>
               <div className="space-y-2 text-start">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><Clock className="w-4 h-4 text-emerald-500"/> End Time (24H)</label>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-emerald-500"/> End Time ({formatTime12h(formData.endTime || null)})
+                </label>
                 <Input 
                   value={formData.endTime} 
                   onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
