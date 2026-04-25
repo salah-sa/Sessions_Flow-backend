@@ -177,11 +177,9 @@ public static class GroupEndpoints
             var groupSessions = await db.Sessions.Find(s => s.GroupId == g.Id && !s.IsDeleted).ToListAsync();
             var completedSessionsCount = groupSessions.Count(s => s.Status == SessionStatus.Ended);
 
-            var studentsList = new List<Student>();
-            if (role == "Admin" || role == "Engineer")
-            {
-                studentsList = uniqueStudents;
-            }
+            // All authenticated members of this group can see the member list
+            // (security check at lines 155-163 already validates membership)
+            var studentsList = uniqueStudents;
 
             return Results.Ok(new
             {
