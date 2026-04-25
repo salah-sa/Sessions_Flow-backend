@@ -104,12 +104,12 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
         </div>
       )}
 
-      <div className={cn("flex items-end gap-2 md:gap-4 max-w-[95%] md:max-w-[85%]", isMe && "flex-row-reverse")}>
+      <div className={cn("flex items-end gap-2 md:gap-4 chat-bubble-max", isMe && "flex-row-reverse")}>
         <ProfileImage url={profileImageUrl} initial={initial} isMe={isMe} />
 
-        <div className="flex flex-col gap-1.5 md:gap-2">
+        <div className="flex flex-col gap-1.5 md:gap-2 min-w-0">
           <div className={cn(
-            "px-3.5 py-2.5 md:px-6 md:py-4 rounded-2xl text-[13px] relative shadow-2xl border transition-all duration-300 group/bubble",
+            "px-3.5 py-2.5 md:px-5 md:py-3.5 rounded-2xl text-[13px] relative shadow-2xl border transition-all duration-300 group/bubble",
             isMe 
               ? "bg-ui-accent text-white font-medium border-transparent shadow-ui-accent/20 rounded-tr-none" 
               : "bg-ui-sidebar-bg/95 text-slate-200 border-white/5 shadow-black/80 rounded-tl-none"
@@ -120,7 +120,7 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
                 toast.success("Copied to clipboard");
               }}
               className={cn(
-                "absolute -top-2 opacity-0 group-hover/bubble:opacity-100 transition-all p-1.5 rounded-lg bg-black/50 backdrop-blur-md border border-white/10 hover:text-ui-accent z-20",
+                "absolute -top-2 opacity-0 group-hover/bubble:opacity-100 touch-show transition-all p-2 rounded-lg bg-black/70 backdrop-blur-md border border-white/10 hover:text-ui-accent z-20",
                 isMe ? "-left-2" : "-right-2"
               )}
               title="Copy Message"
@@ -138,9 +138,11 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
                     <ImageViewer isOpen={isViewerOpen} onClose={() => setIsViewerOpen(false)} src={message.fileUrl} alt={message.fileName} />
                   </div>
                 )}
-                <div className={cn("text-[10px] font-bold bg-black/20 p-3 rounded-lg border border-white/5 flex items-center gap-3", isMe ? "text-white/80" : "text-slate-500")}>
-                  <Paperclip className="w-4 h-4 text-ui-accent" />
-                  <a href={message.fileUrl} target="_blank" rel="noreferrer" className="truncate hover:underline flex-1 uppercase tracking-widest">{message.fileName || "ATTACHMENT"}</a>
+                <div className={cn("text-[10px] font-bold bg-black/20 p-2 xs:p-3 rounded-lg border border-white/5 flex items-center gap-2 xs:gap-3", isMe ? "text-white/80" : "text-slate-500")}>
+                  <Paperclip className="w-4 h-4 text-ui-accent shrink-0" />
+                  <a href={message.fileUrl} target="_blank" rel="noreferrer" className="truncate hover:underline flex-1 uppercase tracking-widest break-all">
+                    {message.fileName || "ATTACHMENT"}
+                  </a>
                 </div>
               </div>
             )}
@@ -269,11 +271,12 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
           {showEmojiPicker && (
             <motion.div 
               ref={emojiPickerRef}
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              className="absolute bottom-full left-2 right-2 md:left-6 md:right-auto mb-4 z-[60] shadow-2xl rounded-2xl overflow-hidden border border-white/10"
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              className="absolute bottom-full left-0 right-0 sm:left-6 sm:right-auto mb-4 z-[60] shadow-2xl sm:rounded-2xl overflow-hidden border-t sm:border border-white/10"
             >
+              <div className="md:hidden w-12 h-1.5 bg-white/10 rounded-full mx-auto my-3" />
               <Picker 
                 data={data} 
                 onEmojiSelect={handleEmojiSelect} 
@@ -281,15 +284,17 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
                 set="native"
                 previewPosition="none"
                 skinTonePosition="none"
+                width="100%"
+                perLine={window.innerWidth < 375 ? 7 : 8}
               />
             </motion.div>
           )}
 
           {showMentions && filteredMembers.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="absolute bottom-full left-3 md:left-6 right-3 md:right-auto mb-4 w-auto md:w-72 bg-ui-sidebar-bg border border-white/10 rounded-xl shadow-2xl overflow-hidden overflow-y-auto max-h-64 custom-scrollbar">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="absolute bottom-full left-0 right-0 sm:left-6 sm:right-auto mb-4 w-full sm:w-72 bg-ui-sidebar-bg border-t sm:border border-white/10 sm:rounded-xl shadow-2xl overflow-hidden overflow-y-auto max-h-[40vh] sm:max-h-64 custom-scrollbar">
               <div className="p-3 border-b border-white/5 bg-white/[0.02] text-[9px] font-bold text-slate-500 uppercase tracking-widest">Establish Point-to-Point Mention</div>
               {filteredMembers.map((m, i) => (
-                <button key={m.id} onClick={() => insertMention(m)} className={cn("w-full flex items-center gap-4 px-5 py-4 transition-all text-left", i === mentionIndex ? "bg-ui-accent/10 text-ui-accent" : "text-slate-400 hover:bg-white/5")}>
+                <button key={m.id} onClick={() => insertMention(m)} className={cn("w-full flex items-center gap-4 px-5 py-3 transition-all text-left touch-target", i === mentionIndex ? "bg-ui-accent/10 text-ui-accent" : "text-slate-400 hover:bg-white/5")}>
                   <div className="w-8 h-8 rounded-full bg-ui-sidebar-bg border border-white/5 flex items-center justify-center text-[10px] font-bold">{m.name.charAt(0)}</div>
                   <div className="flex flex-col"><span className="text-sm font-bold tracking-tight">{m.name}</span><span className="text-[9px] font-bold opacity-40 uppercase tracking-widest">{m.role}</span></div>
                 </button>
@@ -300,15 +305,15 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
 
         {selectedFile && <div className="p-3 bg-black/40 border border-white/5 rounded-xl self-start flex gap-4 items-center relative"><img src={selectedFileUrl!} className="w-12 h-12 rounded-lg object-cover" /><div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{selectedFile.name}</div><button onClick={() => setSelectedFile(null)} className="p-1 hover:text-rose-500 transition-colors"><X className="w-4 h-4" /></button></div>}
 
-        <div className="flex items-center gap-1.5 md:gap-3 bg-black/40 rounded-xl border border-white/5 px-2 md:px-4 h-12 md:h-14 shadow-inner transition-all focus-within:border-ui-accent/30">
-          <Button variant="ghost" size="icon" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="text-slate-500 hover:text-ui-accent"><Smile className="w-5 h-5" /></Button>
+        <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 bg-black/40 rounded-xl border border-white/5 px-1.5 xs:px-2 md:px-4 h-13 md:h-14 shadow-inner transition-all focus-within:border-ui-accent/30">
+          <Button variant="ghost" size="icon" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="text-slate-500 hover:text-ui-accent shrink-0 touch-target-min"><Smile className="w-5 h-5" /></Button>
           <input 
             ref={inputRef} value={text} onChange={(e) => handleInputChange(e.target.value)} 
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-            placeholder="ENCRYPTED TRANSMISSION..." className="border-none bg-transparent focus:ring-0 h-full flex-1 text-sm font-medium text-white placeholder:text-slate-700 placeholder:uppercase placeholder:font-bold placeholder:tracking-[0.2em] placeholder:text-[10px]" 
+            placeholder="ENCRYPTED TRANSMISSION..." className="border-none bg-transparent focus:ring-0 h-full flex-1 text-sm font-medium text-white placeholder:text-slate-700 placeholder:uppercase placeholder:font-bold placeholder:tracking-[0.2em] placeholder:text-[10px] min-w-0" 
           />
-          <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="text-slate-500 hover:text-ui-accent"><Paperclip className="w-5 h-5" /></Button>
-          <button onClick={handleSend} disabled={!text.trim() && !selectedFile} className="w-10 h-10 md:w-11 md:h-11 rounded-lg bg-ui-accent text-white flex items-center justify-center shadow-glow shadow-ui-accent/20 transition-all active:scale-95 disabled:opacity-20 disabled:grayscale shrink-0"><Send className="w-4 h-4" /></button>
+          <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="text-slate-500 hover:text-ui-accent shrink-0 touch-target-min"><Paperclip className="w-5 h-5" /></Button>
+          <button onClick={handleSend} disabled={!text.trim() && !selectedFile} className="w-10 h-10 xs:w-11 xs:h-11 md:w-12 md:h-12 rounded-lg bg-ui-accent text-white flex items-center justify-center shadow-glow shadow-ui-accent/20 transition-all active:scale-95 disabled:opacity-20 disabled:grayscale shrink-0"><Send className="w-4 h-4" /></button>
           <input type="file" ref={fileInputRef} onChange={(e) => { if (e.target.files?.[0]) setSelectedFile(e.target.files[0]); }} className="hidden" />
         </div>
       </div>
