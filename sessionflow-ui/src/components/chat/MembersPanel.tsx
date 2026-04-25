@@ -32,12 +32,13 @@ const StatusDot: React.FC<{ status: PresenceStatus; confidence: number }> = ({ s
   switch (status) {
     case "online":
       bg = "bg-[var(--ui-accent)]";
-      shadow = "shadow-[0_0_8px_rgba(var(--ui-accent-rgb),0.5)]";
+      shadow = "shadow-[0_0_12px_rgba(var(--ui-accent-rgb),0.6)]";
       label = "Active";
+      pulse = confidence > 0.8;
       break;
     case "away":
       bg = "bg-[#7c3aed]";
-      shadow = "shadow-[0_0_6px_rgba(124,58,237,0.4)]";
+      shadow = "shadow-[0_0_8px_rgba(124,58,237,0.4)]";
       label = "Standby";
       break;
     case "unknown":
@@ -51,7 +52,13 @@ const StatusDot: React.FC<{ status: PresenceStatus; confidence: number }> = ({ s
     <div className="flex items-center gap-2">
       <div className="relative">
         <div className={cn("w-2 h-2 rounded-full transition-all duration-500", bg, shadow)} />
-        {pulse && <div className={cn("absolute inset-0 rounded-full animate-ping", bg, "opacity-40")} />}
+        {pulse && (
+          <motion.div
+            animate={{ scale: [1, 1.8], opacity: [0.5, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+            className={cn("absolute inset-0 rounded-full", bg)}
+          />
+        )}
       </div>
       <span className={cn("text-[8px] font-bold uppercase tracking-[0.2em]", status === "online" ? "text-[var(--ui-accent)]" : "text-slate-600")}>
         {label}
@@ -91,7 +98,15 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
           {member.avatarUrl ? <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" /> : member.name?.charAt(0)}
         </div>
         <div className="absolute -bottom-0.5 -right-0.5">
-          <div className={cn("w-2.5 h-2.5 xs:w-3 xs:h-3 rounded-full border border-[var(--ui-bg)]", status === "online" ? "bg-[var(--ui-accent)]" : "bg-[var(--ui-surface)]")} />
+          <div className={cn("w-2.5 h-2.5 xs:w-3 xs:h-3 rounded-full border border-[var(--ui-bg)] transition-all duration-500 relative", status === "online" ? "bg-[var(--ui-accent)] shadow-[0_0_8px_rgba(var(--ui-accent-rgb),0.6)]" : "bg-[var(--ui-surface)]")}>
+            {status === "online" && (
+              <motion.div
+                animate={{ scale: [1, 2], opacity: [0.4, 0] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+                className="absolute inset-0 rounded-full bg-[var(--ui-accent)]"
+              />
+            )}
+          </div>
         </div>
       </div>
 
@@ -113,7 +128,12 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
 
       <div className="flex items-center gap-2 xs:gap-3 shrink-0">
         {status === "online" && !isMe && (
-          <button onClick={handleCall} className="w-8 h-8 xs:w-9 xs:h-9 rounded-lg bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] hover:bg-[var(--ui-accent)] hover:text-white flex items-center justify-center transition-all opacity-0 group-hover/member:opacity-100 touch-show touch-target-min"><Phone className="w-3.5 h-3.5" /></button>
+          <button 
+            onClick={handleCall} 
+            className="w-8 h-8 xs:w-9 xs:h-9 rounded-lg bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] hover:bg-[var(--ui-accent)] hover:text-white flex items-center justify-center transition-all opacity-100 md:opacity-0 md:group-hover/member:opacity-100 touch-show touch-target-min"
+          >
+            <Phone className="w-3.5 h-3.5" />
+          </button>
         )}
         <StatusDot status={status} confidence={confidence} />
       </div>
@@ -157,6 +177,8 @@ const MembersPanel: React.FC<MembersPanelProps> = ({ group, isOpen, onClose }) =
     });
   }, [members, isOnline]);
 
+  const onlineCount = useMemo(() => members.filter(m => isOnline(m.userId)).length, [members, isOnline]);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -195,9 +217,15 @@ const MembersPanel: React.FC<MembersPanelProps> = ({ group, isOpen, onClose }) =
             <button onClick={onClose} className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-slate-500 hover:text-white transition-all touch-target-min"><X className="w-4 h-4" /></button>
           </div>
 
-          <div className="px-4 py-2 xs:px-5 sm:px-6 md:px-8 border-b border-white/[0.02] bg-white/[0.01] flex items-center gap-3 relative z-10 shrink-0">
-            <Activity className="w-3 h-3 xs:w-3.5 xs:h-3.5 text-[var(--ui-accent)]/60" />
-            <span className="text-[7px] xs:text-[8px] font-bold text-[var(--ui-accent)]/60 uppercase tracking-widest">Neural Stream Matrix Established</span>
+          <div className="px-4 py-2 xs:px-5 sm:px-6 md:px-8 border-b border-white/[0.02] bg-white/[0.01] flex items-center justify-between gap-3 relative z-10 shrink-0">
+            <div className="flex items-center gap-2">
+              <Activity className="w-3 h-3 xs:w-3.5 xs:h-3.5 text-[var(--ui-accent)]/60" />
+              <span className="text-[7px] xs:text-[8px] font-bold text-[var(--ui-accent)]/60 uppercase tracking-widest">Neural Stream Matrix Established</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--ui-accent)]/5 border border-[var(--ui-accent)]/10">
+              <div className="w-1 h-1 rounded-full bg-[var(--ui-accent)] animate-pulse" />
+              <span className="text-[7px] font-bold text-[var(--ui-accent)] tracking-widest">{onlineCount}/{members.length}</span>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar relative z-10">

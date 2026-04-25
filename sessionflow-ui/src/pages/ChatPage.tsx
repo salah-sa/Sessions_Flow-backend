@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useShallow } from "zustand/shallow";
 import { MessageSquare, Users, Search, Hash, Star, User as UserIcon, Clock, Zap, Target, Activity } from "lucide-react";
 import { toast } from "sonner";
@@ -16,6 +17,7 @@ import { queryKeys } from "../queries/keys";
 import { sounds } from "../lib/sounds";
 import { useAuthStore, useChatStore, useAppStore } from "../store/stores";
 import { useMuteStore } from "../store/muteStore";
+import { usePresenceStore } from "../store/presenceStore";
 import { useSignalR } from "../providers/SignalRProvider";
 import AnimatedChatIcon from "../components/ui/AnimatedChatIcon";
 import { cn } from "../lib/utils";
@@ -286,7 +288,9 @@ const ChatPage: React.FC = () => {
               <div className="w-9 h-9 xs:w-10 xs:h-10 rounded-full bg-[var(--ui-sidebar-bg)] flex items-center justify-center border border-white/5 text-slate-600 group-hover:text-[var(--ui-accent)] transition-colors overflow-hidden">
                 {user?.avatarUrl ? <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" /> : <UserIcon className="w-4 h-4 xs:w-5 xs:h-5" />}
               </div>
-              <div className="absolute -bottom-0.5 -end-0.5 w-2.5 h-2.5 xs:w-3 xs:h-3 rounded-full bg-[var(--ui-accent)] border border-[#060608] shadow-glow" />
+              <div className="absolute -bottom-0.5 -end-0.5">
+                <SelfPresenceLED />
+              </div>
             </div>
             <div className="flex flex-col flex-1 min-w-0 relative z-10">
               <span className="text-[10px] xs:text-xs font-bold text-white uppercase truncate">{user?.name}</span>
@@ -354,6 +358,29 @@ const ChatPage: React.FC = () => {
           </div>
         )}
       </div>
+    </div>
+  );
+};
+
+const SelfPresenceLED: React.FC = () => {
+  const selfStatus = usePresenceStore((s) => s.selfStatus);
+  const isOnline = selfStatus === "active";
+  const isAway = selfStatus === "idle" || selfStatus === "hidden";
+  
+  return (
+    <div className={cn(
+      "w-2.5 h-2.5 xs:w-3 xs:h-3 rounded-full border border-[#060608] transition-all duration-500 relative",
+      isOnline ? "bg-[var(--ui-accent)] shadow-[0_0_8px_rgba(var(--ui-accent-rgb),0.6)]" : 
+      isAway ? "bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.4)]" : 
+      "bg-slate-700"
+    )}>
+      {isOnline && (
+        <motion.div
+          animate={{ scale: [1, 2], opacity: [0.4, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+          className="absolute inset-0 rounded-full bg-[var(--ui-accent)]"
+        />
+      )}
     </div>
   );
 };
