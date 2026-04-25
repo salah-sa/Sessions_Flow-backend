@@ -70,7 +70,12 @@ public class RateLimitingMiddleware
             return;
         }
 
-        var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var forwardedHeader = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+        var ip = !string.IsNullOrEmpty(forwardedHeader) 
+            ? forwardedHeader.Split(',')[0].Trim() 
+            : context.Request.Headers["X-Real-IP"].FirstOrDefault() 
+                ?? context.Connection.RemoteIpAddress?.ToString() 
+                ?? "unknown";
         var attempts = _attempts.GetOrAdd(ip, _ => new List<DateTime>());
         
         lock (attempts)
