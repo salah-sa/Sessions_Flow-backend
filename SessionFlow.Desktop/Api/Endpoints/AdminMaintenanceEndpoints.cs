@@ -58,6 +58,6 @@ public static class AdminMaintenanceEndpoints
             }
 
             return Results.Ok(new { message = $"Migration complete. Fixed {fixedCount} sessions.", totalChecked = sessions.Count });
-        });
+        }).RequireAuthorization("AdminOnly");
     }
 }
