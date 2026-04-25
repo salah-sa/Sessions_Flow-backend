@@ -110,17 +110,17 @@ const SettingsPage: React.FC = () => {
       setAppName(settings.find(s => s.key === "AppName")?.value || "");
       setSmtpHost(settings.find(s => s.key === "SmtpHost")?.value || "");
       setSmtpPort(settings.find(s => s.key === "SmtpPort")?.value || "");
-      setPriceL1(settings.find(s => s.key === "session_price_level_1")?.value || "100");
-      setPriceL2(settings.find(s => s.key === "session_price_level_2")?.value || "100");
-      setPriceL3(settings.find(s => s.key === "session_price_level_3")?.value || "100");
-      setPriceL4(settings.find(s => s.key === "session_price_level_4")?.value || "150");
+      setPriceL1(settings.find(s => s.key === "price_level_1")?.value || "100");
+      setPriceL2(settings.find(s => s.key === "price_level_2")?.value || "100");
+      setPriceL3(settings.find(s => s.key === "price_level_3")?.value || "100");
+      setPriceL4(settings.find(s => s.key === "price_level_4")?.value || "150");
       setAdminEmail(settings.find(s => s.key === "admin_email")?.value || "salahfdasalahfda.11188@gmail.com");
       setAdminAppPassword(settings.find(s => s.key === "admin_email_app_password")?.value || "shkp mvzk wsei qzed");
       // Subscription pricing
-      setSubProMonthly(settings.find(s => s.key === "subscription_pro_monthly_price")?.value || "149");
-      setSubProAnnual(settings.find(s => s.key === "subscription_pro_annual_price")?.value || "1199");
-      setSubEntMonthly(settings.find(s => s.key === "subscription_enterprise_monthly_price")?.value || "299");
-      setSubEntAnnual(settings.find(s => s.key === "subscription_enterprise_annual_price")?.value || "2399");
+      setSubProMonthly(settings.find(s => s.key === "subscription_price_pro_monthly")?.value || "149");
+      setSubProAnnual(settings.find(s => s.key === "subscription_price_pro_annual")?.value || "1199");
+      setSubEntMonthly(settings.find(s => s.key === "subscription_price_enterprise_monthly")?.value || "299");
+      setSubEntAnnual(settings.find(s => s.key === "subscription_price_enterprise_annual")?.value || "2399");
     }
   }, [settings]);
 
@@ -138,16 +138,16 @@ const SettingsPage: React.FC = () => {
         AppName: appName,
         SmtpHost: smtpHost,
         SmtpPort: smtpPort,
-        session_price_level_1: priceL1,
-        session_price_level_2: priceL2,
-        session_price_level_3: priceL3,
-        session_price_level_4: priceL4,
+        price_level_1: priceL1,
+        price_level_2: priceL2,
+        price_level_3: priceL3,
+        price_level_4: priceL4,
         admin_email: adminEmail || "salahfdasalahfda.11188@gmail.com",
         admin_email_app_password: adminAppPassword || "shkp mvzk wsei qzed",
-        subscription_pro_monthly_price: subProMonthly,
-        subscription_pro_annual_price: subProAnnual,
-        subscription_enterprise_monthly_price: subEntMonthly,
-        subscription_enterprise_annual_price: subEntAnnual
+        subscription_price_pro_monthly: subProMonthly,
+        subscription_price_pro_annual: subProAnnual,
+        subscription_price_enterprise_monthly: subEntMonthly,
+        subscription_price_enterprise_annual: subEntAnnual
       };
       await updateSettings.mutateAsync(payload);
       toast.success(t("settings.save_success"));
@@ -193,12 +193,16 @@ const SettingsPage: React.FC = () => {
     appName !== (settings.find(s => s.key === "AppName")?.value || "") ||
     smtpHost !== (settings.find(s => s.key === "SmtpHost")?.value || "") ||
     smtpPort !== (settings.find(s => s.key === "SmtpPort")?.value || "") ||
-    priceL1 !== (settings.find(s => s.key === "session_price_level_1")?.value || "100") ||
-    priceL2 !== (settings.find(s => s.key === "session_price_level_2")?.value || "100") ||
-    priceL3 !== (settings.find(s => s.key === "session_price_level_3")?.value || "100") ||
-    priceL4 !== (settings.find(s => s.key === "session_price_level_4")?.value || "150") ||
+    priceL1 !== (settings.find(s => s.key === "price_level_1")?.value || "100") ||
+    priceL2 !== (settings.find(s => s.key === "price_level_2")?.value || "100") ||
+    priceL3 !== (settings.find(s => s.key === "price_level_3")?.value || "100") ||
+    priceL4 !== (settings.find(s => s.key === "price_level_4")?.value || "150") ||
     adminEmail !== (settings.find(s => s.key === "admin_email")?.value || "salahfdasalahfda.11188@gmail.com") ||
-    adminAppPassword !== (settings.find(s => s.key === "admin_email_app_password")?.value || "shkp mvzk wsei qzed");
+    adminAppPassword !== (settings.find(s => s.key === "admin_email_app_password")?.value || "shkp mvzk wsei qzed") ||
+    subProMonthly !== (settings.find(s => s.key === "subscription_price_pro_monthly")?.value || "149") ||
+    subProAnnual !== (settings.find(s => s.key === "subscription_price_pro_annual")?.value || "1199") ||
+    subEntMonthly !== (settings.find(s => s.key === "subscription_price_enterprise_monthly")?.value || "299") ||
+    subEntAnnual !== (settings.find(s => s.key === "subscription_price_enterprise_annual")?.value || "2399");
 
   useBeforeUnload(hasUnsavedChanges);
 
@@ -296,12 +300,16 @@ const SettingsPage: React.FC = () => {
                       setAppName(settings.find(s => s.key === "AppName")?.value || "");
                       setSmtpHost(settings.find(s => s.key === "SmtpHost")?.value || "");
                       setSmtpPort(settings.find(s => s.key === "SmtpPort")?.value || "");
-                      setPriceL1(settings.find(s => s.key === "session_price_level_1")?.value || "100");
-                      setPriceL2(settings.find(s => s.key === "session_price_level_2")?.value || "100");
-                      setPriceL3(settings.find(s => s.key === "session_price_level_3")?.value || "100");
-                      setPriceL4(settings.find(s => s.key === "session_price_level_4")?.value || "150");
+                      setPriceL1(settings.find(s => s.key === "price_level_1")?.value || "100");
+                      setPriceL2(settings.find(s => s.key === "price_level_2")?.value || "100");
+                      setPriceL3(settings.find(s => s.key === "price_level_3")?.value || "100");
+                      setPriceL4(settings.find(s => s.key === "price_level_4")?.value || "150");
                       setAdminEmail(settings.find(s => s.key === "admin_email")?.value || "salahfdasalahfda.11188@gmail.com");
                       setAdminAppPassword(settings.find(s => s.key === "admin_email_app_password")?.value || "shkp mvzk wsei qzed");
+                      setSubProMonthly(settings.find(s => s.key === "subscription_price_pro_monthly")?.value || "149");
+                      setSubProAnnual(settings.find(s => s.key === "subscription_price_pro_annual")?.value || "1199");
+                      setSubEntMonthly(settings.find(s => s.key === "subscription_price_enterprise_monthly")?.value || "299");
+                      setSubEntAnnual(settings.find(s => s.key === "subscription_price_enterprise_annual")?.value || "2399");
                     }
                   }}
                   className="text-xs font-semibold text-slate-400 hover:text-white"

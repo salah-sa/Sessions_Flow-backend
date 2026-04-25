@@ -66,6 +66,12 @@ public class User
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
+    [BsonIgnoreIfNull]
+    public string? GoogleId { get; set; }
+
+    [BsonIgnoreIfNull]
+    public string? FacebookId { get; set; }
+
     // In MongoDB, we reference by ID rather than using EF Navigation properties
     [BsonIgnore]
     public ICollection<Group> Groups { get; set; } = new List<Group>();

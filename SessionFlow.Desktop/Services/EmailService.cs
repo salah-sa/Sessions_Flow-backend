@@ -124,6 +124,7 @@ public class EmailReminderService : BackgroundService
     private DateTimeOffset _lastDailySummary = DateTimeOffset.MinValue;
     private DateTimeOffset _lastMissedAttendanceCheck = DateTimeOffset.MinValue;
     private readonly HashSet<Guid> _sentReminders = new();
+    private readonly HashSet<Guid> _sentStudentReminders = new();
 
     public EmailReminderService(IServiceProvider serviceProvider, ILogger<EmailReminderService> logger, IConfiguration config)
     {
@@ -141,6 +142,7 @@ public class EmailReminderService : BackgroundService
             try
             {
                 await CheckAndSendRemindersAsync(stoppingToken);
+                await CheckAndSendStudentRemindersAsync(stoppingToken);
                 await CheckAndSendDailySummaryAsync(stoppingToken);
                 await CheckAndSendMissedAttendanceRemindersAsync(stoppingToken);
             }
@@ -216,6 +218,85 @@ public class EmailReminderService : BackgroundService
             var toRemove = _sentReminders.Take(_sentReminders.Count - 100).ToList();
             foreach (var id in toRemove)
                 _sentReminders.Remove(id);
+        }
+    }
+
+    private async Task CheckAndSendStudentRemindersAsync(CancellationToken ct)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MongoService>();
+        var emailService = scope.ServiceProvider.GetRequiredService<EmailService>();
+
+        var now = DateTimeOffset.UtcNow;
+        // Looking for sessions starting in 23h50m to 24h10m (approx 24h reminder)
+        var startRange = now.AddHours(23).AddMinutes(50);
+        var endRange = now.AddHours(24).AddMinutes(10);
+
+        var upcomingSessions = await db.Sessions
+            .Find(s => s.Status == SessionStatus.Scheduled
+                        && s.ScheduledAt >= startRange
+                        && s.ScheduledAt <= endRange)
+            .ToListAsync(ct);
+
+        foreach (var session in upcomingSessions)
+        {
+            if (ct.IsCancellationRequested) break;
+            if (_sentStudentReminders.Contains(session.Id))
+                continue;
+
+            var group = await db.Groups.Find(g => g.Id == session.GroupId).FirstOrDefaultAsync(ct);
+            if (group == null) continue;
+
+            var students = await db.Students.Find(s => s.GroupId == session.GroupId && s.UserId != null && !s.IsDeleted).ToListAsync(ct);
+            var cairoTime = session.ScheduledAt.ToCairoTime(_config);
+            var chatLink = "https://sessionflow.app/chat"; // General chat link
+
+            foreach (var stu in students)
+            {
+                var user = await db.Users.Find(u => u.Id == stu.UserId).FirstOrDefaultAsync(ct);
+                if (user == null || string.IsNullOrEmpty(user.Email)) continue;
+
+                var body = $@"
+                    <div style='font-family: sans-serif; background: #020617; color: white; padding: 40px; border-radius: 20px; max-width: 600px; margin: auto;'>
+                        <h2 style='color: #3b82f6;'>🚀 Session Reminder: Tomorrow!</h2>
+                        <p>Hi {stu.Name},</p>
+                        <p>This is a friendly reminder that you have a session tomorrow for group <b>{group.Name}</b>.</p>
+                        
+                        <div style='background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0;'>
+                            <p><strong>Time:</strong> {cairoTime:hh:mm tt} (Cairo)</p>
+                            <p><strong>Date:</strong> {cairoTime:dddd, MMMM dd}</p>
+                        </div>
+
+                        <h3 style='color: #60a5fa;'>Preparation Checklist:</h3>
+                        <ul style='line-height: 1.6;'>
+                            <li>✅ Complete all pending tasks and homework.</li>
+                            <li>✅ Be fully prepared for the session topics.</li>
+                            <li>✅ Check your internet connection early.</li>
+                            <li>✅ Have your work ready to present/submit.</li>
+                        </ul>
+
+                        <p style='background: #1e293b; padding: 15px; border-radius: 10px; border-left: 4px solid #f59e0b;'>
+                            💡 <b>Forgot your homework?</b> Don't worry! You can go to the <a href='{chatLink}' style='color: #3b82f6; text-decoration: underline;'>Group Chat</a> now and ask your instructor for help.
+                        </p>
+
+                        <div style='text-align: center; margin-top: 30px;'>
+                            <a href='{chatLink}' style='background: #3b82f6; color: white; padding: 12px 24px; border-radius: 10px; text-decoration: none; font-weight: bold;'>Go to Chat</a>
+                        </div>
+
+                        <p style='color: #64748b; font-size: 12px; margin-top: 40px; text-align: center;'>SESSIONFLOW — AUTOMATED SYSTEM RELAY</p>
+                    </div>";
+
+                await emailService.SendEmailAsync(user.Email, $"[SessionFlow] Your session is tomorrow: {group.Name}", body, ct);
+            }
+
+            _sentStudentReminders.Add(session.Id);
+        }
+
+        if (_sentStudentReminders.Count > 500)
+        {
+            var toRemove = _sentStudentReminders.Take(_sentStudentReminders.Count - 100).ToList();
+            foreach (var id in toRemove)
+                _sentStudentReminders.Remove(id);
         }
     }
 

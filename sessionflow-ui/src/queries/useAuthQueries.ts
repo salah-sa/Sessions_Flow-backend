@@ -70,12 +70,39 @@ export const useAuthMutations = () => {
     },
   });
 
+  const linkSocialMutation = useMutation({
+    mutationFn: ({ provider, id }: { provider: string; id: string }) => 
+      authApi.linkSocial(provider, id),
+    onSuccess: async () => {
+      try {
+        const freshUser = await authApi.getMe();
+        if (freshUser) {
+          const token = localStorage.getItem("sf_token") || "";
+          setAuth(freshUser, token);
+        }
+      } catch (e) {
+        console.error("[LinkSocial] Failed to refresh user:", e);
+      }
+    },
+  });
+
+  const loginSocialMutation = useMutation({
+    mutationFn: ({ provider, id }: { provider: string; id: string }) => 
+      authApi.loginSocial(provider, id),
+    onSuccess: (data: AuthResponse) => {
+      localStorage.setItem("sf_token", data.token);
+      setAuth(data.user, data.token);
+    },
+  });
+
   return {
     updatePasswordMutation,
     updateAvatarMutation,
     updateDisplayNameMutation,
     requestEmailChangeMutation,
     verifyEmailChangeMutation,
+    linkSocialMutation,
+    loginSocialMutation,
   };
 };
 

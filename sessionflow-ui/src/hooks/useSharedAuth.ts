@@ -1,9 +1,12 @@
 import { useState, useRef, useCallback } from "react";
 import { MascotState, AuthMode } from "../components/auth/types";
 import { useNavigate } from "react-router-dom";
+import { useAuthMutations } from "../queries/useAuthQueries";
+import { toast } from "sonner";
 
 export const useSharedAuth = () => {
   const navigate = useNavigate();
+  const { loginSocialMutation } = useAuthMutations();
   const [loginMode, setLoginMode] = useState<AuthMode>("engineer");
   const [mascotState, setMascotState] = useState<MascotState>("idle");
   const [passwordStrength, setPasswordStrength] = useState(0);
@@ -40,6 +43,29 @@ export const useSharedAuth = () => {
     navigate(path);
   };
 
+  const onSocialLogin = useCallback(async (provider: string) => {
+    setMascotState("thinking");
+    // In production, this would be an OAuth callback. 
+    // For manual testing of the "link-first" policy, we prompt for the ID.
+    const socialId = window.prompt(`Enter your ${provider} Social ID (to verify the link-first policy):`);
+    
+    if (!socialId) {
+      setMascotState("idle");
+      return;
+    }
+    
+    try {
+      await loginSocialMutation.mutateAsync({ provider, id: socialId });
+      setMascotState("success");
+      toast.success(`${provider} login successful!`);
+      setTimeout(() => navigate("/dashboard"), 800);
+    } catch (err: any) {
+      setMascotState("error");
+      toast.error(err.message || `Failed to sign in with ${provider}. Ensure your account is linked from the profile settings.`);
+      setTimeout(() => setMascotState("idle"), 2000);
+    }
+  }, [loginSocialMutation, navigate]);
+
   return {
     loginMode,
     setLoginMode,
@@ -51,6 +77,7 @@ export const useSharedAuth = () => {
     handleFieldFocus,
     handleFieldBlur,
     handlePasswordChange,
-    onNavigate
+    onNavigate,
+    onSocialLogin
   };
 };

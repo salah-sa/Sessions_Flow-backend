@@ -1293,6 +1293,62 @@ public class AuthService
         return (true, null);
     }
 
+    public async Task<(bool success, string? error)> LinkSocialAccountAsync(Guid userId, string provider, string socialId, CancellationToken ct = default)
+    {
+        var user = await _db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync(ct);
+        if (user == null) return (false, "User not found.");
+
+        var update = Builders<User>.Update.Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
+        
+        if (provider.ToLower() == "google")
+        {
+            // Ensure this social ID isn't already linked to another account
+            var existing = await _db.Users.Find(u => u.GoogleId == socialId && u.Id != userId).AnyAsync(ct);
+            if (existing) return (false, "This Google account is already linked to another user.");
+            update = update.Set(u => u.GoogleId, socialId);
+        }
+        else if (provider.ToLower() == "facebook")
+        {
+            var existing = await _db.Users.Find(u => u.FacebookId == socialId && u.Id != userId).AnyAsync(ct);
+            if (existing) return (false, "This Facebook account is already linked to another user.");
+            update = update.Set(u => u.FacebookId, socialId);
+        }
+        else
+        {
+            return (false, "Invalid social provider.");
+        }
+
+        await _db.Users.UpdateOneAsync(u => u.Id == userId, update, cancellationToken: ct);
+        return (true, null);
+    }
+
+    public async Task<(User? user, string? token, string? error)> LoginWithSocialAsync(string provider, string socialId, CancellationToken ct = default)
+    {
+        FilterDefinition<User> filter;
+        if (provider.ToLower() == "google")
+        {
+            filter = Builders<User>.Filter.Eq(u => u.GoogleId, socialId);
+        }
+        else if (provider.ToLower() == "facebook")
+        {
+            filter = Builders<User>.Filter.Eq(u => u.FacebookId, socialId);
+        }
+        else
+        {
+            return (null, null, "Invalid social provider.");
+        }
+
+        var user = await _db.Users.Find(filter).FirstOrDefaultAsync(ct);
+        if (user == null)
+            return (null, null, "This social account is not linked to any SessionFlow user. Please sign in with your email first and link it from your profile.");
+
+        if (!user.IsApproved)
+            return (null, null, "Your account is pending approval.");
+
+        var token = GenerateJwtToken(user);
+        return (user, token, null);
+    }
+
     private string GenerateResetCode()
     {
         const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Removed ambiguous: I, J, L, O, 0, 1
