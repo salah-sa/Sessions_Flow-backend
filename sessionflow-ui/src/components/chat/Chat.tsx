@@ -59,7 +59,7 @@ const ProfileImage: React.FC<{ userId?: string; url?: string | null; initial?: s
         <span className={cn("text-[11px] font-bold uppercase", isMe ? "text-ui-accent" : "text-slate-500")}>{initial || "U"}</span>
       )}
       
-      <div className="absolute bottom-1 right-1">
+      <div className="absolute bottom-1 end-1">
         <div className={cn(
           "w-2.5 h-2.5 rounded-full border border-ui-bg transition-all duration-500 relative",
           status === "online" ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" : 
@@ -88,7 +88,8 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
   const profileRole = isMe ? currentUser?.role : (message.sender?.role ?? "Student");
   const initial = profileName?.charAt(0).toUpperCase() || "?";
 
-  const isImportant = message.text?.startsWith("--");
+  const isImportant = message.text?.startsWith("//");
+  const isEngineerMessage = profileRole === "Engineer";
 
   return (
     <motion.div 
@@ -114,7 +115,8 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
             isMe 
               ? "bg-gradient-to-br from-ui-accent to-ui-accent-dark text-white border-white/10 rounded-br-none shadow-ui-accent/10" 
               : "bg-white/[0.03] backdrop-blur-md text-slate-200 border-white/5 rounded-bl-none shadow-black/20",
-            isImportant && "border-amber-500/30 bg-amber-500/5 ring-1 ring-amber-500/20"
+            isImportant && "border-amber-500/30 bg-amber-500/5 ring-1 ring-amber-500/20",
+            !isMe && isEngineerMessage && !isImportant && "border-s-2 border-s-amber-500/50"
           )}>
             {isImportant && (
               <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/5">
@@ -327,7 +329,7 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.5, y: 10 }}
               onClick={() => scrollRef.current?.scroll({ top: 0, behavior: "smooth" })} 
-              className="absolute bottom-8 right-8 w-12 h-12 rounded-2xl bg-ui-accent text-white flex items-center justify-center shadow-2xl shadow-ui-accent/40 border border-white/20 hover:scale-110 active:scale-95 transition-all z-20 group"
+              className="absolute bottom-8 end-8 w-12 h-12 rounded-2xl bg-ui-accent text-white flex items-center justify-center shadow-2xl shadow-ui-accent/40 border border-white/20 hover:scale-110 active:scale-95 transition-all z-20 group"
             >
               <ChevronDown className="w-6 h-6 transition-transform group-hover:translate-y-0.5" />
             </motion.button>
@@ -345,7 +347,7 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.95 }}
-              className="absolute bottom-full left-4 right-4 md:left-8 md:right-auto mb-6 z-[60] shadow-2xl rounded-3xl overflow-hidden border border-white/10"
+              className="absolute bottom-full start-4 end-4 md:start-8 md:end-auto mb-6 z-[60] shadow-2xl rounded-3xl overflow-hidden border border-white/10"
             >
               <Picker 
                 data={data} 
@@ -363,7 +365,7 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
             <motion.div 
               initial={{ opacity: 0, y: 10 }} 
               animate={{ opacity: 1, y: 0 }} 
-              className="absolute bottom-full left-4 right-4 md:left-8 md:right-auto mb-6 w-full md:w-80 bg-ui-sidebar-bg border border-white/10 rounded-3xl shadow-2xl overflow-hidden overflow-y-auto max-h-[40vh] custom-scrollbar z-[60]"
+              className="absolute bottom-full start-4 end-4 md:start-8 md:end-auto mb-6 w-full md:w-80 bg-ui-sidebar-bg border border-white/10 rounded-3xl shadow-2xl overflow-hidden overflow-y-auto max-h-[40vh] custom-scrollbar z-[60]"
             >
               <div className="p-4 border-b border-white/5 bg-white/[0.02] text-[10px] font-bold text-slate-500 uppercase tracking-widest">Select Signal Target</div>
               {filteredMembers.map((m, i) => (
@@ -402,7 +404,7 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
             </div>
             <button 
               onClick={() => setSelectedFile(null)} 
-              className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-all ml-4"
+              className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-all ms-4"
             >
               <X className="w-4 h-4" />
             </button>
@@ -452,7 +454,21 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
           <input 
             type="file" 
             ref={fileInputRef} 
-            onChange={(e) => { if (e.target.files?.[0]) setSelectedFile(e.target.files[0]); }} 
+            onChange={(e) => { 
+              const file = e.target.files?.[0];
+              if (file) {
+                // Tiered file size limits based on subscription
+                const tier = user?.subscriptionTier || "Free";
+                const limits: Record<string, number> = { Free: 5, Pro: 25, Enterprise: 100 };
+                const maxMB = limits[tier] || 5;
+                if (file.size > maxMB * 1024 * 1024) {
+                  toast?.error?.(`File exceeds ${maxMB}MB limit for ${tier} tier. Upgrade your plan for larger uploads.`);
+                  e.target.value = "";
+                  return;
+                }
+                setSelectedFile(file);
+              }
+            }} 
             className="hidden" 
             accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,audio/*,video/*"
           />
@@ -480,7 +496,7 @@ const TypingIndicator: React.FC<{ activeGroupId: string | null }> = ({ activeGro
         <span className="w-2 h-2 bg-ui-accent rounded-full animate-bounce" />
       </div>
       <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
-        {typingNames.length === 1 ? `${typingNames[0]} synchronization in progress` : `${typingNames.length} Nodes Syncing`}
+        {typingNames.length === 1 ? `${typingNames[0]} is typing...` : `${typingNames.join(", ")} are typing...`}
       </span>
     </motion.div>
   );

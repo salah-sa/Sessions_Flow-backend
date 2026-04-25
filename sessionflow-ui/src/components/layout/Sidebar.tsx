@@ -89,7 +89,7 @@ const NavItem = ({ to, icon: Icon, label, badge, locked, premiumLocked, pageBloc
           {isActive && !locked && (
             <motion.div 
               layoutId="active-indicator"
-              className="absolute left-0 w-1 h-6 bg-[var(--ui-accent)] rounded-r-full shadow-glow shadow-[var(--ui-accent)]/40"
+              className="absolute start-0 w-1 h-6 bg-[var(--ui-accent)] rounded-e-full shadow-glow shadow-[var(--ui-accent)]/40"
             />
           )}
           <Icon className={cn("w-5 h-5 transition-all duration-300", 
@@ -187,7 +187,19 @@ const Sidebar: React.FC = () => {
               <p className="text-[8px] font-bold text-[var(--ui-accent)] tracking-[0.4em] uppercase opacity-60">Session Flow</p>
             </div>
          </div>
-         <div className="absolute bottom-0 left-10 right-10 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+         {/* Tier Badge */}
+         {userTier !== "Free" && (
+           <div className={cn(
+             "mt-3 mx-auto flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl border text-[8px] font-black uppercase tracking-[0.2em]",
+             userTier === "Pro" 
+               ? "bg-[var(--ui-accent)]/5 border-[var(--ui-accent)]/20 text-[var(--ui-accent)]" 
+               : "bg-amber-500/5 border-amber-500/20 text-amber-400"
+           )}>
+             <Crown className={cn("w-3 h-3", userTier === "Enterprise" && "text-amber-400")} />
+             {userTier}
+           </div>
+         )}
+         <div className="absolute bottom-0 start-10 end-10 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </div>
 
       <nav className="flex-1 px-4 space-y-2 overflow-y-auto min-h-0 custom-scrollbar">

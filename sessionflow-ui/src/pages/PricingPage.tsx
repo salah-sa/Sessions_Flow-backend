@@ -168,7 +168,7 @@ export default function PricingPage() {
                 )}
 
                 {isCurrent && (
-                  <div className="absolute top-8 right-8">
+                  <div className="absolute top-8 end-8">
                     <Badge variant="success" className="bg-emerald-500/10 text-emerald-400 border-none text-[9px] font-black tracking-widest uppercase py-1">Active</Badge>
                   </div>
                 )}
@@ -214,7 +214,7 @@ export default function PricingPage() {
                   isLoading={checkoutMutation.isPending && checkoutMutation.variables?.tier === plan.tier}
                   onClick={() => handleUpgrade(plan.tier)}
                 >
-                  <span className="relative z-10">{isCurrent ? "Current Matrix" : plan.buttonText}</span>
+                  <span className="relative z-10">{isCurrent ? "Current Plan" : plan.buttonText}</span>
                   {i === 1 && !isCurrent && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />}
                 </Button>
               </motion.div>

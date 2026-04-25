@@ -497,32 +497,37 @@ export const StyleGradientAnimated: React.FC<LoginStyleProps> = (props) => {
 
               {/* ═══ Footer ═══ */}
               <div className="mt-6 text-center">
-                 <div className="relative flex items-center mb-4">
-                  <div className="flex-grow h-[1px] bg-white/5" />
-                  <span className="mx-4 text-[9px] text-slate-600 uppercase font-bold">Or continue with</span>
-                  <div className="flex-grow h-[1px] bg-white/5" />
-                </div>
-                <SocialButtons 
-                  mode="icon-only" 
-                  layout="row" 
-                  theme="dark" 
-                  onGoogleClick={() => props.onSocialLogin?.("Google")}
-                  onFacebookClick={() => props.onSocialLogin?.("Facebook")}
-                />
-                
-                <p className="text-[12px] text-slate-500 mt-6">
-                  {isRegister ? (
-                    <>Already have an account? <button onClick={() => props.onNavigate("/login")} className="text-emerald-400 font-bold">Sign in</button></>
-                  ) : (
-                    <>Don't have an account? <button onClick={() => props.onNavigate("/register")} className="text-emerald-400 font-bold">Sign up</button></>
-                  )}
-                </p>
-                
-                {isRegister && (
-                  <p className="text-[11px] text-slate-500 mt-3">
-                    Didn't receive your credentials? <button type="button" onClick={() => setShowResendDialog(true)} className="text-[var(--ui-accent)] font-bold transition-colors hover:text-[var(--ui-accent)]/80">Resend email</button>
-                  </p>
-                )}
+                 {/* Social login: Only shown on Login — registration uses email-only flow */}
+                 {!isRegister && (
+                   <>
+                     <div className="relative flex items-center mb-4">
+                       <div className="flex-grow h-[1px] bg-white/5" />
+                       <span className="mx-4 text-[9px] text-slate-600 uppercase font-bold">Or continue with</span>
+                       <div className="flex-grow h-[1px] bg-white/5" />
+                     </div>
+                     <SocialButtons 
+                       mode="icon-only" 
+                       layout="row" 
+                       theme="dark" 
+                       onGoogleClick={() => props.onSocialLogin?.("Google")}
+                       onFacebookClick={() => props.onSocialLogin?.("Facebook")}
+                     />
+                   </>
+                 )}
+                 
+                 <p className={`text-[12px] text-slate-500 ${!isRegister ? 'mt-6' : ''}`}>
+                   {isRegister ? (
+                     <>Already have an account? <button onClick={() => props.onNavigate("/login")} className="text-emerald-400 font-bold">Sign in</button></>
+                   ) : (
+                     <>Don't have an account? <button onClick={() => props.onNavigate("/register")} className="text-emerald-400 font-bold">Sign up</button></>
+                   )}
+                 </p>
+                 
+                 {isRegister && (
+                   <p className="text-[11px] text-slate-500 mt-3">
+                     Didn't receive your credentials? <button type="button" onClick={() => setShowResendDialog(true)} className="text-[var(--ui-accent)] font-bold transition-colors hover:text-[var(--ui-accent)]/80">Resend email</button>
+                   </p>
+                 )}
               </div>
             </div>
           </div>

@@ -248,6 +248,10 @@ public static class GroupEndpoints
             if (req.Level < 1 || req.Level > 4)
                 return Results.BadRequest(new { error = "Level must be between 1 and 4." });
 
+            // HARDENED VALIDATION: Prevent 0 or negative student slots
+            if (req.NumberOfStudents <= 0)
+                return Results.BadRequest(new { error = "Number of students must be at least 1." });
+
             // HARDENED VALIDATION
             int maxStudents = CurriculumConstants.GetMaxStudents(req.Level);
             int totalSessions = CurriculumConstants.GetTotalSessions(req.Level);
@@ -357,6 +361,8 @@ public static class GroupEndpoints
             if (req.Level.HasValue && req.Level >= 1 && req.Level <= 4) update = update.Set(x => x.Level, req.Level.Value);
             if (req.NumberOfStudents.HasValue) 
              {
+                if (req.NumberOfStudents.Value <= 0)
+                    return Results.BadRequest(new { error = "Number of students must be at least 1." });
                 var level = req.Level ?? g.Level;
                 var max = CurriculumConstants.GetMaxStudents(level);
                 if (req.NumberOfStudents > max) return Results.BadRequest(new { error = $"Security Restriction: Max students for Level {level} is {max}." });
@@ -448,8 +454,13 @@ public static class GroupEndpoints
         });
 
         // DELETE /api/groups/all — hard delete all groups and related data (factory reset)
-        group.MapDelete("/all", async (MongoService db) =>
+        group.MapDelete("/all", async (MongoService db, HttpContext ctx) =>
         {
+            // SECURITY: Factory reset is Admin-only — prevent accidental or malicious data wipe
+            var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
+            if (role != "Admin")
+                return Results.Forbid();
+
             var filter = Builders<Group>.Filter.Empty;
             var groups = await db.Groups.Find(filter).ToListAsync();
             var groupIds = groups.Select(g => g.Id).ToList();
