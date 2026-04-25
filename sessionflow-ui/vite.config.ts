@@ -32,18 +32,18 @@ export default defineConfig({
     port: 5174,
     proxy: {
       "/api": {
-        target: "https://sessionsflow-backend-production.up.railway.app",
+        target: "http://127.0.0.1:5180",
         changeOrigin: true,
         secure: false,
       },
       "/hub": {
-        target: "https://sessionsflow-backend-production.up.railway.app",
+        target: "http://127.0.0.1:5180",
         ws: true,
         changeOrigin: true,
         secure: false,
       },
       "/uploads": {
-        target: "https://sessionsflow-backend-production.up.railway.app",
+        target: "http://127.0.0.1:5180",
         changeOrigin: true,
         secure: false,
       },
