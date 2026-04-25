@@ -12,6 +12,7 @@
     <Compile Include="..\SessionFlow.Desktop\Services\**\*.cs" Link="Services\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\SessionFlow.Desktop\Data\**\*.cs" Link="Data\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\SessionFlow.Desktop\Models\**\*.cs" Link="Models\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\SessionFlow.Desktop\Helpers\**\*.cs" Link="Helpers\%(RecursiveDir)%(Filename)%(Extension)" />
     <Content Include="..\SessionFlow.Desktop\appsettings.json" Link="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
