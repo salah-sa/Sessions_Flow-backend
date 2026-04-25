@@ -234,103 +234,110 @@ public static class GroupEndpoints
         // POST /api/groups — create group + auto-generate sessions
         group.MapPost("/", async (CreateGroupRequest req, MongoService db, SessionService sessionService, HttpContext ctx) =>
         {
-            var userId = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var engineerId))
-                return Results.Unauthorized();
-
-            if (string.IsNullOrWhiteSpace(req.Name))
-                return Results.BadRequest(new { error = "Group name is required." });
-
-            var exists = await db.Groups.Find(g => g.Name == req.Name.Trim() && !g.IsDeleted).AnyAsync();
-            if (exists)
-                return Results.Conflict(new { error = "A group with this name already exists." });
-
-            if (req.Level < 1 || req.Level > 4)
-                return Results.BadRequest(new { error = "Level must be between 1 and 4." });
-
-            // HARDENED VALIDATION: Prevent 0 or negative student slots
-            if (req.NumberOfStudents <= 0)
-                return Results.BadRequest(new { error = "Number of students must be at least 1." });
-
-            // HARDENED VALIDATION
-            int maxStudents = CurriculumConstants.GetMaxStudents(req.Level);
-            int totalSessions = CurriculumConstants.GetTotalSessions(req.Level);
-
-            if (req.NumberOfStudents > maxStudents)
-               return Results.BadRequest(new { error = $"Security Restriction: Max students for Level {req.Level} is {maxStudents}." });
-
-            if (req.StartingSessionNumber > totalSessions)
-               return Results.BadRequest(new { error = $"Security Restriction: Starting session number cannot exceed {totalSessions} for Level {req.Level}." });
-
-            if (req.Frequency < 1 || req.Frequency > 3)
-                return Results.BadRequest(new { error = "Frequency must be between 1 and 3 times per week." });
-
-            if (req.Schedules == null || req.Schedules.Count != req.Frequency)
-                return Results.BadRequest(new { error = $"Strict Rule: Must define exactly {req.Frequency} schedule slot(s) for Frequency={req.Frequency}." });
-
-            int startingNum = req.StartingSessionNumber > 0 ? req.StartingSessionNumber : 1;
-
-            var newGroup = new Group
+            try
             {
-                Name = req.Name.Trim(),
-                Description = req.Description?.Trim() ?? "",
-                Level = req.Level,
-                ColorTag = req.ColorTag ?? "blue",
-                EngineerId = engineerId,
-                NumberOfStudents = req.NumberOfStudents,
-                StartingSessionNumber = startingNum,
-                CurrentSessionNumber = startingNum,
-                TotalSessions = totalSessions,
-                Frequency = req.Frequency,
-                Status = GroupStatus.Active
-            };
+                var userId = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var engineerId))
+                    return Results.Unauthorized();
 
-            await db.Groups.InsertOneAsync(newGroup);
+                if (string.IsNullOrWhiteSpace(req.Name))
+                    return Results.BadRequest(new { error = "Group name is required." });
 
-            if (req.Schedules == null || req.Schedules.Count == 0 || req.Schedules.Count > 3)
-                return Results.BadRequest(new { error = "Strict Rule: Must define exactly 1, 2, or 3 sessions per week." });
+                var exists = await db.Groups.Find(g => g.Name == req.Name.Trim() && !g.IsDeleted).AnyAsync();
+                if (exists)
+                    return Results.Conflict(new { error = "A group with this name already exists." });
 
-            var schedules = new List<GroupSchedule>();
-            foreach (var sched in req.Schedules)
-            {
-                if (string.IsNullOrWhiteSpace(sched.StartTime) || !TimeSpan.TryParse(sched.StartTime, out var parsedTime))
-                    return Results.BadRequest(new { error = $"Invalid StartTime format provided: {sched.StartTime}" });
+                if (req.Level < 1 || req.Level > 4)
+                    return Results.BadRequest(new { error = "Level must be between 1 and 4." });
 
-                schedules.Add(new GroupSchedule
+                // HARDENED VALIDATION: Prevent 0 or negative student slots
+                if (req.NumberOfStudents <= 0)
+                    return Results.BadRequest(new { error = "Number of students must be at least 1." });
+
+                // HARDENED VALIDATION
+                int maxStudents = CurriculumConstants.GetMaxStudents(req.Level);
+                int totalSessions = CurriculumConstants.GetTotalSessions(req.Level);
+
+                if (req.NumberOfStudents > maxStudents)
+                   return Results.BadRequest(new { error = $"Security Restriction: Max students for Level {req.Level} is {maxStudents}." });
+
+                if (req.StartingSessionNumber > totalSessions)
+                   return Results.BadRequest(new { error = $"Security Restriction: Starting session number cannot exceed {totalSessions} for Level {req.Level}." });
+
+                if (req.Frequency < 1 || req.Frequency > 3)
+                    return Results.BadRequest(new { error = "Frequency must be between 1 and 3 times per week." });
+
+                if (req.Schedules == null || req.Schedules.Count != req.Frequency)
+                    return Results.BadRequest(new { error = $"Strict Rule: Must define exactly {req.Frequency} schedule slot(s) for Frequency={req.Frequency}." });
+
+                int startingNum = req.StartingSessionNumber > 0 ? req.StartingSessionNumber : 1;
+
+                var newGroup = new Group
                 {
-                    GroupId = newGroup.Id,
-                    DayOfWeek = sched.DayOfWeek,
-                    StartTime = parsedTime,
-                    DurationMinutes = sched.DurationMinutes > 0 ? sched.DurationMinutes : 60
-                });
-            }
-            await db.GroupSchedules.InsertManyAsync(schedules);
+                    Name = req.Name.Trim(),
+                    Description = req.Description?.Trim() ?? "",
+                    Level = req.Level,
+                    ColorTag = req.ColorTag ?? "blue",
+                    EngineerId = engineerId,
+                    NumberOfStudents = req.NumberOfStudents,
+                    StartingSessionNumber = startingNum,
+                    CurrentSessionNumber = startingNum,
+                    TotalSessions = totalSessions,
+                    Frequency = req.Frequency,
+                    Status = GroupStatus.Active
+                };
 
-            await sessionService.AutoGenerateSessionsAsync(newGroup);
+                await db.Groups.InsertOneAsync(newGroup);
 
-            if (req.Cadets != null && req.Cadets.Count > 0)
-            {
-                var studentsToInsert = new List<Student>();
-                foreach (var cadet in req.Cadets)
+                if (req.Schedules == null || req.Schedules.Count == 0 || req.Schedules.Count > 3)
+                    return Results.BadRequest(new { error = "Strict Rule: Must define exactly 1, 2, or 3 sessions per week." });
+
+                var schedules = new List<GroupSchedule>();
+                foreach (var sched in req.Schedules)
                 {
-                    if (string.IsNullOrWhiteSpace(cadet.Name)) continue;
-                    var studentName = cadet.Name.Trim();
-                    studentsToInsert.Add(new Student
+                    if (string.IsNullOrWhiteSpace(sched.StartTime) || !TimeSpan.TryParse(sched.StartTime, out var parsedTime))
+                        return Results.BadRequest(new { error = $"Invalid StartTime format provided: {sched.StartTime}" });
+
+                    schedules.Add(new GroupSchedule
                     {
-                        Name = studentName,
-                        StudentId = null, // System generated only
                         GroupId = newGroup.Id,
-                        UniqueStudentCode = Student.GenerateCode(studentName, newGroup.Id)
+                        DayOfWeek = sched.DayOfWeek,
+                        StartTime = parsedTime,
+                        DurationMinutes = sched.DurationMinutes > 0 ? sched.DurationMinutes : 60
                     });
                 }
-                
-                if (studentsToInsert.Count > 0)
-                {
-                    await db.Students.InsertManyAsync(studentsToInsert);
-                }
-            }
+                await db.GroupSchedules.InsertManyAsync(schedules);
 
-            return Results.Created($"/api/groups/{newGroup.Id}", new { id = newGroup.Id, name = newGroup.Name });
+                await sessionService.AutoGenerateSessionsAsync(newGroup);
+
+                if (req.Cadets != null && req.Cadets.Count > 0)
+                {
+                    var studentsToInsert = new List<Student>();
+                    foreach (var cadet in req.Cadets)
+                    {
+                        if (string.IsNullOrWhiteSpace(cadet.Name)) continue;
+                        var studentName = cadet.Name.Trim();
+                        studentsToInsert.Add(new Student
+                        {
+                            Name = studentName,
+                            StudentId = null, // System generated only
+                            GroupId = newGroup.Id,
+                            UniqueStudentCode = Student.GenerateCode(studentName, newGroup.Id)
+                        });
+                    }
+                    
+                    if (studentsToInsert.Count > 0)
+                    {
+                        await db.Students.InsertManyAsync(studentsToInsert);
+                    }
+                }
+
+                return Results.Created($"/api/groups/{newGroup.Id}", new { id = newGroup.Id, name = newGroup.Name });
+            }
+            catch (Exception ex)
+            {
+                return Results.Json(new { error = "Failed to create group.", detail = ex.Message }, statusCode: 500);
+            }
         });
 
         // PUT /api/groups/{id} — update group info
