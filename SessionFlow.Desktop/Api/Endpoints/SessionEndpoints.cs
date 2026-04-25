@@ -8,6 +8,8 @@ using SessionFlow.Desktop.Api.Hubs;
 using SessionFlow.Desktop.Data;
 using SessionFlow.Desktop.Models;
 using SessionFlow.Desktop.Services;
+using SessionFlow.Desktop.Helpers;
+using Microsoft.Extensions.Configuration;
 
 namespace SessionFlow.Desktop.Api.Endpoints;
 
@@ -18,7 +20,7 @@ public static class SessionEndpoints
         var group = app.MapGroup("/api/sessions").RequireAuthorization();
 
         // GET /api/sessions — list sessions with filters
-        group.MapGet("/", async (MongoService db, SessionService sessionService, HttpContext ctx, 
+        group.MapGet("/", async (MongoService db, SessionService sessionService, HttpContext ctx, IConfiguration config,
             int? page, int? pageSize, string? groupId, string? status, string? date, 
             string? startDate, string? endDate) =>
         {
@@ -26,6 +28,7 @@ public static class SessionEndpoints
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
             if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
 
+            var cairoTz = TimeZoneHelper.GetConfiguredTimeZone(config);
             var builder = Builders<Session>.Filter;
             var filter = builder.Eq(s => s.IsDeleted, false);
 
@@ -63,16 +66,13 @@ public static class SessionEndpoints
             if (!string.IsNullOrEmpty(date) && DateTimeOffset.TryParse(date, out var d))
             {
                 // Auto-fill missing sessions for today before querying
-                var cairoTodayStr = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, 
-                    TimeZoneInfo.CreateCustomTimeZone("Cairo", TimeSpan.FromHours(2), "Cairo", "Cairo"))
-                    .ToString("yyyy-MM-dd");
+                var cairoTodayStr = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, cairoTz).ToString("yyyy-MM-dd");
                 if (d.Date.ToString("yyyy-MM-dd") == cairoTodayStr)
                 {
                     await sessionService.EnsureTodaysSessionsAsync();
                 }
 
-                var cairoOffset = TimeSpan.FromHours(2);
-                var dayStart = new DateTimeOffset(d.Date, cairoOffset).ToUniversalTime();
+                var dayStart = new DateTimeOffset(d.Date, cairoTz.GetUtcOffset(d.Date)).ToUniversalTime();
                 var dayEnd = dayStart.AddDays(1);
                 filter &= builder.Gte(s => s.ScheduledAt, dayStart) & builder.Lt(s => s.ScheduledAt, dayEnd);
             }
@@ -80,16 +80,14 @@ public static class SessionEndpoints
                      !string.IsNullOrEmpty(endDate) && DateTimeOffset.TryParse(endDate, out var eD))
             {
                 // Auto-fill missing sessions if range includes today
-                var cairoNowForRange = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,
-                    TimeZoneInfo.CreateCustomTimeZone("Cairo", TimeSpan.FromHours(2), "Cairo", "Cairo"));
+                var cairoNowForRange = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, cairoTz);
                 if (sD.Date <= cairoNowForRange.Date && eD.Date >= cairoNowForRange.Date)
                 {
                     await sessionService.EnsureTodaysSessionsAsync();
                 }
 
-                var cairoOffset = TimeSpan.FromHours(2);
-                var rangeStart = new DateTimeOffset(sD.Date, cairoOffset).ToUniversalTime();
-                var rangeEnd = new DateTimeOffset(eD.Date, cairoOffset).ToUniversalTime().AddDays(1);
+                var rangeStart = new DateTimeOffset(sD.Date, cairoTz.GetUtcOffset(sD.Date)).ToUniversalTime();
+                var rangeEnd = new DateTimeOffset(eD.Date, cairoTz.GetUtcOffset(eD.Date)).ToUniversalTime().AddDays(1);
                 filter &= builder.Gte(s => s.ScheduledAt, rangeStart) & builder.Lt(s => s.ScheduledAt, rangeEnd);
             }
 
@@ -284,7 +282,7 @@ public static class SessionEndpoints
             {
                 GroupId = groupId,
                 EngineerId = engineerId,
-                ScheduledAt = req.ScheduledAt,
+                ScheduledAt = req.ScheduledAt.ToUniversalTime(),
                 Status = SessionStatus.Scheduled,
                 SessionNumber = nextSessionNumber
             };

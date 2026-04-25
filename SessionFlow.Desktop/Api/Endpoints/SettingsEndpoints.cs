@@ -8,6 +8,8 @@ using MongoDB.Driver;
 using SessionFlow.Desktop.Data;
 using SessionFlow.Desktop.Models;
 using SessionFlow.Desktop.Services;
+using SessionFlow.Desktop.Helpers;
+using Microsoft.Extensions.Configuration;
 
 namespace SessionFlow.Desktop.Api.Endpoints;
 
@@ -76,7 +78,7 @@ public static class SettingsEndpoints
 
 
         // POST /api/export/history
-        app.MapPost("/api/export/history", async (ExportRequest req, MongoService db) =>
+        app.MapPost("/api/export/history", async (ExportRequest req, MongoService db, IConfiguration config) =>
         {
             if (string.IsNullOrWhiteSpace(req.FilePath))
                 return Results.BadRequest(new { error = "File path is required." });
@@ -127,8 +129,8 @@ public static class SettingsEndpoints
 
             var csv = new StringBuilder();
             csv.AppendLine("Date,Time,Group,Student,Status");
-
-            var cairoOffset = TimeSpan.FromHours(2);
+            
+            var cairoOffset = TimeZoneHelper.GetCairoOffset(config);
             foreach (var r in sortedRecords)
             {
                 var dynamicRec = (dynamic)r;

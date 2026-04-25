@@ -5,6 +5,8 @@ using MongoDB.Driver;
 using SessionFlow.Desktop.Data;
 using SessionFlow.Desktop.Models;
 using SessionFlow.Desktop.Services;
+using SessionFlow.Desktop.Helpers;
+using Microsoft.Extensions.Configuration;
 
 namespace SessionFlow.Desktop.Api.Endpoints;
 
@@ -15,14 +17,14 @@ public static class TimetableEndpoints
         var group = app.MapGroup("/api/timetable").RequireAuthorization();
 
         // GET /api/timetable — weekly schedule
-        group.MapGet("/", async (MongoService db, AuthService auth, HttpContext ctx) =>
+        group.MapGet("/", async (MongoService db, AuthService auth, HttpContext ctx, IConfiguration config) =>
         {
             var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
             if (!Guid.TryParse(userIdStr, out var uid)) return Results.Unauthorized();
 
             var now = DateTimeOffset.UtcNow;
-            var cairoOffset = TimeSpan.FromHours(2);
+            var cairoOffset = TimeZoneHelper.GetCairoOffset(config);
             var cairoNow = now.ToOffset(cairoOffset);
 
             var daysSinceMonday = ((int)cairoNow.DayOfWeek - 1 + 7) % 7;
@@ -83,7 +85,7 @@ public static class TimetableEndpoints
                     engineerName = eng?.Name,
                     scheduledAt = s.ScheduledAt,
                     status = s.Status.ToString(),
-                    dayOfWeek = (int)s.ScheduledAt.ToOffset(cairoOffset).DayOfWeek
+                    dayOfWeek = (int)s.ScheduledAt.ToCairoTime(config).DayOfWeek
                 });
             }
 
