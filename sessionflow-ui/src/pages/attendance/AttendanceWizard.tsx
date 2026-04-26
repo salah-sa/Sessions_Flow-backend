@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Button, Input, Card } from "../../components/ui";
+import { Modal, Button, Input, Card, Badge } from "../../components/ui";
 import { 
   Check, 
   Clock, 
