@@ -272,8 +272,41 @@ public static class GroupEndpoints
 
                 int startingNum = req.StartingSessionNumber > 0 ? req.StartingSessionNumber : 1;
 
+                // 1. Prepare and Validate Schedules
+                var schedules = new List<GroupSchedule>();
+                foreach (var sched in req.Schedules)
+                {
+                    if (string.IsNullOrWhiteSpace(sched.StartTime) || !TimeSpan.TryParse(sched.StartTime, out var parsedTime))
+                        return Results.BadRequest(new { error = $"Invalid StartTime format provided: {sched.StartTime}" });
+
+                    schedules.Add(new GroupSchedule
+                    {
+                        // Id will be generated, GroupId set after group insert
+                        DayOfWeek = sched.DayOfWeek,
+                        StartTime = parsedTime,
+                        DurationMinutes = sched.DurationMinutes > 0 ? sched.DurationMinutes : 60
+                    });
+                }
+
+                // 2. Prepare and Validate Cadets
+                var studentsToInsert = new List<Student>();
+                if (req.Cadets != null)
+                {
+                    foreach (var cadet in req.Cadets)
+                    {
+                        if (string.IsNullOrWhiteSpace(cadet.Name)) continue;
+                        studentsToInsert.Add(new Student
+                        {
+                            Name = cadet.Name.Trim(),
+                            StudentId = null, // System generated
+                        });
+                    }
+                }
+
+                // 3. Database Writes (Atomic-like order)
                 var newGroup = new Group
                 {
+                    Id = Guid.NewGuid(), // Explicitly assign ID so we can link children before Insert
                     Name = req.Name.Trim(),
                     Description = req.Description?.Trim() ?? "",
                     Level = req.Level,
@@ -284,55 +317,54 @@ public static class GroupEndpoints
                     CurrentSessionNumber = startingNum,
                     TotalSessions = totalSessions,
                     Frequency = req.Frequency,
-                    Status = GroupStatus.Active
+                    Status = GroupStatus.Active,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow
                 };
 
-                await db.Groups.InsertOneAsync(newGroup);
-
-                if (req.Schedules == null || req.Schedules.Count == 0 || req.Schedules.Count > 3)
-                    return Results.BadRequest(new { error = "Strict Rule: Must define exactly 1, 2, or 3 sessions per week." });
-
-                var schedules = new List<GroupSchedule>();
-                foreach (var sched in req.Schedules)
+                // Link children to the new group ID
+                foreach (var s in schedules) s.GroupId = newGroup.Id;
+                foreach (var s in studentsToInsert) 
                 {
-                    if (string.IsNullOrWhiteSpace(sched.StartTime) || !TimeSpan.TryParse(sched.StartTime, out var parsedTime))
-                        return Results.BadRequest(new { error = $"Invalid StartTime format provided: {sched.StartTime}" });
-
-                    schedules.Add(new GroupSchedule
-                    {
-                        GroupId = newGroup.Id,
-                        DayOfWeek = sched.DayOfWeek,
-                        StartTime = parsedTime,
-                        DurationMinutes = sched.DurationMinutes > 0 ? sched.DurationMinutes : 60
-                    });
+                    s.GroupId = newGroup.Id;
+                    s.UniqueStudentCode = Student.GenerateCode(s.Name, newGroup.Id);
                 }
-                await db.GroupSchedules.InsertManyAsync(schedules);
 
+                // Execute all insertions
+                await db.Groups.InsertOneAsync(newGroup);
+                if (schedules.Count > 0) await db.GroupSchedules.InsertManyAsync(schedules);
+                if (studentsToInsert.Count > 0) await db.Students.InsertManyAsync(studentsToInsert);
+
+                // Auto-generate sessions (depends on group and schedules being in DB)
                 await sessionService.AutoGenerateSessionsAsync(newGroup);
 
-                if (req.Cadets != null && req.Cadets.Count > 0)
+                // Return full object to satisfy frontend expectations
+                return Results.Created($"/api/groups/{newGroup.Id}", new
                 {
-                    var studentsToInsert = new List<Student>();
-                    foreach (var cadet in req.Cadets)
-                    {
-                        if (string.IsNullOrWhiteSpace(cadet.Name)) continue;
-                        var studentName = cadet.Name.Trim();
-                        studentsToInsert.Add(new Student
-                        {
-                            Name = studentName,
-                            StudentId = null, // System generated only
-                            GroupId = newGroup.Id,
-                            UniqueStudentCode = Student.GenerateCode(studentName, newGroup.Id)
-                        });
-                    }
-                    
-                    if (studentsToInsert.Count > 0)
-                    {
-                        await db.Students.InsertManyAsync(studentsToInsert);
-                    }
-                }
-
-                return Results.Created($"/api/groups/{newGroup.Id}", new { id = newGroup.Id, name = newGroup.Name });
+                    id = newGroup.Id,
+                    name = newGroup.Name,
+                    description = newGroup.Description,
+                    level = newGroup.Level,
+                    colorTag = newGroup.ColorTag,
+                    engineerId = newGroup.EngineerId,
+                    status = newGroup.Status.ToString(),
+                    studentCount = studentsToInsert.Count,
+                    totalSessions = newGroup.TotalSessions,
+                    currentSessionNumber = newGroup.CurrentSessionNumber,
+                    schedules = schedules.Select(s => new {
+                        id = s.Id,
+                        dayOfWeek = s.DayOfWeek,
+                        startTime = s.StartTime.ToString(@"hh\:mm"),
+                        durationMinutes = s.DurationMinutes
+                    }),
+                    students = studentsToInsert.Select(s => new {
+                        id = s.Id,
+                        name = s.Name,
+                        groupId = s.GroupId,
+                        studentId = s.StudentId,
+                        uniqueStudentCode = s.UniqueStudentCode
+                    })
+                });
             }
             catch (Exception ex)
             {
@@ -570,6 +602,7 @@ public static class GroupEndpoints
                 groupId = s.GroupId,
                 studentId = s.StudentId,
                 uniqueStudentCode = s.UniqueStudentCode,
+                level = s.Level,
                 createdAt = s.CreatedAt
             }));
         });
@@ -603,7 +636,9 @@ public static class GroupEndpoints
                 id = student.Id,
                 name = student.Name,
                 groupId = student.GroupId,
-                uniqueStudentCode = student.UniqueStudentCode
+                studentId = student.StudentId,
+                uniqueStudentCode = student.UniqueStudentCode,
+                createdAt = student.CreatedAt
             });
         });
     }
