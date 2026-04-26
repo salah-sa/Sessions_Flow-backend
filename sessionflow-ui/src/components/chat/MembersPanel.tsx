@@ -25,8 +25,8 @@ interface MemberEntry {
 }
 
 const StatusLabel: React.FC<{ status: PresenceStatus }> = ({ status }) => {
-  const isOnline = status === "active";
-  const isAway = status === "idle" || status === "hidden";
+  const isOnline = status === "online";
+  const isAway = status === "away";
   
   return (
     <div className="flex items-center gap-2">
@@ -76,7 +76,7 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
         <div className="absolute -bottom-1 -end-1">
           <div className={cn(
             "w-3.5 h-3.5 rounded-full border-2 border-[#12141a] transition-all duration-500 relative",
-            status === "active" ? "bg-emerald-400" : status === "idle" || status === "hidden" ? "bg-amber-400" : "bg-slate-700"
+            status === "online" ? "bg-emerald-400" : status === "away" ? "bg-amber-400" : "bg-slate-700"
           )} />
         </div>
       </div>
@@ -104,13 +104,13 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
             onClick={handleCall} 
             className={cn(
               "w-9 h-9 rounded-xl flex items-center justify-center transition-all opacity-0 group-hover/member:opacity-100",
-              status === "active" 
+              status === "online" 
                 ? "bg-[var(--chat-accent-warm)]/10 text-[var(--chat-accent-warm)] hover:bg-[var(--chat-accent-warm)] hover:text-white" 
                 : "bg-white/5 text-slate-500 hover:bg-white/10 hover:text-white"
             )}
             title="Start Audio Call"
           >
-            <Phone className={cn("w-4 h-4", status === "active" && "animate-pulse")} />
+            <Phone className={cn("w-4 h-4", status === "online" && "animate-pulse")} />
           </button>
         )}
         <StatusLabel status={status} />

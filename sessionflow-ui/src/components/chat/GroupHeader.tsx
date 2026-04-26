@@ -20,8 +20,8 @@ const PresenceDot: React.FC<{ userId: string; size?: "sm" | "md" }> = ({ userId,
   const status = usePresenceStore((s) => s.getPresence(userId).status);
   const dotSize = size === "sm" ? "w-2.5 h-2.5" : "w-3 h-3";
   
-  const isOnline = status === "active";
-  const isAway = status === "idle" || status === "hidden";
+  const isOnline = status === "online";
+  const isAway = status === "away";
   
   return (
     <div className={cn(

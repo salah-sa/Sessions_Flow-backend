@@ -248,7 +248,7 @@ const ChatPage: React.FC = () => {
                         <div className="flex-1 text-start min-w-0 relative z-10">
                           <div className="flex items-center justify-between gap-2">
                              <p className="text-[13px] font-bold truncate text-white font-display">{group.name}</p>
-                             {lastMsg && <span className="text-[10px] text-slate-500 whitespace-nowrap">{formatDistanceToNow(new Date(lastMsg.createdAt), { addSuffix: false, locale: i18n.language === 'ar' ? ar : enUS })}</span>}
+                             {lastMsg && <span className="text-[10px] text-slate-500 whitespace-nowrap">{formatDistanceToNow(new Date(lastMsg.sentAt), { addSuffix: false, locale: i18n.language === 'ar' ? ar : enUS })}</span>}
                           </div>
                           <p className={cn("text-[11px] font-medium truncate mt-0.5", isSelected ? "text-slate-300" : "text-slate-500")}>
                             {lastMsg ? `${lastMsg.senderName}: ${lastMsg.text}` : `${t("chat.no_messages", "No messages yet")}`}

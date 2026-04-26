@@ -46,7 +46,7 @@ const BlockMessageRenderer: React.FC<{ message: ChatMessage }> = ({ message }) =
 };
 
 const ProfileImage: React.FC<{ userId?: string; url?: string | null; initial?: string; isMe: boolean; }> = ({ userId, url, initial, isMe }) => {
-  const status = usePresenceStore((s) => isMe ? "active" : (userId ? s.getPresence(userId).status : "offline"));
+  const status = usePresenceStore((s) => isMe ? (s.selfStatus === "active" ? "online" : "away") : (userId ? s.getPresence(userId).status : "offline"));
   
   return (
     <div className={cn(
@@ -62,11 +62,11 @@ const ProfileImage: React.FC<{ userId?: string; url?: string | null; initial?: s
       <div className="absolute bottom-1 end-1">
         <div className={cn(
           "w-2.5 h-2.5 rounded-full border-2 border-[#14161d] transition-all duration-500 relative",
-          status === "active" ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]" : 
-          status === "idle" || status === "hidden" ? "bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.4)]" : 
+          status === "online" ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]" : 
+          status === "away" ? "bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.4)]" : 
           "bg-slate-700"
         )}>
-          {status === "active" && (
+          {status === "online" && (
             <motion.div
               animate={{ scale: [1, 2], opacity: [0.4, 0] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}

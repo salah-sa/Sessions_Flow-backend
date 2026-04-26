@@ -150,16 +150,17 @@ class SoundEngine {
    */
   playNotification() {
     this.init();
-    if (!this.ctx) return;
+    const ctx = this.ctx;
+    if (!ctx) return;
     const output = this.createOutput();
     if (!output) return;
 
-    const time = this.ctx.currentTime;
+    const time = ctx.currentTime;
     const chords = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
 
     chords.forEach((freq, i) => {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
       const startTime = time + (i * 0.04);
 
       osc.type = "sine";
@@ -188,11 +189,12 @@ class SoundEngine {
 
   private _playRingOnce() {
     this.init();
-    if (!this.ctx) return;
+    const ctx = this.ctx;
+    if (!ctx) return;
     const output = this.createOutput();
     if (!output) return;
 
-    const time = this.ctx.currentTime;
+    const time = ctx.currentTime;
     // Elegant minor-9th sequence
     const notes = [
       { f: 440, t: 0, d: 0.4 },     // A4
@@ -202,9 +204,9 @@ class SoundEngine {
     ];
 
     notes.forEach(note => {
-      const osc = this.ctx.createOscillator();
-      const sub = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
+      const osc = ctx.createOscillator();
+      const sub = ctx.createOscillator();
+      const gain = ctx.createGain();
       const startTime = time + note.t;
 
       osc.type = "sine";
@@ -240,16 +242,17 @@ class SoundEngine {
    */
   playCallEnd() {
     this.init();
-    if (!this.ctx) return;
+    const ctx = this.ctx;
+    if (!ctx) return;
     const output = this.createOutput();
     if (!output) return;
 
-    const time = this.ctx.currentTime;
+    const time = ctx.currentTime;
     const sequence = [783.99, 523.25]; // G5 to C5
 
     sequence.forEach((freq, i) => {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
       const startTime = time + (i * 0.1);
 
       osc.type = "sine";
