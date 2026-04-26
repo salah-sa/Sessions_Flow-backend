@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { X, Shield, User as UserIcon, Crown, Wifi, WifiOff, Phone, Activity, Users } from "lucide-react";
+import { X, User as UserIcon, Phone, Activity, Users, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../../lib/utils";
 import { Group, Student } from "../../types";
@@ -24,45 +24,21 @@ interface MemberEntry {
   avatarUrl?: string | null;
 }
 
-const StatusDot: React.FC<{ status: PresenceStatus; confidence: number }> = ({ status, confidence }) => {
-  let bg = "bg-[var(--ui-surface)]";
-  let shadow = "";
-  let label = "Offline";
-  let pulse = false;
-
-  switch (status) {
-    case "online":
-      bg = "bg-[var(--ui-accent)]";
-      shadow = "shadow-[0_0_12px_rgba(var(--ui-accent-rgb),0.6)]";
-      label = "Active";
-      pulse = confidence > 0.8;
-      break;
-    case "away":
-      bg = "bg-[#7c3aed]";
-      shadow = "shadow-[0_0_8px_rgba(124,58,237,0.4)]";
-      label = "Standby";
-      break;
-    case "unknown":
-      bg = "bg-[var(--ui-accent)]/40";
-      label = "Syncing...";
-      pulse = true;
-      break;
-  }
-
+const StatusLabel: React.FC<{ status: PresenceStatus }> = ({ status }) => {
+  const isOnline = status === "active";
+  const isAway = status === "idle" || status === "hidden";
+  
   return (
     <div className="flex items-center gap-2">
-      <div className="relative">
-        <div className={cn("w-2 h-2 rounded-full transition-all duration-500", bg, shadow)} />
-        {pulse && (
-          <motion.div
-            animate={{ scale: [1, 1.8], opacity: [0.5, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
-            className={cn("absolute inset-0 rounded-full", bg)}
-          />
-        )}
-      </div>
-      <span className={cn("text-[8px] font-bold uppercase tracking-[0.2em]", status === "online" ? "text-[var(--ui-accent)]" : "text-slate-600")}>
-        {label}
+      <div className={cn(
+        "w-1.5 h-1.5 rounded-full",
+        isOnline ? "bg-emerald-400" : isAway ? "bg-amber-400" : "bg-slate-600"
+      )} />
+      <span className={cn(
+        "text-[9px] font-bold uppercase tracking-widest",
+        isOnline ? "text-emerald-400" : isAway ? "text-amber-400" : "text-slate-500"
+      )}>
+        {isOnline ? "Active" : isAway ? "Away" : "Offline"}
       </span>
     </div>
   );
@@ -70,7 +46,6 @@ const StatusDot: React.FC<{ status: PresenceStatus; confidence: number }> = ({ s
 
 const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
   const status = usePresenceStore((s) => s.getPresence(member.userId).status);
-  const confidence = usePresenceStore((s) => s.getPresence(member.userId).confidence);
   const user = useAuthStore((s) => s.user);
   const isMe = member.userId === user?.id;
   const { invoke } = useSignalR();
@@ -78,9 +53,8 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
   const handleCall = () => {
     if (isMe) return;
     useCallStore.getState().startCall(member.userId, member.name, member.avatarUrl || undefined);
-    invoke("CallUser", member.userId).catch((err) => {
-      console.error("SignalR CallUser failed:", err);
-      toast.error("Failed to reach member node");
+    invoke("CallUser", member.userId).catch(() => {
+      toast.error("Failed to initiate call");
     });
   };
 
@@ -88,65 +62,58 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
     <motion.div
       layout
       className={cn(
-        "flex items-center gap-3 xs:gap-4 px-3 xs:px-4 py-3.5 xs:py-4 rounded-xl transition-all duration-300 group/member border",
-        status === "online"
-          ? "bg-[var(--ui-accent)]/5 border-[var(--ui-accent)]/10"
-          : "bg-transparent border-transparent hover:bg-white/[0.02]"
+        "flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-300 group/member border border-transparent hover:bg-white/[0.03] hover:border-white/5",
+        isMe && "bg-white/[0.01]"
       )}
     >
       <div className="relative shrink-0">
         <div className={cn(
-          "w-9 h-9 xs:w-10 xs:h-10 rounded-full flex items-center justify-center text-[10px] xs:text-xs font-bold uppercase overflow-hidden border",
-          member.role === "Engineer" ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/40 text-white shadow-glow shadow-[var(--ui-accent)]/10" : "bg-[var(--ui-sidebar-bg)] border-white/10 text-slate-500"
+          "w-11 h-11 rounded-2xl flex items-center justify-center text-xs font-bold overflow-hidden border",
+          member.role === "Engineer" ? "bg-[var(--chat-accent-warm)]/10 border-[var(--chat-accent-warm)]/20 text-white" : "bg-white/5 border-white/10 text-slate-400"
         )}>
           {member.avatarUrl ? <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" /> : member.name?.charAt(0)}
         </div>
-        <div className="absolute -bottom-0.5 -end-0.5">
-          <div className={cn("w-2.5 h-2.5 xs:w-3 xs:h-3 rounded-full border border-[var(--ui-bg)] transition-all duration-500 relative", status === "online" ? "bg-[var(--ui-accent)] shadow-[0_0_8px_rgba(var(--ui-accent-rgb),0.6)]" : "bg-[var(--ui-surface)]")}>
-            {status === "online" && (
-              <motion.div
-                animate={{ scale: [1, 2], opacity: [0.4, 0] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
-                className="absolute inset-0 rounded-full bg-[var(--ui-accent)]"
-              />
-            )}
-          </div>
+        <div className="absolute -bottom-1 -end-1">
+          <div className={cn(
+            "w-3.5 h-3.5 rounded-full border-2 border-[#12141a] transition-all duration-500 relative",
+            status === "active" ? "bg-emerald-400" : status === "idle" || status === "hidden" ? "bg-amber-400" : "bg-slate-700"
+          )} />
         </div>
       </div>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-[10px] xs:text-[11px] font-bold text-white uppercase tracking-widest truncate">
-            {member.name} {isMe && <span className="text-[var(--ui-accent)] lowercase opacity-50 ms-1">(node)</span>}
+          <span className="text-[13px] font-bold text-white font-display truncate">
+            {member.name}
           </span>
+          {isMe && <span className="text-[10px] text-slate-500 font-medium lowercase">(you)</span>}
         </div>
-        <div className="flex items-center gap-2 mt-1">
+        <div className="flex items-center gap-2 mt-0.5">
           <span className={cn(
-            "text-[7px] xs:text-[8px] font-bold uppercase tracking-[0.2em] px-1 xs:px-1.5 py-0.5 rounded-md border",
-            member.role === "Engineer" ? "bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] border-[var(--ui-accent)]/20" : "bg-white/[0.02] text-slate-600 border-white/5"
+            "text-[8px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-md border",
+            member.role === "Engineer" ? "bg-[var(--chat-accent-warm)]/10 text-[var(--chat-accent-warm)] border-[var(--chat-accent-warm)]/20" : "bg-white/5 text-slate-500 border-white/5"
           )}>
             {member.role}
           </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 xs:gap-3 shrink-0">
+      <div className="flex items-center gap-3 shrink-0">
         {!isMe && (
           <button 
             onClick={handleCall} 
-            disabled={status === "unknown"}
             className={cn(
-              "w-8 h-8 xs:w-9 xs:h-9 rounded-lg flex items-center justify-center transition-all opacity-100 md:opacity-0 md:group-hover/member:opacity-100 touch-show touch-target-min",
-              status === "online" 
-                ? "bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] hover:bg-[var(--ui-accent)] hover:text-white" 
-                : "bg-white/[0.05] text-slate-500 hover:bg-white/[0.1] hover:text-white"
+              "w-9 h-9 rounded-xl flex items-center justify-center transition-all opacity-0 group-hover/member:opacity-100",
+              status === "active" 
+                ? "bg-[var(--chat-accent-warm)]/10 text-[var(--chat-accent-warm)] hover:bg-[var(--chat-accent-warm)] hover:text-white" 
+                : "bg-white/5 text-slate-500 hover:bg-white/10 hover:text-white"
             )}
-            title={status === "online" ? "Initiate Direct Neural Link" : "Signal Node (User Offline)"}
+            title="Start Audio Call"
           >
-            <Phone className={cn("w-3.5 h-3.5", status === "online" && "animate-pulse")} />
+            <Phone className={cn("w-4 h-4", status === "active" && "animate-pulse")} />
           </button>
         )}
-        <StatusDot status={status} confidence={confidence} />
+        <StatusLabel status={status} />
       </div>
     </motion.div>
   );
@@ -161,7 +128,6 @@ const MembersPanel: React.FC<MembersPanelProps> = ({ group, isOpen, onClose }) =
     if (group.engineerId) result.push({ id: group.engineerId, userId: group.engineerId, name: group.engineerName || "Engineer", role: "Engineer", avatarUrl: group.engineer?.avatarUrl });
     
     if (group.students) {
-      // Deduplicate by ID to prevent masking students with identical names
       const uniqueStudentsMap = new Map<string, Student>();
       group.students.forEach(s => {
         uniqueStudentsMap.set(s.id, s);
@@ -173,7 +139,7 @@ const MembersPanel: React.FC<MembersPanelProps> = ({ group, isOpen, onClose }) =
           userId: s.userId || s.id, 
           name: s.name, 
           role: "Student",
-          avatarUrl: undefined // Students don't currently have avatars in this mapping, but could be added
+          avatarUrl: undefined
         });
       });
     }
@@ -195,13 +161,12 @@ const MembersPanel: React.FC<MembersPanelProps> = ({ group, isOpen, onClose }) =
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Mobile Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[50] md:hidden"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[50] md:hidden"
           />
 
           <motion.div
@@ -210,42 +175,40 @@ const MembersPanel: React.FC<MembersPanelProps> = ({ group, isOpen, onClose }) =
             exit={{ x: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className={cn(
-              "h-full border-s border-white/5 bg-[var(--ui-sidebar-bg)]/95 backdrop-blur-3xl overflow-hidden flex flex-col shrink-0 transition-all",
-              "fixed inset-y-0 end-0 z-[60] w-full xs:w-[320px] sm:w-[340px] md:relative lg:w-[360px] md:z-auto"
+              "h-full border-s border-white/5 bg-[#0c0e12]/95 backdrop-blur-3xl overflow-hidden flex flex-col shrink-0 transition-all shadow-2xl",
+              "fixed inset-y-0 end-0 z-[60] w-full sm:w-[360px] md:relative md:z-auto"
             )}
           >
-          <div className="absolute top-0 end-0 w-full h-[300px] bg-[var(--ui-accent)]/5 blur-[100px] pointer-events-none" />
-
-          <div className="px-4 py-5 xs:px-5 sm:px-6 md:px-8 md:py-8 border-b border-white/5 flex items-center justify-between flex-none relative z-10">
-            <div>
-              <h3 className="text-xs xs:text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2 xs:gap-3">
-                <Users className="w-3.5 h-3.5 xs:w-4 xs:h-4 text-[var(--ui-accent)]" />
-                {t("chat.members")}
-              </h3>
-              <p className="text-[8px] xs:text-[9px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-2">
-                 Network Presence Active
-              </p>
+            <div className="px-6 py-6 border-b border-white/5 flex items-center justify-between flex-none">
+              <div>
+                <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-3 font-display">
+                  <Users className="w-4 h-4 text-[var(--chat-accent-warm)]" />
+                  {t("chat.members")}
+                </h3>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+                   Connected to session
+                </p>
+              </div>
+              <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/5 text-slate-500 hover:text-white transition-all"><X className="w-5 h-5" /></button>
             </div>
-            <button onClick={onClose} className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-slate-500 hover:text-white transition-all touch-target-min"><X className="w-4 h-4" /></button>
-          </div>
 
-          <div className="px-4 py-2 xs:px-5 sm:px-6 md:px-8 border-b border-white/[0.02] bg-white/[0.01] flex items-center justify-between gap-3 relative z-10 shrink-0">
-            <div className="flex items-center gap-2">
-              <Activity className="w-3 h-3 xs:w-3.5 xs:h-3.5 text-[var(--ui-accent)]/60" />
-              <span className="text-[7px] xs:text-[8px] font-bold text-[var(--ui-accent)]/60 uppercase tracking-widest">Neural Stream Matrix Established</span>
+            <div className="px-6 py-3 bg-white/[0.01] flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2">
+                <Activity className="w-3.5 h-3.5 text-slate-500" />
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Presence Overview</span>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-400/5 border border-emerald-400/10">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[10px] font-bold text-emerald-400 tabular-nums">{onlineCount} / {members.length}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--ui-accent)]/5 border border-[var(--ui-accent)]/10">
-              <div className="w-1 h-1 rounded-full bg-[var(--ui-accent)] animate-pulse" />
-              <span className="text-[7px] font-bold text-[var(--ui-accent)] tracking-widest">{onlineCount}/{members.length}</span>
-            </div>
-          </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar relative z-10">
-            <AnimatePresence mode="popLayout">
-              {sortedMembers.map((m) => <MemberRow key={m.id} member={m} />)}
-            </AnimatePresence>
-          </div>
-        </motion.div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar">
+              <AnimatePresence mode="popLayout">
+                {sortedMembers.map((m) => <MemberRow key={m.id} member={m} />)}
+              </AnimatePresence>
+            </div>
+          </motion.div>
         </>
       )}
     </AnimatePresence>

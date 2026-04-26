@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
-import { Users, Volume2, VolumeX, ChevronDown, Shield, Pencil, ChevronLeft, Zap, Activity, Info } from "lucide-react";
+import { Users, Volume2, VolumeX, Shield, Pencil, ChevronLeft, Activity, Info, MoreHorizontal } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { Group, User } from "../../types";
+import { Group } from "../../types";
 import { usePresenceStore } from "../../store/presenceStore";
 import { useAuthStore, useChatStore } from "../../store/stores";
 import { useTranslation } from "react-i18next";
@@ -20,29 +20,22 @@ const PresenceDot: React.FC<{ userId: string; size?: "sm" | "md" }> = ({ userId,
   const status = usePresenceStore((s) => s.getPresence(userId).status);
   const dotSize = size === "sm" ? "w-2.5 h-2.5" : "w-3 h-3";
   
-  let bgColor = "bg-[var(--ui-surface)]"; // offline
-  let shadow = "";
-  
-  if (status === "online") {
-    bgColor = "bg-[var(--ui-accent)]";
-    shadow = "shadow-[0_0_10px_rgba(var(--ui-accent-rgb),0.6)]";
-  } else if (status === "away") {
-    bgColor = "bg-[#7c3aed]";
-    shadow = "shadow-[0_0_8px_rgba(124,58,237,0.4)]";
-  }
+  const isOnline = status === "active";
+  const isAway = status === "idle" || status === "hidden";
   
   return (
     <div className={cn(
       dotSize,
-      "rounded-full border border-[var(--ui-bg)] transition-all duration-500 relative",
-      bgColor,
-      shadow
+      "rounded-full border-2 border-[#12141a] transition-all duration-500 relative",
+      isOnline ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]" : 
+      isAway ? "bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.4)]" : 
+      "bg-slate-700"
     )}>
-      {status === "online" && (
+      {isOnline && (
         <motion.div
           animate={{ scale: [1, 2], opacity: [0.4, 0] }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
-          className="absolute inset-0 rounded-full bg-[var(--ui-accent)]"
+          className="absolute inset-0 rounded-full bg-emerald-400"
         />
       )}
     </div>
@@ -58,8 +51,8 @@ const MemberAvatar: React.FC<{
   return (
     <div className="relative group/avatar" title={name}>
       <div className={cn(
-        "w-8 h-8 rounded-full flex items-center justify-center text-[9px] font-bold uppercase overflow-hidden transition-all duration-300 hover:scale-110 hover:z-20 border",
-        isEngineer ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/40 text-white" : "bg-[var(--ui-sidebar-bg)] border-white/10 text-slate-500"
+        "w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-bold overflow-hidden transition-all duration-300 hover:scale-110 hover:z-20 border",
+        isEngineer ? "bg-[var(--chat-accent-warm)]/10 border-[var(--chat-accent-warm)]/20 text-white" : "bg-white/5 border-white/10 text-slate-400"
       )}>
         {avatarUrl ? <img src={avatarUrl} alt={name} className="w-full h-full object-cover" /> : name?.charAt(0)}
       </div>
@@ -80,7 +73,7 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
 }) => {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
-  const isArchived = group.status === "Completed" || group.status === "Archived";
+  const isCompleted = group.status === "Completed" || group.status === "Archived";
   const canEdit = user?.role === "Admin" || user?.role === "Engineer";
   const isOnlineFunc = usePresenceStore((s) => s.isOnline);
 
@@ -93,7 +86,6 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
       group.students.forEach(s => {
         const key = s.name.toLowerCase().trim();
         const existing = uniqueStudentsMap.get(key);
-        // Prioritize records with a userId (linked to an account)
         if (!existing || (!existing.userId && s.userId)) {
           uniqueStudentsMap.set(key, s);
         }
@@ -111,78 +103,85 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
   const overflow = members.length - visibleAvatars.length;
 
   return (
-    <div className="relative px-3 py-2.5 xs:py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 bg-[var(--ui-sidebar-bg)]/80 backdrop-blur-3xl border-b border-white/5 flex-none z-20">
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--ui-accent)]/40 to-transparent" />
-
-      <div className="flex items-center justify-between gap-2 xs:gap-3 md:gap-6">
+    <div className="relative px-4 py-3 md:px-8 md:py-4 bg-white/[0.02] backdrop-blur-xl border-b border-white/5 flex-none z-20">
+      <div className="flex items-center justify-between gap-4">
         <button 
           onClick={() => useChatStore.getState().setActiveGroup(null)} 
-          className="md:hidden p-2.5 rounded-xl text-slate-500 hover:text-white bg-white/[0.02] border border-white/5 transition-all shrink-0 touch-target-min"
+          className="md:hidden p-2 rounded-xl text-slate-400 hover:text-white bg-white/5 border border-white/10 transition-all shrink-0"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-2 xs:gap-3 md:gap-5 min-w-0 flex-1">
-          <div className="w-9 h-9 xs:w-10 xs:h-10 md:w-12 md:h-12 shrink-0 rounded-xl bg-gradient-to-br from-[var(--ui-accent)]/20 to-[#7c3aed]/10 border border-[var(--ui-accent)]/30 flex items-center justify-center text-white font-bold text-[10px] xs:text-xs shadow-glow shadow-[var(--ui-accent)]/10">
-            L{group.level}
+        <div className="flex items-center gap-4 min-w-0 flex-1">
+          <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 flex flex-col items-center justify-center shadow-lg relative overflow-hidden group">
+            <div className="absolute inset-0 bg-[var(--chat-accent-gradient)] opacity-0 group-hover:opacity-10 transition-opacity" />
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter leading-none opacity-60">Lv</span>
+            <span className="text-sm md:text-base font-bold text-white leading-none mt-0.5">{group.level}</span>
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 xs:gap-3">
-              <h2 className="text-xs xs:text-sm md:text-base font-bold text-white uppercase tracking-widest truncate leading-none">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm md:text-lg font-bold text-white font-display truncate leading-tight">
                 {group.name}
               </h2>
-              {isArchived && (
-                <span className="text-[7px] font-bold text-[var(--ui-accent)] bg-[var(--ui-accent)]/10 border border-[var(--ui-accent)]/20 px-1.5 xs:px-2 py-0.5 rounded-md uppercase tracking-[0.2em] shrink-0">
-                  ARCHIVE
+              {isCompleted && (
+                <span className="text-[9px] font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0">
+                  Completed
                 </span>
               )}
             </div>
 
-            <div className="flex items-center gap-2 xs:gap-3 mt-1.5 opacity-60">
-              <span className="text-[8px] xs:text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">
-                {members.length} <span className="hidden xs:inline">USERS</span>
-              </span>
-              <div className="w-1 h-1 rounded-full bg-[var(--ui-surface)]" />
-              <div className="flex items-center gap-1.5 text-[8px] xs:text-[9px] font-bold text-[var(--ui-accent)] uppercase tracking-[0.2em]">
-                <Activity className="w-3 h-3" />
-                {onlineCount} <span className="hidden xs:inline">ACTIVE</span>
+            <div className="flex items-center gap-3 mt-1">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                <Users className="w-3.5 h-3.5" />
+                <span>{members.length} Total</span>
+              </div>
+              <div className="w-1 h-1 rounded-full bg-white/10" />
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 uppercase tracking-widest">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>{onlineCount} Online</span>
               </div>
             </div>
-
-            {group.description && (
-              <div className="hidden md:flex items-center gap-3 mt-2">
-                <p className="text-[9px] text-slate-500 font-medium uppercase tracking-widest truncate max-w-md">
-                  {group.description}
-                </p>
-                {canEdit && onEditDescription && (
-                  <button onClick={onEditDescription} className="text-slate-700 hover:text-[var(--ui-accent)] transition-colors"><Pencil className="w-3 h-3" /></button>
-                )}
-              </div>
-            )}
           </div>
         </div>
 
-        <div className="hidden md:flex items-center">
+        <div className="hidden lg:flex items-center gap-6">
           <div className="flex -space-x-3">
-            {(window.innerWidth < 1024 ? members.slice(0, 3) : visibleAvatars).map((m) => (
+            {visibleAvatars.map((m) => (
               <MemberAvatar key={m.id} name={m.name} userId={m.userId} isEngineer={m.isEngineer} />
             ))}
-            {(overflow > 0 || (window.innerWidth < 1024 && members.length > 3)) && (
-              <div className="w-8 h-8 rounded-full bg-[var(--ui-sidebar-bg)] border border-white/10 flex items-center justify-center text-[8px] font-bold text-slate-500 relative z-10">
-                +{window.innerWidth < 1024 ? members.length - 3 : overflow}
+            {overflow > 0 && (
+              <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-bold text-slate-400 relative z-10">
+                +{overflow}
               </div>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 xs:gap-2 md:gap-3 shrink-0">
-          <button onClick={onToggleMute} className={cn("w-10 h-10 xs:w-11 xs:h-11 rounded-xl flex items-center justify-center transition-all border shrink-0 touch-target-min", isMuted ? "bg-rose-500/10 border-rose-500/30 text-rose-500" : "bg-white/[0.02] border-white/5 text-slate-600 hover:text-[var(--ui-accent)] hover:border-[var(--ui-accent)]/20")}>
+        <div className="flex items-center gap-2 md:gap-3 shrink-0">
+          <button 
+            onClick={onToggleMute} 
+            className={cn(
+              "w-10 h-10 md:w-11 md:h-11 rounded-2xl flex items-center justify-center transition-all border shrink-0",
+              isMuted 
+                ? "bg-rose-500/10 border-rose-500/20 text-rose-500" 
+                : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
+            )}
+          >
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
-          <button onClick={onToggleMembers} className={cn("h-10 xs:h-11 px-2.5 xs:px-3 md:px-5 rounded-xl flex items-center gap-2 md:gap-3 transition-all border font-bold text-[9px] uppercase tracking-widest shrink-0 touch-target-min", membersOpen ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/40 text-[var(--ui-accent)]" : "bg-white/[0.02] border-white/5 text-slate-600 hover:text-white hover:border-white/10")}>
+          
+          <button 
+            onClick={onToggleMembers} 
+            className={cn(
+              "h-10 md:h-11 px-4 md:px-5 rounded-2xl flex items-center gap-3 transition-all border font-bold text-[11px] uppercase tracking-widest shrink-0",
+              membersOpen 
+                ? "bg-[var(--chat-accent-warm)]/10 border-[var(--chat-accent-warm)]/20 text-[var(--chat-accent-warm)]" 
+                : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
+            )}
+          >
             <Users className="w-4 h-4" />
-            <span className="hidden xs:inline">{members.length} <span className="hidden md:inline ms-1">{t("chat.members") || "Members"}</span></span>
+            <span className="hidden sm:inline">{t("chat.members") || "Members"}</span>
           </button>
         </div>
       </div>

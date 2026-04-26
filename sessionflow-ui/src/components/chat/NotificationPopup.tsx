@@ -1,17 +1,10 @@
 import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNotificationPopupStore } from "../../store/notificationStore";
-import { useShallow } from "zustand/shallow";
-import { MessageSquare, X } from "lucide-react";
+import { X, MessageCircle } from "lucide-react";
 import { useChatStore } from "../../store/stores";
 import { useNavigate } from "react-router-dom";
-import AnimatedChatIcon from "../ui/AnimatedChatIcon";
 import { cn } from "../../lib/utils";
-
-// ═══════════════════════════════════════════════════════════════
-// Notification Popup — Stacking real-time message alerts
-// Supports up to 3 simultaneous notifications with glassmorphism
-// ═══════════════════════════════════════════════════════════════
 
 const NotificationPopup: React.FC = () => {
   const notifications = useNotificationPopupStore((s) => s.notifications);
@@ -26,33 +19,33 @@ const NotificationPopup: React.FC = () => {
   };
 
   return (
-    <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm px-4 pointer-events-none flex flex-col gap-2">
+    <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm px-6 pointer-events-none flex flex-col gap-3">
       <AnimatePresence mode="popLayout">
         {notifications.map((notification, index) => (
           <motion.div
             key={notification.id}
             layout
-            initial={{ opacity: 0, y: -50, scale: 0.9 }}
+            initial={{ opacity: 0, y: -40, scale: 0.95 }}
             animate={{
-              opacity: 1 - (index * 0.15),
-              y: 0,
-              scale: 1 - (index * 0.03),
+              opacity: 1 - (index * 0.1),
+              y: index * 4,
+              scale: 1 - (index * 0.02),
             }}
-            exit={{ opacity: 0, y: -30, scale: 0.9 }}
-            transition={{ type: "spring", damping: 22, stiffness: 280 }}
+            exit={{ opacity: 0, scale: 0.9, y: -20 }}
+            transition={{ type: "spring", damping: 20, stiffness: 300 }}
             className="pointer-events-auto"
           >
             <div 
-              className="bg-[var(--ui-bg)]/85 backdrop-blur-xl border border-white/10 p-4 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] cursor-pointer group relative overflow-hidden"
+              className="bg-[#0c0e12]/90 backdrop-blur-2xl border border-white/10 p-5 rounded-[2rem] shadow-2xl cursor-pointer group relative overflow-hidden"
               onClick={() => handleClick(notification.groupId, notification.id)}
             >
-              {/* Hover gradient */}
-              <div className="absolute inset-0 bg-gradient-to-r from-[var(--ui-accent)]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+              {/* Background gradient flare */}
+              <div className="absolute top-0 left-0 w-24 h-24 bg-[var(--chat-accent-warm)]/10 blur-3xl rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
               
-              {/* Auto-dismiss progress bar */}
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/5">
+              {/* Auto-dismiss timer progress */}
+              <div className="absolute bottom-0 left-6 right-6 h-0.5 bg-white/5 rounded-full overflow-hidden">
                 <motion.div
-                  className="h-full bg-[var(--ui-accent)]/40"
+                  className="h-full bg-gradient-to-r from-[var(--chat-accent-warm)] to-[var(--chat-accent-rose)]"
                   initial={{ width: "100%" }}
                   animate={{ width: "0%" }}
                   transition={{ duration: 5, ease: "linear" }}
@@ -61,24 +54,27 @@ const NotificationPopup: React.FC = () => {
 
               <button 
                 onClick={(e) => { e.stopPropagation(); dismiss(notification.id); }}
-                className="absolute top-4 end-4 text-slate-500 hover:text-white transition-colors"
+                className="absolute top-5 right-5 text-slate-500 hover:text-white transition-colors"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
               
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 shrink-0 rounded-2xl bg-[var(--ui-accent)]/20 text-[var(--ui-accent)] flex items-center justify-center border border-[var(--ui-accent)]/30 overflow-hidden">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 shrink-0 rounded-2xl bg-gradient-to-br from-[var(--chat-accent-warm)] to-[var(--chat-accent-rose)] flex items-center justify-center text-white shadow-lg shadow-[var(--chat-accent-warm)]/20 overflow-hidden">
                   {notification.avatarUrl ? (
                     <img src={notification.avatarUrl} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <AnimatedChatIcon size={20} state="ping" />
+                    <MessageCircle className="w-6 h-6" />
                   )}
                 </div>
-                <div className="flex-1 min-w-0 pe-6">
-                  <p className="text-[12px] font-bold text-white uppercase tracking-widest truncate">
-                    {notification.senderName}
-                  </p>
-                  <p className="text-[11px] text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                <div className="flex-1 min-w-0 pr-6">
+                  <div className="flex items-center gap-2">
+                    <p className="text-[13px] font-bold text-white font-display truncate">
+                      {notification.senderName}
+                    </p>
+                    <span className="text-[9px] font-bold text-[var(--chat-accent-warm)] uppercase tracking-widest bg-[var(--chat-accent-warm)]/10 px-1.5 py-0.5 rounded-md">New</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1 line-clamp-1 leading-tight">
                     {notification.text}
                   </p>
                 </div>

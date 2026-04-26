@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&family=Outfit:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -34,6 +34,28 @@
   --ui-shadow-glow: 0 0 20px rgba(var(--ui-accent-rgb), 0.2);
 }
 
+.chat-realm {
+  /* OBSIDIAN LUXE TOKENS */
+  --chat-bg: #0c0e12;
+  --chat-sidebar-bg: #0f1116;
+  --chat-surface: #14161d;
+  --chat-surface-elevated: #1a1d27;
+  --chat-accent-warm: #f59e0b;
+  --chat-accent-rose: #f43f5e;
+  --chat-accent-gradient: linear-gradient(135deg, #f59e0b, #f43f5e);
+  --chat-glass: rgba(20, 22, 29, 0.72);
+  --chat-glow-warm: 0 0 40px rgba(245, 158, 11, 0.15);
+  
+  --chat-font-display: 'Outfit', sans-serif;
+  --chat-font-body: 'Plus Jakarta Sans', sans-serif;
+  
+  --chat-text-primary: #f1f5f9;
+  --chat-text-secondary: #94a3b8;
+  --chat-text-muted: #475569;
+
+  font-family: var(--chat-font-body);
+}
+
 @keyframes page-enter {
   from { opacity: 0; transform: scale(0.98) translateY(10px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
@@ -64,6 +86,27 @@
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
+}
+
+@keyframes chat-slide-in {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes ambient-breathe {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
+}
+
+@keyframes message-arrive {
+  0% { opacity: 0; transform: translateY(10px) scale(0.9); }
+  70% { opacity: 1; transform: translateY(-2px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes thread-glow {
+  0%, 100% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.05); }
+  50% { box-shadow: 0 0 30px rgba(245, 158, 11, 0.15); }
 }
 
 @layer base {
@@ -400,6 +443,91 @@
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--ui-accent) #030303;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   OBSIDIAN LUXE UTILITIES
+   ═══════════════════════════════════════════════════════════ */
+
+.chat-realm .chat-glass-panel {
+  background: var(--chat-glass);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.chat-realm .chat-sidebar-glass {
+  background: rgba(15, 17, 22, 0.6);
+  backdrop-filter: blur(40px);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.chat-realm .chat-bubble-mine {
+  background: var(--chat-accent-gradient);
+  color: white;
+  border-radius: 24px 24px 4px 24px;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2);
+  font-weight: 500;
+}
+
+.chat-realm .chat-bubble-theirs {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--chat-text-primary);
+  border-radius: 24px 24px 24px 4px;
+}
+
+.chat-realm .chat-input-field {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 30px;
+  padding: 12px 24px;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.chat-realm .chat-input-field:focus {
+  outline: none;
+  border-color: var(--chat-accent-warm);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.1);
+}
+
+.chat-realm .chat-ambient-mesh {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(circle at 10% 10%, rgba(245, 158, 11, 0.08) 0%, transparent 40%),
+              radial-gradient(circle at 90% 90%, rgba(244, 63, 94, 0.08) 0%, transparent 40%),
+              #0c0e12;
+  pointer-events: none;
+}
+
+.chat-realm .custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.chat-realm .custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.chat-realm .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.2);
+  border-radius: 10px;
+}
+.chat-realm .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 158, 11, 0.4);
+}
+
+.chat-realm .font-display {
+  font-family: var(--chat-font-display);
+}
+
+/* Glassmorphism Refinement */
+.chat-realm .glass-card {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 2rem;
 }
 
 /* REDUCED MOTION OVERRIDE */

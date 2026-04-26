@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { X, ZoomIn, ZoomOut, Maximize, Download } from "lucide-react";
+import { X, ZoomIn, ZoomOut, Maximize, Download, RefreshCw } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../../lib/utils";
 
 interface ImageViewerProps {
@@ -34,8 +35,6 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ src, alt, isOpen, onCl
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
 
   const handleZoomIn = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -89,67 +88,93 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ src, alt, isOpen, onCl
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-[var(--ui-bg)]/90 backdrop-blur-sm animate-fade-in"
-      onClick={onClose}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      onWheel={handleWheel}
-    >
-      {/* Top Toolbar */}
-      <div 
-        className="absolute top-4 right-4 rtl:left-4 rtl:right-auto flex items-center gap-3 z-[110]"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-center gap-1 bg-[var(--ui-sidebar-bg)] border border-white/10 p-1.5 rounded-2xl shadow-2xl">
-          <button onClick={handleZoomOut} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
-            <ZoomOut className="w-5 h-5" />
-          </button>
-          <span className="text-[10px] font-mono font-bold text-slate-300 w-12 text-center select-none">
-            {Math.round(scale * 100)}%
-          </span>
-          <button onClick={handleZoomIn} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
-            <ZoomIn className="w-5 h-5" />
-          </button>
-          <button onClick={handleReset} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
-            <Maximize className="w-5 h-5" />
-          </button>
-          <div className="w-px h-6 bg-white/10 mx-1" />
-          <a href={src} download target="_blank" rel="noreferrer" className="p-2 text-slate-400 hover:text-[var(--ui-accent)] hover:bg-[var(--ui-accent)]/10 rounded-xl transition-colors">
-            <Download className="w-5 h-5" />
-          </a>
-        </div>
-        
-        <button 
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md"
           onClick={onClose}
-          className="p-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border border-red-500/20 rounded-2xl transition-all shadow-lg"
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onWheel={handleWheel}
         >
-          <X className="w-6 h-6" />
-        </button>
-      </div>
+          {/* Floating Toolbar */}
+          <motion.div 
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center gap-2 z-[110]"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-1 bg-[#0c0e12]/80 backdrop-blur-xl border border-white/10 p-2 rounded-3xl shadow-2xl">
+              <button onClick={handleZoomOut} className="p-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-2xl transition-all">
+                <ZoomOut className="w-5 h-5" />
+              </button>
+              
+              <div className="px-3 min-w-[4rem] text-center">
+                <span className="text-[11px] font-bold text-white tabular-nums">
+                  {Math.round(scale * 100)}%
+                </span>
+              </div>
 
-      {/* Image Area */}
-      <div 
-        className="relative w-full h-full flex items-center justify-center overflow-hidden"
-        onMouseDown={handleMouseDown}
-      >
-        <img
-          src={src}
-          alt={alt || "Image Viewer"}
-          className={cn(
-            "max-w-[90vw] max-h-[90vh] object-contain transition-transform duration-200 select-none shadow-2xl",
-            scale > 1 ? "cursor-grab" : "cursor-default",
-            isDragging && "cursor-grabbing duration-0"
-          )}
-          style={{
-            transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-          }}
-          draggable={false}
-          onClick={e => e.stopPropagation()}
-        />
-      </div>
-    </div>
+              <button onClick={handleZoomIn} className="p-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-2xl transition-all">
+                <ZoomIn className="w-5 h-5" />
+              </button>
+
+              <div className="w-px h-6 bg-white/5 mx-1" />
+
+              <button onClick={handleReset} title="Reset View" className="p-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-2xl transition-all">
+                <Maximize className="w-5 h-5" />
+              </button>
+
+              <a 
+                href={src} 
+                download 
+                target="_blank" 
+                rel="noreferrer" 
+                className="p-3 bg-[var(--chat-accent-warm)]/10 text-[var(--chat-accent-warm)] hover:bg-[var(--chat-accent-warm)] hover:text-white rounded-2xl transition-all shadow-lg shadow-[var(--chat-accent-warm)]/20"
+                title="Download Image"
+              >
+                <Download className="w-5 h-5" />
+              </a>
+            </div>
+            
+            <button 
+              onClick={onClose}
+              className="p-4 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white border border-rose-500/20 rounded-[1.5rem] transition-all shadow-xl"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </motion.div>
+
+          {/* Image Area */}
+          <div 
+            className="relative w-full h-full flex items-center justify-center overflow-hidden"
+            onMouseDown={handleMouseDown}
+          >
+            <motion.img
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: scale, opacity: 1 }}
+              src={src}
+              alt={alt || "Image Preview"}
+              className={cn(
+                "max-w-[90vw] max-h-[90vh] object-contain select-none shadow-2xl rounded-lg",
+                scale > 1 ? "cursor-grab" : "cursor-default",
+                isDragging && "cursor-grabbing"
+              )}
+              style={{
+                x: position.x,
+                y: position.y,
+              }}
+              draggable={false}
+              onClick={e => e.stopPropagation()}
+            />
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 

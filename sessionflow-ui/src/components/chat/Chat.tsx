@@ -19,18 +19,18 @@ import { usePresenceStore, PresenceStatus } from "../../store/presenceStore";
 import AnimatedChatIcon from "../ui/AnimatedChatIcon";
 
 const BlockMessageRenderer: React.FC<{ message: ChatMessage }> = ({ message }) => {
-  const { text, blocks, mentions } = message;
+  const { text, blocks } = message;
   
   if (blocks && blocks.length > 0) {
     return (
-      <div className="whitespace-pre-wrap break-words leading-relaxed selection:bg-white/20">
+      <div className="whitespace-pre-wrap break-words leading-relaxed selection:bg-white/10">
         {blocks.map((block, i) => {
           if (block.type === "text") return <React.Fragment key={i}>{block.content}</React.Fragment>;
           if (block.type === "mention") {
             return (
               <span 
                 key={i} 
-                className="text-white font-bold bg-white/10 px-1.5 py-0.5 rounded-md mx-0.5 border border-white/20 inline-block shadow-sm"
+                className="text-white font-bold bg-white/10 px-2 py-0.5 rounded-lg mx-0.5 border border-white/10 inline-block shadow-sm"
               >
                 @{block.name}
               </span>
@@ -42,35 +42,35 @@ const BlockMessageRenderer: React.FC<{ message: ChatMessage }> = ({ message }) =
     );
   }
 
-  return <div className="whitespace-pre-wrap break-words leading-relaxed selection:bg-white/20">{text}</div>;
+  return <div className="whitespace-pre-wrap break-words leading-relaxed selection:bg-white/10">{text}</div>;
 };
 
 const ProfileImage: React.FC<{ userId?: string; url?: string | null; initial?: string; isMe: boolean; }> = ({ userId, url, initial, isMe }) => {
-  const status = usePresenceStore((s) => isMe ? "online" : (userId ? s.getPresence(userId).status : "offline"));
+  const status = usePresenceStore((s) => isMe ? "active" : (userId ? s.getPresence(userId).status : "offline"));
   
   return (
     <div className={cn(
       "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 relative overflow-hidden ring-1 ring-white/10 transition-transform duration-300 hover:scale-105",
-      isMe ? "bg-ui-accent/20" : "bg-white/5"
+      isMe ? "bg-white/10" : "bg-white/5"
     )}>
       {url ? (
         <img src={url} alt="Profile" className="w-full h-full object-cover" />
       ) : (
-        <span className={cn("text-[11px] font-bold uppercase", isMe ? "text-ui-accent" : "text-slate-500")}>{initial || "U"}</span>
+        <span className={cn("text-[11px] font-bold", isMe ? "text-white" : "text-slate-500")}>{initial || "U"}</span>
       )}
       
       <div className="absolute bottom-1 end-1">
         <div className={cn(
-          "w-2.5 h-2.5 rounded-full border border-ui-bg transition-all duration-500 relative",
-          status === "online" ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" : 
-          status === "away" ? "bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.4)]" : 
+          "w-2.5 h-2.5 rounded-full border-2 border-[#14161d] transition-all duration-500 relative",
+          status === "active" ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]" : 
+          status === "idle" || status === "hidden" ? "bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.4)]" : 
           "bg-slate-700"
         )}>
-          {status === "online" && (
+          {status === "active" && (
             <motion.div
               animate={{ scale: [1, 2], opacity: [0.4, 0] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
-              className="absolute inset-0 rounded-full bg-emerald-500"
+              className="absolute inset-0 rounded-full bg-emerald-400"
             />
           )}
         </div>
@@ -99,8 +99,8 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
     >
       {showSender && !isMe && (
         <div className="flex items-center gap-3 mb-2 ps-14">
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">{profileName}</span>
-          <Badge variant="outline" className={cn("text-[8px] font-bold uppercase tracking-widest h-5 px-2", profileRole === "Engineer" ? "border-ui-accent/20 bg-ui-accent/5 text-ui-accent" : "border-white/10 bg-white/5 text-slate-400")}>
+          <span className="text-[11px] font-bold text-slate-500 font-display">{profileName}</span>
+          <Badge variant="outline" className={cn("text-[9px] font-bold uppercase tracking-widest h-5 px-2", profileRole === "Engineer" ? "border-[var(--chat-accent-warm)]/20 bg-[var(--chat-accent-warm)]/5 text-[var(--chat-accent-warm)]" : "border-white/10 bg-white/5 text-slate-400")}>
             {profileRole}
           </Badge>
         </div>
@@ -111,12 +111,12 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
 
         <div className="flex flex-col gap-1.5 min-w-0">
           <div className={cn(
-            "px-4 py-3 rounded-[24px] text-[14px] relative shadow-xl border transition-all duration-300 group/bubble",
+            "px-4 py-3 text-[14px] relative transition-all duration-300 group/bubble",
             isMe 
-              ? "bg-gradient-to-br from-ui-accent to-ui-accent-dark text-white border-white/10 rounded-br-none shadow-ui-accent/10" 
-              : "bg-white/[0.03] backdrop-blur-md text-slate-200 border-white/5 rounded-bl-none shadow-black/20",
+              ? "chat-bubble-mine" 
+              : "chat-bubble-theirs",
             isImportant && "border-amber-500/30 bg-amber-500/5 ring-1 ring-amber-500/20",
-            !isMe && isEngineerMessage && !isImportant && "border-s-2 border-s-amber-500/50"
+            !isMe && isEngineerMessage && !isImportant && "border-s-2 border-s-[var(--chat-accent-warm)]/50"
           )}>
             {isImportant && (
               <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/5">
@@ -131,7 +131,7 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
                 toast.success("Copied to clipboard");
               }}
               className={cn(
-                "absolute top-2 opacity-0 group-hover/bubble:opacity-100 transition-all p-2 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 hover:text-ui-accent z-20",
+                "absolute top-2 opacity-0 group-hover/bubble:opacity-100 transition-all p-2 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-white hover:text-[var(--chat-accent-warm)] z-20",
                 isMe ? "-left-12" : "-right-12"
               )}
             >
@@ -184,6 +184,16 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
     </motion.div>
   );
 });
+
+const DateDivider: React.FC<{ date: string }> = ({ date }) => (
+  <div className="flex items-center gap-4 my-8">
+    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+    <div className="px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/5 backdrop-blur-md">
+      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{date}</span>
+    </div>
+    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+  </div>
+);
 
 export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean; onSendMessage: (text: string, file?: File, mentions?: MessageMention[], blocks?: any[]) => void; activeGroupId: string | null; currentGroup: Group | null; fetchNextPage?: () => void; hasNextPage?: boolean; isFetchingNextPage?: boolean; }> = ({ messages, isLoading, onSendMessage, activeGroupId, currentGroup, fetchNextPage, hasNextPage, isFetchingNextPage }) => {
   const [text, setText] = useState("");
@@ -282,43 +292,51 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
   };
 
   return (
-    <div className="flex flex-col h-full bg-ui-sidebar-bg/60 backdrop-blur-3xl rounded-none md:rounded-3xl border-0 md:border border-white/10 overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] relative">
+    <div className="flex flex-col h-full bg-transparent rounded-none md:rounded-3xl border-0 overflow-hidden relative">
       <div className="flex-1 min-h-0 relative">
         <div 
           ref={scrollRef} 
-          className="absolute inset-0 overflow-y-auto p-4 md:p-8 flex flex-col-reverse gap-2 custom-scrollbar"
+          className="absolute inset-0 overflow-y-auto p-4 md:px-8 md:py-6 flex flex-col-reverse gap-2 custom-scrollbar"
           onScroll={(e) => {
             const target = e.currentTarget;
             setShowScrollButton(target.scrollTop < -100);
           }}
         >
-          {messages.map((msg, i) => (
-            <MessageBubble 
-              key={msg.id} 
-              message={msg} 
-              isMe={msg.senderId === user?.id} 
-              showSender={i === messages.length - 1 || messages[i+1]?.senderId !== msg.senderId} 
-            />
-          ))}
+          {messages.map((msg, i) => {
+            const nextMsg = messages[i + 1];
+            const isDifferentDay = nextMsg && !isToday(new Date(msg.sentAt)) && format(new Date(msg.sentAt), "yyyy-MM-dd") !== format(new Date(nextMsg.sentAt), "yyyy-MM-dd");
+            const dateStr = isToday(new Date(msg.sentAt)) ? "Today" : isYesterday(new Date(msg.sentAt)) ? "Yesterday" : format(new Date(msg.sentAt), "MMMM d, yyyy");
+
+            return (
+              <React.Fragment key={msg.id}>
+                <MessageBubble 
+                  message={msg} 
+                  isMe={msg.senderId === user?.id} 
+                  showSender={i === messages.length - 1 || messages[i+1]?.senderId !== msg.senderId} 
+                />
+                {isDifferentDay && <DateDivider date={dateStr} />}
+              </React.Fragment>
+            );
+          })}
+
           {hasNextPage && (
             <div className="flex justify-center py-8">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <button 
                 onClick={() => fetchNextPage?.()} 
-                className="text-[10px] font-bold text-slate-500 hover:text-white uppercase tracking-[0.2em] bg-white/5 border-white/10 rounded-2xl px-10 h-10 hover:bg-white/10 transition-all"
+                className="text-[11px] font-bold text-slate-500 hover:text-white uppercase tracking-widest bg-white/[0.03] border border-white/5 rounded-2xl px-12 h-11 hover:bg-white/[0.08] transition-all"
               >
-                {isFetchingNextPage ? "Decrypting Archives..." : "Load Operational Logs"}
-              </Button>
+                {isFetchingNextPage ? "Establishing connection..." : "Load earlier messages"}
+              </button>
             </div>
           )}
+
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-20">
               <div className="relative">
-                <Loader2 className="w-12 h-12 text-ui-accent animate-spin mb-4" />
-                <div className="absolute inset-0 bg-ui-accent/20 blur-xl rounded-full" />
+                <Loader2 className="w-12 h-12 text-[var(--chat-accent-warm)] animate-spin mb-4" />
+                <div className="absolute inset-0 bg-[var(--chat-accent-warm)]/20 blur-xl rounded-full" />
               </div>
-              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] animate-pulse">Establishing Secure Stream...</p>
+              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest animate-pulse">Entering Frequency...</p>
             </div>
           )}
         </div>
@@ -365,14 +383,14 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
             <motion.div 
               initial={{ opacity: 0, y: 10 }} 
               animate={{ opacity: 1, y: 0 }} 
-              className="absolute bottom-full start-4 end-4 md:start-8 md:end-auto mb-6 w-full md:w-80 bg-ui-sidebar-bg border border-white/10 rounded-3xl shadow-2xl overflow-hidden overflow-y-auto max-h-[40vh] custom-scrollbar z-[60]"
+              className="absolute bottom-full start-4 end-4 md:start-8 md:end-auto mb-6 w-full md:w-80 bg-[var(--chat-surface-elevated)] border border-white/10 rounded-3xl shadow-2xl overflow-hidden overflow-y-auto max-h-[40vh] custom-scrollbar z-[60]"
             >
-              <div className="p-4 border-b border-white/5 bg-white/[0.02] text-[10px] font-bold text-slate-500 uppercase tracking-widest">Select Signal Target</div>
+              <div className="p-4 border-b border-white/5 bg-white/[0.02] text-[10px] font-bold text-slate-500 uppercase tracking-widest">Mention someone</div>
               {filteredMembers.map((m, i) => (
-                <button key={m.id} onClick={() => insertMention(m)} className={cn("w-full flex items-center gap-4 px-5 py-4 transition-all text-left group/m", i === mentionIndex ? "bg-ui-accent/10 text-ui-accent" : "text-slate-400 hover:bg-white/5")}>
+                <button key={m.id} onClick={() => insertMention(m)} className={cn("w-full flex items-center gap-4 px-5 py-4 transition-all text-left group/m", i === mentionIndex ? "bg-[var(--chat-accent-warm)]/10 text-[var(--chat-accent-warm)]" : "text-slate-400 hover:bg-white/5")}>
                   <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-xs font-bold transition-transform group-hover/m:scale-110">{m.name.charAt(0)}</div>
                   <div className="flex flex-col">
-                    <span className="text-[13px] font-bold tracking-tight text-white">{m.name}</span>
+                    <span className="text-[13px] font-bold tracking-tight text-white font-display">{m.name}</span>
                     <span className="text-[9px] font-bold opacity-40 uppercase tracking-widest">{m.role}</span>
                   </div>
                 </button>
@@ -411,58 +429,53 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
           </motion.div>
         )}
 
-        <div className="flex items-center gap-3 bg-white/[0.03] rounded-[24px] border border-white/10 px-4 md:px-6 h-16 md:h-20 shadow-2xl transition-all focus-within:border-ui-accent/40 focus-within:bg-white/[0.05]">
-          <Button 
-            variant="ghost" 
-            size="icon" 
+        <div className="flex items-center gap-3 bg-white/[0.03] rounded-full border border-white/10 px-4 md:px-6 h-14 md:h-16 shadow-xl transition-all focus-within:border-[var(--chat-accent-warm)]/40 focus-within:bg-white/[0.05]">
+          <button 
             onClick={() => setShowEmojiPicker(!showEmojiPicker)} 
-            className="text-slate-500 hover:text-ui-accent transition-colors"
+            className="p-2 text-slate-500 hover:text-[var(--chat-accent-warm)] transition-colors"
           >
             <Smile className="w-6 h-6" />
-          </Button>
+          </button>
           
           <input 
             ref={inputRef} 
             value={text} 
             onChange={(e) => handleInputChange(e.target.value)} 
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-            placeholder="ENCRYPTED TRANSMISSION..." 
-            className="border-none bg-transparent focus:ring-0 h-full flex-1 text-[15px] font-medium text-white placeholder:text-slate-700 placeholder:uppercase placeholder:font-bold placeholder:tracking-[0.3em] placeholder:text-[10px] min-w-0" 
+            placeholder="Type a message..." 
+            className="border-none bg-transparent focus:ring-0 h-full flex-1 text-[15px] font-medium text-white placeholder:text-slate-600 min-w-0" 
           />
           
           <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <button 
               onClick={() => fileInputRef.current?.click()} 
-              className="text-slate-500 hover:text-ui-accent transition-colors"
+              className="p-2 text-slate-500 hover:text-[var(--chat-accent-warm)] transition-colors"
             >
               <Paperclip className="w-6 h-6" />
-            </Button>
+            </button>
             
             <motion.button 
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleSend} 
               disabled={!text.trim() && !selectedFile} 
-              className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-ui-accent text-white flex items-center justify-center shadow-[0_8px_20px_rgba(var(--ui-accent-rgb),0.3)] transition-all disabled:opacity-20 disabled:grayscale"
+              className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-[var(--chat-accent-gradient)] text-white flex items-center justify-center shadow-lg transition-all disabled:opacity-20 disabled:grayscale"
             >
               <Send className="w-5 h-5" />
             </motion.button>
           </div>
-          
+        </div>
           <input 
             type="file" 
             ref={fileInputRef} 
             onChange={(e) => { 
               const file = e.target.files?.[0];
               if (file) {
-                // Tiered file size limits based on subscription
                 const tier = user?.subscriptionTier || "Free";
                 const limits: Record<string, number> = { Free: 5, Pro: 25, Enterprise: 100 };
                 const maxMB = limits[tier] || 5;
                 if (file.size > maxMB * 1024 * 1024) {
-                  toast?.error?.(`File exceeds ${maxMB}MB limit for ${tier} tier. Upgrade your plan for larger uploads.`);
+                  toast?.error?.(`File exceeds ${maxMB}MB limit for ${tier} tier.`);
                   e.target.value = "";
                   return;
                 }
@@ -488,14 +501,14 @@ const TypingIndicator: React.FC<{ activeGroupId: string | null }> = ({ activeGro
     <motion.div 
       initial={{ opacity: 0, y: 10 }} 
       animate={{ opacity: 1, y: 0 }} 
-      className="absolute bottom-full left-8 mb-6 flex items-center gap-4 px-6 py-3 rounded-2xl bg-ui-bg/95 text-ui-accent border border-ui-accent/20 shadow-2xl"
+      className="absolute bottom-full left-8 mb-4 flex items-center gap-4 px-5 py-2.5 rounded-full bg-[var(--chat-surface-elevated)] text-[var(--chat-accent-warm)] border border-white/10 shadow-2xl"
     >
-      <div className="flex gap-2">
-        <span className="w-2 h-2 bg-ui-accent rounded-full animate-bounce [animation-delay:-0.3s]" />
-        <span className="w-2 h-2 bg-ui-accent rounded-full animate-bounce [animation-delay:-0.15s]" />
-        <span className="w-2 h-2 bg-ui-accent rounded-full animate-bounce" />
+      <div className="flex gap-1.5">
+        <span className="w-1.5 h-1.5 bg-[var(--chat-accent-warm)] rounded-full animate-bounce [animation-delay:-0.3s]" />
+        <span className="w-1.5 h-1.5 bg-[var(--chat-accent-warm)] rounded-full animate-bounce [animation-delay:-0.15s]" />
+        <span className="w-1.5 h-1.5 bg-[var(--chat-accent-warm)] rounded-full animate-bounce" />
       </div>
-      <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
+      <span className="text-[11px] font-bold tracking-tight">
         {typingNames.length === 1 ? `${typingNames[0]} is typing...` : `${typingNames.join(", ")} are typing...`}
       </span>
     </motion.div>
