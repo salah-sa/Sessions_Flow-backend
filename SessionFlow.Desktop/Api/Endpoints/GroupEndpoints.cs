@@ -17,6 +17,55 @@ public static class GroupEndpoints
         var group = app.MapGroup("/api/groups").RequireAuthorization();
 
         // GET /api/groups — list all groups with student count and schedule
+        group.MapGet("/test-create", async (MongoService db, SessionService sessionService) =>
+        {
+            try
+            {
+                var newGroup = new Group
+                {
+                    Name = "Test_123456",
+                    Level = 1,
+                    EngineerId = Guid.NewGuid(),
+                    NumberOfStudents = 2,
+                    StartingSessionNumber = 1,
+                    TotalSessions = 13,
+                    Frequency = 1,
+                    Status = GroupStatus.Active
+                };
+                
+                await db.Groups.InsertOneAsync(newGroup);
+                
+                var schedules = new List<GroupSchedule>
+                {
+                    new GroupSchedule
+                    {
+                        GroupId = newGroup.Id,
+                        DayOfWeek = 1,
+                        StartTime = new TimeSpan(17, 0, 0),
+                        DurationMinutes = 60
+                    }
+                };
+                
+                await db.GroupSchedules.InsertManyAsync(schedules);
+                
+                var studentsToInsert = new List<Student>
+                {
+                    new Student { Name = "Cadet1", GroupId = newGroup.Id, UniqueStudentCode = "1" },
+                    new Student { Name = "Cadet2", GroupId = newGroup.Id, UniqueStudentCode = "2" }
+                };
+                
+                await db.Students.InsertManyAsync(studentsToInsert);
+                
+                await sessionService.AutoGenerateSessionsAsync(newGroup);
+                
+                return Results.Ok("Success");
+            }
+            catch (Exception ex)
+            {
+                return Results.Json(new { error = ex.ToString(), detail = ex.Message });
+            }
+        });
+
         group.MapGet("/", async (MongoService db, HttpContext ctx, AuthService auth,
             int? page, int? pageSize, string? search, string? status) =>
         {
@@ -608,9 +657,37 @@ public static class GroupEndpoints
         });
     }
 
-    public record CreateGroupRequest(string Name, string? Description, int Level, string? ColorTag, int NumberOfStudents, int StartingSessionNumber, int TotalSessions, int Frequency, List<ScheduleItem>? Schedules, List<CadetRecord>? Cadets);
-    public record ScheduleItem(int DayOfWeek, string StartTime, int DurationMinutes);
-    public record CadetRecord(string Name, string? StudentId);
-    public record UpdateGroupRequest(string? Name, string? Description, string? ColorTag, int? Level, int? NumberOfStudents, int? StartingSessionNumber, int? TotalSessions, int? Frequency, List<ScheduleItem>? Schedules);
+    public record CreateGroupRequest(
+        [property: System.Text.Json.Serialization.JsonPropertyName("name")] string Name, 
+        [property: System.Text.Json.Serialization.JsonPropertyName("description")] string? Description, 
+        [property: System.Text.Json.Serialization.JsonPropertyName("level")] int Level, 
+        [property: System.Text.Json.Serialization.JsonPropertyName("colorTag")] string? ColorTag, 
+        [property: System.Text.Json.Serialization.JsonPropertyName("numberOfStudents")] int NumberOfStudents, 
+        [property: System.Text.Json.Serialization.JsonPropertyName("startingSessionNumber")] int StartingSessionNumber, 
+        [property: System.Text.Json.Serialization.JsonPropertyName("totalSessions")] int TotalSessions, 
+        [property: System.Text.Json.Serialization.JsonPropertyName("frequency")] int Frequency, 
+        [property: System.Text.Json.Serialization.JsonPropertyName("schedules")] List<ScheduleItem>? Schedules, 
+        [property: System.Text.Json.Serialization.JsonPropertyName("cadets")] List<CadetRecord>? Cadets
+    );
+    public record ScheduleItem(
+        [property: System.Text.Json.Serialization.JsonPropertyName("dayOfWeek")] int DayOfWeek, 
+        [property: System.Text.Json.Serialization.JsonPropertyName("startTime")] string StartTime, 
+        [property: System.Text.Json.Serialization.JsonPropertyName("durationMinutes")] int DurationMinutes
+    );
+    public record CadetRecord(
+        [property: System.Text.Json.Serialization.JsonPropertyName("name")] string Name, 
+        [property: System.Text.Json.Serialization.JsonPropertyName("studentId")] string? StudentId
+    );
+    public record UpdateGroupRequest(
+        [property: System.Text.Json.Serialization.JsonPropertyName("name")] string? Name, 
+        [property: System.Text.Json.Serialization.JsonPropertyName("description")] string? Description, 
+        [property: System.Text.Json.Serialization.JsonPropertyName("colorTag")] string? ColorTag, 
+        [property: System.Text.Json.Serialization.JsonPropertyName("level")] int? Level, 
+        [property: System.Text.Json.Serialization.JsonPropertyName("numberOfStudents")] int? NumberOfStudents, 
+        [property: System.Text.Json.Serialization.JsonPropertyName("startingSessionNumber")] int? StartingSessionNumber, 
+        [property: System.Text.Json.Serialization.JsonPropertyName("totalSessions")] int? TotalSessions, 
+        [property: System.Text.Json.Serialization.JsonPropertyName("frequency")] int? Frequency, 
+        [property: System.Text.Json.Serialization.JsonPropertyName("schedules")] List<ScheduleItem>? Schedules
+    );
     public record AddStudentRequest(string Name);
 }

@@ -552,7 +552,9 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
                           toast.success("Student added");
                           setNewStudentName("");
                           refetchStudents();
-                        } catch { toast.error("Failed to add student"); }
+                        } catch (err: any) {
+                          toast.error(err?.message || "Failed to add student.");
+                        }
                       }
                     }}
                   />
@@ -566,7 +568,9 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
                         toast.success("Student added");
                         setNewStudentName("");
                         refetchStudents();
-                      } catch { toast.error("Failed to add student"); }
+                      } catch (err: any) {
+                        toast.error(err?.message || "Failed to create group.");
+                      }
                     }}
                     className="h-10 px-5 rounded-xl bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 transition-colors disabled:opacity-50 shrink-0"
                   >

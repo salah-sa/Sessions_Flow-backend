@@ -277,6 +277,55 @@ public static class ApiHost
         // ── BARE-MINIMUM health ping (bypasses all auth/CORS) ──────────
         app.MapGet("/ping", () => Results.Ok(new { status = "alive", time = DateTime.UtcNow }));
 
+        app.MapGet("/test-create-unauth", async (SessionFlow.Desktop.Services.MongoService db, SessionFlow.Desktop.Services.SessionService sessionService) =>
+        {
+            try
+            {
+                var newGroup = new SessionFlow.Desktop.Models.Group
+                {
+                    Name = "Test_Unauth_123456",
+                    Level = 1,
+                    EngineerId = Guid.NewGuid(),
+                    NumberOfStudents = 2,
+                    StartingSessionNumber = 1,
+                    TotalSessions = 13,
+                    Frequency = 1,
+                    Status = SessionFlow.Desktop.Models.GroupStatus.Active
+                };
+                
+                await db.Groups.InsertOneAsync(newGroup);
+                
+                var schedules = new System.Collections.Generic.List<SessionFlow.Desktop.Models.GroupSchedule>
+                {
+                    new SessionFlow.Desktop.Models.GroupSchedule
+                    {
+                        GroupId = newGroup.Id,
+                        DayOfWeek = 1,
+                        StartTime = new TimeSpan(17, 0, 0),
+                        DurationMinutes = 60
+                    }
+                };
+                
+                await db.GroupSchedules.InsertManyAsync(schedules);
+                
+                var studentsToInsert = new System.Collections.Generic.List<SessionFlow.Desktop.Models.Student>
+                {
+                    new SessionFlow.Desktop.Models.Student { Name = "Cadet1", GroupId = newGroup.Id, UniqueStudentCode = "1" },
+                    new SessionFlow.Desktop.Models.Student { Name = "Cadet2", GroupId = newGroup.Id, UniqueStudentCode = "2" }
+                };
+                
+                await db.Students.InsertManyAsync(studentsToInsert);
+                
+                await sessionService.AutoGenerateSessionsAsync(newGroup);
+                
+                return Results.Ok("Success");
+            }
+            catch (Exception ex)
+            {
+                return Results.Json(new { error = ex.ToString(), detail = ex.Message });
+            }
+        });
+
         // 4. Pipeline Configuration
         app.UseCors("LocalOnly");
         app.UseMiddleware<RateLimitingMiddleware>();

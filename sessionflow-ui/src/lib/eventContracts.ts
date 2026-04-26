@@ -51,6 +51,7 @@ export const Events = {
 
   // System / Sync
   SYNC_STATE: "sync:state",
+  USER_UPDATED: "user:updated",
 } as const;
 
 export type EventName = (typeof Events)[keyof typeof Events];
