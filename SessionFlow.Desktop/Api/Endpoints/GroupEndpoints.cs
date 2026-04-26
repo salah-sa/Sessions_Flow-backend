@@ -602,7 +602,7 @@ public static class GroupEndpoints
                 groupId = s.GroupId,
                 studentId = s.StudentId,
                 uniqueStudentCode = s.UniqueStudentCode,
-                level = s.Level,
+                level = g.Level,
                 createdAt = s.CreatedAt
             }));
         });
