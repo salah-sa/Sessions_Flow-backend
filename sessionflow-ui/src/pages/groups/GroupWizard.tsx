@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Button, Input } from "../../components/ui";
+import { ConfirmDeleteModal } from "../../components/ui/ConfirmDeleteModal";
 import { 
   Info, Settings, Users, CheckCircle2, Plus, Minus, X, Trash2, 
   Calendar, ShieldCheck, PlayCircle, ChevronRight, Loader2, AlertTriangle, GraduationCap, Pencil, Check
@@ -44,6 +45,7 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
   const [newStudentName, setNewStudentName] = useState("");
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [editingStudentName, setEditingStudentName] = useState("");
+  const [studentToDelete, setStudentToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const { register, handleSubmit, reset, control, setValue, watch, getValues, setError, formState: { errors, isSubmitting } } = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
@@ -508,14 +510,7 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
                         <button
                           type="button"
                           disabled={deleteStudentMut.isPending}
-                          onClick={async () => {
-                            if (!window.confirm(`Remove "${student.name}" from this group?`)) return;
-                            try {
-                              await deleteStudentMut.mutateAsync(student.id);
-                              toast.success("Student removed");
-                              refetchStudents();
-                            } catch { toast.error("Delete failed"); }
-                          }}
+                          onClick={() => setStudentToDelete({ id: student.id, name: student.name })}
                           className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:text-rose-500 hover:bg-rose-500/5 transition-all shrink-0 opacity-0 group-hover/student:opacity-100"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -649,6 +644,27 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
           )}
         </div>
       </form>
+      
+      <ConfirmDeleteModal
+        isOpen={!!studentToDelete}
+        onClose={() => setStudentToDelete(null)}
+        onConfirm={async () => {
+          if (!studentToDelete) return;
+          try {
+            await deleteStudentMut.mutateAsync(studentToDelete.id);
+            toast.success("Student removed");
+            setStudentToDelete(null);
+            refetchStudents();
+          } catch {
+            toast.error("Delete failed");
+          }
+        }}
+        isLoading={deleteStudentMut.isPending}
+        title="Remove Student"
+        description="This will remove the student from the group roster. They can be re-enrolled later."
+        entityName={studentToDelete?.name}
+        confirmText="REMOVE"
+      />
     </Modal>
   );
 };
