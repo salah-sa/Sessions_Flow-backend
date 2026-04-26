@@ -487,8 +487,7 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
           />
         </div>
       </div>
-    </div>
-  );
+    );
 };
 
 const TypingIndicator: React.FC<{ activeGroupId: string | null }> = ({ activeGroupId }) => {
