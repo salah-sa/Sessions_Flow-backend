@@ -340,10 +340,22 @@ public static class GroupEndpoints
                     if (schedules.Count > 0) await db.GroupSchedules.InsertManyAsync(session, schedules);
                     if (studentsToInsert.Count > 0) await db.Students.InsertManyAsync(session, studentsToInsert);
 
-                    // Auto-generate sessions (pass session to ensure it's part of transaction)
-                    await sessionService.AutoGenerateSessionsAsync(newGroup, session);
-
                     await session.CommitTransactionAsync();
+
+                    // 4. Post-Commit Operations (Non-Atomic with Group Creation)
+                    // We generate sessions OUTSIDE the main transaction to prevent timeouts or heavy 
+                    // calculation/write errors from rolling back a successfully created group.
+                    // If this fails, the group is still created and sessions can be regenerated later.
+                    try
+                    {
+                        await sessionService.AutoGenerateSessionsAsync(newGroup, null);
+                    }
+                    catch (Exception ex)
+                    {
+                        // LOG error but do NOT fail the group creation response.
+                        // This prevents the "Failed to create group" false-error reported by users.
+                        Serilog.Log.Error(ex, "Failed to auto-generate sessions for new group {GroupId} after commit", newGroup.Id);
+                    }
 
                     // Return full object to satisfy frontend expectations
                     return Results.Created($"/api/groups/{newGroup.Id}", new
