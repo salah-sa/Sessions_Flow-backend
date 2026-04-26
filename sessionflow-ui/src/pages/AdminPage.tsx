@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
 import { Card, Button, Input, Badge, Skeleton } from "../components/ui";
+import { ConfirmDeleteModal } from "../components/ui/ConfirmDeleteModal";
 import { useSystemQueries, useAdminMutations, useUserMutations } from "../queries/useAdminQueries";
 import { usePendingStudentRequests, useEngineerMutations } from "../queries/useEngineerQueries";
 import { PendingEngineer, EngineerCode } from "../types";
@@ -28,6 +29,7 @@ const AdminPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [studentProcessingIds, setStudentProcessingIds] = useState<Set<string>>(new Set());
+  const [banTarget, setBanTarget] = useState<{ id: string; role: "Student" | "Engineer" } | null>(null);
 
   const dateLocale = i18n.language === "ar" ? ar : enUS;
 
@@ -69,11 +71,16 @@ const AdminPage: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ["students"] });
   };
 
-  const handleBanUser = async (id: string, role: "Student" | "Engineer") => {
-    if (!window.confirm("Are you sure you want to ban this user? Access will be revoked immediately.")) return;
+  const handleBanUser = (id: string, role: "Student" | "Engineer") => {
+    setBanTarget({ id, role });
+  };
+
+  const onConfirmBan = async () => {
+    if (!banTarget) return;
     try {
-      await banMutation.mutateAsync({ id, role });
+      await banMutation.mutateAsync(banTarget);
       toast.success("User banned successfully.");
+      setBanTarget(null);
     } catch (err) {
       toast.error("Failed to ban user.");
     }
@@ -571,6 +578,16 @@ const AdminPage: React.FC = () => {
             </div>
          )}
       </div>
+
+      <ConfirmDeleteModal
+        isOpen={!!banTarget}
+        onClose={() => setBanTarget(null)}
+        onConfirm={onConfirmBan}
+        isLoading={banMutation.isPending}
+        title="Terminate User Access"
+        description="This will immediately revoke all access to the system for this user. This action is recorded in the audit logs."
+        confirmText="TERMINATE"
+      />
     </div>
   );
 };

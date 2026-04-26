@@ -1,5 +1,6 @@
 import { useAuthStore } from "../store/stores";
 import { apiMonitor } from "../lib/apiMonitor";
+import { clearSessionCaches } from "../lib/sessionCleanup";
 
 // In dev: Vite proxy forwards /api → Railway (BASE_URL = "")
 // In Electron build: VITE_API_URL = full Railway origin, so fetch hits it directly
@@ -73,6 +74,7 @@ export async function fetchWithAuth<T>(
 
           if (timeSinceLogin > LOGIN_COOLDOWN_MS) {
             logout();
+            clearSessionCaches();
             if (!window.location.pathname.includes("/login")) {
               window.location.href = "/login";
             }

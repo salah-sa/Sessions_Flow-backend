@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Plus, Download, Filter, Terminal } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../components/ui";
+import { ConfirmDeleteModal } from "../components/ui/ConfirmDeleteModal";
 import { toast } from "sonner";
 import { 
   useGroupQueries, 
@@ -28,6 +29,7 @@ const GroupsPage: React.FC = () => {
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [newStudentName, setNewStudentName] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<Group | null>(null);
   
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useGroupQueries();
   const groups = data?.pages.flatMap(page => page.items) || [];
@@ -56,14 +58,18 @@ const GroupsPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (group: Group) => {
-    if (window.confirm(t("groups.delete_confirm", { name: group.name }))) {
-      try {
-        await deleteGroup.mutateAsync(group.id);
-        toast.success(t("groups.delete_success"));
-      } catch (error) {
-        toast.error(t("groups.delete_error"));
-      }
+  const handleDelete = (group: Group) => {
+    setDeleteTarget(group);
+  };
+
+  const onConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteGroup.mutateAsync(deleteTarget.id);
+      toast.success(t("groups.delete_success"));
+      setDeleteTarget(null);
+    } catch (error) {
+      toast.error(t("groups.delete_error"));
     }
   };
 
@@ -181,6 +187,17 @@ const GroupsPage: React.FC = () => {
         onNameChange={setNewStudentName}
         onEnroll={handleEnrollSubmit}
         submitting={enrollStudent.isPending}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={onConfirmDelete}
+        isLoading={deleteGroup.isPending}
+        title={t("groups.delete_modal_title") || "Delete Group"}
+        description={t("groups.delete_modal_desc") || "This will archive the group and all its associated data. This action cannot be easily undone."}
+        entityName={deleteTarget?.name}
+        confirmText="DELETE"
       />
     </div>
   );

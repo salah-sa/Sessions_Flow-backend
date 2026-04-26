@@ -53,6 +53,7 @@ export const useAuthStore = create<AuthState>()(
       setHasHydrated: (val) => set({ _hasHydrated: val }),
       logout: () => {
         set({ user: null, token: null, rememberMe: false, studentLocation: null, studentLocationData: null });
+        clearSessionCaches();
       },
     }),
     {
