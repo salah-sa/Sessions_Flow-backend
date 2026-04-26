@@ -617,7 +617,7 @@ public class ThreeCSchoolService
                 }
  
                 // TRIGGER: Auto-generate sessions immediately after schedule/student insertion
-                await _sessionService.AutoGenerateSessionsAsync(group, ct);
+                await _sessionService.AutoGenerateSessionsAsync(group, null, ct);
  
                 // Create Students in batch
                 var studentsToInsert = new List<Student>();

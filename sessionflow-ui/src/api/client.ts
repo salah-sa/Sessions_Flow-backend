@@ -62,12 +62,13 @@ export async function fetchWithAuth<T>(
 
     if (!response.ok) {
       if (response.status === 401) {
-        // Only the /auth/me endpoint is the definitive "session expired" signal.
-        // Background query re-fetches (from SignalR invalidation) can transiently 401
-        // without meaning the session is truly dead.
+        const method = (options.method || "GET").toUpperCase();
         const isSessionCheck = endpoint === "/auth/me" || endpoint.startsWith("/auth/me?");
+        // Mutations (POST/PUT/DELETE) that 401 are a strong signal the session
+        // is truly expired — unlike background GET re-fetches that can transiently fail.
+        const isMutation = ["POST", "PUT", "DELETE", "PATCH"].includes(method);
 
-        if (isSessionCheck) {
+        if (isSessionCheck || isMutation) {
           const { _lastLoginAt, logout } = useAuthStore.getState();
           const timeSinceLogin = Date.now() - _lastLoginAt;
           const LOGIN_COOLDOWN_MS = 5000;

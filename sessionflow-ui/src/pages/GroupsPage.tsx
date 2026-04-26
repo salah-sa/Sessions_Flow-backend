@@ -68,8 +68,9 @@ const GroupsPage: React.FC = () => {
       await deleteGroup.mutateAsync(deleteTarget.id);
       toast.success(t("groups.delete_success"));
       setDeleteTarget(null);
-    } catch (error) {
-      toast.error(t("groups.delete_error"));
+    } catch (error: any) {
+      // Surface the specific backend message (e.g. "Cannot delete group while a session is ACTIVE")
+      toast.error(error?.message || t("groups.delete_error"));
     }
   };
 

@@ -7,6 +7,7 @@
 
 import { authApi } from "./resources";
 import { useAuthStore } from "../store/stores";
+import { clearSessionCaches } from "../lib/sessionCleanup";
 import { User, LoginCredentials, PendingEngineer } from "../types";
 
 export interface AuthResult {
@@ -27,6 +28,12 @@ export async function loginUser(
   engineerCode?: string
 ): Promise<AuthResult> {
   try {
+    // CRITICAL: Purge all caches from the previous session BEFORE authenticating.
+    // This prevents stale TanStack Query data (groups, dashboard, students) from
+    // a previous account from persisting across an account switch, which was
+    // causing "Failed to create group" ghost errors.
+    clearSessionCaches();
+
     const credentials: LoginCredentials = { identifier, password, portal };
     if (studentId) credentials.studentId = studentId;
     if (engineerCode) credentials.engineerCode = engineerCode;
