@@ -372,8 +372,6 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
 
     // ═══════════════════════════════════════════════
-    // 9. Sync State (post-reconnect recovery)
-    // ═══════════════════════════════════════════════
     connection.on(Events.SYNC_STATE, () => {
       // Full-state resync: invalidate everything
       queryClient.invalidateQueries({ queryKey: ["groups"] });
@@ -382,6 +380,32 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       queryClient.invalidateQueries({ queryKey: ["chat"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.studentDashboard.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+    });
+
+    connection.on(Events.USER_UPDATED, async () => {
+      // Background check if user is still authorized
+      try {
+        const currentToken = useAuthStore.getState().token;
+        if (!currentToken) return;
+        const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${currentToken}`,
+            "X-Requested-With": "XMLHttpRequest",
+          },
+        });
+        if (res.status === 401 || res.status === 403) {
+          useAuthStore.getState().logout();
+          toast.error("Your account access has been restricted by an administrator.");
+          if (!window.location.pathname.includes("/login")) {
+            window.location.href = "/login";
+          }
+        } else {
+          // If profile changed but not restricted, just refresh UI
+          queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+        }
+      } catch (err) {
+        // Ignore network errors
+      }
     });
   };
 
