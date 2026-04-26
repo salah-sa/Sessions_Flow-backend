@@ -303,72 +303,89 @@ public static class GroupEndpoints
                     }
                 }
 
-                // 3. Database Writes (Atomic-like order)
-                var newGroup = new Group
-                {
-                    Id = Guid.NewGuid(), // Explicitly assign ID so we can link children before Insert
-                    Name = req.Name.Trim(),
-                    Description = req.Description?.Trim() ?? "",
-                    Level = req.Level,
-                    ColorTag = req.ColorTag ?? "blue",
-                    EngineerId = engineerId,
-                    NumberOfStudents = req.NumberOfStudents,
-                    StartingSessionNumber = startingNum,
-                    CurrentSessionNumber = startingNum,
-                    TotalSessions = totalSessions,
-                    Frequency = req.Frequency,
-                    Status = GroupStatus.Active,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                    UpdatedAt = DateTimeOffset.UtcNow
-                };
+                // 3. Database Writes (Atomic Transaction)
+                using var session = await db.Client.StartSessionAsync();
+                session.StartTransaction();
 
-                // Link children to the new group ID
-                foreach (var s in schedules) s.GroupId = newGroup.Id;
-                foreach (var s in studentsToInsert) 
+                try
                 {
-                    s.GroupId = newGroup.Id;
-                    s.UniqueStudentCode = Student.GenerateCode(s.Name, newGroup.Id);
+                    var newGroup = new Group
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = req.Name.Trim(),
+                        Description = req.Description?.Trim() ?? "",
+                        Level = req.Level,
+                        ColorTag = req.ColorTag ?? "blue",
+                        EngineerId = engineerId,
+                        NumberOfStudents = req.NumberOfStudents,
+                        StartingSessionNumber = startingNum,
+                        CurrentSessionNumber = startingNum,
+                        TotalSessions = totalSessions,
+                        Frequency = req.Frequency,
+                        Status = GroupStatus.Active,
+                        CreatedAt = DateTimeOffset.UtcNow,
+                        UpdatedAt = DateTimeOffset.UtcNow
+                    };
+
+                    // Link children to the new group ID
+                    foreach (var s in schedules) s.GroupId = newGroup.Id;
+                    foreach (var s in studentsToInsert) 
+                    {
+                        s.GroupId = newGroup.Id;
+                        s.UniqueStudentCode = Student.GenerateCode(s.Name, newGroup.Id);
+                    }
+
+                    // Execute all insertions WITHIN transaction
+                    await db.Groups.InsertOneAsync(session, newGroup);
+                    if (schedules.Count > 0) await db.GroupSchedules.InsertManyAsync(session, schedules);
+                    if (studentsToInsert.Count > 0) await db.Students.InsertManyAsync(session, studentsToInsert);
+
+                    // Auto-generate sessions (pass session to ensure it's part of transaction)
+                    await sessionService.AutoGenerateSessionsAsync(newGroup, session);
+
+                    await session.CommitTransactionAsync();
+
+                    // Return full object to satisfy frontend expectations
+                    return Results.Created($"/api/groups/{newGroup.Id}", new
+                    {
+                        id = newGroup.Id,
+                        name = newGroup.Name,
+                        description = newGroup.Description,
+                        level = newGroup.Level,
+                        colorTag = newGroup.ColorTag,
+                        engineerId = newGroup.EngineerId,
+                        status = newGroup.Status.ToString(),
+                        studentCount = studentsToInsert.Count,
+                        totalSessions = newGroup.TotalSessions,
+                        currentSessionNumber = newGroup.CurrentSessionNumber,
+                        schedules = schedules.Select(s => new {
+                            id = s.Id,
+                            dayOfWeek = s.DayOfWeek,
+                            startTime = s.StartTime.ToString(@"hh\:mm"),
+                            durationMinutes = s.DurationMinutes
+                        }),
+                        students = studentsToInsert.Select(s => new {
+                            id = s.Id,
+                            name = s.Name,
+                            groupId = s.GroupId,
+                            studentId = s.StudentId,
+                            uniqueStudentCode = s.UniqueStudentCode
+                        })
+                    });
                 }
-
-                // Execute all insertions
-                await db.Groups.InsertOneAsync(newGroup);
-                if (schedules.Count > 0) await db.GroupSchedules.InsertManyAsync(schedules);
-                if (studentsToInsert.Count > 0) await db.Students.InsertManyAsync(studentsToInsert);
-
-                // Auto-generate sessions (depends on group and schedules being in DB)
-                await sessionService.AutoGenerateSessionsAsync(newGroup);
-
-                // Return full object to satisfy frontend expectations
-                return Results.Created($"/api/groups/{newGroup.Id}", new
+                catch (Exception ex)
                 {
-                    id = newGroup.Id,
-                    name = newGroup.Name,
-                    description = newGroup.Description,
-                    level = newGroup.Level,
-                    colorTag = newGroup.ColorTag,
-                    engineerId = newGroup.EngineerId,
-                    status = newGroup.Status.ToString(),
-                    studentCount = studentsToInsert.Count,
-                    totalSessions = newGroup.TotalSessions,
-                    currentSessionNumber = newGroup.CurrentSessionNumber,
-                    schedules = schedules.Select(s => new {
-                        id = s.Id,
-                        dayOfWeek = s.DayOfWeek,
-                        startTime = s.StartTime.ToString(@"hh\:mm"),
-                        durationMinutes = s.DurationMinutes
-                    }),
-                    students = studentsToInsert.Select(s => new {
-                        id = s.Id,
-                        name = s.Name,
-                        groupId = s.GroupId,
-                        studentId = s.StudentId,
-                        uniqueStudentCode = s.UniqueStudentCode
-                    })
-                });
+                    await session.AbortTransactionAsync();
+                    // Log the detailed error but return a clean JSON for the frontend
+                    return Results.Json(new { 
+                        error = "Failed to create group. Please check your data and try again.", 
+                        detail = ex.Message 
+                    }, statusCode: 500);
+                }
             }
             catch (Exception ex)
             {
-                return Results.Json(new { error = "Failed to create group.", detail = ex.Message }, statusCode: 500);
+                return Results.Json(new { error = "Internal server error occurred.", detail = ex.Message }, statusCode: 500);
             }
         });
 
@@ -529,38 +546,57 @@ public static class GroupEndpoints
             if (role != "Admin" && g.EngineerId != userId)
                 return Results.Forbid();
 
-            var update = Builders<Group>.Update
-                .Set(g => g.IsDeleted, true)
-                .Set(g => g.Status, GroupStatus.Archived)
-                .Set(g => g.DeletedAt, DateTimeOffset.UtcNow)
-                .Set(g => g.UpdatedAt, DateTimeOffset.UtcNow);
-            
-            var result = await db.Groups.UpdateOneAsync(g => g.Id == id, update);
-            if (result.MatchedCount == 0) return Results.NotFound(new { error = "Group not found." });
+            // UX FIX: Prevent deleting if there's an ACTIVE session
+            var hasActiveSession = await db.Sessions.Find(s => s.GroupId == id && s.Status == SessionStatus.Active && !s.IsDeleted).AnyAsync();
+            if (hasActiveSession)
+                return Results.BadRequest(new { error = "Cannot delete group while a session is currently ACTIVE. Please end the session first." });
 
-            // Cascade soft-delete to students
-            await db.Students.UpdateManyAsync(
-                s => s.GroupId == id && !s.IsDeleted,
-                Builders<Student>.Update.Set(s => s.IsDeleted, true).Set(s => s.UpdatedAt, DateTimeOffset.UtcNow)
-            );
+            using var session = await db.Client.StartSessionAsync();
+            session.StartTransaction();
 
-            // Cascade soft-delete to ALL sessions (Scheduled, Active, or Ended)
-            // This ensures they vanish from all UI list views.
-            await db.Sessions.UpdateManyAsync(
-                s => s.GroupId == id && !s.IsDeleted,
-                Builders<Session>.Update.Set(s => s.IsDeleted, true).Set(s => s.UpdatedAt, DateTimeOffset.UtcNow)
-            );
+            try
+            {
+                var update = Builders<Group>.Update
+                    .Set(g => g.IsDeleted, true)
+                    .Set(g => g.Status, GroupStatus.Archived)
+                    .Set(g => g.DeletedAt, DateTimeOffset.UtcNow)
+                    .Set(g => g.UpdatedAt, DateTimeOffset.UtcNow);
+                
+                await db.Groups.UpdateOneAsync(session, g => g.Id == id, update);
 
-            // Cascade soft-delete to chat messages
-            await db.ChatMessages.UpdateManyAsync(
-                m => m.GroupId == id && !m.IsDeleted,
-                Builders<ChatMessage>.Update.Set(m => m.IsDeleted, true).Set(m => m.UpdatedAt, DateTimeOffset.UtcNow)
-            );
+                // Cascade soft-delete to students
+                await db.Students.UpdateManyAsync(
+                    session,
+                    s => s.GroupId == id && !s.IsDeleted,
+                    Builders<Student>.Update.Set(s => s.IsDeleted, true).Set(s => s.UpdatedAt, DateTimeOffset.UtcNow)
+                );
 
-            // Cleanup recurring schedules (no longer needed once group is archived)
-            await db.GroupSchedules.DeleteManyAsync(s => s.GroupId == id);
+                // Cascade soft-delete to ALL sessions (Scheduled, Active, or Ended)
+                await db.Sessions.UpdateManyAsync(
+                    session,
+                    s => s.GroupId == id && !s.IsDeleted,
+                    Builders<Session>.Update.Set(s => s.IsDeleted, true).Set(s => s.UpdatedAt, DateTimeOffset.UtcNow)
+                );
 
-            return Results.Ok(new { message = "Group archived and its associated sessions, students, and chat history hidden." });
+                // Cascade soft-delete to chat messages
+                await db.ChatMessages.UpdateManyAsync(
+                    session,
+                    m => m.GroupId == id && !m.IsDeleted,
+                    Builders<ChatMessage>.Update.Set(m => m.IsDeleted, true).Set(m => m.UpdatedAt, DateTimeOffset.UtcNow)
+                );
+
+                // Cleanup recurring schedules
+                await db.GroupSchedules.DeleteManyAsync(session, s => s.GroupId == id);
+
+                await session.CommitTransactionAsync();
+
+                return Results.Ok(new { message = $"Group '{g.Name}' has been successfully archived." });
+            }
+            catch (Exception ex)
+            {
+                await session.AbortTransactionAsync();
+                return Results.Json(new { error = "Failed to archive group due to a system error.", detail = ex.Message }, statusCode: 500);
+            }
         });
 
         // GET /api/groups/{id}/students — list students in group

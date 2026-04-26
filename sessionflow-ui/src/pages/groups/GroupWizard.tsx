@@ -566,7 +566,7 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
                         setNewStudentName("");
                         refetchStudents();
                       } catch (err: any) {
-                        toast.error(err?.message || "Failed to create group.");
+                        toast.error(err?.message || "Failed to add student.");
                       }
                     }}
                     className="h-10 px-5 rounded-xl bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 transition-colors disabled:opacity-50 shrink-0"
