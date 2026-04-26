@@ -1,10 +1,11 @@
 import React from "react";
-import { Users, Edit2, Trash2, ChevronRight, Plus } from "lucide-react";
+import { Users, Edit2, Trash2, ChevronRight, Plus, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Group } from "../../types";
+import { useChatStore } from "../../store/stores";
 
 interface GroupCardProps {
   group: Group;
@@ -23,6 +24,12 @@ export const GroupCard: React.FC<GroupCardProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const setActiveGroup = useChatStore((s) => s.setActiveGroup);
+
+  const handleGoToChat = () => {
+    setActiveGroup(group.id);
+    navigate("/chat");
+  };
 
   return (
     <motion.div 
@@ -43,6 +50,13 @@ export const GroupCard: React.FC<GroupCardProps> = ({
               <Users className="w-5 h-5 md:w-6 md:h-6" />
             </div>
             <div className="flex gap-2">
+              <button 
+                onClick={handleGoToChat}
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-500 hover:text-[var(--ui-accent)] hover:bg-[var(--ui-accent)]/5 border border-transparent hover:border-[var(--ui-accent)]/10 transition-all"
+                title={t("chat.title") || "Chat"}
+              >
+                <MessageSquare className="w-4 h-4" />
+              </button>
               <button 
                 onClick={() => onEdit(group)}
                 className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all"
