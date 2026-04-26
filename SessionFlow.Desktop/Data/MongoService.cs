@@ -204,4 +204,6 @@ public class MongoService
     public IMongoCollection<EmailChangeToken> EmailChangeTokens => _database.GetCollection<EmailChangeToken>("EmailChangeTokens");
 
     public IMongoDatabase Database => _database;
+    public IMongoClient Client => _database.Client;
 }
+

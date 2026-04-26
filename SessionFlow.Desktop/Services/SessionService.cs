@@ -17,11 +17,11 @@ public class SessionService
         _config = config;
     }
 
-    public async Task AutoGenerateSessionsAsync(Group group, CancellationToken ct = default)
+    public async Task AutoGenerateSessionsAsync(Group group, IClientSessionHandle? session = null, CancellationToken ct = default)
     {
-        var schedules = await _db.GroupSchedules
-            .Find(gs => gs.GroupId == group.Id)
-            .ToListAsync(ct);
+        var schedules = session != null
+            ? await _db.GroupSchedules.Find(session, gs => gs.GroupId == group.Id).ToListAsync(ct)
+            : await _db.GroupSchedules.Find(gs => gs.GroupId == group.Id).ToListAsync(ct);
 
         if (schedules.Count == 0)
             return;
@@ -35,19 +35,24 @@ public class SessionService
             var sessionsToInsert = generatedSessions.Select(gs => 
             {
                 var localTime = gs.ScheduledDate.Add(gs.StartTime);
-                var offset = cairoTz.GetUtcOffset(localTime);
+                // Fix: Specify Kind=Unspecified to ensure GetUtcOffset treats it as a wall-clock time in the target TZ
+                var wallClockTime = DateTime.SpecifyKind(localTime, DateTimeKind.Unspecified);
+                var offset = cairoTz.GetUtcOffset(wallClockTime);
                 return new Session
                 {
                     GroupId = group.Id,
                     EngineerId = group.EngineerId,
                     SessionNumber = gs.SessionNumber,
-                    ScheduledAt = new DateTimeOffset(localTime, offset).ToUniversalTime(),
+                    ScheduledAt = new DateTimeOffset(wallClockTime, offset).ToUniversalTime(),
                     Status = SessionStatus.Scheduled,
                     DurationMinutes = gs.DurationMinutes
                 };
             }).ToList();
 
-            await _db.Sessions.InsertManyAsync(sessionsToInsert, cancellationToken: ct);
+            if (session != null)
+                await _db.Sessions.InsertManyAsync(session, sessionsToInsert, cancellationToken: ct);
+            else
+                await _db.Sessions.InsertManyAsync(sessionsToInsert, cancellationToken: ct);
         }
     }
 
