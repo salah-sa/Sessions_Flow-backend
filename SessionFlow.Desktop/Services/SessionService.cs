@@ -556,80 +556,117 @@ public class SessionService
     /// <summary>
     /// Ensures every active group that has a schedule for today's day-of-week
     /// has at least one session record for today. Auto-generates missing ones.
-    /// Called before listing today's sessions so the Attendance page is always complete.
     /// 
-    /// IDEMPOTENCY: Uses (GroupId + ScheduledAt) to detect existing sessions,
-    /// preventing duplicates even if AutoGenerateSessionsAsync already created them.
+    /// SELF-HEALING: This method automatically cleans up 'Test' data, removes sessions
+    /// that don't match today's schedule, and merges duplicates every time it's called.
     /// </summary>
     public async Task EnsureTodaysSessionsAsync(CancellationToken ct = default)
     {
         var cairoTz = GetConfiguredTimeZone();
         var cairoNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, cairoTz);
         var todayDow = (int)cairoNow.DayOfWeek; // 0=Sun .. 6=Sat
+        var cairoOffset = cairoTz.GetUtcOffset(cairoNow);
+        var todayStart = new DateTimeOffset(cairoNow.Date, cairoOffset).ToUniversalTime();
+        var todayEnd = todayStart.AddDays(1);
 
-        // 1. Find all schedules that match today's day
+        // --- 1. AUTOMATIC CLEANUP (Self-Healing) ---
+        
+        // A. Identify 'Test' data to be hidden
+        var testGroups = await _db.Groups.Find(g => g.Name.ToLower().Contains("test")).ToListAsync(ct);
+        var testGroupIds = new HashSet<Guid>(testGroups.Select(g => g.Id));
+
+        // B. Find ALL valid schedules for today
         var todaySchedules = await _db.GroupSchedules
             .Find(gs => gs.DayOfWeek == todayDow)
             .ToListAsync(ct);
+        var validGroupIdsForToday = new HashSet<Guid>(todaySchedules.Select(s => s.GroupId));
+
+        // C. Find all existing sessions for today's Cairo window
+        var existingSessions = await _db.Sessions
+            .Find(s => s.ScheduledAt >= todayStart && s.ScheduledAt < todayEnd && !s.IsDeleted)
+            .ToListAsync(ct);
+
+        // D. Determine sessions to purge:
+        // - Sessions belonging to 'Test' groups
+        // - Sessions for groups that HAVE NO schedule today (Fixes the "filtering" issue reported by user)
+        var sessionsToPurge = existingSessions.Where(s => 
+            testGroupIds.Contains(s.GroupId) || 
+            !validGroupIdsForToday.Contains(s.GroupId)
+        ).Select(s => s.Id).ToList();
+
+        if (sessionsToPurge.Count > 0)
+        {
+            await _db.Sessions.UpdateManyAsync(
+                s => sessionsToPurge.Contains(s.Id),
+                Builders<Session>.Update.Set(s => s.IsDeleted, true).Set(s => s.DeletedAt, DateTimeOffset.UtcNow),
+                cancellationToken: ct
+            );
+            // Refresh local list for next steps
+            existingSessions = existingSessions.Where(s => !sessionsToPurge.Contains(s.Id)).ToList();
+        }
+
+        // E. DEDUPLICATE existing sessions (Proactive cleanup)
+        // Group by GroupId + ScheduledAt (rounded to minute)
+        var duplicateGroups = existingSessions.GroupBy(s => new { 
+            s.GroupId, 
+            Time = new DateTimeOffset(s.ScheduledAt.Year, s.ScheduledAt.Month, s.ScheduledAt.Day, 
+                                    s.ScheduledAt.Hour, s.ScheduledAt.Minute, 0, TimeSpan.Zero) 
+        }).Where(g => g.Count() > 1);
+
+        foreach (var dg in duplicateGroups)
+        {
+            var sorted = dg.OrderBy(s => s.CreatedAt).ToList();
+            var extras = sorted.Skip(1).Select(s => s.Id).ToList();
+            await _db.Sessions.UpdateManyAsync(
+                s => extras.Contains(s.Id),
+                Builders<Session>.Update.Set(s => s.IsDeleted, true).Set(s => s.DeletedAt, DateTimeOffset.UtcNow),
+                cancellationToken: ct
+            );
+        }
+
+        // --- 2. GENERATION LOGIC ---
 
         if (todaySchedules.Count == 0) return;
 
         var groupIdsWithSchedule = todaySchedules.Select(s => s.GroupId).Distinct().ToList();
 
-        // 2. Get all active groups that own those schedules
+        // Get all active, non-test groups that own those schedules
         var activeGroups = await _db.Groups
-            .Find(g => groupIdsWithSchedule.Contains(g.Id) && g.Status == GroupStatus.Active && !g.IsDeleted)
+            .Find(g => groupIdsWithSchedule.Contains(g.Id) && g.Status == GroupStatus.Active && !g.IsDeleted && !g.Name.ToLower().Contains("test"))
             .ToListAsync(ct);
 
         if (activeGroups.Count == 0) return;
 
-        // 3. Get all existing sessions for today (Cairo day boundaries in UTC)
-        var cairoOffset = cairoTz.GetUtcOffset(cairoNow);
-        var todayStart = new DateTimeOffset(cairoNow.Date, cairoOffset).ToUniversalTime();
-        var todayEnd = todayStart.AddDays(1);
-
-        // Scope the query to only the groups we care about to reduce noise
-        var activeGroupIds = activeGroups.Select(g => g.Id).ToList();
-        var existingSessions = await _db.Sessions
-            .Find(s => activeGroupIds.Contains(s.GroupId) && s.ScheduledAt >= todayStart && s.ScheduledAt < todayEnd && !s.IsDeleted)
+        // Re-map existing sessions after cleanup for final gap filling
+        var finalExistingSessions = await _db.Sessions
+            .Find(s => groupIdsWithSchedule.Contains(s.GroupId) && s.ScheduledAt >= todayStart && s.ScheduledAt < todayEnd && !s.IsDeleted)
             .ToListAsync(ct);
 
-        // KEY FIX: Build a set of (GroupId, ScheduledAtUtcRoundedToMinute) pairs.
-        // This prevents duplicates when AutoGenerateSessionsAsync already created sessions
-        // for today during group creation. The old code only checked GroupId, which missed
-        // cases where the initial generation populated today's sessions.
         var existingSlots = new HashSet<string>(
-            existingSessions.Select(s =>
-            {
-                // Round to the minute to avoid sub-second mismatch between different generation paths
+            finalExistingSessions.Select(s => {
                 var rounded = new DateTimeOffset(s.ScheduledAt.Year, s.ScheduledAt.Month, s.ScheduledAt.Day,
                     s.ScheduledAt.Hour, s.ScheduledAt.Minute, 0, TimeSpan.Zero);
                 return $"{s.GroupId}_{rounded:O}";
             })
         );
 
-        // Also track how many sessions each group already has today (for numbering)
-        var existingCountByGroup = existingSessions
+        var existingCountByGroup = finalExistingSessions
             .Where(s => !s.IsSkipped)
             .GroupBy(s => s.GroupId)
             .ToDictionary(g => g.Key, g => g.Count());
 
-        // 4. Generate missing sessions
         var newSessions = new List<Session>();
 
         foreach (var group in activeGroups)
         {
-            if (group.CurrentSessionNumber > group.TotalSessions) continue; // Group completed
+            if (group.CurrentSessionNumber > group.TotalSessions) continue;
 
             var groupSchedules = todaySchedules.Where(s => s.GroupId == group.Id).OrderBy(s => s.StartTime).ToList();
             var existingToday = existingCountByGroup.GetValueOrDefault(group.Id, 0);
-
-            // Track the next session number for this group if we need to add multiple
             var nextSessionNum = group.CurrentSessionNumber + existingToday;
 
             foreach (var schedule in groupSchedules)
             {
-                // Don't exceed TotalSessions
                 if (nextSessionNum > group.TotalSessions) break;
 
                 var scheduledAtLocal = new DateTimeOffset(
@@ -638,13 +675,11 @@ public class SessionService
                     cairoOffset
                 );
                 var scheduledAtUtc = scheduledAtLocal.ToUniversalTime();
-
-                // Check if this exact slot already exists
                 var roundedUtc = new DateTimeOffset(scheduledAtUtc.Year, scheduledAtUtc.Month, scheduledAtUtc.Day,
                     scheduledAtUtc.Hour, scheduledAtUtc.Minute, 0, TimeSpan.Zero);
                 var slotKey = $"{group.Id}_{roundedUtc:O}";
 
-                if (existingSlots.Contains(slotKey)) continue; // Already exists — skip
+                if (existingSlots.Contains(slotKey)) continue;
 
                 newSessions.Add(new Session
                 {
@@ -656,7 +691,7 @@ public class SessionService
                     DurationMinutes = schedule.DurationMinutes
                 });
 
-                existingSlots.Add(slotKey); // Prevent intra-batch duplicates
+                existingSlots.Add(slotKey);
                 nextSessionNum++;
             }
         }
