@@ -270,6 +270,123 @@ class SoundEngine {
       osc.stop(startTime + 0.5);
     });
   }
+
+  /**
+   * playSessionLaunch - Rising arpeggio for starting a session.
+   */
+  playSessionLaunch() {
+    this.init();
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const output = this.createOutput();
+    if (!output) return;
+
+    const time = ctx.currentTime;
+    const arpeggio = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
+
+    arpeggio.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startTime = time + (i * 0.08);
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, startTime);
+      
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(0.06, startTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.4);
+
+      osc.connect(gain);
+      gain.connect(output);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.5);
+    });
+  }
+
+  /**
+   * playSessionComplete - Celebratory major chord for successful completion.
+   */
+  playSessionComplete() {
+    this.init();
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const output = this.createOutput();
+    if (!output) return;
+
+    const time = ctx.currentTime;
+    const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+
+    notes.forEach(freq => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, time);
+
+      gain.gain.setValueAtTime(0, time);
+      gain.gain.linearRampToValueAtTime(0.1, time + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 1.2);
+
+      osc.connect(gain);
+      gain.connect(output);
+
+      osc.start(time);
+      osc.stop(time + 1.5);
+    });
+    
+    // Add a high sparkle
+    const sparkle = ctx.createOscillator();
+    const sGain = ctx.createGain();
+    sparkle.type = "sine";
+    sparkle.frequency.setValueAtTime(2093.00, time + 0.1); // C7
+    sGain.gain.setValueAtTime(0, time + 0.1);
+    sGain.gain.linearRampToValueAtTime(0.03, time + 0.15);
+    sGain.gain.exponentialRampToValueAtTime(0.001, time + 0.6);
+    sparkle.connect(sGain);
+    sGain.connect(output);
+    sparkle.start(time + 0.1);
+    sparkle.stop(time + 0.7);
+  }
+
+  /**
+   * playArchive - Soft sweep for moving to completed zone.
+   */
+  playArchive() {
+    this.init();
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const output = this.createOutput();
+    if (!output) return;
+
+    const time = ctx.currentTime;
+    const filter = ctx.createBiquadFilter();
+    const noise = ctx.createBufferSource();
+    const bufferSize = ctx.sampleRate * 0.3;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    noise.buffer = buffer;
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(2000, time);
+    filter.frequency.exponentialRampToValueAtTime(100, time + 0.3);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0, time);
+    gain.gain.linearRampToValueAtTime(0.05, time + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.3);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(output);
+
+    noise.start(time);
+    noise.stop(time + 0.3);
+  }
 }
 
 export const sounds = new SoundEngine();

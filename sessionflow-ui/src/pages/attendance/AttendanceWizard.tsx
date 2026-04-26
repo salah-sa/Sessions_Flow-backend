@@ -1,13 +1,28 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Modal, Button, Input, Card } from "../../components/ui";
-import { Check, Clock, Users, ArrowRight, FileText, Calendar, CheckCircle2 } from "lucide-react";
+import { 
+  Check, 
+  Clock, 
+  Users, 
+  ArrowRight, 
+  FileText, 
+  Calendar, 
+  CheckCircle2, 
+  Zap, 
+  Loader2, 
+  ShieldCheck,
+  ChevronRight,
+  Sparkles
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Session } from "../../types";
 import { useSession, useSessionMutations } from "../../queries/useSessionQueries";
 import { StudentFeedback, AttendanceFormData, generateAttendanceFormUrl } from "./AttendanceGoogleFormService";
 import { format } from "date-fns";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn, formatDateTo12h, formatTime12h } from "../../lib/utils";
+import { sounds } from "../../lib/sounds";
+import { toast } from "sonner";
 
 interface AttendanceWizardProps {
   isOpen: boolean;
@@ -18,19 +33,20 @@ interface AttendanceWizardProps {
 export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onClose, session }) => {
   const { t } = useTranslation();
   const [step, setStep] = useState(1);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [countdown, setCountdown] = useState(3);
   
   // Form State
   const [formData, setFormData] = useState<Partial<AttendanceFormData>>({});
   
-  // Fetch complete session data including students when the modal opens
+  // Fetch complete session data
   const { data: detailedSession } = useSession(session?.id);
-  const { startMutation } = useSessionMutations();
+  const { startMutation, endMutation } = useSessionMutations();
   
-  // Initialize form when session data is loaded
-  React.useEffect(() => {
+  // Initialize form
+  useEffect(() => {
     const activeSession = detailedSession || session;
     if (activeSession && isOpen) {
-      // Backend stores Cairo local time AS UTC — extract raw UTC values
       const raw = new Date(activeSession.scheduledAt);
       const h = raw.getHours();
       const m = raw.getMinutes();
@@ -40,7 +56,6 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
       const endH = (h + 2) % 24;
       const endTimeStr = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 
-      // detailedSession.students from GET /api/sessions/{id}
       const students = (detailedSession as any)?.students || activeSession.group?.students || [];
 
       setFormData({
@@ -66,8 +81,21 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
         }))
       });
       setStep(1);
+      setIsCompleting(false);
+      setCountdown(3);
     }
   }, [detailedSession, session, isOpen]);
+
+  // Countdown logic
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isCompleting && countdown > 0) {
+      timer = setTimeout(() => setCountdown(prev => prev - 1), 1000);
+    } else if (isCompleting && countdown === 0) {
+      handleFinalize();
+    }
+    return () => clearTimeout(timer);
+  }, [isCompleting, countdown]);
 
   const updateStudent = (studentId: string, updates: Partial<StudentFeedback>) => {
     setFormData(prev => ({
@@ -77,6 +105,7 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
   };
 
   const markAllAsPresent = () => {
+    sounds.playHover();
     setFormData(prev => ({
       ...prev,
       students: prev.students?.map(s => ({
@@ -91,13 +120,21 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
     }));
   };
 
-  const handleNext = () => setStep(prev => Math.min(prev + 1, 4));
-  const handleBack = () => setStep(prev => Math.max(prev - 1, 1));
+  const handleNext = () => {
+    sounds.playHover();
+    setStep(prev => Math.min(prev + 4, 4));
+  };
+  const handleBack = () => {
+    sounds.playHover();
+    setStep(prev => Math.max(prev - 1, 1));
+  };
 
   const handleSubmit = async () => {
-    // 1. Ensure the session is started locally if it's currently Scheduled
     const activeSession = detailedSession || session;
-    if (activeSession && activeSession.status === "Scheduled") {
+    if (!activeSession) return;
+
+    // 1. Ensure the session is started locally
+    if (activeSession.status === "Scheduled") {
       try {
          await startMutation.mutateAsync(activeSession.id);
       } catch (e) {
@@ -105,294 +142,370 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
       }
     }
 
-    // 2. Generate and open Google Form URL
+    // 2. Open Google Form
     const url = generateAttendanceFormUrl(formData as AttendanceFormData);
     window.open(url, "_blank");
     
-    // The parent AttendancePage manages the "Pending Session" state for the lock,
-    // which expects us to just close this wizard and it detects completion if we return.
-    // Wait, the parent uses `handleMakeAttendance` to set pendingSessionId.
-    // If we use the wizard, we need to pass a callback to inform the parent to show the confirmation dialog.
-    // I'll emit an event or rely on `onComplete`. 
-    // Let's add an onComplete prop, but for now we can just close it.
-    if ((window as any).onWizardComplete) {
-       (window as any).onWizardComplete(activeSession?.id);
+    // 3. Trigger Auto-Completion UI
+    sounds.playSessionComplete();
+    setIsCompleting(true);
+  };
+
+  const handleFinalize = async () => {
+    const activeSession = detailedSession || session;
+    if (!activeSession) return;
+
+    try {
+      await endMutation.mutateAsync({ 
+        id: activeSession.id, 
+        force: true, 
+        notes: `Auto-completed via Attendance Wizard. Notes: ${formData.notes || "None"}`
+      });
+      sounds.playArchive();
+      toast.success("Mission Success. Session archived.");
+      onClose();
+    } catch (err: any) {
+      toast.error(err?.message || "Tactical error during finalization.");
+      setIsCompleting(false);
+      setCountdown(3);
     }
-    
-    onClose();
   };
 
   if (!session || !formData.students) return null;
 
   const steps = [
-    { id: 1, label: "Identification" },
-    { id: 2, label: "Time Details" },
-    { id: 3, label: "Attendance" },
-    { id: 4, label: "Additional Data" }
+    { id: 1, label: "Identification", icon: ShieldCheck },
+    { id: 2, label: "Time Intel", icon: Clock },
+    { id: 3, label: "Cadet Status", icon: Users },
+    { id: 4, label: "Final Report", icon: FileText }
   ];
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
-      title="Guided Attendance"
-      subtitle={session.groupName}
-      className="max-w-4xl w-full mx-4"
+      onClose={isCompleting ? () => {} : onClose}
+      title="Attendance Wizard"
+      subtitle={`Tactical deployment for ${session.groupName}`}
+      className="max-w-4xl w-full mx-4 attendance-realm"
     >
-      {/* Progress Bar Header */}
-      <div className="flex items-center justify-between mb-8 relative">
-        <div className="absolute inset-x-0 top-1/2 h-px bg-white/5 -z-10" />
-        {steps.map((s) => (
-          <div
-            key={s.id}
-            className={cn(
-              "flex flex-col items-center gap-2",
-              step >= s.id ? "text-[var(--ui-accent)]" : "text-slate-500"
-            )}
-          >
-            <div className={cn(
-              "w-8 h-8 rounded-full flex items-center justify-center font-black text-sm border-2 transition-colors",
-              step >= s.id ? "bg-black border-[var(--ui-accent)] shadow-[0_0_15px_rgba(var(--ui-accent-rgb),0.3)]" : "bg-black border-white/5"
-            )}>
-              {step > s.id ? <Check className="w-4 h-4" /> : s.id}
-            </div>
-            <span className="text-[10px] uppercase tracking-widest font-bold hidden sm:block">
-              {s.label}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      <div className="min-h-[40vh] max-h-[60vh] overflow-y-auto custom-scrollbar px-1 -mx-2 pb-4">
-        
-        {/* Step 1: Session Identification */}
-        {step === 1 && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6 max-w-2xl mx-auto pt-4">
-            <div className="text-center mb-8">
-               <h3 className="text-xl font-bold text-white">Session Identification</h3>
-               <p className="text-sm text-slate-400">Confirm the basic details of this lecture.</p>
-            </div>
-            <div className="space-y-2 text-start">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><Calendar className="w-4 h-4"/> Date</label>
-              <Input value={formData.date} disabled className="bg-white/5 h-12 text-lg font-medium" />
-            </div>
-            <div className="space-y-2 text-start">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><FileText className="w-4 h-4"/> Lecture Number</label>
-              <Input 
-                value={formData.lectureNumber} 
-                type="number" 
-                onChange={(e) => setFormData({ ...formData, lectureNumber: parseInt(e.target.value) || 1 })} 
-                className="h-12 text-lg font-medium focus:border-[var(--ui-accent)]" 
-              />
-            </div>
-          </motion.div>
-        )}
-
-        {/* Step 2: Time Details */}
-        {step === 2 && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6 max-w-2xl mx-auto pt-4">
-            <div className="text-center mb-8">
-               <h3 className="text-xl font-bold text-white">Time Details</h3>
-               <p className="text-sm text-slate-400">Review the start and end times. End time is strictly +2 hours by default.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2 text-start">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                  <Clock className="w-4 h-4"/> Start Time ({formatTime12h(formData.startTime || null)})
-                </label>
-                <Input 
-                  value={formData.startTime} 
-                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                  className="bg-white/5 h-12 text-lg font-medium font-mono" 
-                />
-              </div>
-              <div className="space-y-2 text-start">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-emerald-500"/> End Time ({formatTime12h(formData.endTime || null)})
-                </label>
-                <Input 
-                  value={formData.endTime} 
-                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                  className="bg-white/5 h-12 text-lg font-medium font-mono border-emerald-500/30 focus:border-emerald-500" 
-                />
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Step 3: Attendance Marking */}
-        {step === 3 && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-              <div>
-                <h3 className="text-xl font-bold text-white flex items-center gap-2"><Users className="w-5 h-5 text-[var(--ui-accent)]"/> Attendance Marking</h3>
-                <p className="text-sm text-slate-400 text-start mt-1">Review metrics for present students.</p>
-              </div>
-              <Button variant="outline" className="border-[var(--ui-accent)] text-[var(--ui-accent)] hover:bg-[var(--ui-accent)]/10 text-xs h-9" onClick={markAllAsPresent}>
-                <CheckCircle2 className="w-4 h-4 mr-2"/>
-                Mark All as Present (Default Metrics)
-              </Button>
-            </div>
-
-            {formData.students.length > 6 && (
-              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex gap-3 items-start">
-                <Clock className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                <div className="space-y-1 text-start">
-                  <p className="text-xs font-bold text-amber-500 uppercase tracking-tight">Student Limit Notice</p>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    The Google Form only supports 6 detailed students. 
-                    Only the first 6 will have metrics exported.
-                  </p>
+      <div className="relative">
+        <AnimatePresence mode="wait">
+          {isCompleting ? (
+            <motion.div 
+              key="completing"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex flex-col items-center justify-center py-20 text-center"
+            >
+              <div className="relative mb-8">
+                <div className="w-24 h-24 rounded-full border-4 border-emerald-500/10 border-t-emerald-500 animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-4xl font-black text-white">{countdown}</span>
                 </div>
               </div>
-            )}
-
-            <div className="space-y-3">
-              {formData.students.map((student, idx) => (
-                <Card key={student.id} className="p-4 border border-white/5 bg-white/[0.02]">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-[var(--ui-accent)]/10 flex items-center justify-center text-[var(--ui-accent)] font-bold text-sm shrink-0">
-                        {idx + 1}
+              <h2 className="text-3xl font-black text-white mb-3">Tactical Sync in Progress</h2>
+              <p className="text-slate-400 text-sm font-medium max-w-xs leading-relaxed">
+                Google Form launched. Markings are being uploaded to HQ. <br/>
+                <span className="text-emerald-500 font-bold">Auto-archiving in {countdown}s...</span>
+              </p>
+            </motion.div>
+          ) : (
+            <motion.div key="wizard-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              {/* Premium Progress Bar */}
+              <div className="flex items-center justify-between mb-12 relative px-4">
+                <div className="absolute inset-x-8 top-[1.125rem] h-px bg-white/5 -z-10" />
+                {steps.map((s) => {
+                  const Icon = s.icon;
+                  const isActive = step >= s.id;
+                  const isCurrent = step === s.id;
+                  return (
+                    <div key={s.id} className="flex flex-col items-center gap-3 relative">
+                      <div className={cn(
+                        "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-500 border-2",
+                        isActive 
+                          ? "bg-black border-[var(--att-ember)] shadow-[0_0_20px_rgba(249,115,22,0.2)]" 
+                          : "bg-white/[0.02] border-white/5"
+                      )}>
+                        {step > s.id ? <Check className="w-5 h-5 text-emerald-500" /> : <Icon className={cn("w-4 h-4", isActive ? "text-[var(--att-ember)]" : "text-slate-600")} />}
                       </div>
-                      <span className="font-bold text-white text-base sm:text-lg truncate">{student.name}</span>
+                      <span className={cn(
+                        "text-[9px] uppercase tracking-[0.2em] font-black transition-colors hidden sm:block",
+                        isCurrent ? "text-white" : "text-slate-600"
+                      )}>
+                        {s.label}
+                      </span>
+                      {isCurrent && (
+                        <motion.div layoutId="step-indicator" className="absolute -bottom-2 w-1 h-1 rounded-full bg-[var(--att-ember)] shadow-[0_0_8px_var(--att-ember)]" />
+                      )}
                     </div>
-                    <div className="flex bg-black rounded-lg border border-white/5 p-1 w-full sm:w-auto">
-                      <button 
-                        onClick={() => updateStudent(student.id, { isPresent: true })}
-                        className={cn("flex-1 sm:flex-initial px-6 py-2 rounded-md text-xs font-bold transition-all", student.isPresent ? "bg-emerald-500/20 text-emerald-400" : "text-slate-500 hover:text-white")}
-                      >
-                        Present
-                      </button>
-                      <button 
-                        onClick={() => updateStudent(student.id, { isPresent: false })}
-                        className={cn("flex-1 sm:flex-initial px-6 py-2 rounded-md text-xs font-bold transition-all", !student.isPresent ? "bg-rose-500/20 text-rose-400" : "text-slate-500 hover:text-white")}
-                      >
-                        Absent
-                      </button>
-                    </div>
-                  </div>
+                  );
+                })}
+              </div>
 
-                  {student.isPresent && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-4 pt-4 border-t border-white/5 space-y-4">
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                        {[
-                          { key: "attendanceOnTime", label: "On time" },
-                          { key: "taskSubmission", label: "Task" },
-                          { key: "interaction", label: "Interaction" },
-                          { key: "research", label: "Research" },
-                          { key: "teamwork", label: "Teamwork" }
-                        ].map(metric => (
-                          <div key={metric.key} className="flex flex-col gap-2 bg-black/40 p-3 rounded-lg border border-white/5 text-center">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{metric.label}</span>
-                            <div className="flex gap-1 w-full">
+              {/* Step Content Wrapper */}
+              <div className="min-h-[45vh] max-h-[60vh] overflow-y-auto custom-scrollbar px-2 -mx-2 pb-6">
+                
+                {/* Step 1: Identification */}
+                {step === 1 && (
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8 max-w-xl mx-auto pt-4">
+                    <div className="grid grid-cols-1 gap-6">
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                          <Calendar className="w-3.5 h-3.5 text-[var(--att-ember)]"/> Mission Date
+                        </label>
+                        <div className="h-14 px-5 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center text-white font-bold text-lg">
+                          {formData.date}
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                          <FileText className="w-3.5 h-3.5 text-[var(--att-ember)]"/> Sequence Number
+                        </label>
+                        <Input 
+                          value={formData.lectureNumber} 
+                          type="number" 
+                          onChange={(e) => setFormData({ ...formData, lectureNumber: parseInt(e.target.value) || 1 })} 
+                          className="h-14 rounded-2xl bg-white/[0.03] border-white/10 text-white font-black text-xl focus:border-[var(--att-ember)]" 
+                        />
+                        <p className="text-[10px] text-slate-500 font-medium">Verify this matches the physical session count.</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Step 2: Time Details */}
+                {step === 2 && (
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8 max-w-xl mx-auto pt-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                          <Clock className="w-3.5 h-3.5 text-[var(--att-ember)]"/> Entry Time
+                        </label>
+                        <Input 
+                          value={formData.startTime} 
+                          onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                          className="h-14 rounded-2xl bg-white/[0.03] border-white/10 text-white font-mono text-xl focus:border-[var(--att-ember)] text-center" 
+                        />
+                      </div>
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                          <Clock className="w-3.5 h-3.5 text-emerald-500"/> Extraction Time
+                        </label>
+                        <Input 
+                          value={formData.endTime} 
+                          onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                          className="h-14 rounded-2xl bg-white/[0.03] border-emerald-500/20 text-white font-mono text-xl focus:border-emerald-500 text-center" 
+                        />
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 flex gap-4">
+                       <Zap className="w-5 h-5 text-[var(--att-ember)] shrink-0" />
+                       <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                         The system enforces a strict <span className="text-white font-bold">2-hour window</span> for all deployments. Verify if manual adjustment is required for overtime.
+                       </p>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Step 3: Attendance Marking */}
+                {step === 3 && (
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sticky top-0 bg-[var(--att-surface)] z-10 py-2 border-b border-white/5 mb-6">
+                      <div>
+                        <h3 className="text-lg font-black text-white flex items-center gap-2">Cadet Verification</h3>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mark mission presence and metrics</p>
+                      </div>
+                      <Button variant="outline" className="border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 text-[10px] font-black uppercase tracking-widest h-10 px-6 rounded-xl" onClick={markAllAsPresent}>
+                        <CheckCircle2 className="w-4 h-4 mr-2"/>
+                        Mass Deploy (Full Metrics)
+                      </Button>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4">
+                      {formData.students.map((student, idx) => (
+                        <Card key={student.id} className="p-6 border border-white/5 bg-white/[0.01] hover:bg-white/[0.03] transition-all rounded-3xl overflow-hidden relative group">
+                          <div className={cn("absolute left-0 top-0 bottom-0 w-1 transition-colors", student.isPresent ? "bg-emerald-500" : "bg-rose-500")} />
+                          
+                          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                            <div className="flex items-center gap-4 min-w-0">
+                              <div className="w-12 h-12 rounded-2xl bg-white/[0.05] flex items-center justify-center font-black text-slate-400 group-hover:text-[var(--att-ember)] transition-colors shrink-0">
+                                {idx + 1}
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="font-bold text-white text-lg truncate">{student.name}</h4>
+                                <Badge className={cn("text-[9px] font-black uppercase tracking-widest bg-transparent border-none p-0", student.isPresent ? "text-emerald-500" : "text-rose-500")}>
+                                  {student.isPresent ? "Verified Present" : "Missing in Action"}
+                                </Badge>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 p-1 bg-black rounded-2xl border border-white/5 shrink-0">
                               <button 
-                                onClick={() => updateStudent(student.id, { [metric.key]: "Yes" })}
-                                className={cn("flex-1 py-1.5 text-[9px] font-black uppercase rounded-md transition-colors", (student as any)[metric.key] === "Yes" ? "bg-[var(--ui-accent)]/20 text-[var(--ui-accent)]" : "bg-white/5 text-slate-500")}
+                                onClick={() => { sounds.playHover(); updateStudent(student.id, { isPresent: true }); }}
+                                className={cn("px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", student.isPresent ? "bg-emerald-600 text-white shadow-lg" : "text-slate-500 hover:text-white")}
                               >
-                                Yes
+                                Present
                               </button>
                               <button 
-                                onClick={() => updateStudent(student.id, { [metric.key]: "Needs Improvement" })}
-                                className={cn("flex-1 py-1.5 text-[9px] font-black uppercase rounded-md transition-colors", (student as any)[metric.key] === "Needs Improvement" ? "bg-amber-500/20 text-amber-400" : "bg-white/5 text-slate-500")}
+                                onClick={() => { sounds.playHover(); updateStudent(student.id, { isPresent: false }); }}
+                                className={cn("px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", !student.isPresent ? "bg-rose-600 text-white shadow-lg" : "text-slate-500 hover:text-white")}
                               >
-                                Needs Dev
+                                Absent
                               </button>
                             </div>
                           </div>
-                        ))}
+
+                          {student.isPresent && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-8 pt-8 border-t border-white/5">
+                              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+                                {[
+                                  { key: "attendanceOnTime", label: "Punctual" },
+                                  { key: "taskSubmission", label: "Task Done" },
+                                  { key: "interaction", label: "Interacted" },
+                                  { key: "research", label: "Research" },
+                                  { key: "teamwork", label: "Teamwork" }
+                                ].map(metric => (
+                                  <div key={metric.key} className="flex flex-col gap-2 p-3 rounded-2xl bg-black/40 border border-white/5">
+                                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">{metric.label}</span>
+                                    <div className="flex gap-1">
+                                      <button 
+                                        onClick={() => { sounds.playHover(); updateStudent(student.id, { [metric.key]: "Yes" }); }}
+                                        className={cn("flex-1 py-1.5 text-[8px] font-black uppercase rounded-lg transition-colors", (student as any)[metric.key] === "Yes" ? "bg-[var(--att-ember)]/20 text-[var(--att-ember)] border border-[var(--att-ember)]/30" : "bg-white/5 text-slate-600")}
+                                      >
+                                        Yes
+                                      </button>
+                                      <button 
+                                        onClick={() => { sounds.playHover(); updateStudent(student.id, { [metric.key]: "Needs Improvement" }); }}
+                                        className={cn("flex-1 py-1.5 text-[8px] font-black uppercase rounded-lg transition-colors", (student as any)[metric.key] === "Needs Improvement" ? "bg-amber-500/20 text-amber-500 border border-amber-500/30" : "bg-white/5 text-slate-600")}
+                                      >
+                                        Dev
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              <Input 
+                                placeholder="Deployment performance notes..." 
+                                value={student.comment}
+                                onChange={(e) => updateStudent(student.id, { comment: e.target.value })}
+                                className="bg-black/40 h-12 rounded-xl text-sm border-white/5 focus:border-[var(--att-ember)]"
+                              />
+                            </motion.div>
+                          )}
+                        </Card>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Step 4: Final Report */}
+                {step === 4 && (
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8 max-w-xl mx-auto pt-4">
+                    <div className="grid grid-cols-1 gap-8">
+                      <div className="p-8 rounded-3xl bg-white/[0.02] border border-white/10 space-y-8">
+                        <div className="space-y-4">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block">End of Cycle Verification</label>
+                          <div className="flex flex-col gap-3">
+                            <button
+                              onClick={() => { sounds.playHover(); setFormData({ ...formData, isLastLecture: !formData.isLastLecture }); }}
+                              className={cn(
+                                "flex items-center justify-between p-4 rounded-2xl border transition-all duration-300",
+                                formData.isLastLecture 
+                                  ? "bg-[var(--att-ember)]/10 border-[var(--att-ember)]/40 text-[var(--att-ember)]" 
+                                  : "bg-black/40 border-white/5 text-slate-500"
+                              )}
+                            >
+                              <div className="flex flex-col text-start">
+                                <span className="font-bold text-sm">Final Session of Level</span>
+                                <span className="text-[10px] font-medium opacity-60">Automate graduation sequence</span>
+                              </div>
+                              {formData.isLastLecture && <Sparkles className="w-5 h-5" />}
+                            </button>
+                            <button
+                              onClick={() => { sounds.playHover(); setFormData({ ...formData, isNextLastLecture: !formData.isNextLastLecture }); }}
+                              className={cn(
+                                "flex items-center justify-between p-4 rounded-2xl border transition-all duration-300",
+                                formData.isNextLastLecture 
+                                  ? "bg-amber-500/10 border-amber-500/40 text-amber-500" 
+                                  : "bg-black/40 border-white/5 text-slate-500"
+                              )}
+                            >
+                              <div className="flex flex-col text-start">
+                                <span className="font-bold text-sm">Penultimate Session</span>
+                                <span className="text-[10px] font-medium opacity-60">Prepare final evaluation</span>
+                              </div>
+                              {formData.isNextLastLecture && <ChevronRight className="w-5 h-5" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block">Mission Debrief</label>
+                          <textarea 
+                            className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white focus:border-[var(--att-ember)] focus:ring-1 focus:ring-[var(--att-ember)] transition-all min-h-[140px] custom-scrollbar"
+                            placeholder="Optional intel for the final report..."
+                            value={formData.notes}
+                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <Input 
-                          placeholder="Specific advice or comment for the child..." 
-                          value={student.comment}
-                          onChange={(e) => updateStudent(student.id, { comment: e.target.value })}
-                          className="bg-black/40 h-11 text-sm focus:border-[var(--ui-accent)]"
-                        />
+
+                      <div className="p-6 rounded-3xl bg-emerald-500/5 border border-emerald-500/10 flex gap-5">
+                         <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                           <Zap className="w-6 h-6 text-emerald-500" />
+                         </div>
+                         <div className="space-y-1">
+                            <h4 className="text-white font-bold text-sm">Automation Active</h4>
+                            <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                              Submitting will launch Google Form and <span className="text-emerald-500 font-bold">automatically archive</span> this session in 3s.
+                            </p>
+                         </div>
                       </div>
-                    </motion.div>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+
+              {/* Navigation Footer */}
+              <div className="flex justify-between items-center mt-10 pt-8 border-t border-white/5">
+                <Button variant="ghost" onClick={step === 1 ? onClose : handleBack} className="h-12 px-8 rounded-xl font-black uppercase tracking-widest text-[10px] text-slate-500 hover:text-white transition-colors">
+                  {step === 1 ? "Abort" : "Back"}
+                </Button>
+                
+                <div className="hidden sm:flex gap-1.5">
+                   {steps.map(s => (
+                     <div key={s.id} className={cn("w-1.5 h-1.5 rounded-full transition-all duration-500", step === s.id ? "w-6 bg-[var(--att-ember)]" : step > s.id ? "bg-[var(--att-ember)]/30" : "bg-white/10")} />
+                   ))}
+                </div>
+
+                <Button 
+                  variant="primary" 
+                  className={cn(
+                    "h-14 px-10 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] flex items-center gap-3 transition-all duration-500 shadow-2xl",
+                    step === 4 
+                      ? "bg-emerald-600 hover:bg-emerald-500 border-emerald-500 text-white shadow-[0_10px_30px_rgba(16,185,129,0.2)]" 
+                      : "bg-[var(--att-gradient)] text-white shadow-[0_10px_30px_rgba(249,115,22,0.2)]"
                   )}
-                </Card>
-              ))}
-              
-              {formData.students.length === 0 && (
-                <div className="text-center py-12 bg-white/5 rounded-xl border border-white/10 text-slate-400 text-sm">
-                  No students enrolled in this group.
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Step 4: Additional Data */}
-        {step === 4 && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6 max-w-2xl mx-auto pt-4">
-             <div className="text-center mb-8">
-               <h3 className="text-xl font-bold text-white">Additional Details</h3>
-               <p className="text-sm text-slate-400">Final checks before form submission.</p>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-6 rounded-xl bg-white/[0.02] border border-white/5">
-              <div className="space-y-4 text-start">
-                <label className="text-xs font-bold text-slate-300 uppercase tracking-widest">Is this the last lecture in the level?</label>
-                <div className="flex gap-2">
-                  <Button variant={formData.isLastLecture ? "primary" : "outline"} onClick={() => setFormData({ ...formData, isLastLecture: true })} className="flex-1 h-12 text-xs uppercase font-bold tracking-widest border-[var(--ui-accent)]">Yes</Button>
-                  <Button variant={!formData.isLastLecture ? "primary" : "outline"} onClick={() => setFormData({ ...formData, isLastLecture: false })} className="flex-1 h-12 text-xs uppercase font-bold tracking-widest">No</Button>
-                </div>
+                  onClick={step === 4 ? handleSubmit : handleNext}
+                >
+                  {step === 4 ? (
+                    <>
+                      <Zap className="w-4 h-4 animate-pulse" />
+                      Execute Sync
+                    </>
+                  ) : (
+                    <>
+                      Proceed
+                      <ChevronRight className="w-4 h-4" />
+                    </>
+                  )}
+                </Button>
               </div>
-              <div className="space-y-4 text-start">
-                <label className="text-xs font-bold text-slate-300 uppercase tracking-widest">Is the NEXT lecture the last?</label>
-                <div className="flex gap-2">
-                  <Button variant={formData.isNextLastLecture ? "primary" : "outline"} onClick={() => setFormData({ ...formData, isNextLastLecture: true })} className="flex-1 h-12 text-xs uppercase font-bold tracking-widest border-[var(--ui-accent)]">Yes</Button>
-                  <Button variant={!formData.isNextLastLecture ? "primary" : "outline"} onClick={() => setFormData({ ...formData, isNextLastLecture: false })} className="flex-1 h-12 text-xs uppercase font-bold tracking-widest">No</Button>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3 text-start">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">General Session Notes</label>
-              <textarea 
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[var(--ui-accent)] focus:ring-1 focus:ring-[var(--ui-accent)] transition-all min-h-[120px] custom-scrollbar"
-                placeholder="Any special notes about this session or general feedback..."
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              />
-            </div>
-          </motion.div>
-        )}
-
-      </div>
-
-      <div className="flex justify-between items-center mt-8 pt-6 border-t border-white/10">
-        <Button variant="ghost" onClick={step === 1 ? onClose : handleBack} className="w-32">
-          {step === 1 ? t("common.cancel") || "Cancel" : t("common.back") || "Back"}
-        </Button>
-        
-        {/* Step indicator bubbles for quick jump if valid (optional) */}
-        <div className="hidden sm:flex gap-1.5">
-           {steps.map(s => (
-             <div key={s.id} className={cn("w-2 h-2 rounded-full transition-all", step === s.id ? "w-6 bg-[var(--ui-accent)]" : step > s.id ? "bg-[var(--ui-accent)]/40" : "bg-white/10")} />
-           ))}
-        </div>
-
-        <Button 
-          variant="primary" 
-          className={cn("gap-2 w-48 shadow-[0_0_20px_rgba(var(--ui-accent-rgb),0.2)]", step === 4 && "bg-emerald-600 hover:bg-emerald-500 border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.3)] text-white")}
-          onClick={step === 4 ? handleSubmit : handleNext}
-        >
-          {step === 4 ? (
-            <>
-              <FileText className="w-4 h-4" />
-              Submit to Form
-            </>
-          ) : (
-            <>
-              Next Step
-              <ArrowRight className="w-4 h-4" />
-            </>
+            </motion.div>
           )}
-        </Button>
+        </AnimatePresence>
       </div>
     </Modal>
   );
 };
+;
