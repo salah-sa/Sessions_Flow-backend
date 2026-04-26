@@ -17,55 +17,6 @@ public static class GroupEndpoints
         var group = app.MapGroup("/api/groups").RequireAuthorization();
 
         // GET /api/groups — list all groups with student count and schedule
-        group.MapGet("/test-create", async (MongoService db, SessionService sessionService) =>
-        {
-            try
-            {
-                var newGroup = new Group
-                {
-                    Name = "Test_123456",
-                    Level = 1,
-                    EngineerId = Guid.NewGuid(),
-                    NumberOfStudents = 2,
-                    StartingSessionNumber = 1,
-                    TotalSessions = 13,
-                    Frequency = 1,
-                    Status = GroupStatus.Active
-                };
-                
-                await db.Groups.InsertOneAsync(newGroup);
-                
-                var schedules = new List<GroupSchedule>
-                {
-                    new GroupSchedule
-                    {
-                        GroupId = newGroup.Id,
-                        DayOfWeek = 1,
-                        StartTime = new TimeSpan(17, 0, 0),
-                        DurationMinutes = 60
-                    }
-                };
-                
-                await db.GroupSchedules.InsertManyAsync(schedules);
-                
-                var studentsToInsert = new List<Student>
-                {
-                    new Student { Name = "Cadet1", GroupId = newGroup.Id, UniqueStudentCode = "1" },
-                    new Student { Name = "Cadet2", GroupId = newGroup.Id, UniqueStudentCode = "2" }
-                };
-                
-                await db.Students.InsertManyAsync(studentsToInsert);
-                
-                await sessionService.AutoGenerateSessionsAsync(newGroup);
-                
-                return Results.Ok("Success");
-            }
-            catch (Exception ex)
-            {
-                return Results.Json(new { error = ex.ToString(), detail = ex.Message });
-            }
-        });
-
         group.MapGet("/", async (MongoService db, HttpContext ctx, AuthService auth,
             int? page, int? pageSize, string? search, string? status) =>
         {
@@ -691,3 +642,4 @@ public static class GroupEndpoints
     );
     public record AddStudentRequest(string Name);
 }
+
