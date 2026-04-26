@@ -59,5 +59,73 @@ public static class AdminMaintenanceEndpoints
 
             return Results.Ok(new { message = $"Migration complete. Fixed {fixedCount} sessions.", totalChecked = sessions.Count });
         }).RequireAuthorization("AdminOnly");
+
+        // NEW: Cleanup duplicate sessions (keeps oldest, soft-deletes rest)
+        group.MapPost("/cleanup-duplicates", async (MongoService db) =>
+        {
+            var allSessions = await db.Sessions.Find(s => !s.IsDeleted).ToListAsync();
+            
+            // Group by GroupId + ScheduledAt (rounded to minute)
+            var groups = allSessions.GroupBy(s => new { 
+                s.GroupId, 
+                Time = new DateTimeOffset(s.ScheduledAt.Year, s.ScheduledAt.Month, s.ScheduledAt.Day, 
+                                        s.ScheduledAt.Hour, s.ScheduledAt.Minute, 0, TimeSpan.Zero) 
+            });
+
+            var cleanedCount = 0;
+            foreach (var g in groups)
+            {
+                if (g.Count() <= 1) continue;
+
+                // Keep the oldest one (first created)
+                var sorted = g.OrderBy(s => s.CreatedAt).ToList();
+                var toDelete = sorted.Skip(1).Select(s => s.Id).ToList();
+
+                var update = Builders<Session>.Update
+                    .Set(s => s.IsDeleted, true)
+                    .Set(s => s.DeletedAt, DateTimeOffset.UtcNow)
+                    .Set(s => s.Status, SessionStatus.Cancelled)
+                    .Set(s => s.Notes, "Automatically cleaned up as duplicate");
+
+                await db.Sessions.UpdateManyAsync(s => toDelete.Contains(s.Id), update);
+                cleanedCount += toDelete.Count;
+            }
+
+            return Results.Ok(new { message = $"Cleanup complete. Removed {cleanedCount} duplicate sessions." });
+        }).RequireAuthorization("AdminOnly");
+
+        // NEW: Purge test data (Hard-delete)
+        group.MapPost("/purge-test-data", async (MongoService db) =>
+        {
+            // Find groups with "test" in name
+            var testGroups = await db.Groups.Find(g => g.Name.ToLower().Contains("test")).ToListAsync();
+            var testGroupIds = testGroups.Select(g => g.Id).ToList();
+
+            if (testGroupIds.Count == 0)
+                return Results.Ok(new { message = "No test groups found." });
+
+            // 1. Delete Attendance Records for these groups' sessions
+            var testSessions = await db.Sessions.Find(s => testGroupIds.Contains(s.GroupId)).ToListAsync();
+            var testSessionIds = testSessions.Select(s => s.Id).ToList();
+            await db.AttendanceRecords.DeleteManyAsync(ar => testSessionIds.Contains(ar.SessionId));
+
+            // 2. Delete Sessions
+            await db.Sessions.DeleteManyAsync(s => testGroupIds.Contains(s.GroupId));
+
+            // 3. Delete Students
+            await db.Students.DeleteManyAsync(s => testGroupIds.Contains(s.GroupId));
+
+            // 4. Delete Schedules
+            await db.GroupSchedules.DeleteManyAsync(gs => testGroupIds.Contains(gs.GroupId));
+
+            // 5. Delete Groups
+            await db.Groups.DeleteManyAsync(g => testGroupIds.Contains(g.Id));
+
+            return Results.Ok(new { 
+                message = $"Purge complete.", 
+                groupsDeleted = testGroupIds.Count,
+                sessionsDeleted = testSessionIds.Count
+            });
+        }).RequireAuthorization("AdminOnly");
     }
 }
