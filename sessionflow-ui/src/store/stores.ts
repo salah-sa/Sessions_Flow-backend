@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { clearSessionCaches } from "../lib/sessionCleanup";
 import { User, Session, AttendanceRecord, Notification, AuditLog, ChatMessage } from "../types";
 
 export interface StudentLocationData {

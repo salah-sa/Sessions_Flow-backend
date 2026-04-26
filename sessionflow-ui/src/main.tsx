@@ -8,7 +8,7 @@ import App from "./App";
 import "./index.css";
 import "./lib/i18n";
 
-const queryClient = new QueryClient({
+export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 2 * 60 * 1000, // 2 minutes fresh
