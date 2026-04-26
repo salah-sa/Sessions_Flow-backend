@@ -127,5 +127,75 @@ public static class AdminMaintenanceEndpoints
                 sessionsDeleted = testSessionIds.Count
             });
         }).RequireAuthorization("AdminOnly");
+
+        // NEW: Normalize Media URLs (Convert absolute URLs with specific host/proto to relative paths)
+        group.MapPost("/normalize-media-urls", async (MongoService db) =>
+        {
+            var updatedMessages = 0;
+            var updatedUsers = 0;
+
+            // 1. Fix Chat Messages
+            var messagesWithFiles = await db.ChatMessages.Find(m => m.FileUrl != null).ToListAsync();
+            foreach (var msg in messagesWithFiles)
+            {
+                if (msg.FileUrl!.Contains("/api/media/"))
+                {
+                    // Extract just the /api/media/{id} part
+                    var parts = msg.FileUrl.Split("/api/media/");
+                    if (parts.Length > 1)
+                    {
+                        var relativeUrl = "/api/media/" + parts[1];
+                        if (msg.FileUrl != relativeUrl)
+                        {
+                            await db.ChatMessages.UpdateOneAsync(
+                                m => m.Id == msg.Id,
+                                Builders<ChatMessage>.Update.Set(m => m.FileUrl, relativeUrl)
+                            );
+                            updatedMessages++;
+                        }
+                    }
+                }
+            }
+
+            // 2. Fix User Avatars (just in case absolute URLs were stored)
+            var usersWithAvatars = await db.Users.Find(u => u.AvatarUrl != null).ToListAsync();
+            foreach (var user in usersWithAvatars)
+            {
+                if (user.AvatarUrl!.Contains("/api/media/"))
+                {
+                    var parts = user.AvatarUrl.Split("/api/media/");
+                    if (parts.Length > 1)
+                    {
+                        var relativeUrl = "/api/media/" + parts[1];
+                        if (user.AvatarUrl != relativeUrl)
+                        {
+                            await db.Users.UpdateOneAsync(
+                                u => u.Id == user.Id,
+                                Builders<User>.Update.Set(u => u.AvatarUrl, relativeUrl)
+                            );
+                            updatedUsers++;
+                        }
+                    }
+                }
+            }
+
+            return Results.Ok(new { message = "Normalization complete.", updatedMessages, updatedUsers });
+        }).RequireAuthorization("AdminOnly");
+
+        // NEW: Drop Chat TTL Index (Stops auto-deletion of old messages)
+        group.MapPost("/drop-chat-ttl", async (MongoService db) =>
+        {
+            try 
+            {
+                // In MongoDB, the TTL index is created on the SentAt field by default in our previous code
+                // We need to find the index name. By default it's SentAt_1 if created with Ascending(m => m.SentAt)
+                await db.ChatMessages.Indexes.DropOneAsync("SentAt_1");
+                return Results.Ok(new { message = "TTL index dropped successfully. Messages will no longer be auto-deleted." });
+            }
+            catch (Exception ex)
+            {
+                return Results.Ok(new { message = "TTL index not found or already dropped.", error = ex.Message });
+            }
+        }).RequireAuthorization("AdminOnly");
     }
 }

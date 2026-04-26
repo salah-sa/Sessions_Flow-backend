@@ -80,11 +80,6 @@ public class MongoService
         await ChatMessages.Indexes.CreateOneAsync(new CreateIndexModel<ChatMessage>(
             Builders<ChatMessage>.IndexKeys.Ascending(cm => cm.GroupId).Descending(cm => cm.SentAt)));
 
-        // Phase 9: TTL Index — Auto-delete chat messages older than 90 days
-        await ChatMessages.Indexes.CreateOneAsync(new CreateIndexModel<ChatMessage>(
-            Builders<ChatMessage>.IndexKeys.Ascending(cm => cm.SentAt),
-            new CreateIndexOptions { ExpireAfter = TimeSpan.FromDays(90) }));
-
         // Notifications: User + Date
         await Notifications.Indexes.CreateOneAsync(new CreateIndexModel<Notification>(
             Builders<Notification>.IndexKeys.Ascending(n => n.UserId).Descending(n => n.CreatedAt)));

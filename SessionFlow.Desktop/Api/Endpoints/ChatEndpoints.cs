@@ -170,9 +170,8 @@ public static class ChatEndpoints
                     {
                         var gridFsId = await storage.UploadFileAsync(readStream, file.FileName, file.ContentType ?? "application/octet-stream");
                         
-                        var host = ctx.Request.Headers["X-Forwarded-Host"].FirstOrDefault() ?? ctx.Request.Host.Value;
-                        var proto = ctx.Request.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? ctx.Request.Scheme;
-                        fileUrl = $"{proto}://{host}/api/media/{gridFsId}";
+                        // Store relative URL instead of absolute to handle host changes/deployments
+                        fileUrl = $"/api/media/{gridFsId}";
                     }
                     
                     fileName = file.FileName;
