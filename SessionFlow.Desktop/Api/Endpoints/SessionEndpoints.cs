@@ -105,7 +105,7 @@ public static class SessionEndpoints
             var engineerIds = sessions.Select(s => s.EngineerId).Distinct().ToList();
             var sessionIds = sessions.Select(s => s.Id).ToList();
 
-            var groupsList = await db.Groups.Find(g => groupIds.Contains(g.Id)).ToListAsync();
+            var groupsList = await db.Groups.Find(g => groupIds.Contains(g.Id) && !g.IsDeleted).ToListAsync();
             var engineersList = await db.Users.Find(e => engineerIds.Contains(e.Id)).ToListAsync();
             var allRecords = await db.AttendanceRecords.Find(ar => sessionIds.Contains(ar.SessionId)).ToListAsync();
             var allActiveStudents = await db.Students.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync();
@@ -142,6 +142,8 @@ public static class SessionEndpoints
                     presentCount = records.Count(ar => ar.Status == AttendanceStatus.Present),
                     totalStudents = studentsLookup.GetValueOrDefault(s.GroupId, 0),
                     durationMinutes = s.DurationMinutes,
+                    isSkipped = s.IsSkipped,
+                    skipReason = s.SkipReason,
                     createdAt = s.CreatedAt
                 });
             }

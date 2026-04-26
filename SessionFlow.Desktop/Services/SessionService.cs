@@ -557,6 +557,9 @@ public class SessionService
     /// Ensures every active group that has a schedule for today's day-of-week
     /// has at least one session record for today. Auto-generates missing ones.
     /// Called before listing today's sessions so the Attendance page is always complete.
+    /// 
+    /// IDEMPOTENCY: Uses (GroupId + ScheduledAt) to detect existing sessions,
+    /// preventing duplicates even if AutoGenerateSessionsAsync already created them.
     /// </summary>
     public async Task EnsureTodaysSessionsAsync(CancellationToken ct = default)
     {
@@ -585,39 +588,76 @@ public class SessionService
         var todayStart = new DateTimeOffset(cairoNow.Date, cairoOffset).ToUniversalTime();
         var todayEnd = todayStart.AddDays(1);
 
+        // Scope the query to only the groups we care about to reduce noise
+        var activeGroupIds = activeGroups.Select(g => g.Id).ToList();
         var existingSessions = await _db.Sessions
-            .Find(s => s.ScheduledAt >= todayStart && s.ScheduledAt < todayEnd && !s.IsDeleted)
+            .Find(s => activeGroupIds.Contains(s.GroupId) && s.ScheduledAt >= todayStart && s.ScheduledAt < todayEnd && !s.IsDeleted)
             .ToListAsync(ct);
 
-        var existingGroupIds = new HashSet<Guid>(existingSessions.Where(s => !s.IsSkipped).Select(s => s.GroupId));
+        // KEY FIX: Build a set of (GroupId, ScheduledAtUtcRoundedToMinute) pairs.
+        // This prevents duplicates when AutoGenerateSessionsAsync already created sessions
+        // for today during group creation. The old code only checked GroupId, which missed
+        // cases where the initial generation populated today's sessions.
+        var existingSlots = new HashSet<string>(
+            existingSessions.Select(s =>
+            {
+                // Round to the minute to avoid sub-second mismatch between different generation paths
+                var rounded = new DateTimeOffset(s.ScheduledAt.Year, s.ScheduledAt.Month, s.ScheduledAt.Day,
+                    s.ScheduledAt.Hour, s.ScheduledAt.Minute, 0, TimeSpan.Zero);
+                return $"{s.GroupId}_{rounded:O}";
+            })
+        );
+
+        // Also track how many sessions each group already has today (for numbering)
+        var existingCountByGroup = existingSessions
+            .Where(s => !s.IsSkipped)
+            .GroupBy(s => s.GroupId)
+            .ToDictionary(g => g.Key, g => g.Count());
 
         // 4. Generate missing sessions
         var newSessions = new List<Session>();
 
         foreach (var group in activeGroups)
         {
-            if (existingGroupIds.Contains(group.Id)) continue; // Already has a session today
             if (group.CurrentSessionNumber > group.TotalSessions) continue; // Group completed
 
             var groupSchedules = todaySchedules.Where(s => s.GroupId == group.Id).OrderBy(s => s.StartTime).ToList();
+            var existingToday = existingCountByGroup.GetValueOrDefault(group.Id, 0);
+
+            // Track the next session number for this group if we need to add multiple
+            var nextSessionNum = group.CurrentSessionNumber + existingToday;
 
             foreach (var schedule in groupSchedules)
             {
-                var scheduledAt = new DateTimeOffset(
+                // Don't exceed TotalSessions
+                if (nextSessionNum > group.TotalSessions) break;
+
+                var scheduledAtLocal = new DateTimeOffset(
                     cairoNow.Year, cairoNow.Month, cairoNow.Day,
                     schedule.StartTime.Hours, schedule.StartTime.Minutes, 0,
                     cairoOffset
                 );
+                var scheduledAtUtc = scheduledAtLocal.ToUniversalTime();
+
+                // Check if this exact slot already exists
+                var roundedUtc = new DateTimeOffset(scheduledAtUtc.Year, scheduledAtUtc.Month, scheduledAtUtc.Day,
+                    scheduledAtUtc.Hour, scheduledAtUtc.Minute, 0, TimeSpan.Zero);
+                var slotKey = $"{group.Id}_{roundedUtc:O}";
+
+                if (existingSlots.Contains(slotKey)) continue; // Already exists — skip
 
                 newSessions.Add(new Session
                 {
                     GroupId = group.Id,
                     EngineerId = group.EngineerId,
-                    SessionNumber = group.CurrentSessionNumber,
-                    ScheduledAt = scheduledAt.ToUniversalTime(),
+                    SessionNumber = nextSessionNum,
+                    ScheduledAt = scheduledAtUtc,
                     Status = SessionStatus.Scheduled,
                     DurationMinutes = schedule.DurationMinutes
                 });
+
+                existingSlots.Add(slotKey); // Prevent intra-batch duplicates
+                nextSessionNum++;
             }
         }
 
