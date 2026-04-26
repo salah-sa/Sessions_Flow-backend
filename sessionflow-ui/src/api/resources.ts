@@ -106,7 +106,7 @@ export const groupsApi = {
   checkName: (name: string, excludeId?: string) => {
     const params = new URLSearchParams({ name });
     if (excludeId) params.set("excludeId", excludeId);
-    return fetchWithAuth<{ available: boolean }>(`/groups/check-name?${params.toString()}`);
+    return fetchWithAuth<{ available: boolean }>(`/groups/check-name?${params.toString()}`, { cache: "no-store" });
   },
   create: (data: GroupCreateData) =>
     fetchWithAuth<Group>("/groups", {

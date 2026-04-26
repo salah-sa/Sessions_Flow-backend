@@ -161,6 +161,8 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
           }
         } catch (error) {
           console.error("Name check failed:", error);
+          toast.error(t("common.error"));
+          return;
         }
       }
     }
@@ -209,7 +211,7 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
         ))}
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(async (data) => await onSubmit(data))} className="space-y-6">
         {wizardStep === 1 && (
           <div className="space-y-8 animate-fade-in">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
@@ -641,8 +643,8 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
               <ChevronRight className="w-4 h-4 ms-2 rtl:rotate-180" />
             </Button>
           ) : (
-            <Button type="submit" disabled={submitting} className="flex-1 h-12 shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-500 text-white">
-              {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : mode === "create" ? t("groups.modal.submit_create") : t("groups.modal.submit_edit")}
+            <Button type="submit" disabled={submitting || isSubmitting} className="flex-1 h-12 shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-500 text-white">
+              {(submitting || isSubmitting) ? <Loader2 className="w-5 h-5 animate-spin" /> : mode === "create" ? t("groups.modal.submit_create") : t("groups.modal.submit_edit")}
             </Button>
           )}
         </div>
