@@ -46,14 +46,27 @@ public static class DashboardEndpoints
             var sessionFilter = Builders<Session>.Filter.Eq(s => s.IsDeleted, false) & Builders<Session>.Filter.Gte(s => s.ScheduledAt, todayStart) & Builders<Session>.Filter.Lt(s => s.ScheduledAt, todayEnd);
             var activeFilter = Builders<Session>.Filter.Eq(s => s.IsDeleted, false) & Builders<Session>.Filter.Eq(s => s.Status, SessionStatus.Active);
 
-            var groupsRepo = roleStr == "Admin" ? db.GlobalGroups : db.Groups;
-            var sessionsRepo = roleStr == "Admin" ? db.GlobalSessions : db.Sessions;
-            var studentsRepo = roleStr == "Admin" ? db.GlobalStudents : db.Students;
-            var attendanceRepo = roleStr == "Admin" ? db.GlobalAttendanceRecords : db.AttendanceRecords;
+            // Helper functions to handle conditional logic between Global and Scoped repositories
+            async Task<long> CountDocs<T>(IMongoCollection<T> global, TenantRepository<T> scoped, FilterDefinition<T> filter) where T : class, ITenantEntity
+                => roleStr == "Admin" ? await global.CountDocumentsAsync(filter) : await scoped.CountDocumentsAsync(filter);
 
-            var totalGroupsTask = groupsRepo.CountDocumentsAsync(groupFilter);
-            var todaySessionsTask = sessionsRepo.CountDocumentsAsync(sessionFilter);
-            var activeSessionsTask = sessionsRepo.CountDocumentsAsync(activeFilter);
+            async Task<List<T>> FindDocs<T>(IMongoCollection<T> global, TenantRepository<T> scoped, FilterDefinition<T> filter, int? limit = null) where T : class, ITenantEntity
+            {
+                var fluent = roleStr == "Admin" ? global.Find(filter) : scoped.Find(filter);
+                if (limit.HasValue) fluent = fluent.Limit(limit.Value);
+                return await fluent.ToListAsync();
+            }
+
+            // For Dashboard summary, we define tasks directly using the helpers
+            var totalGroupsTask = CountDocs(db.GlobalGroups, db.Groups, groupFilter);
+            var todaySessionsTask = CountDocs(db.GlobalSessions, db.Sessions, sessionFilter);
+            var activeSessionsTask = CountDocs(db.GlobalSessions, db.Sessions, activeFilter);
+            
+            // Re-assigning references for one-off uses that need more than just Count/Find
+            // We use dynamic for these complex cases to avoid ternary type mismatch
+            dynamic groupsRepo = roleStr == "Admin" ? (object)db.GlobalGroups : (object)db.Groups;
+            dynamic sessionsRepo = roleStr == "Admin" ? (object)db.GlobalSessions : (object)db.Sessions;
+            dynamic studentsRepo = roleStr == "Admin" ? (object)db.GlobalStudents : (object)db.Students;
 
             List<Guid> studentGroupIds = new List<Guid>();
             if (roleStr == "Student")
