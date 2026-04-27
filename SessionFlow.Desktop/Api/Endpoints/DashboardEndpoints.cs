@@ -20,6 +20,7 @@ public static class DashboardEndpoints
         {
             var isAdmin = ctx.User.IsInRole("Admin");
             var isStudent = ctx.User.IsInRole("Student");
+            var roleStr = isAdmin ? "Admin" : (isStudent ? "Student" : "Engineer");
 
             // Egypt Standard Time — handles DST automatically
             var cairoTz = TimeZoneInfo.FindSystemTimeZoneById(
