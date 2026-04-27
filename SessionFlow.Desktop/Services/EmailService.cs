@@ -124,7 +124,7 @@ public class EmailReminderService : BackgroundService
     private DateTimeOffset _lastDailySummary = DateTimeOffset.MinValue;
     private DateTimeOffset _lastMissedAttendanceCheck = DateTimeOffset.MinValue;
     private readonly HashSet<Guid> _sentReminders = new();
-    private readonly HashSet<Guid> _sentStudentReminders = new();
+    private DateTimeOffset _lastStudentReminderDate = DateTimeOffset.MinValue;
 
     public EmailReminderService(IServiceProvider serviceProvider, ILogger<EmailReminderService> logger, IConfiguration config)
     {
@@ -223,81 +223,76 @@ public class EmailReminderService : BackgroundService
 
     private async Task CheckAndSendStudentRemindersAsync(CancellationToken ct)
     {
+        var cairoOffset = TimeZoneHelper.GetCairoOffset(_config);
+        var cairoNow = DateTimeOffset.UtcNow.ToOffset(cairoOffset);
+
+        // Only run once per day
+        // Rule: Only send to students whose group has a session scheduled strictly for "tomorrow"
+        if (cairoNow.Date == _lastStudentReminderDate.Date) return;
+
+        _logger.LogInformation("Checking for tomorrow's student reminders...");
+
         using var scope = _serviceProvider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MongoService>();
         var emailService = scope.ServiceProvider.GetRequiredService<EmailService>();
+        var notifService = scope.ServiceProvider.GetRequiredService<NotificationService>();
 
-        var now = DateTimeOffset.UtcNow;
-        // Looking for sessions starting in 23h50m to 24h10m (approx 24h reminder)
-        var startRange = now.AddHours(23).AddMinutes(50);
-        var endRange = now.AddHours(24).AddMinutes(10);
+        var tomorrowStart = new DateTimeOffset(cairoNow.Date.AddDays(1), cairoOffset);
+        var tomorrowEnd = tomorrowStart.AddDays(1);
 
         var upcomingSessions = await db.Sessions
             .Find(s => s.Status == SessionStatus.Scheduled
-                        && s.ScheduledAt >= startRange
-                        && s.ScheduledAt <= endRange)
+                        && s.ScheduledAt >= tomorrowStart
+                        && s.ScheduledAt < tomorrowEnd
+                        && !s.IsDeleted && !s.IsSkipped)
             .ToListAsync(ct);
+
+        if (upcomingSessions.Count == 0)
+        {
+            _lastStudentReminderDate = cairoNow;
+            return;
+        }
 
         foreach (var session in upcomingSessions)
         {
             if (ct.IsCancellationRequested) break;
-            if (_sentStudentReminders.Contains(session.Id))
-                continue;
 
             var group = await db.Groups.Find(g => g.Id == session.GroupId).FirstOrDefaultAsync(ct);
             if (group == null) continue;
 
             var students = await db.Students.Find(s => s.GroupId == session.GroupId && s.UserId != null && !s.IsDeleted).ToListAsync(ct);
-            var cairoTime = session.ScheduledAt.ToCairoTime(_config);
-            var chatLink = "https://sessionflow.app/chat"; // General chat link
+            var chatLink = $"https://sessionflow.app/chat?groupId={group.Id}";
 
             foreach (var stu in students)
             {
                 var user = await db.Users.Find(u => u.Id == stu.UserId).FirstOrDefaultAsync(ct);
                 if (user == null || string.IsNullOrEmpty(user.Email)) continue;
 
-                var body = $@"
+                // 1. Send Email
+                var emailBody = $@"
                     <div style='font-family: sans-serif; background: #020617; color: white; padding: 40px; border-radius: 20px; max-width: 600px; margin: auto;'>
-                        <h2 style='color: #3b82f6;'>🚀 Session Reminder: Tomorrow!</h2>
-                        <p>Hi {stu.Name},</p>
-                        <p>This is a friendly reminder that you have a session tomorrow for group <b>{group.Name}</b>.</p>
-                        
-                        <div style='background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0;'>
-                            <p><strong>Time:</strong> {cairoTime:hh:mm tt} (Cairo)</p>
-                            <p><strong>Date:</strong> {cairoTime:dddd, MMMM dd}</p>
-                        </div>
-
-                        <h3 style='color: #60a5fa;'>Preparation Checklist:</h3>
-                        <ul style='line-height: 1.6;'>
-                            <li>✅ Complete all pending tasks and homework.</li>
-                            <li>✅ Be fully prepared for the session topics.</li>
-                            <li>✅ Check your internet connection early.</li>
-                            <li>✅ Have your work ready to present/submit.</li>
-                        </ul>
-
-                        <p style='background: #1e293b; padding: 15px; border-radius: 10px; border-left: 4px solid #f59e0b;'>
-                            💡 <b>Forgot your homework?</b> Don't worry! You can go to the <a href='{chatLink}' style='color: #3b82f6; text-decoration: underline;'>Group Chat</a> now and ask your instructor for help.
-                        </p>
-
-                        <div style='text-align: center; margin-top: 30px;'>
-                            <a href='{chatLink}' style='background: #3b82f6; color: white; padding: 12px 24px; border-radius: 10px; text-decoration: none; font-weight: bold;'>Go to Chat</a>
-                        </div>
-
-                        <p style='color: #64748b; font-size: 12px; margin-top: 40px; text-align: center;'>SESSIONFLOW — AUTOMATED SYSTEM RELAY</p>
+                        <p>Hello!</p>
+                        <p>This is a quick reminder that your group has a training session scheduled for tomorrow.</p>
+                        <p>Please ensure that you have completed your homework before the session begins. If you cannot remember the assignment details, don't worry! You can easily ask about it and get the help you need by using the in-app chat.</p>
+                        <p>Access the chat and ask your questions here: <a href='{chatLink}' style='color: #3b82f6; text-decoration: underline;'>{chatLink}</a></p>
+                        <p>See you tomorrow!</p>
+                        <p style='color: #64748b; font-size: 12px; margin-top: 40px; text-align: center;'>SESSIONFLOW — AUTOMATED NOTIFICATION ASSISTANT</p>
                     </div>";
 
-                await emailService.SendEmailAsync(user.Email, $"[SessionFlow] Your session is tomorrow: {group.Name}", body, ct);
+                await emailService.SendEmailAsync(user.Email, $"[SessionFlow] Reminder: Your session is tomorrow ({group.Name})", emailBody, ct);
+
+                // 2. Send In-App Notification
+                await notifService.CreateNotificationAsync(
+                    user.Id,
+                    "Session Reminder",
+                    $"Your group {group.Name} has a training session tomorrow. Please complete your homework!",
+                    NotificationType.Info
+                );
             }
-
-            _sentStudentReminders.Add(session.Id);
         }
 
-        if (_sentStudentReminders.Count > 500)
-        {
-            var toRemove = _sentStudentReminders.Take(_sentStudentReminders.Count - 100).ToList();
-            foreach (var id in toRemove)
-                _sentStudentReminders.Remove(id);
-        }
+        _lastStudentReminderDate = cairoNow;
+        _logger.LogInformation("Sent tomorrow's reminders for {Count} sessions.", upcomingSessions.Count);
     }
 
     private async Task CheckAndSendDailySummaryAsync(CancellationToken ct)
