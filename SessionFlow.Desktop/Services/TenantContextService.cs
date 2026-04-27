@@ -17,7 +17,7 @@ public interface ITenantAccessor
 public class TenantContextService : ITenantAccessor
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private bool _isSystemContext = false;
+    private readonly AsyncLocal<bool> _isSystemContext = new AsyncLocal<bool>();
 
     public TenantContextService(IHttpContextAccessor httpContextAccessor)
     {
@@ -28,7 +28,7 @@ public class TenantContextService : ITenantAccessor
     {
         get
         {
-            if (_isSystemContext) return null;
+            if (_isSystemContext.Value || _httpContextAccessor.HttpContext == null) return null;
             
             var user = _httpContextAccessor.HttpContext?.User;
             if (user == null) return null;
@@ -46,13 +46,13 @@ public class TenantContextService : ITenantAccessor
     {
         get
         {
-            if (_isSystemContext) return "System";
+            if (_isSystemContext.Value || _httpContextAccessor.HttpContext == null) return "System";
             return _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.Role)?.Value;
         }
     }
 
     public void SetSystemContext()
     {
-        _isSystemContext = true;
+        _isSystemContext.Value = true;
     }
 }

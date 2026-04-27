@@ -92,6 +92,7 @@ public static class ApiHost
             options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
         });
 
+        builder.Services.AddHttpContextAccessor();
         builder.Services.AddSingleton<SessionFlow.Desktop.Services.ITenantAccessor, SessionFlow.Desktop.Services.TenantContextService>();
         builder.Services.AddSingleton<MongoService>();
         builder.Services.AddSingleton<StorageService>();
