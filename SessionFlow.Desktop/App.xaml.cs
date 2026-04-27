@@ -64,6 +64,55 @@ public partial class App : Application
 
                     await SeedDefaultSettingsAsync(db);
                     
+                    // --- MIGRATION SNIPPET START ---
+                    var tenantAccessor = scope.ServiceProvider.GetRequiredService<ITenantAccessor>();
+                    tenantAccessor.SetSystemContext();
+
+                    logger.LogInformation("Backfilling EngineerId on Students...");
+                    var studentsWithoutEngineerId = await db.Students.Find(s => s.EngineerId == Guid.Empty).ToListAsync();
+                    var groupsCache = new Dictionary<Guid, Guid>();
+
+                    foreach (var student in studentsWithoutEngineerId)
+                    {
+                        if (!groupsCache.TryGetValue(student.GroupId, out var engId))
+                        {
+                            var group = await db.Groups.Find(g => g.Id == student.GroupId).FirstOrDefaultAsync();
+                            if (group != null)
+                            {
+                                engId = group.EngineerId;
+                                groupsCache[student.GroupId] = engId;
+                            }
+                        }
+
+                        if (engId != Guid.Empty)
+                        {
+                            var update = Builders<Models.Student>.Update.Set(s => s.EngineerId, engId);
+                            await db.Students.UpdateOneAsync(s => s.Id == student.Id, update);
+                        }
+                    }
+
+                    logger.LogInformation("Backfilling EngineerId on GroupSchedules...");
+                    var schedulesWithoutEngineerId = await db.GroupSchedules.Find(s => s.EngineerId == Guid.Empty).ToListAsync();
+                    foreach (var sched in schedulesWithoutEngineerId)
+                    {
+                        if (!groupsCache.TryGetValue(sched.GroupId, out var engId))
+                        {
+                            var group = await db.Groups.Find(g => g.Id == sched.GroupId).FirstOrDefaultAsync();
+                            if (group != null)
+                            {
+                                engId = group.EngineerId;
+                                groupsCache[sched.GroupId] = engId;
+                            }
+                        }
+
+                        if (engId != Guid.Empty)
+                        {
+                            var update = Builders<Models.GroupSchedule>.Update.Set(s => s.EngineerId, engId);
+                            await db.GroupSchedules.UpdateOneAsync(s => s.Id == sched.Id, update);
+                        }
+                    }
+                    // --- MIGRATION SNIPPET END ---
+                    
                     // Backfill UniqueStudentCode for existing students
                     var studentsWithoutCode = await db.Students
                         .Find(s => s.UniqueStudentCode == "" || s.UniqueStudentCode == null)

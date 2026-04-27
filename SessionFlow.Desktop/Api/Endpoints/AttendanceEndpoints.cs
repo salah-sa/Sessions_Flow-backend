@@ -28,8 +28,6 @@ public static class AttendanceEndpoints
                 // SECURITY: Verify the user owns this session before returning its records
                 if (role == "Engineer")
                 {
-                    var guard = await AuthorizationGuard.EnsureOwnsSession(sid, uid, role, db);
-                    if (guard != null) return guard;
                 }
                 filter &= builder.Eq(ar => ar.SessionId, sid);
             }

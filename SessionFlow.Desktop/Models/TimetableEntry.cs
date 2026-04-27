@@ -9,7 +9,7 @@ public class TimeSegment
     public TimeSpan EndTime { get; set; }
 }
 
-public class TimetableEntry
+public class TimetableEntry : ITenantEntity
 {
     [BsonId]
     [BsonRepresentation(BsonType.String)]

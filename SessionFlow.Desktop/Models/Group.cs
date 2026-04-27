@@ -10,7 +10,7 @@ public enum GroupStatus
     Archived = 2
 }
 
-public class Group
+public class Group : ITenantEntity
 {
     [BsonId]
     [BsonRepresentation(BsonType.String)]

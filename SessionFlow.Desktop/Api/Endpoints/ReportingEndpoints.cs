@@ -20,8 +20,6 @@ public static class ReportingEndpoints
             if (identityError != null) return Results.Unauthorized();
 
             // SECURITY: Ownership check — only the owning engineer or admin can download reports
-            var guard = await AuthorizationGuard.EnsureOwnsSession(id, uid, role, db);
-            if (guard != null) return guard;
 
             try
             {

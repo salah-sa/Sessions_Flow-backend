@@ -1,0 +1,49 @@
+// GET /api/students/locations - Get all user locations for the world map
+        app.MapGet("/api/students/locations", async (MongoService db, IPresenceService presence, HttpContext ctx) =>
+        {
+            // Fetch all roles (Student, Engineer, Admin) who have location data
+            var usersWithLocation = await db.Users
+                .Find(u => u.Latitude != null && u.Longitude != null)
+                .ToListAsync();
+
+            if (!usersWithLocation.Any()) return Results.Ok(new List<object>());
+
+            var onlineUserIds = presence.GetOnlineUserIds().ToHashSet();
+
+            // Get associated Student records to get GroupId and Level
+            var userIds = usersWithLocation.Select(u => u.Id).ToList();
+            var studentDocs = await db.Students.Find(s => s.UserId != null && userIds.Contains(s.UserId.Value)).ToListAsync();
+            var studentDict = studentDocs.ToDictionary(s => s.UserId!.Value);
+
+            var groupIds = studentDocs.Select(s => s.GroupId).Distinct().ToList();
+            var groups = await db.Groups.Find(g => groupIds.Contains(g.Id)).ToListAsync();
+            var groupDict = groups.ToDictionary(g => g.Id);
+
+            var result = usersWithLocation.Select(u => 
+            {
+                int level = 1;
+                if (studentDict.TryGetValue(u.Id, out var s) && groupDict.TryGetValue(s.GroupId, out var g))
+                {
+                    level = g.Level;
+                }
+
+                return new {
+                    id = u.Id,
+                    name = u.Name,
+                    lat = u.Latitude,
+                    lng = u.Longitude,
+                    city = u.City,
+                    level = level,
+                    role = u.Role.ToString().ToLower(),
+                    avatarUrl = AuthEndpoints.ResolveAvatarUrl(u.AvatarUrl, ctx.Request),
+                    isOnline = onlineUserIds.Contains(u.Id.ToString())
+                };
+            }).ToList();
+
+            return Results.Ok(result);
+        }).RequireAuthorization();
+    }
+
+    public record UpdateStudentRequest(string? Name, Guid? GroupId);
+    public record UpdateLocationRequest(double? Lat, double? Lng, string? City);
+}

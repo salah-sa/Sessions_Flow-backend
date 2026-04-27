@@ -9,7 +9,8 @@ public class MongoService
 {
     private readonly IMongoDatabase _database;
 
-    public MongoService(IConfiguration configuration)
+    private readonly SessionFlow.Desktop.Services.ITenantAccessor _tenantAccessor;
+    public MongoService(IConfiguration configuration, SessionFlow.Desktop.Services.ITenantAccessor tenantAccessor)
     {
         var connectionString = configuration["Database:ConnectionString"];
         var databaseName = configuration["Database:DatabaseName"] ?? "SessionFlow";
@@ -21,6 +22,7 @@ public class MongoService
 
         var client = new MongoClient(connectionString);
         _database = client.GetDatabase(databaseName);
+        _tenantAccessor = tenantAccessor;
     }
 
     public async Task InitializeAsync()
@@ -174,17 +176,17 @@ public class MongoService
     }
 
     public IMongoCollection<User> Users => _database.GetCollection<User>("Users");
-    public IMongoCollection<Group> Groups => _database.GetCollection<Group>("Groups");
-    public IMongoCollection<GroupSchedule> GroupSchedules => _database.GetCollection<GroupSchedule>("GroupSchedules");
-    public IMongoCollection<Student> Students => _database.GetCollection<Student>("Students");
-    public IMongoCollection<Session> Sessions => _database.GetCollection<Session>("Sessions");
+    public TenantRepository<Group> Groups => new TenantRepository<Group>(_database, "Groups", _tenantAccessor);
+    public TenantRepository<GroupSchedule> GroupSchedules => new TenantRepository<GroupSchedule>(_database, "GroupSchedules", _tenantAccessor);
+    public TenantRepository<Student> Students => new TenantRepository<Student>(_database, "Students", _tenantAccessor);
+    public TenantRepository<Session> Sessions => new TenantRepository<Session>(_database, "Sessions", _tenantAccessor);
     public IMongoCollection<AttendanceRecord> AttendanceRecords => _database.GetCollection<AttendanceRecord>("AttendanceRecords");
     public IMongoCollection<ChatMessage> ChatMessages => _database.GetCollection<ChatMessage>("ChatMessages");
-    public IMongoCollection<TimetableEntry> TimetableEntries => _database.GetCollection<TimetableEntry>("TimetableEntries");
+    public TenantRepository<TimetableEntry> TimetableEntries => new TenantRepository<TimetableEntry>(_database, "TimetableEntries", _tenantAccessor);
     public IMongoCollection<Setting> Settings => _database.GetCollection<Setting>("Settings");
     public IMongoCollection<EngineerCode> EngineerCodes => _database.GetCollection<EngineerCode>("EngineerCodes");
     public IMongoCollection<PendingEngineer> PendingEngineers => _database.GetCollection<PendingEngineer>("PendingEngineers");
-    public IMongoCollection<PendingStudentRequest> PendingStudentRequests => _database.GetCollection<PendingStudentRequest>("PendingStudentRequests");
+    public TenantRepository<PendingStudentRequest> PendingStudentRequests => new TenantRepository<PendingStudentRequest>(_database, "PendingStudentRequests", _tenantAccessor);
     public IMongoCollection<Station> Stations => _database.GetCollection<Station>("Stations");
     public IMongoCollection<Notification> Notifications => _database.GetCollection<Notification>("Notifications");
     public IMongoCollection<AuditLog> AuditLogs => _database.GetCollection<AuditLog>("AuditLogs");
@@ -200,5 +202,6 @@ public class MongoService
 
     public IMongoDatabase Database => _database;
     public IMongoClient Client => _database.Client;
+    public TenantRepository<T> GetTenantRepository<T>(string collectionName) where T : class, SessionFlow.Desktop.Models.ITenantEntity => new TenantRepository<T>(_database, collectionName, _tenantAccessor);
 }
 

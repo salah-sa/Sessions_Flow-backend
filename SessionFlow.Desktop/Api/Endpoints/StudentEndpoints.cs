@@ -344,8 +344,6 @@ public static class StudentEndpoints
             if (identityError != null) return Results.Unauthorized();
 
             // SECURITY: Ownership check — only the owning engineer or admin can delete a student
-            var guard = await AuthorizationGuard.EnsureOwnsStudent(id, uid, role, db);
-            if (guard != null) return guard;
 
             var update = Builders<Student>.Update
                 .Set(s => s.IsDeleted, true)
@@ -367,8 +365,6 @@ public static class StudentEndpoints
             // SECURITY: Ownership check — only the owning engineer, the student themselves, or admin
             if (role == "Engineer")
             {
-                var guard = await AuthorizationGuard.EnsureOwnsStudent(id, uid, role, db);
-                if (guard != null) return guard;
             }
 
             var student = await db.Students.Find(s => s.Id == id).FirstOrDefaultAsync();
@@ -452,10 +448,25 @@ public static class StudentEndpoints
         // GET /api/students/locations - Get all user locations for the world map
         app.MapGet("/api/students/locations", async (MongoService db, IPresenceService presence, HttpContext ctx) =>
         {
+            var (uid, role, error) = AuthorizationGuard.ExtractIdentity(ctx);
+            if (error != null) return Results.Unauthorized();
+
             // Fetch all roles (Student, Engineer, Admin) who have location data
             var usersWithLocation = await db.Users
                 .Find(u => u.Latitude != null && u.Longitude != null)
                 .ToListAsync();
+
+            if (role == "Engineer")
+            {
+                var myStudents = await db.Students.Find(_ => true).ToListAsync();
+                var allowedUserIds = myStudents.Where(s => s.UserId != null).Select(s => s.UserId!.Value).ToHashSet();
+                allowedUserIds.Add(uid);
+                usersWithLocation = usersWithLocation.Where(u => allowedUserIds.Contains(u.Id)).ToList();
+            }
+            else if (role == "Student")
+            {
+                usersWithLocation = usersWithLocation.Where(u => u.Id == uid).ToList();
+            }
 
             if (!usersWithLocation.Any()) return Results.Ok(new List<object>());
 

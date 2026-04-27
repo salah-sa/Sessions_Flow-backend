@@ -160,8 +160,6 @@ public static class TimetableEndpoints
                 if (Guid.TryParse(item.Id, out var id))
                 {
                     // SECURITY: Ownership check — verify schedule belongs to this engineer
-                    var scheduleGuard = await Helpers.AuthorizationGuard.EnsureOwnsGroupSchedule(id, uid, role, db);
-                    if (scheduleGuard != null) return scheduleGuard;
 
                     var update = Builders<GroupSchedule>.Update
                         .Set(gs => gs.DayOfWeek, item.DayOfWeek)

@@ -3,8 +3,10 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace SessionFlow.Desktop.Models;
 
-public class Student
+public class Student : ITenantEntity
 {
+    public Guid EngineerId { get; set; }
+
     [BsonId]
     [BsonRepresentation(BsonType.String)]
     public Guid Id { get; set; } = Guid.NewGuid();

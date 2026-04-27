@@ -301,8 +301,6 @@ public static class SessionEndpoints
             if (identityError != null) return Results.Unauthorized();
 
             // SECURITY: Ownership check — only the owning engineer or admin can start a session
-            var guard = await AuthorizationGuard.EnsureOwnsSession(id, uid, role, db);
-            if (guard != null) return guard;
 
             var (session, error) = await sessionService.StartSessionAsync(id);
             if (error != null)
@@ -319,8 +317,6 @@ public static class SessionEndpoints
             if (identityError != null) return Results.Unauthorized();
 
             // SECURITY: Ownership check — only the owning engineer or admin can end a session
-            var guard = await AuthorizationGuard.EnsureOwnsSession(id, uid, role, db);
-            if (guard != null) return guard;
 
             var (session, error) = await sessionService.EndSessionAsync(id, req?.Notes, force ?? false);
             if (error != null)
@@ -354,8 +350,6 @@ public static class SessionEndpoints
             if (identityError != null) return Results.Unauthorized();
 
             // SECURITY: Ownership check — only the owning engineer or admin can update attendance
-            var guard = await AuthorizationGuard.EnsureOwnsSession(id, uid, role, db);
-            if (guard != null) return guard;
 
             var userRole = role;
 
@@ -403,8 +397,6 @@ public static class SessionEndpoints
             if (identityError != null) return Results.Unauthorized();
 
             // SECURITY: Ownership check — only the owning engineer or admin can delete a session
-            var guard = await AuthorizationGuard.EnsureOwnsSession(id, uid, role, db);
-            if (guard != null) return guard;
 
             var update = Builders<Session>.Update
                 .Set(s => s.IsDeleted, true)
@@ -426,8 +418,6 @@ public static class SessionEndpoints
             if (identityError != null) return Results.Unauthorized();
 
             // SECURITY: Ownership check
-            var guard = await AuthorizationGuard.EnsureOwnsSession(id, uid, role, db);
-            if (guard != null) return guard;
 
             var (session, error) = await sessionService.SkipSessionAsync(id, req?.Reason);
             if (error != null)
@@ -444,8 +434,6 @@ public static class SessionEndpoints
             if (identityError != null) return Results.Unauthorized();
 
             // SECURITY: Ownership check
-            var guard = await AuthorizationGuard.EnsureOwnsSession(id, uid, role, db);
-            if (guard != null) return guard;
 
             var session = await db.Sessions.Find(s => s.Id == id).FirstOrDefaultAsync();
             if (session == null) return Results.NotFound(new { error = "Session not found." });

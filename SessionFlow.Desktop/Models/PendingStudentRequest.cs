@@ -3,7 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace SessionFlow.Desktop.Models;
 
-public class PendingStudentRequest
+public class PendingStudentRequest : ITenantEntity
 {
     [BsonId]
     [BsonRepresentation(BsonType.String)]

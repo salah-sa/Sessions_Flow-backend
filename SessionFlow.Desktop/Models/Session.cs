@@ -11,7 +11,7 @@ public enum SessionStatus
     Cancelled = 3
 }
 
-public class Session
+public class Session : ITenantEntity
 {
     [BsonId]
     [BsonRepresentation(BsonType.String)]
