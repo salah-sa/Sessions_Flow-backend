@@ -253,13 +253,16 @@ public static class SessionEndpoints
 
         group.MapGet("/{id:guid}/attendance", async (Guid id, MongoService db, HttpContext ctx) =>
         {
-            var session = await db.GlobalSessions.Find(s => s.Id == id).FirstOrDefaultAsync();
+            var (uid, role, identityError) = AuthorizationGuard.ExtractIdentity(ctx);
+            if (identityError != null) return Results.Unauthorized();
+
+            var session = role == "Admin"
+                ? await db.GlobalSessions.Find(s => s.Id == id).FirstOrDefaultAsync()
+                : await db.Sessions.Find(s => s.Id == id).FirstOrDefaultAsync();
             if (session == null)
                 return Results.NotFound(new { error = "Session not found." });
 
             // SECURITY: Manual ownership check for specific item fetch
-            var (uid, role, identityError) = AuthorizationGuard.ExtractIdentity(ctx);
-            if (identityError != null) return Results.Unauthorized();
             if (role != "Admin" && session.EngineerId != uid) return Results.Forbid();
 
             var records = role == "Admin"
@@ -336,8 +339,11 @@ public static class SessionEndpoints
             if (identityError != null) return Results.Unauthorized();
 
             // SECURITY: Ownership check — only the owning engineer or admin can start a session
-            var sessionCheck = await db.GlobalSessions.Find(s => s.Id == id).FirstOrDefaultAsync();
+            var sessionCheck = role == "Admin"
+                ? await db.GlobalSessions.Find(s => s.Id == id).FirstOrDefaultAsync()
+                : await db.Sessions.Find(s => s.Id == id).FirstOrDefaultAsync();
             if (sessionCheck == null) return Results.NotFound();
+            // Ownership check is redundant but kept for safety
             if (role != "Admin" && sessionCheck.EngineerId != uid) return Results.Forbid();
 
             var (session, error) = await sessionService.StartSessionAsync(id);
@@ -355,7 +361,9 @@ public static class SessionEndpoints
             if (identityError != null) return Results.Unauthorized();
 
             // SECURITY: Ownership check — only the owning engineer or admin can end a session
-            var sessionCheck = await db.GlobalSessions.Find(s => s.Id == id).FirstOrDefaultAsync();
+            var sessionCheck = role == "Admin"
+                ? await db.GlobalSessions.Find(s => s.Id == id).FirstOrDefaultAsync()
+                : await db.Sessions.Find(s => s.Id == id).FirstOrDefaultAsync();
             if (sessionCheck == null) return Results.NotFound();
             if (role != "Admin" && sessionCheck.EngineerId != uid) return Results.Forbid();
 
@@ -367,9 +375,9 @@ public static class SessionEndpoints
 
             // AUTO-ARCHIVE: Check if all sessions in the group are now completed
             var groupId = session!.GroupId;
-            var remainingSessions = await db.GlobalSessions.CountDocumentsAsync(
-                s => s.GroupId == groupId && !s.IsDeleted && s.Status != SessionStatus.Ended && s.Status != SessionStatus.Cancelled && !s.IsSkipped
-            );
+            var remainingSessions = role == "Admin"
+                ? await db.GlobalSessions.CountDocumentsAsync(s => s.GroupId == groupId && !s.IsDeleted && s.Status != SessionStatus.Ended && s.Status != SessionStatus.Cancelled && !s.IsSkipped)
+                : await db.Sessions.CountDocumentsAsync(s => s.GroupId == groupId && !s.IsDeleted && s.Status != SessionStatus.Ended && s.Status != SessionStatus.Cancelled && !s.IsSkipped);
 
             if (remainingSessions == 0)
             {
@@ -377,7 +385,10 @@ public static class SessionEndpoints
                 var groupUpdate = Builders<Group>.Update
                     .Set(g => g.Status, GroupStatus.Completed)
                     .Set(g => g.UpdatedAt, DateTimeOffset.UtcNow);
-                await db.GlobalGroups.UpdateOneAsync(g => g.Id == groupId && g.Status == GroupStatus.Active, groupUpdate);
+                if (role == "Admin")
+                    await db.GlobalGroups.UpdateOneAsync(g => g.Id == groupId && g.Status == GroupStatus.Active, groupUpdate);
+                else
+                    await db.Groups.UpdateOneAsync(g => g.Id == groupId && g.Status == GroupStatus.Active, groupUpdate);
             }
 
             return Results.Ok(new { id = session!.Id, status = session.Status.ToString(), endedAt = session.EndedAt, notes = session.Notes });
@@ -391,7 +402,9 @@ public static class SessionEndpoints
             if (identityError != null) return Results.Unauthorized();
 
             // SECURITY: Ownership check — only the owning engineer or admin can update attendance
-            var sessionCheck = await db.GlobalSessions.Find(s => s.Id == id).FirstOrDefaultAsync();
+            var sessionCheck = role == "Admin"
+                ? await db.GlobalSessions.Find(s => s.Id == id).FirstOrDefaultAsync()
+                : await db.Sessions.Find(s => s.Id == id).FirstOrDefaultAsync();
             if (sessionCheck == null) return Results.NotFound();
             if (role != "Admin" && sessionCheck.EngineerId != uid) return Results.Forbid();
 
@@ -441,7 +454,9 @@ public static class SessionEndpoints
             if (identityError != null) return Results.Unauthorized();
 
             // SECURITY: Ownership check — only the owning engineer or admin can delete a session
-            var sessionCheck = await db.GlobalSessions.Find(s => s.Id == id).FirstOrDefaultAsync();
+            var sessionCheck = role == "Admin"
+                ? await db.GlobalSessions.Find(s => s.Id == id).FirstOrDefaultAsync()
+                : await db.Sessions.Find(s => s.Id == id).FirstOrDefaultAsync();
             if (sessionCheck == null) return Results.NotFound();
             if (role != "Admin" && sessionCheck.EngineerId != uid) return Results.Forbid();
 
@@ -451,7 +466,9 @@ public static class SessionEndpoints
                 .Set(s => s.Status, SessionStatus.Cancelled)
                 .Set(s => s.UpdatedAt, DateTimeOffset.UtcNow);
             
-            var result = await db.GlobalSessions.UpdateOneAsync(s => s.Id == id, update);
+            var result = role == "Admin"
+                ? await db.GlobalSessions.UpdateOneAsync(s => s.Id == id, update)
+                : await db.Sessions.UpdateOneAsync(s => s.Id == id, update);
             if (result.MatchedCount == 0) return Results.NotFound(new { error = "Session not found." });
 
             return Results.Ok(new { message = "Session cancelled." });
@@ -465,7 +482,9 @@ public static class SessionEndpoints
             if (identityError != null) return Results.Unauthorized();
 
             // SECURITY: Ownership check
-            var sessionCheck = await db.GlobalSessions.Find(s => s.Id == id).FirstOrDefaultAsync();
+            var sessionCheck = role == "Admin"
+                ? await db.GlobalSessions.Find(s => s.Id == id).FirstOrDefaultAsync()
+                : await db.Sessions.Find(s => s.Id == id).FirstOrDefaultAsync();
             if (sessionCheck == null) return Results.NotFound();
             if (role != "Admin" && sessionCheck.EngineerId != uid) return Results.Forbid();
 
@@ -484,7 +503,9 @@ public static class SessionEndpoints
             if (identityError != null) return Results.Unauthorized();
 
             // SECURITY: Ownership check
-            var sessionCheck = await db.GlobalSessions.Find(s => s.Id == id).FirstOrDefaultAsync();
+            var sessionCheck = role == "Admin"
+                ? await db.GlobalSessions.Find(s => s.Id == id).FirstOrDefaultAsync()
+                : await db.Sessions.Find(s => s.Id == id).FirstOrDefaultAsync();
             if (sessionCheck == null) return Results.NotFound();
             if (role != "Admin" && sessionCheck.EngineerId != uid) return Results.Forbid();
 
@@ -509,7 +530,9 @@ public static class SessionEndpoints
                 id = ended!.Id, 
                 status = ended.Status.ToString(), 
                 endedAt = ended.EndedAt,
-                nextSessionNumber = (await db.GlobalGroups.Find(g => g.Id == ended.GroupId).FirstOrDefaultAsync())?.CurrentSessionNumber
+                nextSessionNumber = (role == "Admin"
+                    ? await db.GlobalGroups.Find(g => g.Id == ended!.GroupId).FirstOrDefaultAsync()
+                    : await db.Groups.Find(g => g.Id == ended!.GroupId).FirstOrDefaultAsync())?.CurrentSessionNumber
             });
         });
     }

@@ -240,7 +240,7 @@ public static class AuthEndpoints
             );
 
             // 1. Try to find an exact or very close match first
-            var groupObj = await db.Groups.Find(filter).FirstOrDefaultAsync();
+            var groupObj = await db.GlobalGroups.Find(filter).FirstOrDefaultAsync();
 
             if (groupObj == null)
             {
@@ -257,7 +257,7 @@ public static class AuthEndpoints
                     )
                 );
 
-                var suggestions = await db.Groups.Find(suggestionsFilter)
+                var suggestions = await db.GlobalGroups.Find(suggestionsFilter)
                     .Limit(5)
                     .Project(g => g.Name)
                     .ToListAsync();
@@ -269,17 +269,17 @@ public static class AuthEndpoints
                 });
             }
 
-            var engineer = await db.Users.Find(u => u.Id == groupObj.EngineerId).FirstOrDefaultAsync();
-            var students = await db.Students.Find(s => s.GroupId == groupObj.Id && !s.IsDeleted).ToListAsync();
+            var engineer = await db.GlobalUsers.Find(u => u.Id == groupObj.EngineerId).FirstOrDefaultAsync();
+            var students = await db.GlobalStudents.Find(s => s.GroupId == groupObj.Id && !s.IsDeleted).ToListAsync();
             
             // Filter out students who already have a registered user account
-            var registeredStudentIds = (await db.Users.Find(u => u.Role == UserRole.Student && u.StudentId != null)
+            var registeredStudentIds = (await db.GlobalUsers.Find(u => u.Role == UserRole.Student && u.StudentId != null)
                 .Project(u => u.StudentId)
                 .ToListAsync())
                 .ToHashSet();
 
             // Filter out students who have a pending request
-            var pendingStudentNames = (await db.PendingStudentRequests
+            var pendingStudentNames = (await db.GlobalPendingStudentRequests
                 .Find(p => p.GroupId == groupObj.Id && p.Status == PendingStatus.Pending)
                 .Project(p => p.Name)
                 .ToListAsync())

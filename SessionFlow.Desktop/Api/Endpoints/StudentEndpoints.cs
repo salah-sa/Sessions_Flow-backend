@@ -344,7 +344,7 @@ public static class StudentEndpoints
                 update = update.Set(s => s.GroupId, req.GroupId.Value);
             }
 
-            await db.GlobalStudents.UpdateOneAsync(s => s.Id == id, update);
+            await db.Students.UpdateOneAsync(s => s.Id == id, update);
             return Results.Ok(new { id = student.Id, name = req.Name ?? student.Name, groupId = req.GroupId ?? student.GroupId });
         });
 
@@ -376,7 +376,7 @@ public static class StudentEndpoints
                 .Set(s => s.DeletedAt, DateTimeOffset.UtcNow)
                 .Set(s => s.UpdatedAt, DateTimeOffset.UtcNow);
             
-            await db.GlobalStudents.UpdateOneAsync(s => s.Id == id, update);
+            await db.Students.UpdateOneAsync(s => s.Id == id, update);
 
             return Results.Ok(new { message = "Student deleted." });
         });

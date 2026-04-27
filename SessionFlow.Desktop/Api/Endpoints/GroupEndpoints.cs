@@ -490,7 +490,7 @@ public static class GroupEndpoints
             var strictTotal = CurriculumConstants.GetTotalSessions(req.Level ?? g.Level);
             update = update.Set(x => x.TotalSessions, strictTotal);
 
-            await db.GlobalGroups.UpdateOneAsync(x => x.Id == id, update);
+            await db.Groups.UpdateOneAsync(x => x.Id == id, update);
 
             // AUTO-REGENERATE if schedule-impacting fields changed
             if (req.Frequency.HasValue || req.Level.HasValue || req.Schedules != null || req.StartingSessionNumber.HasValue)
@@ -501,7 +501,7 @@ public static class GroupEndpoints
                     // If schedules were provided in the same PUT, update them first
                     if (req.Schedules != null)
                     {
-                        await db.GlobalGroupSchedules.DeleteManyAsync(s => s.GroupId == id);
+                        await db.GroupSchedules.DeleteManyAsync(s => s.GroupId == id);
                         var newSchedules = new List<GroupSchedule>();
                         foreach (var sched in req.Schedules)
                         {
@@ -516,7 +516,7 @@ public static class GroupEndpoints
                                 DurationMinutes = sched.DurationMinutes > 0 ? sched.DurationMinutes : 60
                             });
                         }
-                        await db.GlobalGroupSchedules.InsertManyAsync(newSchedules);
+                        await db.GroupSchedules.InsertManyAsync(newSchedules);
                     }
 
                     await sessionService.RegenerateFutureSessionsAsync(finalGroup);
@@ -727,7 +727,7 @@ public static class GroupEndpoints
                 UniqueStudentCode = Student.GenerateCode(req.Name.Trim(), id)
             };
 
-            await db.GlobalStudents.InsertOneAsync(student);
+            await db.Students.InsertOneAsync(student);
 
             return Results.Created($"/api/students/{student.Id}", new
             {

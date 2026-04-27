@@ -278,7 +278,7 @@ public static class ChatEndpoints
                 SentAt = DateTimeOffset.UtcNow
             };
 
-            await db.GlobalChatMessages.InsertOneAsync(message);
+            await db.ChatMessages.InsertOneAsync(message);
 
             var sender = await db.GlobalUsers.Find(u => u.Id == userGuid).FirstOrDefaultAsync();
 
