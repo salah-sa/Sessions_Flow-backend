@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { format, addDays, startOfWeek, isSameDay, isAfter } from "date-fns";
 import { Calendar as CalendarIcon, Clock, Plus, Zap, Archive, Layers } from "lucide-react";
-import { cn } from "../../lib/utils";
+import { cn, formatDateTo12h } from "../../lib/utils";
 import { Session, GroupScheduleEntry } from "../../types";
 
 interface WeekViewProps {
