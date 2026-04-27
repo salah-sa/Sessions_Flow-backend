@@ -1050,7 +1050,7 @@ public class AuthService
         else if (user.Role == UserRole.Student)
         {
             // For students, we use the cached EngineerId from their User record
-            if (user.EngineerId.HasValue)
+            if (user.EngineerId != Guid.Empty)
             {
                 claims.Add(new Claim("engineer_id", user.EngineerId.ToString()!));
             }
@@ -1105,14 +1105,16 @@ public class AuthService
             return;
         }
 
+        var adminId = Guid.NewGuid();
         var admin = new User
         {
+            Id = adminId,
             Name = "Administrator",
             Email = newAdminEmail,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(_generatedAdminPassword),
             Role = UserRole.Admin,
             EngineerCode = "Eng1",
-            EngineerId = admin.Id,
+            EngineerId = adminId,
             IsApproved = true
         };
 

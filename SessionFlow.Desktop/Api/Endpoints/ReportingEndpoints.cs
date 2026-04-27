@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using SessionFlow.Desktop.Services;
 using SessionFlow.Desktop.Data;
 using SessionFlow.Desktop.Api.Helpers;
+using MongoDB.Driver;
 
 namespace SessionFlow.Desktop.Api.Endpoints;
 

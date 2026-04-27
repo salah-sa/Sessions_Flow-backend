@@ -37,7 +37,7 @@ public class NotificationService
         {
             notification.EngineerId = user.Role == UserRole.Admin || user.Role == UserRole.Engineer 
                 ? user.Id 
-                : (user.EngineerId ?? Guid.Empty);
+                : user.EngineerId;
         }
 
         await _db.GlobalNotifications.InsertOneAsync(notification);

@@ -76,23 +76,47 @@ public class TenantRepository<T> where T : class, ITenantEntity
         var tenantFilter = Builders<T>.Filter.Eq(x => x.EngineerId, engId);
         if (model is UpdateOneModel<T> updateOne)
         {
-            updateOne.Filter = Builders<T>.Filter.And(updateOne.Filter, tenantFilter);
+            return new UpdateOneModel<T>(Builders<T>.Filter.And(updateOne.Filter, tenantFilter), updateOne.Update) 
+            { 
+                IsUpsert = updateOne.IsUpsert, 
+                Collation = updateOne.Collation, 
+                Hint = updateOne.Hint, 
+                ArrayFilters = updateOne.ArrayFilters 
+            };
         }
         else if (model is UpdateManyModel<T> updateMany)
         {
-            updateMany.Filter = Builders<T>.Filter.And(updateMany.Filter, tenantFilter);
+            return new UpdateManyModel<T>(Builders<T>.Filter.And(updateMany.Filter, tenantFilter), updateMany.Update)
+            {
+                Collation = updateMany.Collation,
+                Hint = updateMany.Hint,
+                ArrayFilters = updateMany.ArrayFilters
+            };
         }
         else if (model is DeleteOneModel<T> deleteOne)
         {
-            deleteOne.Filter = Builders<T>.Filter.And(deleteOne.Filter, tenantFilter);
+            return new DeleteOneModel<T>(Builders<T>.Filter.And(deleteOne.Filter, tenantFilter))
+            {
+                Collation = deleteOne.Collation,
+                Hint = deleteOne.Hint
+            };
         }
         else if (model is DeleteManyModel<T> deleteMany)
         {
-            deleteMany.Filter = Builders<T>.Filter.And(deleteMany.Filter, tenantFilter);
+            return new DeleteManyModel<T>(Builders<T>.Filter.And(deleteMany.Filter, tenantFilter))
+            {
+                Collation = deleteMany.Collation,
+                Hint = deleteMany.Hint
+            };
         }
         else if (model is ReplaceOneModel<T> replaceOne)
         {
-            replaceOne.Filter = Builders<T>.Filter.And(replaceOne.Filter, tenantFilter);
+            return new ReplaceOneModel<T>(Builders<T>.Filter.And(replaceOne.Filter, tenantFilter), replaceOne.Replacement)
+            {
+                IsUpsert = replaceOne.IsUpsert,
+                Collation = replaceOne.Collation,
+                Hint = replaceOne.Hint
+            };
         }
         else if (model is InsertOneModel<T> insertOne)
         {

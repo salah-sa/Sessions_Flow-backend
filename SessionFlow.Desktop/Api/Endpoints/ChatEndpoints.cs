@@ -153,7 +153,7 @@ public static class ChatEndpoints
 
             var userRole = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
 
-            var g = role == "Admin"
+            var g = userRole == "Admin"
                 ? await db.GlobalGroups.Find(x => x.Id == groupId && !x.IsDeleted).FirstOrDefaultAsync()
                 : await db.Groups.Find(x => x.Id == groupId && !x.IsDeleted).FirstOrDefaultAsync();
             if (g == null)
