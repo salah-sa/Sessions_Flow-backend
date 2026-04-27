@@ -1095,6 +1095,9 @@ public class AuthService
                 .Set(u => u.EngineerId, legacyAdmin.Id)
                 .Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
             await _db.GlobalUsers.UpdateOneAsync(u => u.Id == legacyAdmin.Id, migrateUpdate);
+            
+            // Ensure legacy data is linked to the newly migrated admin email
+            await EnsureLegacyDataLinkageAsync(legacyAdmin.Id);
             return;
         }
 

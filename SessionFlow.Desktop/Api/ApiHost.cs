@@ -251,19 +251,27 @@ public static class ApiHost
 
         var app = builder.Build();
 
-        // ── Database Initialization & Seeding ─────────────────────────
-        // This runs on every startup (idempotent — skips if already seeded)
-        using (var scope = app.Services.CreateScope())
+        // ── Database Initialization & Seeding (Non-Blocking) ──────────
+        // Run in background to allow the app to start listening immediately (passes health check)
+        _ = Task.Run(async () => 
         {
-            var mongo = scope.ServiceProvider.GetRequiredService<MongoService>();
-            mongo.InitializeAsync().GetAwaiter().GetResult();
-            Log.Information("[Bootstrap] MongoDB indexes initialized.");
+            try 
+            {
+                using var backgroundScope = app.Services.CreateScope();
+                var mongo = backgroundScope.ServiceProvider.GetRequiredService<MongoService>();
+                await mongo.InitializeAsync();
+                Log.Information("[Background-Bootstrap] MongoDB indexes initialized.");
 
-            var auth = scope.ServiceProvider.GetRequiredService<AuthService>();
-            auth.SeedAdminAsync().GetAwaiter().GetResult();
-            auth.SeedEngineerCodesAsync().GetAwaiter().GetResult();
-            Log.Information("[Bootstrap] Admin user and engineer codes seeded.");
-        }
+                var auth = backgroundScope.ServiceProvider.GetRequiredService<AuthService>();
+                await auth.SeedAdminAsync();
+                await auth.SeedEngineerCodesAsync();
+                Log.Information("[Background-Bootstrap] Admin user and engineer codes seeded.");
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal(ex, "[Background-Bootstrap] Seeding failed in background!");
+            }
+        });
 
         // ── CSRF: Validate X-Requested-With on mutating requests ──────
         app.Use(async (context, next) =>
