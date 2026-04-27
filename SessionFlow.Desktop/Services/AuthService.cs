@@ -1134,6 +1134,47 @@ public class AuthService
             });
         }
         await _db.TimetableEntries.InsertManyAsync(timetableEntries);
+
+        // LINK LEGACY DATA: Any data created before tenant isolation was enforced
+        // belongs to the primary Administrator.
+        await EnsureLegacyDataLinkageAsync(admin.Id);
+    }
+
+    /// <summary>
+    /// Migration: Scans all tenant-scoped collections for records with empty EngineerId
+    /// and associates them with the provided Administrator ID.
+    /// </summary>
+    public async Task EnsureLegacyDataLinkageAsync(Guid adminId)
+    {
+        var emptyFilter = Builders<Group>.Filter.Eq(x => x.EngineerId, Guid.Empty);
+        var groupUpdate = Builders<Group>.Update.Set(x => x.EngineerId, adminId);
+        
+        // Groups
+        await _db.GlobalGroups.UpdateManyAsync(emptyFilter, groupUpdate);
+
+        // Students
+        await _db.GlobalStudents.UpdateManyAsync(
+            Builders<Student>.Filter.Eq(x => x.EngineerId, Guid.Empty),
+            Builders<Student>.Update.Set(x => x.EngineerId, adminId)
+        );
+
+        // Sessions
+        await _db.GlobalSessions.UpdateManyAsync(
+            Builders<Session>.Filter.Eq(x => x.EngineerId, Guid.Empty),
+            Builders<Session>.Update.Set(x => x.EngineerId, adminId)
+        );
+
+        // GroupSchedules
+        await _db.GlobalGroupSchedules.UpdateManyAsync(
+            Builders<GroupSchedule>.Filter.Eq(x => x.EngineerId, Guid.Empty),
+            Builders<GroupSchedule>.Update.Set(x => x.EngineerId, adminId)
+        );
+
+        // AttendanceRecords
+        await _db.GlobalAttendanceRecords.UpdateManyAsync(
+            Builders<AttendanceRecord>.Filter.Eq(x => x.EngineerId, Guid.Empty),
+            Builders<AttendanceRecord>.Update.Set(x => x.EngineerId, adminId)
+        );
     }
 
     public async Task SeedEngineerCodesAsync()

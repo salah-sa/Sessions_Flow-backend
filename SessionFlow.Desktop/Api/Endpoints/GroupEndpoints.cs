@@ -65,13 +65,22 @@ public static class GroupEndpoints
             }
             
             var (skip, take) = PaginationHelper.Normalize(page, pageSize);
-            var totalCount = await db.Groups.CountDocumentsAsync(filter);
+            
+            var totalCount = roleStr == "Admin"
+                ? await db.GlobalGroups.CountDocumentsAsync(filter)
+                : await db.Groups.CountDocumentsAsync(filter);
 
-            var groups = await db.Groups.Find(filter)
-                .SortBy(g => g.Name)
-                .Skip(skip)
-                .Limit(take)
-                .ToListAsync();
+            var groups = roleStr == "Admin"
+                ? await db.GlobalGroups.Find(filter)
+                    .SortBy(g => g.Name)
+                    .Skip(skip)
+                    .Limit(take)
+                    .ToListAsync()
+                : await db.Groups.Find(filter)
+                    .SortBy(g => g.Name)
+                    .Skip(skip)
+                    .Limit(take)
+                    .ToListAsync();
 
             var engineerIds = groups.Select(g => g.EngineerId).Distinct().ToList();
             var engineers = await db.Users.Find(u => engineerIds.Contains(u.Id)).ToListAsync();

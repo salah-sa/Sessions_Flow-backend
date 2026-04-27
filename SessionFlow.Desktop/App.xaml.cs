@@ -91,7 +91,7 @@ public partial class App : Application
                         {
                             // If user is Engineer/Admin, their tenant ID is their own ID
                             // If Student, it's their EngineerId property
-                            var resolvedId = (user.Role == UserRole.Student) ? (user.EngineerId ?? Guid.Empty) : user.Id;
+                            var resolvedId = (user.Role == UserRole.Student) ? user.EngineerId : user.Id;
                             usersCache[userId] = resolvedId;
                             return resolvedId;
                         }

@@ -88,14 +88,24 @@ public static class SessionEndpoints
             }
 
             var (skip, take) = PaginationHelper.Normalize(page, pageSize);
-            var totalCount = await db.Sessions.CountDocumentsAsync(filter);
+            
+            var totalCount = role == "Admin"
+                ? await db.GlobalSessions.CountDocumentsAsync(filter)
+                : await db.Sessions.CountDocumentsAsync(filter);
 
-            var sessions = await db.Sessions
-                .Find(filter)
-                .SortByDescending(s => s.ScheduledAt)
-                .Skip(skip)
-                .Limit(take)
-                .ToListAsync();
+            var sessions = role == "Admin"
+                ? await db.GlobalSessions
+                    .Find(filter)
+                    .SortByDescending(s => s.ScheduledAt)
+                    .Skip(skip)
+                    .Limit(take)
+                    .ToListAsync()
+                : await db.Sessions
+                    .Find(filter)
+                    .SortByDescending(s => s.ScheduledAt)
+                    .Skip(skip)
+                    .Limit(take)
+                    .ToListAsync();
 
             var groupIds = sessions.Select(s => s.GroupId).Distinct().ToList();
             var engineerIds = sessions.Select(s => s.EngineerId).Distinct().ToList();
