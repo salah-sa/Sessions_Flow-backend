@@ -21,17 +21,19 @@ public static class GroupEndpoints
             int? page, int? pageSize, string? search, string? status) =>
         {
             var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
+            var roleStr = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
             if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
 
             var builder = Builders<Group>.Filter;
             var filter = builder.Eq(g => g.IsDeleted, false);
 
-            if (role == "Engineer")
+            // Zero Trust: Every user (including Admin) is restricted to their own tenant scope.
+            // Legacy orphaned groups are backfilled to the primary Admin account via App.xaml.cs migration.
+            if (roleStr == "Engineer" || roleStr == "Admin")
             {
                 filter &= builder.Eq(g => g.EngineerId, userId);
             }
-            else if (role == "Student")
+            else if (roleStr == "Student")
             {
                 // Use global resolver for consistent StudentId/UniqueStudentCode matching
                 var user = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
@@ -53,7 +55,6 @@ public static class GroupEndpoints
                     return Results.Ok(PaginationHelper.Envelope(new List<object>(), 0, page ?? 1, pageSize ?? 20));
                 }
             }
-            // Admin sees all
             
             // Add search filter
             if (!string.IsNullOrWhiteSpace(search))

@@ -16,7 +16,7 @@ public static class DashboardEndpoints
     {
         var group = app.MapGroup("/api/dashboard").RequireAuthorization();
 
-        group.MapGet("/summary", async (MongoService db, HttpContext ctx, AuthService auth) =>
+        group.MapGet("/summary", async (MongoService db, HttpContext ctx, AuthService auth, ITenantAccessor tenantAccessor) =>
         {
             var roleStr = ctx.User.FindFirst(ClaimTypes.Role)?.Value ?? "Admin";
 
@@ -87,9 +87,16 @@ public static class DashboardEndpoints
             var todaySessionsTask = db.Sessions.CountDocumentsAsync(sessionFilter);
             var activeSessionsTask = db.Sessions.CountDocumentsAsync(activeFilter);
             
-            var pendingApprovalsTask = roleStr == "Admin" 
-                ? db.PendingEngineers.CountDocumentsAsync(p => p.Status == PendingStatus.Pending)
-                : Task.FromResult(0L);
+            // Admin System Stats (Using System Context to bypass isolation)
+            long totalGlobalUsers = 0;
+            long pendingApprovals = 0;
+
+            if (roleStr == "Admin")
+            {
+                tenantAccessor.SetSystemContext();
+                totalGlobalUsers = await db.GlobalUsers.CountDocumentsAsync(_ => true);
+                pendingApprovals = await db.PendingEngineers.CountDocumentsAsync(p => p.Status == PendingStatus.Pending);
+            }
 
             // Total students (scoped per role)
             Task<long> totalStudentsTask;
@@ -161,7 +168,7 @@ public static class DashboardEndpoints
 
             await Task.WhenAll(
                 totalGroupsTask, todaySessionsTask, activeSessionsTask, 
-                pendingApprovalsTask, todayTimelineTask, recentActivityTask,
+                todayTimelineTask, recentActivityTask,
                 totalStudentsTask, completedSessionsTask, upcomingSessionsTask, completedGroupsTask,
                 revenueTask
             );
@@ -422,7 +429,8 @@ public static class DashboardEndpoints
                 totalGroups = totalGroupsTask.Result,
                 todaySessions = todaySessionsTask.Result,
                 activeSessions = activeSessionsTask.Result,
-                pendingApprovals = pendingApprovalsTask.Result,
+                pendingApprovals = (roleStr == "Admin") ? pendingApprovals : 0,
+                totalGlobalUsers = totalGlobalUsers,
                 totalStudents = totalStudentsTask.Result,
                 completedSessionsAllTime = completedSessionsTask.Result,
                 upcomingSessions = upcomingSessionsTask.Result,

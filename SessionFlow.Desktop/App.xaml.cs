@@ -102,6 +102,20 @@ public partial class App : Application
 
                     logger.LogInformation("Hardening Data: Backfilling EngineerId across all collections...");
 
+                    var adminUser = await db.GlobalUsers.Find(u => u.Role == UserRole.Admin).FirstOrDefaultAsync();
+                    var primaryAdminId = adminUser?.Id ?? Guid.Empty;
+
+                    // 0. Groups (Assign orphans to Admin)
+                    var groupsToFix = await db.Database.GetCollection<Group>("Groups").Find(g => g.EngineerId == Guid.Empty).ToListAsync();
+                    if (groupsToFix.Any() && primaryAdminId != Guid.Empty)
+                    {
+                        logger.LogInformation("Backfilling {Count} orphaned groups to Admin {AdminId}", groupsToFix.Count, primaryAdminId);
+                        await db.Database.GetCollection<Group>("Groups").UpdateManyAsync(
+                            g => g.EngineerId == Guid.Empty,
+                            Builders<Group>.Update.Set(g => g.EngineerId, primaryAdminId)
+                        );
+                    }
+
                     // 1. Students
                     var studentsToFix = await db.Students.Find(s => s.EngineerId == Guid.Empty).ToListAsync();
                     foreach (var s in studentsToFix)
