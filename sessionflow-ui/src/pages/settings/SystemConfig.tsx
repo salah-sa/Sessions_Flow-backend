@@ -320,11 +320,11 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
             </div>
           </div>
 
-          {/* Enterprise Tier */}
+          {/* Ultra Tier */}
           <div className="card-base space-y-4 border-amber-500/10 hover:border-amber-500/30 transition-all">
             <div className="flex items-center gap-3">
               <Crown className="w-5 h-5 text-amber-400" />
-              <p className="text-xs font-black text-amber-400 uppercase tracking-widest">Enterprise Plan</p>
+              <p className="text-xs font-black text-amber-400 uppercase tracking-widest">Ultra Plan</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">

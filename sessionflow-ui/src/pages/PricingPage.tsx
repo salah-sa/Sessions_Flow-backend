@@ -22,7 +22,7 @@ export default function PricingPage() {
   const handleUpgrade = async (tier: SubscriptionTier) => {
     if (tier === currentTier) return;
     
-    if (currentTier === "Enterprise" || (currentTier === "Pro" && tier === "Free")) {
+    if (currentTier === "Ultra" || (currentTier === "Pro" && tier === "Free")) {
         toast.error("You cannot downgrade from this screen.");
         return;
     }
@@ -74,8 +74,8 @@ export default function PricingPage() {
       buttonText: "Upgrade to Pro",
     },
     {
-      name: "Enterprise",
-      tier: "Enterprise" as SubscriptionTier,
+      name: "Ultra",
+      tier: "Ultra" as SubscriptionTier,
       icon: Crown,
       description: "White-glove service for large educational institutions.",
       priceMonthly: "EGP 999",
@@ -84,7 +84,7 @@ export default function PricingPage() {
       color: "from-amber-400 to-orange-500",
       bgClass: "bg-amber-500/5 hover:bg-amber-500/10",
       borderClass: "border-amber-500/30",
-      buttonText: "Contact Sales",
+      buttonText: "Upgrade to Ultra",
     }
   ];
 
@@ -225,7 +225,7 @@ export default function PricingPage() {
         {/* Dynamic Footer Info */}
         <div className="mt-12 md:mt-24 text-center">
             <p className="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4">
-                <Building2 className="w-4 h-4 opacity-30" /> Secure Enterprise Protocol Active <CreditCard className="w-4 h-4 opacity-30" />
+                <Building2 className="w-4 h-4 opacity-30" /> Secure Ultra Protocol Active <CreditCard className="w-4 h-4 opacity-30" />
             </p>
         </div>
 

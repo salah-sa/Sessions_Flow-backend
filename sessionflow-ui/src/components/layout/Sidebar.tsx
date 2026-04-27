@@ -166,7 +166,7 @@ const Sidebar: React.FC = () => {
   }, [location.pathname, isAdmin, isEngineer, pendingEngineerIds.join(","), pendingStudentIds.join(","), markSectionSeen]);
 
   const userTier = user?.subscriptionTier || "Free";
-  const isPremium = isAdmin || userTier === "Pro" || userTier === "Enterprise";
+  const isPremium = isAdmin || userTier === "Pro" || userTier === "Ultra";
   const blockedPages = user?.blockedPages ?? [];
   const isBlocked = (routePath: string) => {
     let key = routePath.replace("/", "");
@@ -195,7 +195,7 @@ const Sidebar: React.FC = () => {
                ? "bg-[var(--ui-accent)]/5 border-[var(--ui-accent)]/20 text-[var(--ui-accent)]" 
                : "bg-amber-500/5 border-amber-500/20 text-amber-400"
            )}>
-             <Crown className={cn("w-3 h-3", userTier === "Enterprise" && "text-amber-400")} />
+             <Crown className={cn("w-3 h-3", userTier === "Ultra" && "text-amber-400")} />
              {userTier}
            </div>
          )}
@@ -203,14 +203,22 @@ const Sidebar: React.FC = () => {
       </div>
 
       <nav className="flex-1 px-4 space-y-2 overflow-y-auto min-h-0 custom-scrollbar">
-        <NavItem to="/dashboard" icon={BarChart3} label={t("nav.dashboard")} pageBlocked={isBlocked("/dashboard")} />
-        <NavItem to="/groups" icon={Users} label={t("nav.groups") || "Groups"} locked={isStudent} pageBlocked={isBlocked("/groups")} />
+        {!isEngineer && !isStudent && <NavItem to="/dashboard" icon={BarChart3} label={t("nav.dashboard")} pageBlocked={isBlocked("/dashboard")} />}
+        {isStudent && <NavItem to="/dashboard" icon={BarChart3} label="My Dashboard" pageBlocked={isBlocked("/dashboard")} />}
+        
+        {!isStudent && <NavItem to="/groups" icon={Users} label={t("nav.groups") || "Groups"} pageBlocked={isBlocked("/groups")} />}
+        
         <NavItem to="/sessions" icon={Target} label={t("nav.sessions") || "Sessions"} locked={isStudent} pageBlocked={isBlocked("/sessions")} />
-        <NavItem to="/students" icon={User} label={t("nav.students")} locked={isStudent} premiumLocked={isAdmin && !isPremium} pageBlocked={isBlocked("/students")} />
-        <NavItem to="/timetable" icon={Calendar} label={t("nav.timetable")} pageBlocked={isBlocked("/timetable")} />
+        
+        {!isEngineer && !isStudent && <NavItem to="/students" icon={User} label={t("nav.students")} premiumLocked={isAdmin && !isPremium} pageBlocked={isBlocked("/students")} />}
+        
+        {!isStudent && <NavItem to="/timetable" icon={Calendar} label={t("nav.timetable")} pageBlocked={isBlocked("/timetable")} />}
+        
         <NavItem to="/attendance" icon={CheckCircle} label={t("nav.attendance") || "Attendance"} locked={isStudent} premiumLocked={isAdmin && !isPremium} pageBlocked={isBlocked("/attendance")} />
-        <NavItem to="/chat" icon={MessageSquare} label={t("nav.chat")} badge={chatBadgeCount} pageBlocked={isBlocked("/chat")} />
-        <NavItem to="/history" icon={Clock} label={t("nav.history") || "History"} pageBlocked={isBlocked("/history")} />
+        
+        {!isEngineer && !isStudent && <NavItem to="/chat" icon={MessageSquare} label={t("nav.chat")} badge={chatBadgeCount} pageBlocked={isBlocked("/chat")} />}
+        
+        {!isEngineer && !isStudent && <NavItem to="/history" icon={Clock} label={t("nav.history") || "History"} pageBlocked={isBlocked("/history")} />}
         
         <div className="py-3 px-6">
            <p className="text-[9px] font-bold text-slate-700 uppercase tracking-widest mb-4">Core Modules</p>
@@ -227,10 +235,10 @@ const Sidebar: React.FC = () => {
           <NavItem to="/staff" icon={Zap} label={t("staff.portal_title")} badge={staffBadgeCount} />
         )}
         
-        <NavItem to="/archive" icon={Archive} label={t("nav.archive") || "Archive"} locked={isStudent} />
-        <NavItem to="/plans" icon={Crown} label={t("nav.plans") || "Plans & Upgrades"} locked={isStudent} />
+        {!isEngineer && !isStudent && <NavItem to="/archive" icon={Archive} label={t("nav.archive") || "Archive"} />}
+        {isAdmin && <NavItem to="/plans" icon={Crown} label={t("nav.plans") || "Plans & Upgrades"} />}
         <NavItem to="/profile" icon={UserCircle} label={t("nav.profile") || "Profile"} />
-        <NavItem to="/settings" icon={Settings} label={t("nav.settings")} locked={isStudent} />
+        {isAdmin && <NavItem to="/settings" icon={Settings} label={t("nav.settings")} />}
 
         <LanguageBridge />
       </nav>

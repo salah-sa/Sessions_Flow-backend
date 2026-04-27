@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tansta
 import { sessionsApi } from "../api/resources_extra";
 import { queryKeys } from "./keys";
 import { Session, PaginatedResponse, AttendanceUpdateRecord } from "../types";
+import { sounds } from "../lib/sounds";
 
 export interface SessionFilters {
   page?: number;

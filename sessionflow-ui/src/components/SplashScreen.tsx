@@ -400,7 +400,7 @@ const SplashScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
           className="text-[11px] md:text-[12px] font-bold uppercase tracking-[0.6em]"
           style={{ color: `${accentColor}99` }}
         >
-          Enterprise Session Management
+          Ultra Session Management
         </p>
       </div>
 

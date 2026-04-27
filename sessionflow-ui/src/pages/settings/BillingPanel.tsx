@@ -114,7 +114,7 @@ const BillingPanel: React.FC = () => {
                  <Crown className="w-12 h-12 text-purple-500/20 group-hover:text-purple-500/40 transition-colors" />
               </div>
               <h3 className="text-xl font-sora font-bold text-white mb-2 flex items-center gap-2">
-                 Enterprise <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-[10px] uppercase tracking-widest border border-purple-500/30">Ultimate</span>
+                 Ultra <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-[10px] uppercase tracking-widest border border-purple-500/30">Ultimate</span>
               </h3>
               <p className="text-3xl font-black text-white tracking-tighter mb-6">
                  499 <span className="text-sm text-slate-500 font-semibold tracking-normal">EGP/mo</span>
@@ -131,11 +131,11 @@ const BillingPanel: React.FC = () => {
                  </li>
               </ul>
               <Button 
-                onClick={() => handleUpgrade('Enterprise')} 
+                onClick={() => handleUpgrade('Ultra')} 
                 disabled={loadingIframe !== null}
                 className="w-full h-12 bg-purple-600 hover:bg-purple-500 text-white rounded-xl shadow-glow shadow-purple-500/30"
               >
-                {loadingIframe === 'Enterprise' ? <Loader2 className="w-5 h-5 animate-spin" /> : "Upgrade to Enterprise"}
+                {loadingIframe === 'Ultra' ? <Loader2 className="w-5 h-5 animate-spin" /> : "Upgrade to Ultra"}
               </Button>
            </motion.div>
         </div>

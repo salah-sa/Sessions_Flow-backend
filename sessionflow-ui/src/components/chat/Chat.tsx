@@ -63,26 +63,43 @@ const BlockMessageRenderer: React.FC<{ message: ChatMessage }> = ({ message }) =
   const { text, blocks } = message;
   
   const renderContent = (content: string) => {
-    // Check for triple backtick code blocks
-    const codeBlockMatch = content.match(/```(\w+)?\n([\s\S]*?)```/);
-    if (codeBlockMatch) {
-      const parts = content.split(/```(\w+)?\n[\s\S]*?```/);
-      return (
-        <>
-          {parts[0] && <div className="mb-2">{parts[0]}</div>}
-          <CodeBlock code={codeBlockMatch[2]} language={codeBlockMatch[1]} />
-          {parts[parts.length - 1] && <div className="mt-2">{parts[parts.length - 1]}</div>}
-        </>
-      );
+    // 1. Detect Triple Backtick Code Blocks (Multi-block support)
+    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = codeBlockRegex.exec(content)) !== null) {
+      // Add text before the code block
+      if (match.index > lastIndex) {
+        parts.push(<span key={`text-${lastIndex}`}>{content.substring(lastIndex, match.index)}</span>);
+      }
+      
+      // Add the code block
+      parts.push(<CodeBlock key={`code-${match.index}`} code={match[2]} language={match[1]} />);
+      
+      lastIndex = codeBlockRegex.lastIndex;
     }
 
-    // Heuristic for inline code or code-like patterns
-    const isLikelyCode = content.includes("{") && content.includes("}") && (content.includes("=>") || content.includes("function") || content.includes("public") || content.includes("void"));
-    if (isLikelyCode && content.length > 20 && !content.includes("```")) {
-      return <CodeBlock code={content} />;
+    // Add remaining text
+    if (lastIndex < content.length) {
+      const remaining = content.substring(lastIndex);
+      
+      // 2. Heuristic for non-backticked code (whole message detection)
+      const isLikelyCode = 
+        (remaining.includes("{") && remaining.includes("}") && (remaining.includes("=>") || remaining.includes("function") || remaining.includes("public") || remaining.includes("void") || remaining.includes("class "))) ||
+        (remaining.includes("def ") && remaining.includes(":") && remaining.includes("\n    ")) || // Python
+        (remaining.startsWith("using ") && remaining.includes(";") && remaining.includes("namespace ")) || // C#
+        (remaining.startsWith("import ") && remaining.includes(";") && remaining.includes("public class ")); // Java
+
+      if (isLikelyCode && remaining.length > 30 && parts.length === 0) {
+        return <CodeBlock code={remaining} />;
+      }
+
+      parts.push(<span key={`text-${lastIndex}`}>{remaining}</span>);
     }
 
-    return content;
+    return parts.length > 0 ? parts : content;
   };
   
   if (blocks && blocks.length > 0) {
@@ -368,8 +385,17 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
         if (file) {
           // Rename to clipboard-<timestamp>.png
           const newFile = new File([file], `clipboard-${Date.now()}.png`, { type: file.type });
-          setSelectedFile(newFile);
-          toast.success("Image attached from clipboard");
+          
+          if (text.trim() === "") {
+            // Instant send if no text
+            onSendMessage("", newFile, [], []);
+            sounds.playChatSend();
+            toast.success("Image sent instantly");
+          } else {
+            // Attach if text exists
+            setSelectedFile(newFile);
+            toast.success("Image attached to your message");
+          }
           break;
         }
       }
@@ -597,7 +623,7 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
               const file = e.target.files?.[0];
               if (file) {
                 const tier = user?.subscriptionTier || "Free";
-                const limits: Record<string, number> = { Free: 5, Pro: 25, Enterprise: 100 };
+                const limits: Record<string, number> = { Free: 5, Pro: 25, Ultra: 100 };
                 const maxMB = limits[tier] || 5;
                 if (file.size > maxMB * 1024 * 1024) {
                   toast?.error?.(`File exceeds ${maxMB}MB limit for ${tier} tier.`);
