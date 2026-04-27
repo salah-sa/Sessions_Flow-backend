@@ -111,10 +111,21 @@ public static class SessionEndpoints
             var engineerIds = sessions.Select(s => s.EngineerId).Distinct().ToList();
             var sessionIds = sessions.Select(s => s.Id).ToList();
 
-            var groupsList = await db.Groups.Find(g => groupIds.Contains(g.Id) && !g.IsDeleted).ToListAsync();
-            var engineersList = await db.Users.Find(e => engineerIds.Contains(e.Id)).ToListAsync();
-            var allRecords = await db.AttendanceRecords.Find(ar => sessionIds.Contains(ar.SessionId)).ToListAsync();
-            var allActiveStudents = await db.Students.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync();
+            var groupsList = role == "Admin"
+                ? await db.GlobalGroups.Find(g => groupIds.Contains(g.Id) && !g.IsDeleted).ToListAsync()
+                : await db.Groups.Find(g => groupIds.Contains(g.Id) && !g.IsDeleted).ToListAsync();
+
+            var engineersList = role == "Admin"
+                ? await db.GlobalUsers.Find(e => engineerIds.Contains(e.Id)).ToListAsync()
+                : await db.Users.Find(e => engineerIds.Contains(e.Id)).ToListAsync();
+
+            var allRecords = role == "Admin"
+                ? await db.GlobalAttendanceRecords.Find(ar => sessionIds.Contains(ar.SessionId)).ToListAsync()
+                : await db.AttendanceRecords.Find(ar => sessionIds.Contains(ar.SessionId)).ToListAsync();
+
+            var allActiveStudents = role == "Admin"
+                ? await db.GlobalStudents.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync()
+                : await db.Students.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync();
 
             var groupDict = groupsList.ToDictionary(g => g.Id);
             var engDict = engineersList.ToDictionary(e => e.Id);
