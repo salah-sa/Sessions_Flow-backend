@@ -31,11 +31,21 @@ const CodeBlock: React.FC<{ code: string; language?: string }> = ({ code, langua
 
   // Simple regex-based syntax highlighter
   const highlightCode = (code: string) => {
-    return code
-      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    // 1. Strict HTML Escaping to neutralize any malicious injection
+    const escaped = code
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+
+    // 2. Safe Tokenization and Highlighting
+    // We only wrap specific tokens in pre-defined spans. 
+    // This is safer than dangerouslySetInnerHTML with raw content.
+    return escaped
       .replace(/\b(await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|export|extends|false|finally|for|function|if|import|in|instanceof|new|null|return|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)\b/g, '<span class="text-[#c678dd]">$1</span>') // Keywords
       .replace(/\b(console|window|document|Math|JSON|Object|Array|String|Number|Boolean|Promise)\b/g, '<span class="text-[#e5c07b]">$1</span>') // Built-ins
-      .replace(/("[^"]*"|'[^']*'|`[^`]*`)/g, '<span class="text-[#98c379]">$1</span>') // Strings
+      .replace(/(&quot;[^&]*&quot;|&#039;[^&]*&#039;|`[^`]*`)/g, '<span class="text-[#98c379]">$1</span>') // Strings
       .replace(/(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/g, '<span class="text-[#5c6370] italic">$1</span>') // Comments
       .replace(/\b(\d+)\b/g, '<span class="text-[#d19a66]">$1</span>'); // Numbers
   };

@@ -22,7 +22,7 @@ public static class AdminMaintenanceEndpoints
         {
             var cairoTz = sessionService.GetConfiguredTimeZone();
             var sessions = await db.Sessions.Find(s => s.Status == SessionStatus.Scheduled && !s.IsDeleted).ToListAsync();
-            var fixedCount = 0;
+            var updates = new List<WriteModel<Session>>();
 
             foreach (var session in sessions)
             {
@@ -49,15 +49,19 @@ public static class AdminMaintenanceEndpoints
 
                 if (session.ScheduledAt != correctScheduledAt)
                 {
-                    await db.Sessions.UpdateOneAsync(
-                        s => s.Id == session.Id,
+                    updates.Add(new UpdateOneModel<Session>(
+                        Builders<Session>.Filter.Eq(s => s.Id, session.Id),
                         Builders<Session>.Update.Set(s => s.ScheduledAt, correctScheduledAt)
-                    );
-                    fixedCount++;
+                    ));
                 }
             }
 
-            return Results.Ok(new { message = $"Migration complete. Fixed {fixedCount} sessions.", totalChecked = sessions.Count });
+            if (updates.Any())
+            {
+                await db.Sessions.BulkWriteAsync(updates);
+            }
+
+            return Results.Ok(new { message = $"Migration complete. Fixed {updates.Count} sessions.", totalChecked = sessions.Count });
         }).RequireAuthorization("AdminOnly");
 
         // NEW: Cleanup duplicate sessions (keeps oldest, soft-deletes rest)
@@ -131,8 +135,8 @@ public static class AdminMaintenanceEndpoints
         // NEW: Normalize Media URLs (Convert absolute URLs with specific host/proto to relative paths)
         group.MapPost("/normalize-media-urls", async (MongoService db) =>
         {
-            var updatedMessages = 0;
-            var updatedUsers = 0;
+            var msgUpdates = new List<WriteModel<ChatMessage>>();
+            var userUpdates = new List<WriteModel<User>>();
 
             // 1. Fix Chat Messages
             var messagesWithFiles = await db.ChatMessages.Find(m => m.FileUrl != null).ToListAsync();
@@ -140,24 +144,24 @@ public static class AdminMaintenanceEndpoints
             {
                 if (msg.FileUrl!.Contains("/api/media/"))
                 {
-                    // Extract just the /api/media/{id} part
                     var parts = msg.FileUrl.Split("/api/media/");
                     if (parts.Length > 1)
                     {
                         var relativeUrl = "/api/media/" + parts[1];
                         if (msg.FileUrl != relativeUrl)
                         {
-                            await db.ChatMessages.UpdateOneAsync(
-                                m => m.Id == msg.Id,
+                            msgUpdates.Add(new UpdateOneModel<ChatMessage>(
+                                Builders<ChatMessage>.Filter.Eq(m => m.Id, msg.Id),
                                 Builders<ChatMessage>.Update.Set(m => m.FileUrl, relativeUrl)
-                            );
-                            updatedMessages++;
+                            ));
                         }
                     }
                 }
             }
 
-            // 2. Fix User Avatars (just in case absolute URLs were stored)
+            if (msgUpdates.Any()) await db.ChatMessages.BulkWriteAsync(msgUpdates);
+
+            // 2. Fix User Avatars
             var usersWithAvatars = await db.Users.Find(u => u.AvatarUrl != null).ToListAsync();
             foreach (var user in usersWithAvatars)
             {
@@ -169,17 +173,22 @@ public static class AdminMaintenanceEndpoints
                         var relativeUrl = "/api/media/" + parts[1];
                         if (user.AvatarUrl != relativeUrl)
                         {
-                            await db.Users.UpdateOneAsync(
-                                u => u.Id == user.Id,
+                            userUpdates.Add(new UpdateOneModel<User>(
+                                Builders<User>.Filter.Eq(u => u.Id, user.Id),
                                 Builders<User>.Update.Set(u => u.AvatarUrl, relativeUrl)
-                            );
-                            updatedUsers++;
+                            ));
                         }
                     }
                 }
             }
 
-            return Results.Ok(new { message = "Normalization complete.", updatedMessages, updatedUsers });
+            if (userUpdates.Any()) await db.Users.BulkWriteAsync(userUpdates);
+
+            return Results.Ok(new { 
+                message = "Normalization complete.", 
+                updatedMessages = msgUpdates.Count, 
+                updatedUsers = userUpdates.Count 
+            });
         }).RequireAuthorization("AdminOnly");
 
         // NEW: Drop Chat TTL Index (Stops auto-deletion of old messages)
