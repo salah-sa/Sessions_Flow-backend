@@ -395,6 +395,7 @@ public static class GroupEndpoints
                 catch (Exception ex)
                 {
                     await session.AbortTransactionAsync();
+                    Serilog.Log.Error(ex, "Failed to create group inside transaction");
                     // Log the detailed error but return a clean JSON for the frontend
                     return Results.Json(new { 
                         error = "Failed to create group. Please check your data and try again.", 
@@ -404,6 +405,7 @@ public static class GroupEndpoints
             }
             catch (Exception ex)
             {
+                Serilog.Log.Error(ex, "Internal server error occurred while creating group");
                 return Results.Json(new { error = "Internal server error occurred.", detail = ex.Message }, statusCode: 500);
             }
         });
@@ -615,6 +617,7 @@ public static class GroupEndpoints
             catch (Exception ex)
             {
                 await session.AbortTransactionAsync();
+                Serilog.Log.Error(ex, "Failed to archive group due to a system error");
                 return Results.Json(new { error = "Failed to archive group due to a system error.", detail = ex.Message }, statusCode: 500);
             }
         });

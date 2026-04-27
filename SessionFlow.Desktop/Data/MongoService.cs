@@ -74,6 +74,11 @@ public class MongoService
         await Groups.Indexes.CreateOneAsync(new CreateIndexModel<Group>(
             Builders<Group>.IndexKeys.Ascending(g => g.Name)));
 
+        // GroupSchedules Index: GroupId
+        // Guarantees the collection exists before the first multi-document transaction hits it
+        await GroupSchedules.Indexes.CreateOneAsync(new CreateIndexModel<GroupSchedule>(
+            Builders<GroupSchedule>.IndexKeys.Ascending(gs => gs.GroupId)));
+
         // Pagination Index: Students Name (Search/Sort)
         await Students.Indexes.CreateOneAsync(new CreateIndexModel<Student>(
             Builders<Student>.IndexKeys.Ascending(s => s.Name)));
