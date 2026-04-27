@@ -122,7 +122,7 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
 
   const handleNext = () => {
     sounds.playHover();
-    setStep(prev => Math.min(prev + 4, 4));
+    setStep(prev => Math.min(prev + 1, 4));
   };
   const handleBack = () => {
     sounds.playHover();

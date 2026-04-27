@@ -67,53 +67,9 @@ const AttendancePage: React.FC = () => {
     completed: completedSessions.length
   };
 
-  const handleMakeAttendance = async (session: Session) => {
+  const handleMakeAttendance = (session: Session) => {
     sounds.playSessionLaunch();
-    
-    try {
-      // 1. Prepare Tactical Data for Google Form
-      const raw = new Date(session.scheduledAt);
-      const h = raw.getHours();
-      const m = raw.getMinutes();
-      const dateStr = format(raw, "yyyy-MM-dd");
-      const startTimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-      const endH = (h + 2) % 24;
-      const endTimeStr = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-
-      const formData: AttendanceFormData = {
-        groupName: session.groupName || "",
-        dayOfWeek: raw.getDay(),
-        startTime: startTimeStr,
-        endTime: endTimeStr,
-        date: dateStr,
-        lectureNumber: session.sessionNumber || 1,
-        isLastLecture: false,
-        isNextLastLecture: false,
-        notes: "Automated via One-Click Sign",
-        students: (session as any).students?.map((s: any) => ({
-          id: s.id,
-          name: s.name,
-          isPresent: true,
-          attendanceOnTime: "Yes",
-          taskSubmission: "Yes",
-          interaction: "Yes",
-          research: "Yes",
-          teamwork: "Yes",
-          comment: ""
-        })) || []
-      };
-
-      // 2. Open Google Form in New Tab
-      const url = generateAttendanceFormUrl(formData);
-      window.open(url, "_blank");
-
-      // 3. One-Click Completion & Progression
-      await signMutation.mutateAsync(session.id);
-      
-      toast.success(`${session.groupName} signed and advanced.`);
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to sign session.");
-    }
+    setWizardSession(session);
   };
 
   return (

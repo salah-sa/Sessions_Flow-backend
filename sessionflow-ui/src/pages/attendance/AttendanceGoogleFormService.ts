@@ -52,15 +52,12 @@ const ENTRY_IDS = {
 const formatFeedback = (s: StudentFeedback): string => {
   if (!s.isPresent) return "غائب (Absent)";
   
-  const mapEval = (val: "Yes" | "Needs Improvement") => val === "Yes" ? "نعم" : "يحتاج تطوير";
+  const attendance = s.attendanceOnTime === "Yes" ? "Yes" : "Needs Imp.";
+  const task = s.taskSubmission === "Yes" ? "Yes" : "No";
+  const interaction = s.interaction === "Yes" ? "Excellent" : "Good"; // Status
+  const advice = s.comment || "Keep it up!"; // Short Advice
   
-  return `الاسم: ${s.name}
-الحضور في الموعد: ${mapEval(s.attendanceOnTime)}
-تسليم التاسك: ${mapEval(s.taskSubmission)}
-التفاعل اثناء السيشن: ${mapEval(s.interaction)}
-البحث عن المعلومات: ${mapEval(s.research)}
-العمل الجماعي: ${mapEval(s.teamwork)}
-تعليق كتابي: ${s.comment || "لا يوجد"}`;
+  return `(${attendance} - ${task} - ${interaction} - ${advice})`;
 };
 
 export const generateAttendanceFormUrl = (data: AttendanceFormData): string => {
