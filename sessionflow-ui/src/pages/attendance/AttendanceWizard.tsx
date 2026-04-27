@@ -257,18 +257,31 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
                           {formData.date}
                         </div>
                       </div>
-                      <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                          <FileText className="w-3.5 h-3.5 text-[var(--att-ember)]"/> Sequence Number
-                        </label>
-                        <Input 
-                          value={formData.lectureNumber} 
-                          type="number" 
-                          onChange={(e) => setFormData({ ...formData, lectureNumber: parseInt(e.target.value) || 1 })} 
-                          className="h-14 rounded-2xl bg-white/[0.03] border-white/10 text-white font-black text-xl focus:border-[var(--att-ember)]" 
-                        />
-                        <p className="text-[10px] text-slate-500 font-medium">Verify this matches the physical session count.</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                            <FileText className="w-3.5 h-3.5 text-[var(--att-ember)]"/> Session Number
+                          </label>
+                          <Input 
+                            value={formData.lectureNumber} 
+                            type="number" 
+                            onChange={(e) => setFormData({ ...formData, lectureNumber: parseInt(e.target.value) || 1 })} 
+                            className="h-14 rounded-2xl bg-white/[0.03] border-white/10 text-white font-black text-xl focus:border-[var(--att-ember)]" 
+                          />
+                        </div>
+                        <div className="space-y-3">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-500"/> Lecture Topic
+                          </label>
+                          <Input 
+                            value={formData.lectureTopic || ""} 
+                            placeholder="e.g. Variables in Python"
+                            onChange={(e) => setFormData({ ...formData, lectureTopic: e.target.value })} 
+                            className="h-14 rounded-2xl bg-white/[0.03] border-white/10 text-white font-medium text-sm focus:border-amber-500 placeholder-slate-600" 
+                          />
+                        </div>
                       </div>
+                      <p className="text-[10px] text-slate-500 font-medium">Verify session number matches the physical count. Topic is optional but recommended.</p>
                     </div>
                   </motion.div>
                 )}

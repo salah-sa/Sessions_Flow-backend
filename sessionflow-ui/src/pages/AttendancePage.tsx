@@ -25,8 +25,6 @@ import { cn, formatDateTo12h, getCairoDateStr } from "../lib/utils";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { sounds } from "../lib/sounds";
-import { AttendanceFormData, generateAttendanceFormUrl } from "./attendance/AttendanceGoogleFormService";
-import { format } from "date-fns";
 
 const AttendancePage: React.FC = () => {
   const { t } = useTranslation();
