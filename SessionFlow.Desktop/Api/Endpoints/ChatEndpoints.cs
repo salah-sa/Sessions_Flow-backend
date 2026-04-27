@@ -154,17 +154,17 @@ public static class ChatEndpoints
             if (userRole == "Engineer" && g.EngineerId != userGuid)
                 return Results.Forbid();
 
+            // 1. Resolve User & Authorization
+            var user = await db.Users.Find(u => u.Id == userGuid).FirstOrDefaultAsync();
+            if (user == null) return Results.Forbid();
+
             if (userRole == "Student")
             {
-                var user = await db.Users.Find(u => u.Id == userGuid).FirstOrDefaultAsync();
-                if (user == null) return Results.Forbid();
                 var studentInfos = await auth.ResolveAllStudentsForUser(user);
                 if (studentInfos == null || !studentInfos.Any(s => s.GroupId == groupId)) return Results.Forbid();
             }
 
-            // 1. Determine Effective Tier & Limits
-            var user = await db.Users.Find(u => u.Id == userGuid).FirstOrDefaultAsync();
-            if (user == null) return Results.Forbid();
+            // 2. Determine Effective Tier & Limits
             var effectiveTier = user.Role == UserRole.Student ? SubscriptionTier.Ultra : user.SubscriptionTier;
 
             // 2. Load today's usage for quota check
