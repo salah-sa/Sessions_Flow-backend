@@ -52,8 +52,12 @@ export function getCairoDateStr(): string {
   return `${year}-${month}-${day}`;
 }
 
-export function formatDate(date: string | Date) {
-  return new Date(date).toLocaleDateString("en-EG", {
+export function formatDate(date: string | Date | null | undefined) {
+  if (!date) return "-----";
+  const d = date instanceof Date ? date : new Date(date);
+  if (isNaN(d.getTime())) return "-----";
+  
+  return d.toLocaleDateString("en-EG", {
     weekday: "long",
     year: "numeric",
     month: "long",

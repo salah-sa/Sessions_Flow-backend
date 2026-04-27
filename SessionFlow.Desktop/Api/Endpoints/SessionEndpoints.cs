@@ -89,11 +89,12 @@ public static class SessionEndpoints
 
             var (skip, take) = PaginationHelper.Normalize(page, pageSize);
             
-            var totalCount = role == "Admin"
+            var isAdmin = ctx.User.IsInRole("Admin");
+            var totalCount = isAdmin
                 ? await db.GlobalSessions.CountDocumentsAsync(filter)
                 : await db.Sessions.CountDocumentsAsync(filter);
 
-            var sessions = role == "Admin"
+            var sessions = isAdmin
                 ? await db.GlobalSessions
                     .Find(filter)
                     .SortByDescending(s => s.ScheduledAt)

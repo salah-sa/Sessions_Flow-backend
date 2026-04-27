@@ -18,7 +18,8 @@ public static class DashboardEndpoints
 
         group.MapGet("/summary", async (MongoService db, HttpContext ctx, AuthService auth, ITenantAccessor tenantAccessor) =>
         {
-            var roleStr = ctx.User.FindFirst(ClaimTypes.Role)?.Value ?? "Admin";
+            var isAdmin = ctx.User.IsInRole("Admin");
+            var isStudent = ctx.User.IsInRole("Student");
 
             // Egypt Standard Time — handles DST automatically
             var cairoTz = TimeZoneInfo.FindSystemTimeZoneById(
@@ -48,11 +49,11 @@ public static class DashboardEndpoints
 
             // Helper functions to handle conditional logic between Global and Scoped repositories
             async Task<long> CountDocs<T>(IMongoCollection<T> global, TenantRepository<T> scoped, FilterDefinition<T> filter) where T : class, ITenantEntity
-                => roleStr == "Admin" ? await global.CountDocumentsAsync(filter) : await scoped.CountDocumentsAsync(filter);
+                => isAdmin ? await global.CountDocumentsAsync(filter) : await scoped.CountDocumentsAsync(filter);
 
             async Task<List<T>> FindDocs<T>(IMongoCollection<T> global, TenantRepository<T> scoped, FilterDefinition<T> filter, int? limit = null) where T : class, ITenantEntity
             {
-                var fluent = roleStr == "Admin" ? global.Find(filter) : scoped.Find(filter);
+                var fluent = isAdmin ? global.Find(filter) : scoped.Find(filter);
                 if (limit.HasValue) fluent = fluent.Limit(limit.Value);
                 return await fluent.ToListAsync();
             }
@@ -63,7 +64,7 @@ public static class DashboardEndpoints
             var activeSessionsTask = CountDocs(db.GlobalSessions, db.Sessions, activeFilter);
 
             List<Guid> studentGroupIds = new List<Guid>();
-            if (roleStr == "Student")
+            if (isStudent)
             {
                 var user = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
                 if (user != null)
@@ -80,7 +81,7 @@ public static class DashboardEndpoints
             long totalGlobalUsers = 0;
             long pendingApprovals = 0;
 
-            if (roleStr == "Admin")
+            if (isAdmin)
             {
                 totalGlobalUsers = await db.GlobalUsers.CountDocumentsAsync(_ => true);
                 pendingApprovals = await db.PendingEngineers.CountDocumentsAsync(p => p.Status == PendingStatus.Pending);

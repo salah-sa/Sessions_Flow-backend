@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { GroupCard } from "./GroupCard";
 import { Group } from "../../types";
+import { formatDate } from "../../lib/utils";
 
 interface GroupListProps {
   groups: Group[];
@@ -118,7 +119,7 @@ export const GroupList: React.FC<GroupListProps> = ({
                       </td>
                       <td className="px-4 md:px-8 py-4 md:py-6 hidden md:table-cell">
                         <span className="text-[10px] uppercase font-bold text-slate-500 tracking-tight">
-                          {group.nextSession ? new Date(group.nextSession).toLocaleDateString() : t("common.none")}
+                          {group.nextSession ? formatDate(group.nextSession) : t("common.none")}
                         </span>
                       </td>
                       <td className="px-4 md:px-8 py-4 md:py-6 text-end">

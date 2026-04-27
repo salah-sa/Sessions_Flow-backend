@@ -17,7 +17,7 @@ import { Card, Button, Input, Badge } from "../components/ui";
 import { useInfiniteSessions } from "../queries/useSessionQueries";
 import { useSettings } from "../queries/useSettingsQueries";
 import { Session, Group } from "../types";
-import { cn } from "../lib/utils";
+import { cn, formatDate, formatDateTo12h } from "../lib/utils";
 import { exportSessionsToICS } from "../lib/calendar";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../store/stores";
@@ -61,7 +61,11 @@ const HistoryPage: React.FC = () => {
   const sessions = useMemo(() => {
     const raw = data?.pages.flatMap(page => (page as any).items) || [];
     // Ensure latest first sorting
-    return [...raw].sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime());
+    return [...raw].sort((a, b) => {
+      const dateA = a.scheduledAt ? new Date(a.scheduledAt).getTime() : 0;
+      const dateB = b.scheduledAt ? new Date(b.scheduledAt).getTime() : 0;
+      return (isNaN(dateB) ? 0 : dateB) - (isNaN(dateA) ? 0 : dateA);
+    });
   }, [data]);
   const loading = isLoading;
   const loadingMore = isFetchingNextPage;
@@ -131,7 +135,10 @@ const HistoryPage: React.FC = () => {
   const groupedSessions = useMemo(() => {
     const groups: Record<string, Session[]> = {};
     filteredSessions.forEach((session: Session) => {
-      const key = format(new Date(session.scheduledAt), viewMode === "year" ? "yyyy-MM" : "yyyy-MM-dd");
+      const sDate = session.scheduledAt ? new Date(session.scheduledAt) : null;
+      const key = sDate && !isNaN(sDate.getTime()) 
+        ? format(sDate, viewMode === "year" ? "yyyy-MM" : "yyyy-MM-dd")
+        : "invalid-date";
       if (!groups[key]) groups[key] = [];
       groups[key].push(session);
     });
@@ -231,7 +238,9 @@ const HistoryPage: React.FC = () => {
                // O(S) Pre-computation
                const countsMap = new Map<string, number>();
                sessions.forEach(s => {
-                 const k = format(new Date(s.scheduledAt), "yyyy-MM-dd");
+                 const sDate = s.scheduledAt ? new Date(s.scheduledAt) : null;
+                 if (!sDate || isNaN(sDate.getTime())) return;
+                 const k = format(sDate, "yyyy-MM-dd");
                  countsMap.set(k, (countsMap.get(k) || 0) + 1);
                });
                
@@ -372,7 +381,9 @@ const HistoryPage: React.FC = () => {
                        <div className="flex items-center gap-3">
                           <span className="w-2 h-2 rounded-full bg-[var(--ui-accent)] shadow-glow" />
                           <span className="text-sm font-bold text-white tabular-nums">
-                             {viewMode === "year" ? format(new Date(dateKey + "-01"), "MMMM yyyy") : format(new Date(dateKey), "EEEE • dd MMMM")}
+                             {viewMode === "year" 
+                                ? formatDate(dateKey + "-01") 
+                                : formatDate(dateKey)}
                           </span>
                        </div>
                        <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white/5" />
@@ -425,7 +436,7 @@ const HistoryPage: React.FC = () => {
                                         <Clock className="w-3 h-3" /> {t("common.time")}
                                      </p>
                                      <p className="text-sm font-semibold text-white tabular-nums">
-                                        {format(new Date(session.scheduledAt), "hh:mm a")}
+                                        {formatDateTo12h(session.scheduledAt)}
                                      </p>
                                   </div>
                                   <div className="bg-[var(--ui-bg)]/40 rounded-2xl p-4 border border-white/[0.02] flex flex-col justify-between">

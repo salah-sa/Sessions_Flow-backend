@@ -64,13 +64,14 @@ public static class GroupEndpoints
                 filter &= builder.Eq(g => g.Status, st);
             }
             
+            var isAdmin = ctx.User.IsInRole("Admin");
             var (skip, take) = PaginationHelper.Normalize(page, pageSize);
             
-            var totalCount = roleStr == "Admin"
+            var totalCount = isAdmin
                 ? await db.GlobalGroups.CountDocumentsAsync(filter)
                 : await db.Groups.CountDocumentsAsync(filter);
 
-            var groups = roleStr == "Admin"
+            var groups = isAdmin
                 ? await db.GlobalGroups.Find(filter)
                     .SortBy(g => g.Name)
                     .Skip(skip)
@@ -83,18 +84,18 @@ public static class GroupEndpoints
                     .ToListAsync();
 
             var engineerIds = groups.Select(g => g.EngineerId).Distinct().ToList();
-            var engineers = roleStr == "Admin"
+            var engineers = isAdmin
                 ? await db.GlobalUsers.Find(u => engineerIds.Contains(u.Id)).ToListAsync()
                 : await db.Users.Find(u => engineerIds.Contains(u.Id)).ToListAsync();
             var engDict = engineers.ToDictionary(e => e.Id);
 
             var groupIds = groups.Select(g => g.Id).ToList();
-            var allSchedules = roleStr == "Admin"
+            var allSchedules = isAdmin
                 ? await db.GlobalGroupSchedules.Find(s => groupIds.Contains(s.GroupId)).ToListAsync()
                 : await db.GroupSchedules.Find(s => groupIds.Contains(s.GroupId)).ToListAsync();
             var schedulesDict = allSchedules.GroupBy(s => s.GroupId).ToDictionary(g => g.Key, g => g.ToList());
 
-            var allStudents = roleStr == "Admin"
+            var allStudents = isAdmin
                 ? await db.GlobalStudents.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync()
                 : await db.Students.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync();
             var studentCountDict = allStudents

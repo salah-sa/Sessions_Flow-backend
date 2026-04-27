@@ -189,10 +189,12 @@ export const WeekView: React.FC<WeekViewProps> = ({ sessions, groupSchedules, cu
                            .filter((s) => {
                               const sDate = new Date(s.scheduledAt);
                               const dayStr = format(day, "yyyy-MM-dd");
-                              const sCairo = new Intl.DateTimeFormat('en-CA', { 
-                                timeZone: 'Africa/Cairo',
-                                year: 'numeric', month: '2-digit', day: '2-digit' 
-                              }).format(sDate);
+                              const sCairo = sDate && !isNaN(sDate.getTime()) 
+                                ? new Intl.DateTimeFormat('en-CA', { 
+                                    timeZone: 'Africa/Cairo',
+                                    year: 'numeric', month: '2-digit', day: '2-digit' 
+                                  }).format(sDate)
+                                : "-----";
                               return sCairo === dayStr;
                            })
                            .map((session) => {
@@ -257,7 +259,7 @@ export const WeekView: React.FC<WeekViewProps> = ({ sessions, groupSchedules, cu
                                        <div className="mt-auto flex items-center justify-between ps-3">
                                           <div className="flex items-center gap-1.5 text-[8.5px] font-bold tabular-nums tracking-wider text-slate-400">
                                              <Clock className="w-3 h-3 opacity-50 text-[var(--ui-accent)]" />
-                                             {new Intl.DateTimeFormat('en-US', { timeZone: 'Africa/Cairo', hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date(session.scheduledAt))}
+                                             {session.scheduledAt ? formatDateTo12h(session.scheduledAt) : "--:--"}
                                           </div>
                                           {session.status === "Active" && (
                                              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[var(--ui-accent)]/20 border border-[var(--ui-accent)]/30">

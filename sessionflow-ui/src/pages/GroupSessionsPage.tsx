@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Calendar, CheckCircle, Clock, Circle, ChevronRight, Users, User, Layers, Target, Activity, ShieldCheck, Zap, Play } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../components/ui";
-import { cn } from "../lib/utils";
+import { cn, formatDate, formatDateTo12h } from "../lib/utils";
 import { useTranslation } from "react-i18next";
 import { Session, Group } from "../types";
 import { useGroup } from "../queries/useGroupQueries";
@@ -25,7 +25,11 @@ const GroupSessionsPage: React.FC = () => {
   });
 
   const sessions = (sessionsData?.pages.flatMap(page => (page as any).items) || [])
-    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+    .sort((a, b) => {
+      const dateA = a.scheduledAt ? new Date(a.scheduledAt).getTime() : 0;
+      const dateB = b.scheduledAt ? new Date(b.scheduledAt).getTime() : 0;
+      return (isNaN(dateA) ? 0 : dateA) - (isNaN(dateB) ? 0 : dateB);
+    });
 
   const loading = groupLoading || sessionsLoading;
   
@@ -305,7 +309,8 @@ const GroupSessionsPage: React.FC = () => {
               const isCompleted = session.status === "Ended";
               const isActive = session.status === "Active";
               const isCurrentLogical = logicalNumber === group?.currentSessionNumber;
-              const isPast = !isCompleted && !isActive && !isCurrentLogical && new Date(session.scheduledAt) < new Date();
+              const scheduledDate = session.scheduledAt ? new Date(session.scheduledAt) : null;
+              const isPast = !isCompleted && !isActive && !isCurrentLogical && scheduledDate && !isNaN(scheduledDate.getTime()) && scheduledDate < new Date();
 
               return (
                 <div 
@@ -362,11 +367,10 @@ const GroupSessionsPage: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-3 text-xs text-slate-500 font-bold uppercase tracking-wider">
                         <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> 
-                          {new Date(session.scheduledAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                          {formatDate(session.scheduledAt)}
                         </span>
-                        <span className="opacity-30">|</span>
-                        <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> 
-                          {new Date(session.scheduledAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
+                        <span className="text-slate-500 font-medium">
+                          {formatDateTo12h(session.scheduledAt)}
                         </span>
                       </div>
                     </div>
