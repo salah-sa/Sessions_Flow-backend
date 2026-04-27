@@ -150,12 +150,19 @@ public static class TimetableEndpoints
         });
 
         // PUT /api/timetable — update group schedules
-        group.MapPut("/", async (List<UpdateScheduleItem> items, MongoService db) =>
+        group.MapPut("/", async (List<UpdateScheduleItem> items, MongoService db, HttpContext ctx) =>
         {
+            var (uid, role, identityError) = Helpers.AuthorizationGuard.ExtractIdentity(ctx);
+            if (identityError != null) return Results.Unauthorized();
+
             foreach (var item in items)
             {
                 if (Guid.TryParse(item.Id, out var id))
                 {
+                    // SECURITY: Ownership check — verify schedule belongs to this engineer
+                    var scheduleGuard = await Helpers.AuthorizationGuard.EnsureOwnsGroupSchedule(id, uid, role, db);
+                    if (scheduleGuard != null) return scheduleGuard;
+
                     var update = Builders<GroupSchedule>.Update
                         .Set(gs => gs.DayOfWeek, item.DayOfWeek)
                         .Set(gs => gs.StartTime, TimeSpan.Parse(item.StartTime))

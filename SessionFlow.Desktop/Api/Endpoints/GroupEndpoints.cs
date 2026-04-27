@@ -218,12 +218,18 @@ public static class GroupEndpoints
         });
 
         // GET /api/groups/check-name?name=XYZ&excludeId=GUID — check if name is available
-        group.MapGet("/check-name", async (string name, Guid? excludeId, MongoService db) =>
+        group.MapGet("/check-name", async (string name, Guid? excludeId, MongoService db, HttpContext ctx) =>
         {
             if (string.IsNullOrWhiteSpace(name))
                 return Results.BadRequest(new { available = false, error = "Name is required." });
 
+            var (uid, role, identityError) = AuthorizationGuard.ExtractIdentity(ctx);
+            if (identityError != null) return Results.Unauthorized();
+
             var filter = Builders<Group>.Filter.Eq(g => g.Name, name.Trim()) & Builders<Group>.Filter.Eq(g => g.IsDeleted, false);
+            // SECURITY: Scope name uniqueness check per-engineer (multi-tenant isolation)
+            if (role == "Engineer")
+                filter &= Builders<Group>.Filter.Eq(g => g.EngineerId, uid);
             if (excludeId.HasValue)
                 filter &= Builders<Group>.Filter.Ne(g => g.Id, excludeId.Value);
 
@@ -243,7 +249,8 @@ public static class GroupEndpoints
                 if (string.IsNullOrWhiteSpace(req.Name))
                     return Results.BadRequest(new { error = "Group name is required." });
 
-                var exists = await db.Groups.Find(g => g.Name == req.Name.Trim() && !g.IsDeleted).AnyAsync();
+                // SECURITY: Scope name uniqueness to the creating engineer (multi-tenant isolation)
+                var exists = await db.Groups.Find(g => g.Name == req.Name.Trim() && g.EngineerId == engineerId && !g.IsDeleted).AnyAsync();
                 if (exists)
                     return Results.Conflict(new { error = "A group with this name already exists." });
 
@@ -418,7 +425,8 @@ public static class GroupEndpoints
 
             if (!string.IsNullOrWhiteSpace(req.Name))
             {
-                var nameExists = await db.Groups.Find(x => x.Name == req.Name.Trim() && x.Id != id && !x.IsDeleted).AnyAsync();
+                // SECURITY: Scope name uniqueness to the owning engineer (multi-tenant isolation)
+                var nameExists = await db.Groups.Find(x => x.Name == req.Name.Trim() && x.Id != id && x.EngineerId == userId && !x.IsDeleted).AnyAsync();
                 if (nameExists)
                     return Results.Conflict(new { error = "A group with this name already exists." });
                 update = update.Set(x => x.Name, req.Name.Trim());
@@ -656,10 +664,17 @@ public static class GroupEndpoints
         });
 
         // POST /api/groups/{id}/students — add student to group
-        group.MapPost("/{id:guid}/students", async (Guid id, AddStudentRequest req, MongoService db) =>
+        group.MapPost("/{id:guid}/students", async (Guid id, AddStudentRequest req, MongoService db, HttpContext ctx) =>
         {
+            var (uid, role, identityError) = AuthorizationGuard.ExtractIdentity(ctx);
+            if (identityError != null) return Results.Unauthorized();
+
             var g = await db.Groups.Find(x => x.Id == id).FirstOrDefaultAsync();
             if (g == null) return Results.NotFound(new { error = "Group not found." });
+
+            // SECURITY: Ownership check — only the owning engineer or admin can add students
+            if (role != "Admin" && g.EngineerId != uid)
+                return Results.Forbid();
 
             if (string.IsNullOrWhiteSpace(req.Name))
                 return Results.BadRequest(new { error = "Student name is required." });

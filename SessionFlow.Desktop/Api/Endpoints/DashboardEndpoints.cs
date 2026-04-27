@@ -91,9 +91,27 @@ public static class DashboardEndpoints
                 ? db.PendingEngineers.CountDocumentsAsync(p => p.Status == PendingStatus.Pending)
                 : Task.FromResult(0L);
 
-            // Total students (all non-deleted)
-            var totalStudentsTask = db.Students.CountDocumentsAsync(
-                Builders<Student>.Filter.Eq(s => s.IsDeleted, false));
+            // Total students (scoped per role)
+            Task<long> totalStudentsTask;
+            if (roleStr == "Engineer")
+            {
+                // SECURITY: Only count students in this engineer's groups (multi-tenant isolation)
+                var engGroupIds = await db.Groups.Find(
+                    Builders<Group>.Filter.Eq(g => g.EngineerId, userId) & Builders<Group>.Filter.Eq(g => g.IsDeleted, false)
+                ).Project(g => g.Id).ToListAsync();
+                totalStudentsTask = db.Students.CountDocumentsAsync(
+                    Builders<Student>.Filter.In(s => s.GroupId, engGroupIds) & Builders<Student>.Filter.Eq(s => s.IsDeleted, false));
+            }
+            else if (roleStr == "Student" && studentGroupIds.Count > 0)
+            {
+                totalStudentsTask = db.Students.CountDocumentsAsync(
+                    Builders<Student>.Filter.In(s => s.GroupId, studentGroupIds) & Builders<Student>.Filter.Eq(s => s.IsDeleted, false));
+            }
+            else
+            {
+                totalStudentsTask = db.Students.CountDocumentsAsync(
+                    Builders<Student>.Filter.Eq(s => s.IsDeleted, false));
+            }
 
             // Completed sessions all time (role-filtered)
             var completedSessionFilter = Builders<Session>.Filter.Eq(s => s.IsDeleted, false)

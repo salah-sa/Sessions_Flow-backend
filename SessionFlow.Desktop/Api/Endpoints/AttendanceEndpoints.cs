@@ -1,8 +1,10 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using MongoDB.Driver;
 using SessionFlow.Desktop.Data;
 using SessionFlow.Desktop.Models;
+using SessionFlow.Desktop.Api.Helpers;
 
 namespace SessionFlow.Desktop.Api.Endpoints;
 
@@ -13,13 +15,31 @@ public static class AttendanceEndpoints
         var group = app.MapGroup("/api/attendance").RequireAuthorization();
 
         // GET /api/attendance?sessionId=&studentId= — get attendance records with filters
-        group.MapGet("/", async (MongoService db, string? sessionId, string? studentId) =>
+        group.MapGet("/", async (MongoService db, HttpContext ctx, string? sessionId, string? studentId) =>
         {
+            var (uid, role, identityError) = AuthorizationGuard.ExtractIdentity(ctx);
+            if (identityError != null) return Results.Unauthorized();
+
             var builder = Builders<AttendanceRecord>.Filter;
             var filter = builder.Empty;
 
             if (Guid.TryParse(sessionId, out var sid))
+            {
+                // SECURITY: Verify the user owns this session before returning its records
+                if (role == "Engineer")
+                {
+                    var guard = await AuthorizationGuard.EnsureOwnsSession(sid, uid, role, db);
+                    if (guard != null) return guard;
+                }
                 filter &= builder.Eq(ar => ar.SessionId, sid);
+            }
+            else if (role == "Engineer")
+            {
+                // No specific session requested — scope to engineer's own sessions only
+                var engineerSessions = await db.Sessions.Find(s => s.EngineerId == uid && !s.IsDeleted)
+                    .Project(s => s.Id).ToListAsync();
+                filter &= builder.In(ar => ar.SessionId, engineerSessions);
+            }
 
             if (Guid.TryParse(studentId, out var stid))
                 filter &= builder.Eq(ar => ar.StudentId, stid);

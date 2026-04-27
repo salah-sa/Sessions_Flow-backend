@@ -338,8 +338,15 @@ public static class StudentEndpoints
         });
 
         // DELETE /api/students/{id}
-        group.MapDelete("/{id:guid}", async (Guid id, MongoService db) =>
+        group.MapDelete("/{id:guid}", async (Guid id, MongoService db, HttpContext ctx) =>
         {
+            var (uid, role, identityError) = AuthorizationGuard.ExtractIdentity(ctx);
+            if (identityError != null) return Results.Unauthorized();
+
+            // SECURITY: Ownership check — only the owning engineer or admin can delete a student
+            var guard = await AuthorizationGuard.EnsureOwnsStudent(id, uid, role, db);
+            if (guard != null) return guard;
+
             var update = Builders<Student>.Update
                 .Set(s => s.IsDeleted, true)
                 .Set(s => s.DeletedAt, DateTimeOffset.UtcNow)
@@ -352,8 +359,18 @@ public static class StudentEndpoints
         });
 
         // GET /api/students/{id}/attendance
-        group.MapGet("/{id:guid}/attendance", async (Guid id, MongoService db) =>
+        group.MapGet("/{id:guid}/attendance", async (Guid id, MongoService db, HttpContext ctx) =>
         {
+            var (uid, role, identityError) = AuthorizationGuard.ExtractIdentity(ctx);
+            if (identityError != null) return Results.Unauthorized();
+
+            // SECURITY: Ownership check — only the owning engineer, the student themselves, or admin
+            if (role == "Engineer")
+            {
+                var guard = await AuthorizationGuard.EnsureOwnsStudent(id, uid, role, db);
+                if (guard != null) return guard;
+            }
+
             var student = await db.Students.Find(s => s.Id == id).FirstOrDefaultAsync();
             if (student == null)
                 return Results.NotFound(new { error = "Student not found." });

@@ -1,6 +1,9 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using SessionFlow.Desktop.Services;
+using SessionFlow.Desktop.Data;
+using SessionFlow.Desktop.Api.Helpers;
 
 namespace SessionFlow.Desktop.Api.Endpoints;
 
@@ -11,8 +14,15 @@ public static class ReportingEndpoints
         var reports = app.MapGroup("/api/reports").RequireAuthorization();
 
         // GET /api/reports/session/{id} — download PDF report
-        reports.MapGet("/session/{id:guid}", async (Guid id, ReportingService reporting) =>
+        reports.MapGet("/session/{id:guid}", async (Guid id, ReportingService reporting, MongoService db, HttpContext ctx) =>
         {
+            var (uid, role, identityError) = AuthorizationGuard.ExtractIdentity(ctx);
+            if (identityError != null) return Results.Unauthorized();
+
+            // SECURITY: Ownership check — only the owning engineer or admin can download reports
+            var guard = await AuthorizationGuard.EnsureOwnsSession(id, uid, role, db);
+            if (guard != null) return guard;
+
             try
             {
                 var pdf = await reporting.GenerateSessionReportAsync(id);

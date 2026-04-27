@@ -295,8 +295,15 @@ public static class SessionEndpoints
         });
 
         // POST /api/sessions/{id}/start
-        group.MapPost("/{id:guid}/start", async (Guid id, SessionService sessionService, Services.EventBus.IEventBus eventBus) =>
+        group.MapPost("/{id:guid}/start", async (Guid id, SessionService sessionService, Services.EventBus.IEventBus eventBus, MongoService db, HttpContext ctx) =>
         {
+            var (uid, role, identityError) = AuthorizationGuard.ExtractIdentity(ctx);
+            if (identityError != null) return Results.Unauthorized();
+
+            // SECURITY: Ownership check — only the owning engineer or admin can start a session
+            var guard = await AuthorizationGuard.EnsureOwnsSession(id, uid, role, db);
+            if (guard != null) return guard;
+
             var (session, error) = await sessionService.StartSessionAsync(id);
             if (error != null)
                 return Results.BadRequest(new { error });
@@ -306,8 +313,15 @@ public static class SessionEndpoints
         });
 
         // POST /api/sessions/{id}/end
-        group.MapPost("/{id:guid}/end", async (Guid id, EndSessionRequest? req, bool? force, SessionService sessionService, Services.EventBus.IEventBus eventBus, MongoService db) =>
+        group.MapPost("/{id:guid}/end", async (Guid id, EndSessionRequest? req, bool? force, SessionService sessionService, Services.EventBus.IEventBus eventBus, MongoService db, HttpContext ctx) =>
         {
+            var (uid, role, identityError) = AuthorizationGuard.ExtractIdentity(ctx);
+            if (identityError != null) return Results.Unauthorized();
+
+            // SECURITY: Ownership check — only the owning engineer or admin can end a session
+            var guard = await AuthorizationGuard.EnsureOwnsSession(id, uid, role, db);
+            if (guard != null) return guard;
+
             var (session, error) = await sessionService.EndSessionAsync(id, req?.Notes, force ?? false);
             if (error != null)
                 return Results.BadRequest(new { error });
@@ -334,9 +348,16 @@ public static class SessionEndpoints
 
         // PUT /api/sessions/{id}/attendance
         group.MapPut("/{id:guid}/attendance", async (Guid id, List<AttendanceUpdateItem> items,
-            SessionService sessionService, Services.EventBus.IEventBus eventBus, HttpContext ctx) =>
+            SessionService sessionService, Services.EventBus.IEventBus eventBus, HttpContext ctx, MongoService db) =>
         {
-            var userRole = ctx.User.FindFirst(ClaimTypes.Role)?.Value ?? "Engineer";
+            var (uid, role, identityError) = AuthorizationGuard.ExtractIdentity(ctx);
+            if (identityError != null) return Results.Unauthorized();
+
+            // SECURITY: Ownership check — only the owning engineer or admin can update attendance
+            var guard = await AuthorizationGuard.EnsureOwnsSession(id, uid, role, db);
+            if (guard != null) return guard;
+
+            var userRole = role;
 
             if (items == null || items.Count == 0)
                 return Results.BadRequest(new { error = "Validation Error: Payload must contain at least one attendance record." });
@@ -376,8 +397,15 @@ public static class SessionEndpoints
         });
 
         // DELETE /api/sessions/{id}
-        group.MapDelete("/{id:guid}", async (Guid id, MongoService db) =>
+        group.MapDelete("/{id:guid}", async (Guid id, MongoService db, HttpContext ctx) =>
         {
+            var (uid, role, identityError) = AuthorizationGuard.ExtractIdentity(ctx);
+            if (identityError != null) return Results.Unauthorized();
+
+            // SECURITY: Ownership check — only the owning engineer or admin can delete a session
+            var guard = await AuthorizationGuard.EnsureOwnsSession(id, uid, role, db);
+            if (guard != null) return guard;
+
             var update = Builders<Session>.Update
                 .Set(s => s.IsDeleted, true)
                 .Set(s => s.DeletedAt, DateTimeOffset.UtcNow)
@@ -392,8 +420,15 @@ public static class SessionEndpoints
 
         // POST /api/sessions/{id}/skip — mark session as skipped (does NOT advance session number)
         group.MapPost("/{id:guid}/skip", async (Guid id, SkipSessionRequest? req,
-            SessionService sessionService, Services.EventBus.IEventBus eventBus) =>
+            SessionService sessionService, Services.EventBus.IEventBus eventBus, MongoService db, HttpContext ctx) =>
         {
+            var (uid, role, identityError) = AuthorizationGuard.ExtractIdentity(ctx);
+            if (identityError != null) return Results.Unauthorized();
+
+            // SECURITY: Ownership check
+            var guard = await AuthorizationGuard.EnsureOwnsSession(id, uid, role, db);
+            if (guard != null) return guard;
+
             var (session, error) = await sessionService.SkipSessionAsync(id, req?.Reason);
             if (error != null)
                 return Results.BadRequest(new { error });
@@ -403,8 +438,15 @@ public static class SessionEndpoints
         });
 
         // POST /api/sessions/{id}/sign — ONE-CLICK COMPLETION & PROGRESSION
-        group.MapPost("/{id:guid}/sign", async (Guid id, SessionService sessionService, Services.EventBus.IEventBus eventBus, MongoService db) =>
+        group.MapPost("/{id:guid}/sign", async (Guid id, SessionService sessionService, Services.EventBus.IEventBus eventBus, MongoService db, HttpContext ctx) =>
         {
+            var (uid, role, identityError) = AuthorizationGuard.ExtractIdentity(ctx);
+            if (identityError != null) return Results.Unauthorized();
+
+            // SECURITY: Ownership check
+            var guard = await AuthorizationGuard.EnsureOwnsSession(id, uid, role, db);
+            if (guard != null) return guard;
+
             var session = await db.Sessions.Find(s => s.Id == id).FirstOrDefaultAsync();
             if (session == null) return Results.NotFound(new { error = "Session not found." });
 
