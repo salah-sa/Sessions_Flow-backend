@@ -228,20 +228,28 @@ const StudentsPage: React.FC = () => {
       </div>
 
       {/* Stats Summary Area */}
-      <div className="px-4 py-4 sm:px-6 sm:py-6 md:px-8 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 shrink-0 relative z-10">
+      <div className="px-4 py-4 sm:px-6 sm:py-6 md:px-8 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 shrink-0 relative z-10">
         {[
-          { label: t("students.stats.active"), value: students.length, icon: Users, color: "text-[var(--ui-accent)]", bg: "bg-[var(--ui-accent)]/5" },
-          { label: t("students.stats.synced"), value: students.filter(s => s.userId).length, icon: ShieldCheck, color: "text-[var(--ui-accent)]", bg: "bg-[var(--ui-accent)]/5" },
-          { label: t("students.stats.units"), value: groups.length, icon: LayoutGrid, color: "text-[var(--ui-accent)]", bg: "bg-[var(--ui-accent)]/5" },
-          { label: t("students.stats.readiness"), value: "98.2%", icon: ArrowUpRight, color: "text-[var(--ui-accent)]", bg: "bg-[var(--ui-accent)]/5" }
+          { label: t("students.stats.active"), value: students.length, icon: Users, color: "text-[var(--ui-accent)]", bg: "bg-[var(--ui-accent)]/10", trend: "+12%" },
+          { label: t("students.stats.synced"), value: students.filter(s => s.userId).length, icon: ShieldCheck, color: "text-emerald-400", bg: "bg-emerald-500/10", trend: "Sync OK" },
+          { label: t("students.stats.units"), value: groups.length, icon: LayoutGrid, color: "text-amber-400", bg: "bg-amber-500/10", trend: "Active" },
+          { label: t("students.stats.readiness"), value: "98.2%", icon: Activity, color: "text-blue-400", bg: "bg-blue-500/10", trend: "Optimal" }
         ].map((stat, i) => (
-          <div key={i} className="card-base p-4 sm:p-6 bg-[var(--ui-sidebar-bg)]/80 backdrop-blur-3xl border-white/5 flex items-center justify-between group hover:border-[var(--ui-accent)]/20 transition-all shadow-xl">
-            <div className="space-y-1 text-start">
-               <p className="text-[10px] sm:text-xs font-medium text-slate-600">{stat.label}</p>
-               <p className="text-xl sm:text-2xl font-bold text-white tracking-tight tabular-nums">{stat.value}</p>
-            </div>
-            <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center border border-white/5 transition-all group-hover:scale-110", stat.bg)}>
-              <stat.icon className={cn("w-4 h-4", stat.color)} />
+          <div key={i} className="group relative p-5 sm:p-6 rounded-2xl bg-[#0c0c0e]/60 backdrop-blur-3xl border border-white/5 hover:border-[var(--ui-accent)]/30 transition-all duration-500 shadow-2xl overflow-hidden">
+            {/* Ambient Background Glow */}
+            <div className={cn("absolute -right-4 -bottom-4 w-24 h-24 blur-3xl rounded-full transition-opacity opacity-0 group-hover:opacity-20", stat.bg)} />
+            
+            <div className="flex items-start justify-between relative z-10">
+               <div className="space-y-3 text-start">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{stat.label}</p>
+                  <div className="flex items-baseline gap-2">
+                     <p className="text-2xl sm:text-3xl font-bold text-white tracking-tight tabular-nums">{stat.value}</p>
+                     <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-white/5", stat.color)}>{stat.trend}</span>
+                  </div>
+               </div>
+               <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center border border-white/5 transition-all duration-500 group-hover:scale-110 group-hover:shadow-glow", stat.bg)}>
+                  <stat.icon className={cn("w-5 h-5", stat.color)} />
+               </div>
             </div>
           </div>
         ))}
@@ -331,16 +339,17 @@ const StudentsPage: React.FC = () => {
                    key={student.id} 
                    onClick={() => setDrawerStudent(student)} 
                    className={cn(
-                     "card-base relative p-6 flex flex-col transition-all duration-500 cursor-pointer overflow-hidden bg-[#0c0c0e]/80 backdrop-blur-3xl border-white/5",
-                     "hover:border-[var(--ui-accent)]/40 hover:shadow-[0_20px_40px_-20px_rgba(0,0,0,0.5)]",
-                     isSelected && "border-[var(--ui-accent)]/50 shadow-[0_0_20px_rgba(217,70,239,0.1)] bg-[var(--ui-accent)]/5"
+                     "group relative p-6 flex flex-col transition-all duration-500 cursor-pointer overflow-hidden rounded-2xl bg-[#0c0c0e]/40 backdrop-blur-3xl border border-white/5",
+                     "hover:border-[var(--ui-accent)]/30 hover:bg-[#0c0c0e]/60 hover:shadow-[0_20px_50px_-20px_rgba(0,0,0,0.5)]",
+                     isSelected && "border-[var(--ui-accent)]/50 shadow-[0_0_30px_rgba(var(--ui-accent-rgb),0.1)] bg-[var(--ui-accent)]/5"
                    )}
                  >
                    {/* Selection Checkbox */}
+                   {/* Selection Checkbox */}
                    <div className="absolute top-4 start-4 z-30" onClick={(e) => toggleSelection(student.id, e)}>
                       <div className={cn(
-                        "w-5 h-5 rounded-md border flex items-center justify-center transition-all",
-                        isSelected ? "bg-[var(--ui-accent)] border-[var(--ui-accent)]" : "border-white/10 group-hover:border-white/20"
+                        "w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-300",
+                        isSelected ? "bg-[var(--ui-accent)] border-[var(--ui-accent)] shadow-glow" : "border-white/10 group-hover:border-white/20 bg-black/20"
                       )}>
                         {isSelected && <CheckSquare className="w-3.5 h-3.5 text-white" />}
                       </div>
@@ -359,12 +368,12 @@ const StudentsPage: React.FC = () => {
                    
                    <div className="space-y-4 flex-1 text-start relative z-20 ps-1">
                       <div>
-                          <h3 className="text-lg font-bold text-white truncate tracking-tight">
-                           {student.name}
-                         </h3>
+                          <h3 className="text-lg font-bold text-white truncate tracking-tight group-hover:text-[var(--ui-accent)] transition-colors">
+                            {student.name}
+                          </h3>
                          <div className="flex items-center gap-2 mt-2">
-                            <div className="px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg flex items-center gap-2 transition-all">
-                                <span className="text-xs font-mono font-medium text-slate-500 leading-none">{student.uniqueStudentCode || student.studentId || t("students.id_pending")}</span>
+                            <div className="px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg flex items-center gap-2 transition-all hover:border-white/10">
+                                <span className="text-[10px] font-mono font-bold text-slate-500 tracking-wider">{student.uniqueStudentCode || student.studentId || "ID PENDING"}</span>
                                <button onClick={(e) => { e.stopPropagation(); copyStudentId(student.uniqueStudentCode || student.studentId || ""); }} className="text-slate-700 hover:text-[var(--ui-accent)] transition-colors">
                                   <Copy className="w-3 h-3" />
                                </button>
@@ -373,15 +382,15 @@ const StudentsPage: React.FC = () => {
                          </div>
                       </div>
 
-                      <div className="p-4 bg-black/40 rounded-xl border border-white/5 flex items-center justify-between transition-all duration-500 hover:border-[var(--ui-accent)]/20">
-                         <div className="space-y-0.5">
-                             <p className="text-xs font-medium text-slate-600">{t("students.deployed_node")}</p>
-                             <p className="text-xs font-semibold text-slate-300">
+                      <div className="p-4 bg-black/40 rounded-xl border border-white/5 flex items-center justify-between group-hover:border-white/10 transition-all duration-500">
+                         <div className="space-y-1">
+                             <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">{t("students.deployed_node")}</p>
+                             <p className="text-[11px] font-bold text-slate-200">
                               {student.group?.name || t("students.reserve")}
                             </p>
                          </div>
-                         <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/[0.02] border border-white/5">
-                            <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+                         <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/[0.02] border border-white/5 text-slate-600 group-hover:text-[var(--ui-accent)] transition-colors">
+                            <ChevronRight className="w-3.5 h-3.5" />
                          </div>
                       </div>
                    </div>

@@ -140,7 +140,12 @@ export const WeekView: React.FC<WeekViewProps> = ({ sessions, groupSchedules, cu
 
                         {/* Schedule Blueprints (The Matrix) */}
                         {groupSchedules
-                           .filter(gs => gs.dayOfWeek === dayIndex)
+                           .filter(gs => {
+                              // Backend: 0=Sunday, 1=Monday...6=Saturday
+                              // Grid columns: 0=Monday, 1=Tuesday...6=Sunday
+                              const gridDay = gs.dayOfWeek === 0 ? 6 : gs.dayOfWeek - 1;
+                              return gridDay === dayIndex;
+                           })
                            .map((gs, idx) => {
                               const [hours, minutes] = gs.startTime.split(":").map(Number);
                               const top = hours * 96 + (minutes / 60) * 96;
@@ -181,7 +186,15 @@ export const WeekView: React.FC<WeekViewProps> = ({ sessions, groupSchedules, cu
 
                         {/* Session Cards */}
                         {sessions
-                           .filter((s) => isSameDay(new Date(s.scheduledAt), day))
+                           .filter((s) => {
+                              const sDate = new Date(s.scheduledAt);
+                              const dayStr = format(day, "yyyy-MM-dd");
+                              const sCairo = new Intl.DateTimeFormat('en-CA', { 
+                                timeZone: 'Africa/Cairo',
+                                year: 'numeric', month: '2-digit', day: '2-digit' 
+                              }).format(sDate);
+                              return sCairo === dayStr;
+                           })
                            .map((session) => {
                               const sDate = new Date(session.scheduledAt);
                               const isFuture = isAfter(sDate, now);
@@ -209,10 +222,20 @@ export const WeekView: React.FC<WeekViewProps> = ({ sessions, groupSchedules, cu
                                     <div className="flex flex-col h-full relative z-10">
                                        <div className="flex items-start justify-between gap-2 mb-1">
                                           <div className="min-w-0">
-                                             <p className="text-[11px] font-bold text-white uppercase tracking-tight truncate leading-none mb-1">
-                                                {session.group?.name || "Ready State"}
-                                             </p>
-                                             <div className="flex items-center gap-1 opacity-50">
+                                             <div className="flex items-center gap-2 mb-1">
+                                                <div className={cn("w-1 h-3 rounded-full bg-slate-500", 
+                                                   session.groupColorTag === 'blue' && "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]",
+                                                   session.groupColorTag === 'green' && "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]",
+                                                   session.groupColorTag === 'red' && "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]",
+                                                   session.groupColorTag === 'purple' && "bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]",
+                                                   session.groupColorTag === 'orange' && "bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]",
+                                                   session.groupColorTag === 'yellow' && "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
+                                                )} />
+                                                <p className="text-[11px] font-bold text-white uppercase tracking-tight truncate leading-none">
+                                                   {session.group?.name || "Ready State"}
+                                                </p>
+                                             </div>
+                                             <div className="flex items-center gap-1 opacity-50 ps-3">
                                                 <Layers className="w-2.5 h-2.5" />
                                                 <span className="text-[7.5px] font-bold uppercase tracking-widest truncate">
                                                    SID-{session.sessionNumber}
@@ -222,21 +245,23 @@ export const WeekView: React.FC<WeekViewProps> = ({ sessions, groupSchedules, cu
                                           {session.status === "Active" ? (
                                              <div className="relative">
                                                 <div className="absolute inset-0 bg-[var(--ui-accent)]/40 blur-md rounded-full animate-pulse" />
-                                                <Zap className="w-4 h-4 text-[var(--ui-accent)]" />
+                                                <Zap className="w-4 h-4 text-[var(--ui-accent)] shadow-glow" />
                                              </div>
                                           ) : (
-                                             <ChevronRight className="w-3.5 h-3.5 text-slate-700 group-hover/session:text-[var(--ui-accent)] transition-colors" />
+                                             <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center opacity-0 group-hover/session:opacity-100 transition-all">
+                                                <ChevronRight className="w-3 h-3 text-slate-400 group-hover/session:text-[var(--ui-accent)] transition-colors" />
+                                             </div>
                                           )}
                                        </div>
 
-                                       <div className="mt-auto flex items-center justify-between">
-                                          <div className="flex items-center gap-1.5 text-[8.5px] font-bold tabular-nums tracking-wider text-slate-500">
-                                             <Clock className="w-3 h-3 opacity-50" />
-                                             {format(sDate, "h:mm a")}
+                                       <div className="mt-auto flex items-center justify-between ps-3">
+                                          <div className="flex items-center gap-1.5 text-[8.5px] font-bold tabular-nums tracking-wider text-slate-400">
+                                             <Clock className="w-3 h-3 opacity-50 text-[var(--ui-accent)]" />
+                                             {new Intl.DateTimeFormat('en-US', { timeZone: 'Africa/Cairo', hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date(session.scheduledAt))}
                                           </div>
                                           {session.status === "Active" && (
-                                             <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[var(--ui-accent)]/20 border border-[var(--ui-accent)]/30 animate-pulse">
-                                                <span className="w-1 h-1 rounded-full bg-[var(--ui-accent)]" />
+                                             <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[var(--ui-accent)]/20 border border-[var(--ui-accent)]/30">
+                                                <span className="w-1 h-1 rounded-full bg-[var(--ui-accent)] animate-pulse" />
                                                 <span className="text-[6.5px] font-bold uppercase tracking-widest text-[var(--ui-accent)]">Live</span>
                                              </div>
                                           )}
