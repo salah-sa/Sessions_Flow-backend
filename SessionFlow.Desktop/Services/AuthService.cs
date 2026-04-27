@@ -494,13 +494,13 @@ public class AuthService
         {
             Name = pending.Name,
             Email = pending.Email,
-            Username = pending.Email, // Ensure username is set for login
+            Username = pending.Email,
             PasswordHash = pending.PasswordHash,
             Role = UserRole.Engineer,
             EngineerCode = newCode,
-            EngineerId = user.Id,
             IsApproved = true
         };
+        user.EngineerId = user.Id; // Set after object creation to avoid 'use before declaration'
 
         await _db.GlobalUsers.InsertOneAsync(user);
 

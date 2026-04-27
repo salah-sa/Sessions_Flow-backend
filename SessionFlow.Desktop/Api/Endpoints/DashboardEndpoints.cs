@@ -61,12 +61,6 @@ public static class DashboardEndpoints
             var totalGroupsTask = CountDocs(db.GlobalGroups, db.Groups, groupFilter);
             var todaySessionsTask = CountDocs(db.GlobalSessions, db.Sessions, sessionFilter);
             var activeSessionsTask = CountDocs(db.GlobalSessions, db.Sessions, activeFilter);
-            
-            // Re-assigning references for one-off uses that need more than just Count/Find
-            // We use dynamic for these complex cases to avoid ternary type mismatch
-            dynamic groupsRepo = roleStr == "Admin" ? (object)db.GlobalGroups : (object)db.Groups;
-            dynamic sessionsRepo = roleStr == "Admin" ? (object)db.GlobalSessions : (object)db.Sessions;
-            dynamic studentsRepo = roleStr == "Admin" ? (object)db.GlobalStudents : (object)db.Students;
 
             List<Guid> studentGroupIds = new List<Guid>();
             if (roleStr == "Student")
@@ -93,39 +87,37 @@ public static class DashboardEndpoints
             }
 
             // Total students
-            var totalStudentsTask = studentsRepo.CountDocumentsAsync(s => s.IsDeleted == false);
+            var totalStudentsTask = CountDocs(db.GlobalStudents, db.Students, Builders<Student>.Filter.Eq(s => s.IsDeleted, false));
 
             // Completed sessions all time (scoped automatically)
             var completedSessionFilter = Builders<Session>.Filter.Eq(s => s.IsDeleted, false)
                 & Builders<Session>.Filter.Eq(s => s.Status, SessionStatus.Ended);
-            var completedSessionsTask = sessionsRepo.CountDocumentsAsync(completedSessionFilter);
+            var completedSessionsTask = CountDocs(db.GlobalSessions, db.Sessions, completedSessionFilter);
 
             // Upcoming scheduled sessions in the future (scoped automatically)
             var upcomingFilter = Builders<Session>.Filter.Eq(s => s.IsDeleted, false)
                 & Builders<Session>.Filter.Eq(s => s.Status, SessionStatus.Scheduled)
                 & Builders<Session>.Filter.Gt(s => s.ScheduledAt, now);
-            var upcomingSessionsTask = sessionsRepo.CountDocumentsAsync(upcomingFilter);
+            var upcomingSessionsTask = CountDocs(db.GlobalSessions, db.Sessions, upcomingFilter);
 
             // Completed groups (scoped automatically)
             var completedGroupFilter = Builders<Group>.Filter.Eq(g => g.IsDeleted, false)
                 & Builders<Group>.Filter.Eq(g => g.Status, GroupStatus.Completed);
-            var completedGroupsTask = groupsRepo.CountDocumentsAsync(completedGroupFilter);
+            var completedGroupsTask = CountDocs(db.GlobalGroups, db.Groups, completedGroupFilter);
 
             var timelineFilter = Builders<Session>.Filter.Eq(s => s.IsDeleted, false) & Builders<Session>.Filter.Gte(s => s.ScheduledAt, todayStart) & Builders<Session>.Filter.Lt(s => s.ScheduledAt, todayEnd);
-            var todayTimelineTask = sessionsRepo
-                .Find(timelineFilter)
+            var todayTimelineTask = (roleStr == "Admin" ? db.GlobalSessions.Find(timelineFilter) : db.Sessions.Find(timelineFilter))
                 .SortBy(s => s.ScheduledAt)
                 .ToListAsync();
 
             var recentFilter = Builders<Session>.Filter.Eq(s => s.IsDeleted, false) & Builders<Session>.Filter.Eq(s => s.Status, SessionStatus.Ended);
-            var recentActivityTask = sessionsRepo
-                .Find(recentFilter)
+            var recentActivityTask = (roleStr == "Admin" ? db.GlobalSessions.Find(recentFilter) : db.Sessions.Find(recentFilter))
                 .SortByDescending(s => s.UpdatedAt)
                 .Limit(5)
                 .ToListAsync();
 
             // Total Revenue (Sum of stamped revenue from all ended sessions — ACTIVE groups only)
-            var revenueTask = sessionsRepo.Aggregate(new AggregateOptions())
+            var revenueTask = (roleStr == "Admin" ? db.GlobalSessions.Aggregate() : db.Sessions.Aggregate())
                 .Match(completedSessionFilter)
                 .Group<BsonDocument>(new BsonDocument { { "_id", BsonNull.Value }, { "total", new BsonDocument("$sum", "$StampedRevenue") } })
                 .FirstOrDefaultAsync();
@@ -149,7 +141,7 @@ public static class DashboardEndpoints
             // ═══════════════════════════════════════════════════════════════
 
             // --- Attendance Rate (Average of Ended sessions) ---
-            var attendanceAgg = await sessionsRepo.Aggregate(new AggregateOptions())
+            var attendanceAgg = await (roleStr == "Admin" ? db.GlobalSessions.Aggregate() : db.Sessions.Aggregate())
                 .Match(completedSessionFilter)
                 .Group<BsonDocument>(new BsonDocument { { "_id", BsonNull.Value }, { "avg", new BsonDocument("$avg", "$AttendanceRate") } })
                 .FirstOrDefaultAsync();
@@ -167,7 +159,7 @@ public static class DashboardEndpoints
                 & Builders<Session>.Filter.Lt(s => s.ScheduledAt, monthEnd);
             if (roleStr == "Student" && studentGroupIds.Count > 0) monthSessionFilter &= Builders<Session>.Filter.In(s => s.GroupId, studentGroupIds);
 
-            var monthAttendanceAgg = await sessionsRepo.Aggregate(new AggregateOptions())
+            var monthAttendanceAgg = await (roleStr == "Admin" ? db.GlobalSessions.Aggregate() : db.Sessions.Aggregate())
                 .Match(monthSessionFilter)
                 .Group<BsonDocument>(new BsonDocument { 
                     { "_id", BsonNull.Value }, 
@@ -195,7 +187,7 @@ public static class DashboardEndpoints
 
             // --- Revenue by Level (active groups only) ---
             // Get all active group IDs first
-            var activeGroups = await groupsRepo.Find(activeGroupFilter).ToListAsync();
+            var activeGroups = await (roleStr == "Admin" ? db.GlobalGroups.Find(activeGroupFilter).ToListAsync() : db.Groups.Find(activeGroupFilter).ToListAsync());
             var activeGroupIds = activeGroups.Select(g => g.Id).ToList();
             var activeGroupDict = activeGroups.ToDictionary(g => g.Id);
 
@@ -215,7 +207,7 @@ public static class DashboardEndpoints
 
             if (roleStr == "Student" && studentGroupIds.Count > 0) activeSessionFilter &= Builders<Session>.Filter.In(s => s.GroupId, studentGroupIds);
             
-            var activeSessions2 = await sessionsRepo.Find(activeSessionFilter).ToListAsync();
+            var activeSessions2 = await (roleStr == "Admin" ? db.GlobalSessions.Find(activeSessionFilter).ToListAsync() : db.Sessions.Find(activeSessionFilter).ToListAsync());
             var revenueByLevelData = activeSessions2
                 .GroupBy(s => activeGroupDict.ContainsKey(s.GroupId) ? activeGroupDict[s.GroupId].Level : 0)
                 .Where(g => g.Key > 0)
@@ -231,7 +223,7 @@ public static class DashboardEndpoints
             else
                 allForActiveFilter &= Builders<Session>.Filter.Eq(s => s.GroupId, Guid.Empty);
 
-            var allSessionsForActive = await sessionsRepo.Find(allForActiveFilter).ToListAsync();
+            var allSessionsForActive = await (roleStr == "Admin" ? db.GlobalSessions.Find(allForActiveFilter).ToListAsync() : db.Sessions.Find(allForActiveFilter).ToListAsync());
 
             var sessionsByStatus = allSessionsForActive
                 .GroupBy(s => s.Status.ToString())
@@ -264,10 +256,8 @@ public static class DashboardEndpoints
             for (int i = 7; i >= 0; i--)
             {
                 var bucketEnd2 = now.AddDays(-(i * 7));
-                var studentCountAtDate = await studentsRepo.CountDocumentsAsync(
-                    Builders<Student>.Filter.Eq(s => s.IsDeleted, false) 
-                    & Builders<Student>.Filter.Lte(s => s.CreatedAt, bucketEnd2)
-                );
+                var filter = Builders<Student>.Filter.Eq(s => s.IsDeleted, false) & Builders<Student>.Filter.Lte(s => s.CreatedAt, bucketEnd2);
+                var studentCountAtDate = await (roleStr == "Admin" ? db.GlobalStudents.CountDocumentsAsync(filter) : db.Students.CountDocumentsAsync(filter));
                 studentGrowth.Add((int)studentCountAtDate);
             }
 
@@ -283,7 +273,7 @@ public static class DashboardEndpoints
                     & Builders<Session>.Filter.Lt(s => s.ScheduledAt, bucketEnd3);
                 if (roleStr == "Student" && studentGroupIds.Count > 0) bucketAttFilter &= Builders<Session>.Filter.In(s => s.GroupId, studentGroupIds);
                 
-                var bucketAtt = await sessionsRepo.Aggregate(new AggregateOptions())
+                var bucketAtt = await (roleStr == "Admin" ? db.GlobalSessions.Aggregate() : db.Sessions.Aggregate())
                     .Match(bucketAttFilter)
                     .Group<BsonDocument>(new BsonDocument { { "_id", BsonNull.Value }, { "avg", new BsonDocument("$avg", "$AttendanceRate") } })
                     .FirstOrDefaultAsync();
@@ -306,7 +296,7 @@ public static class DashboardEndpoints
                 
                 if (roleStr == "Student" && studentGroupIds.Count > 0) bucketFilter &= Builders<Session>.Filter.In(s => s.GroupId, studentGroupIds);
                 
-                var count = await sessionsRepo.CountDocumentsAsync(bucketFilter);
+                var count = await (roleStr == "Admin" ? db.GlobalSessions.CountDocumentsAsync(bucketFilter) : db.Sessions.CountDocumentsAsync(bucketFilter));
                 weeklyTrend.Add((int)count);
             }
 
@@ -333,7 +323,7 @@ public static class DashboardEndpoints
 
             var sessionList = todayTimelineTask.Result.Concat(recentActivityTask.Result).ToList();
             var timelineGroupIds = sessionList.Select(s => s.GroupId).Distinct().ToList();
-            var timelineGroups = await groupsRepo.Find(g => timelineGroupIds.Contains(g.Id)).ToListAsync();
+            var timelineGroups = await (roleStr == "Admin" ? db.GlobalGroups.Find(g => timelineGroupIds.Contains(g.Id)).ToListAsync() : db.Groups.Find(g => timelineGroupIds.Contains(g.Id)).ToListAsync());
             var groupDict = timelineGroups.ToDictionary(g => g.Id);
 
             var enrichSession = (Session s) => {
@@ -373,8 +363,7 @@ public static class DashboardEndpoints
 
                 if (roleStr == "Student" && studentGroupIds.Count > 0) nextGlobalFilter &= Builders<Session>.Filter.In(s => s.GroupId, studentGroupIds);
 
-                var nextGlobal = await sessionsRepo
-                    .Find(nextGlobalFilter)
+                var nextGlobal = await (roleStr == "Admin" ? db.GlobalSessions.Find(nextGlobalFilter) : db.Sessions.Find(nextGlobalFilter))
                     .SortBy(s => s.ScheduledAt)
                     .FirstOrDefaultAsync();
 
