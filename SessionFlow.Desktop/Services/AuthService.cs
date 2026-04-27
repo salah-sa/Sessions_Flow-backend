@@ -1101,7 +1101,8 @@ public class AuthService
         var existingAdmin = await _db.GlobalUsers.Find(u => u.Email == newAdminEmail).FirstOrDefaultAsync();
         if (existingAdmin != null)
         {
-            // PROD FIX: Only seed if missing. Do NOT overwrite existing password on restart.
+            // PROD FIX: Always ensure legacy data is linked to the existing admin on restart
+            await EnsureLegacyDataLinkageAsync(existingAdmin.Id);
             return;
         }
 

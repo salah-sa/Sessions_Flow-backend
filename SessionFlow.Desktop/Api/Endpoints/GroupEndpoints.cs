@@ -83,14 +83,20 @@ public static class GroupEndpoints
                     .ToListAsync();
 
             var engineerIds = groups.Select(g => g.EngineerId).Distinct().ToList();
-            var engineers = await db.Users.Find(u => engineerIds.Contains(u.Id)).ToListAsync();
+            var engineers = roleStr == "Admin"
+                ? await db.GlobalUsers.Find(u => engineerIds.Contains(u.Id)).ToListAsync()
+                : await db.Users.Find(u => engineerIds.Contains(u.Id)).ToListAsync();
             var engDict = engineers.ToDictionary(e => e.Id);
 
             var groupIds = groups.Select(g => g.Id).ToList();
-            var allSchedules = await db.GroupSchedules.Find(s => groupIds.Contains(s.GroupId)).ToListAsync();
+            var allSchedules = roleStr == "Admin"
+                ? await db.GlobalGroupSchedules.Find(s => groupIds.Contains(s.GroupId)).ToListAsync()
+                : await db.GroupSchedules.Find(s => groupIds.Contains(s.GroupId)).ToListAsync();
             var schedulesDict = allSchedules.GroupBy(s => s.GroupId).ToDictionary(g => g.Key, g => g.ToList());
 
-            var allStudents = await db.Students.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync();
+            var allStudents = roleStr == "Admin"
+                ? await db.GlobalStudents.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync()
+                : await db.Students.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync();
             var studentCountDict = allStudents
                 .GroupBy(s => s.GroupId)
                 .ToDictionary(
@@ -98,7 +104,9 @@ public static class GroupEndpoints
                     g => g.GroupBy(s => s.Name.ToLower().Trim()).Count()
                 );
 
-            var allSessions = await db.Sessions.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync();
+            var allSessions = roleStr == "Admin"
+                ? await db.GlobalSessions.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync()
+                : await db.Sessions.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync();
             var sessionsDict = allSessions.GroupBy(s => s.GroupId).ToDictionary(g => g.Key, g => g.ToList());
 
             var result = new List<object>();
