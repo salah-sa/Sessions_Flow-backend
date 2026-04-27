@@ -20,6 +20,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http;
 using System.Linq;
 using SessionFlow.Desktop.Helpers;
+using MongoDB.Driver;
 
 namespace SessionFlow.Desktop.Api;
 
