@@ -28,8 +28,7 @@ public class SessionMaintenanceService : BackgroundService
             {
                 using (var scope = _services.CreateScope())
                 {
-                    var tenantAccessor = scope.ServiceProvider.GetRequiredService<ITenantAccessor>();
-                    tenantAccessor.SetSystemContext();
+                    // Background maintenance now uses Global accessors in SessionService — no context manipulation required
 
                     var sessionService = scope.ServiceProvider.GetRequiredService<SessionService>();
                     _logger.LogInformation("Executing tactical session maintenance sweep...");

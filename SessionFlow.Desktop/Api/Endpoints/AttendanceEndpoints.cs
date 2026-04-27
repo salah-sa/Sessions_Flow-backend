@@ -31,25 +31,22 @@ public static class AttendanceEndpoints
                 }
                 filter &= builder.Eq(ar => ar.SessionId, sid);
             }
-            else if (role == "Engineer")
-            {
-                // No specific session requested — scope to engineer's own sessions only
-                var engineerSessions = await db.Sessions.Find(s => s.EngineerId == uid && !s.IsDeleted)
-                    .Project(s => s.Id).ToListAsync();
-                filter &= builder.In(ar => ar.SessionId, engineerSessions);
-            }
 
             if (Guid.TryParse(studentId, out var stid))
                 filter &= builder.Eq(ar => ar.StudentId, stid);
 
-            var query = db.AttendanceRecords.Find(filter);
+            var query = role == "Admin" ? db.GlobalAttendanceRecords.Find(filter) : db.AttendanceRecords.Find(filter);
             var records = await query.ToListAsync();
 
             var studentIds = records.Select(r => r.StudentId).Distinct().ToList();
             var sessionIds = records.Select(r => r.SessionId).Distinct().ToList();
 
-            var students = await db.Students.Find(s => studentIds.Contains(s.Id)).ToListAsync();
-            var sessions = await db.Sessions.Find(s => sessionIds.Contains(s.Id)).ToListAsync();
+            var students = role == "Admin"
+                ? await db.GlobalStudents.Find(s => studentIds.Contains(s.Id)).ToListAsync()
+                : await db.Students.Find(s => studentIds.Contains(s.Id)).ToListAsync();
+            var sessions = role == "Admin"
+                ? await db.GlobalSessions.Find(s => sessionIds.Contains(s.Id)).ToListAsync()
+                : await db.Sessions.Find(s => sessionIds.Contains(s.Id)).ToListAsync();
 
             var studentDict = students.ToDictionary(s => s.Id);
             var sessionDict = sessions.ToDictionary(s => s.Id);

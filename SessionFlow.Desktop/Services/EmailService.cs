@@ -162,8 +162,7 @@ public class EmailReminderService : BackgroundService
     private async Task CheckAndSendRemindersAsync(CancellationToken ct)
     {
         using var scope = _serviceProvider.CreateScope();
-        var tenantAccessor = scope.ServiceProvider.GetRequiredService<ITenantAccessor>();
-        tenantAccessor.SetSystemContext();
+        // Background tasks use Global accessors — no context manipulation required
         
         var db = scope.ServiceProvider.GetRequiredService<MongoService>();
         var emailService = scope.ServiceProvider.GetRequiredService<EmailService>();
@@ -171,7 +170,7 @@ public class EmailReminderService : BackgroundService
         var now = DateTimeOffset.UtcNow;
         var cutoff = now.AddMinutes(10);
 
-        var upcomingSessions = await db.Sessions
+        var upcomingSessions = await db.GlobalSessions
             .Find(s => s.Status == SessionStatus.Scheduled
                         && s.ScheduledAt > now
                         && s.ScheduledAt <= cutoff)
@@ -183,11 +182,11 @@ public class EmailReminderService : BackgroundService
             if (_sentReminders.Contains(session.Id))
                 continue;
 
-            var engineer = await db.Users.Find(u => u.Id == session.EngineerId).FirstOrDefaultAsync(ct);
+            var engineer = await db.GlobalUsers.Find(u => u.Id == session.EngineerId).FirstOrDefaultAsync(ct);
             if (engineer == null || string.IsNullOrEmpty(engineer.Email))
                 continue;
 
-            var group = await db.Groups.Find(g => g.Id == session.GroupId).FirstOrDefaultAsync(ct);
+            var group = await db.GlobalGroups.Find(g => g.Id == session.GroupId).FirstOrDefaultAsync(ct);
             var cairoTime = session.ScheduledAt.ToCairoTime(_config);
             var minutesUntil = (int)(session.ScheduledAt - now).TotalMinutes;
 
@@ -236,8 +235,7 @@ public class EmailReminderService : BackgroundService
         _logger.LogInformation("Checking for tomorrow's student reminders...");
 
         using var scope = _serviceProvider.CreateScope();
-        var tenantAccessor = scope.ServiceProvider.GetRequiredService<ITenantAccessor>();
-        tenantAccessor.SetSystemContext();
+        // Using Global accessors
 
         var db = scope.ServiceProvider.GetRequiredService<MongoService>();
         var emailService = scope.ServiceProvider.GetRequiredService<EmailService>();
@@ -246,7 +244,7 @@ public class EmailReminderService : BackgroundService
         var tomorrowStart = new DateTimeOffset(cairoNow.Date.AddDays(1), cairoOffset);
         var tomorrowEnd = tomorrowStart.AddDays(1);
 
-        var upcomingSessions = await db.Sessions
+        var upcomingSessions = await db.GlobalSessions
             .Find(s => s.Status == SessionStatus.Scheduled
                         && s.ScheduledAt >= tomorrowStart
                         && s.ScheduledAt < tomorrowEnd
@@ -263,15 +261,15 @@ public class EmailReminderService : BackgroundService
         {
             if (ct.IsCancellationRequested) break;
 
-            var group = await db.Groups.Find(g => g.Id == session.GroupId).FirstOrDefaultAsync(ct);
+            var group = await db.GlobalGroups.Find(g => g.Id == session.GroupId).FirstOrDefaultAsync(ct);
             if (group == null) continue;
 
-            var students = await db.Students.Find(s => s.GroupId == session.GroupId && s.UserId != null && !s.IsDeleted).ToListAsync(ct);
+            var students = await db.GlobalStudents.Find(s => s.GroupId == session.GroupId && s.UserId != null && !s.IsDeleted).ToListAsync(ct);
             var chatLink = $"https://sessionflow.app/chat?groupId={group.Id}";
 
             foreach (var stu in students)
             {
-                var user = await db.Users.Find(u => u.Id == stu.UserId).FirstOrDefaultAsync(ct);
+                var user = await db.GlobalUsers.Find(u => u.Id == stu.UserId).FirstOrDefaultAsync(ct);
                 if (user == null || string.IsNullOrEmpty(user.Email)) continue;
 
                 // 1. Send Email
@@ -313,8 +311,7 @@ public class EmailReminderService : BackgroundService
         _lastDailySummary = cairoNow;
 
         using var scope = _serviceProvider.CreateScope();
-        var tenantAccessor = scope.ServiceProvider.GetRequiredService<ITenantAccessor>();
-        tenantAccessor.SetSystemContext();
+        // Using Global accessors
 
         var db = scope.ServiceProvider.GetRequiredService<MongoService>();
         var emailService = scope.ServiceProvider.GetRequiredService<EmailService>();
@@ -322,7 +319,7 @@ public class EmailReminderService : BackgroundService
         var tomorrowStart = new DateTimeOffset(cairoNow.Date.AddDays(1), cairoOffset);
         var tomorrowEnd = tomorrowStart.AddDays(1);
 
-        var tomorrowSessions = await db.Sessions
+        var tomorrowSessions = await db.GlobalSessions
             .Find(s => s.ScheduledAt >= tomorrowStart && s.ScheduledAt < tomorrowEnd
                         && s.Status == SessionStatus.Scheduled)
             .ToListAsync(ct);
@@ -332,7 +329,7 @@ public class EmailReminderService : BackgroundService
         foreach (var group in byEngineer)
         {
             if (ct.IsCancellationRequested) break;
-            var engineer = await db.Users.Find(u => u.Id == group.Key).FirstOrDefaultAsync(ct);
+            var engineer = await db.GlobalUsers.Find(u => u.Id == group.Key).FirstOrDefaultAsync(ct);
             if (engineer == null || string.IsNullOrEmpty(engineer.Email))
                 continue;
 
@@ -341,7 +338,7 @@ public class EmailReminderService : BackgroundService
             foreach (var s in sessionList)
             {
                 if (ct.IsCancellationRequested) break;
-                var groupInfo = await db.Groups.Find(g => g.Id == s.GroupId).FirstOrDefaultAsync(ct);
+                var groupInfo = await db.GlobalGroups.Find(g => g.Id == s.GroupId).FirstOrDefaultAsync(ct);
                 var time = s.ScheduledAt.ToOffset(cairoOffset);
                 sessionsHtmlList.Add($"<tr><td style='padding:8px 12px; border-bottom: 1px solid #1e293b;'>{time:hh:mm tt}</td><td style='padding:8px 12px; border-bottom: 1px solid #1e293b;'>{groupInfo?.Name ?? "N/A"}</td></tr>");
             }
@@ -381,8 +378,7 @@ public class EmailReminderService : BackgroundService
         _lastMissedAttendanceCheck = cairoNow;
 
         using var scope = _serviceProvider.CreateScope();
-        var tenantAccessor = scope.ServiceProvider.GetRequiredService<ITenantAccessor>();
-        tenantAccessor.SetSystemContext();
+        // Using Global accessors
 
         var db = scope.ServiceProvider.GetRequiredService<MongoService>();
         var emailService = scope.ServiceProvider.GetRequiredService<EmailService>();
@@ -391,7 +387,7 @@ public class EmailReminderService : BackgroundService
         var todayStart = new DateTimeOffset(cairoNow.Date, cairoOffset);
         var todayEnd = todayStart.AddDays(1);
 
-        var missedSessions = await db.Sessions
+        var missedSessions = await db.GlobalSessions
             .Find(s => s.ScheduledAt >= todayStart && s.ScheduledAt < todayEnd
                         && !s.IsDeleted && !s.IsSkipped
                         && (s.Status == SessionStatus.Scheduled || s.Status == SessionStatus.Active))
@@ -405,13 +401,13 @@ public class EmailReminderService : BackgroundService
         {
             if (ct.IsCancellationRequested) break;
 
-            var engineer = await db.Users.Find(u => u.Id == engineerGroup.Key).FirstOrDefaultAsync(ct);
+            var engineer = await db.GlobalUsers.Find(u => u.Id == engineerGroup.Key).FirstOrDefaultAsync(ct);
             if (engineer == null || string.IsNullOrEmpty(engineer.Email)) continue;
 
             var sessionRows = new List<string>();
             foreach (var session in engineerGroup)
             {
-                var group = await db.Groups.Find(g => g.Id == session.GroupId).FirstOrDefaultAsync(ct);
+                var group = await db.GlobalGroups.Find(g => g.Id == session.GroupId).FirstOrDefaultAsync(ct);
                 var time = session.ScheduledAt.ToOffset(cairoOffset);
                 sessionRows.Add($"<tr><td style='padding:8px 12px; border-bottom: 1px solid #1e293b;'>{time:hh:mm tt}</td><td style='padding:8px 12px; border-bottom: 1px solid #1e293b;'>{group?.Name ?? "N/A"}</td><td style='padding:8px 12px; border-bottom: 1px solid #1e293b; color: #f59e0b;'>{session.Status}</td></tr>");
             }

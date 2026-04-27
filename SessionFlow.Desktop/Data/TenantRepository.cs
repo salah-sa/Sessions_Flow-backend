@@ -9,7 +9,7 @@ namespace SessionFlow.Desktop.Data;
 
 public class TenantRepository<T> where T : class, ITenantEntity
 {
-    public readonly IMongoCollection<T> _collection;
+    private readonly IMongoCollection<T> _collection;
     private readonly ITenantAccessor _tenantAccessor;
 
     public TenantRepository(IMongoDatabase database, string collectionName, ITenantAccessor tenantAccessor)
@@ -64,15 +64,41 @@ public class TenantRepository<T> where T : class, ITenantEntity
         if (role == "System") return _collection.BulkWriteAsync(requests, options, cancellationToken);
 
         var engId = _tenantAccessor.CurrentEngineerId;
-        if (engId == null) throw new UnauthorizedAccessException($"{role} context missing.");
+        if (engId == null) throw new UnauthorizedAccessException($"{role} context missing for bulk operation.");
 
         // Validation: Every write model must target the current tenant
-        // This is a safety check to ensure bulk operations don't cross boundaries
-        // Note: For simplicity, we assume caller handles Filter construction correctly,
-        // but for absolute security, we could inspect each WriteModel filter here.
-        // For now, we rely on the ApplyTenantFilter being used in other methods,
-        // and here we just enforce that the context is present.
-        return _collection.BulkWriteAsync(requests, options, cancellationToken);
+        var wrappedRequests = requests.Select(r => WrapWithTenantFilter(r, engId.Value)).ToList();
+        return _collection.BulkWriteAsync(wrappedRequests, options, cancellationToken);
+    }
+
+    private WriteModel<T> WrapWithTenantFilter(WriteModel<T> model, Guid engId)
+    {
+        var tenantFilter = Builders<T>.Filter.Eq(x => x.EngineerId, engId);
+        if (model is UpdateOneModel<T> updateOne)
+        {
+            updateOne.Filter = Builders<T>.Filter.And(updateOne.Filter, tenantFilter);
+        }
+        else if (model is UpdateManyModel<T> updateMany)
+        {
+            updateMany.Filter = Builders<T>.Filter.And(updateMany.Filter, tenantFilter);
+        }
+        else if (model is DeleteOneModel<T> deleteOne)
+        {
+            deleteOne.Filter = Builders<T>.Filter.And(deleteOne.Filter, tenantFilter);
+        }
+        else if (model is DeleteManyModel<T> deleteMany)
+        {
+            deleteMany.Filter = Builders<T>.Filter.And(deleteMany.Filter, tenantFilter);
+        }
+        else if (model is ReplaceOneModel<T> replaceOne)
+        {
+            replaceOne.Filter = Builders<T>.Filter.And(replaceOne.Filter, tenantFilter);
+        }
+        else if (model is InsertOneModel<T> insertOne)
+        {
+            EnforceEngineerId(insertOne.Document);
+        }
+        return model;
     }
 
     public IFindFluent<T, T> Find(FilterDefinition<T> filter)
@@ -95,6 +121,8 @@ public class TenantRepository<T> where T : class, ITenantEntity
     private void EnforceEngineerId(T document)
     {
         var role = _tenantAccessor.CurrentRole;
+        if (role == "System") return;
+
         if (role == "Engineer" || role == "Admin" || role == "Student")
         {
             var engId = _tenantAccessor.CurrentEngineerId;
@@ -102,6 +130,14 @@ public class TenantRepository<T> where T : class, ITenantEntity
             {
                 document.EngineerId = engId.Value;
             }
+            else
+            {
+                throw new UnauthorizedAccessException($"{role} context missing for data insertion.");
+            }
+        }
+        else
+        {
+            throw new UnauthorizedAccessException($"Role '{role}' is not authorized for data insertion.");
         }
     }
 

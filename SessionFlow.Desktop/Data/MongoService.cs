@@ -173,19 +173,40 @@ public class MongoService
 
     public IMongoCollection<User> GlobalUsers => _database.GetCollection<User>("Users");
     public TenantRepository<User> Users => new TenantRepository<User>(_database, "Users", _tenantAccessor);
+
+    public IMongoCollection<Group> GlobalGroups => _database.GetCollection<Group>("Groups");
     public TenantRepository<Group> Groups => new TenantRepository<Group>(_database, "Groups", _tenantAccessor);
+
+    public IMongoCollection<GroupSchedule> GlobalGroupSchedules => _database.GetCollection<GroupSchedule>("GroupSchedules");
     public TenantRepository<GroupSchedule> GroupSchedules => new TenantRepository<GroupSchedule>(_database, "GroupSchedules", _tenantAccessor);
+
+    public IMongoCollection<Student> GlobalStudents => _database.GetCollection<Student>("Students");
     public TenantRepository<Student> Students => new TenantRepository<Student>(_database, "Students", _tenantAccessor);
+
+    public IMongoCollection<Session> GlobalSessions => _database.GetCollection<Session>("Sessions");
     public TenantRepository<Session> Sessions => new TenantRepository<Session>(_database, "Sessions", _tenantAccessor);
+
+    public IMongoCollection<AttendanceRecord> GlobalAttendanceRecords => _database.GetCollection<AttendanceRecord>("AttendanceRecords");
     public TenantRepository<AttendanceRecord> AttendanceRecords => new TenantRepository<AttendanceRecord>(_database, "AttendanceRecords", _tenantAccessor);
+
+    public IMongoCollection<ChatMessage> GlobalChatMessages => _database.GetCollection<ChatMessage>("ChatMessages");
     public TenantRepository<ChatMessage> ChatMessages => new TenantRepository<ChatMessage>(_database, "ChatMessages", _tenantAccessor);
+
+    public IMongoCollection<TimetableEntry> GlobalTimetableEntries => _database.GetCollection<TimetableEntry>("TimetableEntries");
     public TenantRepository<TimetableEntry> TimetableEntries => new TenantRepository<TimetableEntry>(_database, "TimetableEntries", _tenantAccessor);
+
     public IMongoCollection<Setting> Settings => _database.GetCollection<Setting>("Settings");
     public IMongoCollection<EngineerCode> EngineerCodes => _database.GetCollection<EngineerCode>("EngineerCodes");
     public IMongoCollection<PendingEngineer> PendingEngineers => _database.GetCollection<PendingEngineer>("PendingEngineers");
+
+    public IMongoCollection<PendingStudentRequest> GlobalPendingStudentRequests => _database.GetCollection<PendingStudentRequest>("PendingStudentRequests");
     public TenantRepository<PendingStudentRequest> PendingStudentRequests => new TenantRepository<PendingStudentRequest>(_database, "PendingStudentRequests", _tenantAccessor);
+
     public IMongoCollection<Station> Stations => _database.GetCollection<Station>("Stations");
+    public IMongoCollection<Notification> GlobalNotifications => _database.GetCollection<Notification>("Notifications");
     public TenantRepository<Notification> Notifications => new TenantRepository<Notification>(_database, "Notifications", _tenantAccessor);
+
+    public IMongoCollection<AuditLog> GlobalAuditLogs => _database.GetCollection<AuditLog>("AuditLogs");
     public TenantRepository<AuditLog> AuditLogs => new TenantRepository<AuditLog>(_database, "AuditLogs", _tenantAccessor);
     public IMongoCollection<PasswordResetToken> PasswordResetTokens => _database.GetCollection<PasswordResetToken>("PasswordResetTokens");
     
@@ -197,8 +218,8 @@ public class MongoService
     public IMongoCollection<SystemBroadcast> SystemBroadcasts => _database.GetCollection<SystemBroadcast>("SystemBroadcasts");
     public IMongoCollection<EmailChangeToken> EmailChangeTokens => _database.GetCollection<EmailChangeToken>("EmailChangeTokens");
 
-    public IMongoDatabase Database => _database;
-    public IMongoClient Client => _database.Client;
+    internal IMongoDatabase Database => _database;
+    internal IMongoClient Client => _database.Client;
     public TenantRepository<T> GetTenantRepository<T>(string collectionName) where T : class, SessionFlow.Desktop.Models.ITenantEntity => new TenantRepository<T>(_database, collectionName, _tenantAccessor);
 }
 

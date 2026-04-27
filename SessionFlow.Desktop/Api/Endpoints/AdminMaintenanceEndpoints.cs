@@ -21,15 +21,15 @@ public static class AdminMaintenanceEndpoints
         group.MapPost("/fix-session-times", async (MongoService db, SessionService sessionService) =>
         {
             var cairoTz = sessionService.GetConfiguredTimeZone();
-            var sessions = await db.Sessions.Find(s => s.Status == SessionStatus.Scheduled && !s.IsDeleted).ToListAsync();
+            var sessions = await db.GlobalSessions.Find(s => s.Status == SessionStatus.Scheduled && !s.IsDeleted).ToListAsync();
             var updates = new List<WriteModel<Session>>();
 
             foreach (var session in sessions)
             {
-                var groupObj = await db.Groups.Find(g => g.Id == session.GroupId).FirstOrDefaultAsync();
+                var groupObj = await db.GlobalGroups.Find(g => g.Id == session.GroupId).FirstOrDefaultAsync();
                 if (groupObj == null) continue;
 
-                var schedules = await db.GroupSchedules.Find(gs => gs.GroupId == groupObj.Id).ToListAsync();
+                var schedules = await db.GlobalGroupSchedules.Find(gs => gs.GroupId == groupObj.Id).ToListAsync();
                 if (schedules.Count == 0) continue;
 
                 // Current scheduled time in Cairo
@@ -58,7 +58,7 @@ public static class AdminMaintenanceEndpoints
 
             if (updates.Any())
             {
-                await db.Sessions.BulkWriteAsync(updates);
+                await db.GlobalSessions.BulkWriteAsync(updates);
             }
 
             return Results.Ok(new { message = $"Migration complete. Fixed {updates.Count} sessions.", totalChecked = sessions.Count });
@@ -67,7 +67,7 @@ public static class AdminMaintenanceEndpoints
         // NEW: Cleanup duplicate sessions (keeps oldest, soft-deletes rest)
         group.MapPost("/cleanup-duplicates", async (MongoService db) =>
         {
-            var allSessions = await db.Sessions.Find(s => !s.IsDeleted).ToListAsync();
+            var allSessions = await db.GlobalSessions.Find(s => !s.IsDeleted).ToListAsync();
             
             // Group by GroupId + ScheduledAt (rounded to minute)
             var groups = allSessions.GroupBy(s => new { 
@@ -91,7 +91,7 @@ public static class AdminMaintenanceEndpoints
                     .Set(s => s.Status, SessionStatus.Cancelled)
                     .Set(s => s.Notes, "Automatically cleaned up as duplicate");
 
-                await db.Sessions.UpdateManyAsync(s => toDelete.Contains(s.Id), update);
+                await db.GlobalSessions.UpdateManyAsync(s => toDelete.Contains(s.Id), update);
                 cleanedCount += toDelete.Count;
             }
 
@@ -102,28 +102,28 @@ public static class AdminMaintenanceEndpoints
         group.MapPost("/purge-test-data", async (MongoService db) =>
         {
             // Find groups with "test" in name
-            var testGroups = await db.Groups.Find(g => g.Name.ToLower().Contains("test")).ToListAsync();
+            var testGroups = await db.GlobalGroups.Find(g => g.Name.ToLower().Contains("test")).ToListAsync();
             var testGroupIds = testGroups.Select(g => g.Id).ToList();
 
             if (testGroupIds.Count == 0)
                 return Results.Ok(new { message = "No test groups found." });
 
             // 1. Delete Attendance Records for these groups' sessions
-            var testSessions = await db.Sessions.Find(s => testGroupIds.Contains(s.GroupId)).ToListAsync();
+            var testSessions = await db.GlobalSessions.Find(s => testGroupIds.Contains(s.GroupId)).ToListAsync();
             var testSessionIds = testSessions.Select(s => s.Id).ToList();
-            await db.AttendanceRecords.DeleteManyAsync(ar => testSessionIds.Contains(ar.SessionId));
+            await db.GlobalAttendanceRecords.DeleteManyAsync(ar => testSessionIds.Contains(ar.SessionId));
 
             // 2. Delete Sessions
-            await db.Sessions.DeleteManyAsync(s => testGroupIds.Contains(s.GroupId));
+            await db.GlobalSessions.DeleteManyAsync(s => testGroupIds.Contains(s.GroupId));
 
             // 3. Delete Students
-            await db.Students.DeleteManyAsync(s => testGroupIds.Contains(s.GroupId));
+            await db.GlobalStudents.DeleteManyAsync(s => testGroupIds.Contains(s.GroupId));
 
             // 4. Delete Schedules
-            await db.GroupSchedules.DeleteManyAsync(gs => testGroupIds.Contains(gs.GroupId));
+            await db.GlobalGroupSchedules.DeleteManyAsync(gs => testGroupIds.Contains(gs.GroupId));
 
             // 5. Delete Groups
-            await db.Groups.DeleteManyAsync(g => testGroupIds.Contains(g.Id));
+            await db.GlobalGroups.DeleteManyAsync(g => testGroupIds.Contains(g.Id));
 
             return Results.Ok(new { 
                 message = $"Purge complete.", 
@@ -139,7 +139,7 @@ public static class AdminMaintenanceEndpoints
             var userUpdates = new List<WriteModel<User>>();
 
             // 1. Fix Chat Messages
-            var messagesWithFiles = await db.ChatMessages.Find(m => m.FileUrl != null).ToListAsync();
+            var messagesWithFiles = await db.GlobalChatMessages.Find(m => m.FileUrl != null).ToListAsync();
             foreach (var msg in messagesWithFiles)
             {
                 if (msg.FileUrl!.Contains("/api/media/"))
@@ -159,7 +159,7 @@ public static class AdminMaintenanceEndpoints
                 }
             }
 
-            if (msgUpdates.Any()) await db.ChatMessages.BulkWriteAsync(msgUpdates);
+            if (msgUpdates.Any()) await db.GlobalChatMessages.BulkWriteAsync(msgUpdates);
 
             // 2. Fix User Avatars
             var usersWithAvatars = await db.Users.Find(u => u.AvatarUrl != null).ToListAsync();
@@ -198,7 +198,7 @@ public static class AdminMaintenanceEndpoints
             {
                 // In MongoDB, the TTL index is created on the SentAt field by default in our previous code
                 // We need to find the index name. By default it's SentAt_1 if created with Ascending(m => m.SentAt)
-                await db.ChatMessages.Indexes.DropOneAsync("SentAt_1");
+                await db.GlobalChatMessages.Indexes.DropOneAsync("SentAt_1");
                 return Results.Ok(new { message = "TTL index dropped successfully. Messages will no longer be auto-deleted." });
             }
             catch (Exception ex)

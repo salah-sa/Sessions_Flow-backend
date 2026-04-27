@@ -171,15 +171,7 @@ public static class StudentEndpoints
             var builder = Builders<Student>.Filter;
             var filter = builder.Eq(s => s.IsDeleted, false);
 
-            if (role == "Engineer")
-            {
-                var myGroups = await db.Groups.Find(g => g.EngineerId == userId && !g.IsDeleted).ToListAsync();
-                var myGroupIds = myGroups.Select(g => g.Id).ToList();
-                if (myGroupIds.Count == 0)
-                    return Results.Ok(PaginationHelper.Envelope(new List<object>(), 0, page ?? 1, pageSize ?? 20));
-                filter &= builder.In(s => s.GroupId, myGroupIds);
-            }
-            else if (role == "Student")
+            if (role == "Student")
             {
                 var user = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
                 if (user != null && !string.IsNullOrEmpty(user.StudentId))
@@ -199,22 +191,35 @@ public static class StudentEndpoints
                 filter &= builder.Eq(s => s.GroupId, gid);
 
             var (skip, take) = PaginationHelper.Normalize(page, pageSize);
-            var totalCount = await db.Students.CountDocumentsAsync(filter);
+            var totalCount = role == "Admin"
+                ? await db.GlobalStudents.CountDocumentsAsync(filter)
+                : await db.Students.CountDocumentsAsync(filter);
 
-            var students = await db.Students
-                .Find(filter)
-                .SortBy(s => s.Name)
-                .Skip(skip)
-                .Limit(take)
-                .ToListAsync();
+            var students = role == "Admin"
+                ? await db.GlobalStudents
+                    .Find(filter)
+                    .SortBy(s => s.Name)
+                    .Skip(skip)
+                    .Limit(take)
+                    .ToListAsync()
+                : await db.Students
+                    .Find(filter)
+                    .SortBy(s => s.Name)
+                    .Skip(skip)
+                    .Limit(take)
+                    .ToListAsync();
 
             var studentIds = students.Select(s => s.Id).ToList();
             var groupIds = students.Select(s => s.GroupId).Distinct().ToList();
 
-            var groups = await db.Groups.Find(g => groupIds.Contains(g.Id)).ToListAsync();
+            var groups = role == "Admin"
+                ? await db.GlobalGroups.Find(g => groupIds.Contains(g.Id)).ToListAsync()
+                : await db.Groups.Find(g => groupIds.Contains(g.Id)).ToListAsync();
             var groupDict = groups.ToDictionary(g => g.Id);
 
-            var allRecords = await db.AttendanceRecords.Find(ar => studentIds.Contains(ar.StudentId)).ToListAsync();
+            var allRecords = role == "Admin"
+                ? await db.GlobalAttendanceRecords.Find(ar => studentIds.Contains(ar.StudentId)).ToListAsync()
+                : await db.AttendanceRecords.Find(ar => studentIds.Contains(ar.StudentId)).ToListAsync();
             var recordsDict = allRecords.GroupBy(ar => ar.StudentId).ToDictionary(g => g.Key, g => g.ToList());
 
             var result = new List<object>();
@@ -256,31 +261,29 @@ public static class StudentEndpoints
             return Results.Ok(PaginationHelper.Envelope(result, totalCount, page ?? 1, take));
         });
 
-        // GET /api/students/{id} — student detail
         group.MapGet("/{id:guid}", async (Guid id, MongoService db, HttpContext ctx) =>
         {
             var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
             if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
 
-            var student = await db.Students.Find(s => s.Id == id).FirstOrDefaultAsync();
+            var student = role == "Admin"
+                ? await db.GlobalStudents.Find(s => s.Id == id).FirstOrDefaultAsync()
+                : await db.Students.Find(s => s.Id == id).FirstOrDefaultAsync();
+            
             if (student == null)
                 return Results.NotFound(new { error = "Student not found." });
 
-            if (role == "Engineer")
-            {
-                var gOwner = await db.Groups.Find(g => g.Id == student.GroupId).FirstOrDefaultAsync();
-                if (gOwner == null || gOwner.EngineerId != userId)
-                    return Results.Forbid();
-            }
-            else if (role == "Student")
+            if (role == "Student")
             {
                 var user = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
                 if (user == null || user.StudentId != student.StudentId)
                     return Results.Forbid();
             }
 
-            var g = await db.Groups.Find(x => x.Id == student.GroupId).FirstOrDefaultAsync();
+            var g = role == "Admin"
+                ? await db.GlobalGroups.Find(x => x.Id == student.GroupId).FirstOrDefaultAsync()
+                : await db.Groups.Find(x => x.Id == student.GroupId).FirstOrDefaultAsync();
 
             return Results.Ok(new
             {
@@ -303,14 +306,18 @@ public static class StudentEndpoints
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
             if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
 
-            var student = await db.Students.Find(s => s.Id == id).FirstOrDefaultAsync();
+            var student = role == "Admin"
+                ? await db.GlobalStudents.Find(s => s.Id == id).FirstOrDefaultAsync()
+                : await db.Students.Find(s => s.Id == id).FirstOrDefaultAsync();
+            
             if (student == null)
                 return Results.NotFound(new { error = "Student not found." });
 
+            // SECURITY: Ownership check
             if (role != "Admin")
             {
-                var gOwner = await db.Groups.Find(g => g.Id == student.GroupId).FirstOrDefaultAsync();
-                if (gOwner == null || gOwner.EngineerId != userId)
+                var owningGroup = await db.Groups.Find(g => g.Id == student.GroupId).FirstOrDefaultAsync();
+                if (owningGroup == null || owningGroup.EngineerId != userId)
                     return Results.Forbid();
             }
 
@@ -321,11 +328,15 @@ public static class StudentEndpoints
 
             if (req.GroupId.HasValue && req.GroupId.Value != student.GroupId)
             {
-                var newGroup = await db.Groups.Find(g => g.Id == req.GroupId.Value).FirstOrDefaultAsync();
+                var newGroup = role == "Admin"
+                    ? await db.GlobalGroups.Find(g => g.Id == req.GroupId.Value).FirstOrDefaultAsync()
+                    : await db.Groups.Find(g => g.Id == req.GroupId.Value).FirstOrDefaultAsync();
                 if (newGroup == null)
                     return Results.BadRequest(new { error = "Target group not found." });
 
-                var activeStudents = (int)await db.Students.CountDocumentsAsync(s => s.GroupId == req.GroupId.Value && !s.IsDeleted && s.Id != id);
+                var activeStudents = role == "Admin"
+                    ? (int)await db.GlobalStudents.CountDocumentsAsync(s => s.GroupId == req.GroupId.Value && !s.IsDeleted && s.Id != id)
+                    : (int)await db.Students.CountDocumentsAsync(s => s.GroupId == req.GroupId.Value && !s.IsDeleted && s.Id != id);
                 var maxStudents = CurriculumConstants.GetMaxStudents(newGroup.Level);
                 if (activeStudents >= maxStudents)
                     return Results.BadRequest(new { error = $"Target group is full. Maximum {maxStudents} students for Level {newGroup.Level}." });
@@ -333,7 +344,7 @@ public static class StudentEndpoints
                 update = update.Set(s => s.GroupId, req.GroupId.Value);
             }
 
-            await db.Students.UpdateOneAsync(s => s.Id == id, update);
+            await db.GlobalStudents.UpdateOneAsync(s => s.Id == id, update);
             return Results.Ok(new { id = student.Id, name = req.Name ?? student.Name, groupId = req.GroupId ?? student.GroupId });
         });
 
@@ -345,13 +356,27 @@ public static class StudentEndpoints
 
             // SECURITY: Ownership check — only the owning engineer or admin can delete a student
 
+            var student = role == "Admin"
+                ? await db.GlobalStudents.Find(s => s.Id == id).FirstOrDefaultAsync()
+                : await db.Students.Find(s => s.Id == id).FirstOrDefaultAsync();
+            
+            if (student == null)
+                return Results.NotFound(new { error = "Student not found." });
+
+            // SECURITY: Ownership check
+            if (role != "Admin")
+            {
+                var owningGroup = await db.Groups.Find(g => g.Id == student.GroupId).FirstOrDefaultAsync();
+                if (owningGroup == null || owningGroup.EngineerId != uid)
+                    return Results.Forbid();
+            }
+
             var update = Builders<Student>.Update
                 .Set(s => s.IsDeleted, true)
                 .Set(s => s.DeletedAt, DateTimeOffset.UtcNow)
                 .Set(s => s.UpdatedAt, DateTimeOffset.UtcNow);
             
-            var result = await db.Students.UpdateOneAsync(s => s.Id == id, update);
-            if (result.MatchedCount == 0) return Results.NotFound(new { error = "Student not found." });
+            await db.GlobalStudents.UpdateOneAsync(s => s.Id == id, update);
 
             return Results.Ok(new { message = "Student deleted." });
         });
@@ -363,24 +388,43 @@ public static class StudentEndpoints
             if (identityError != null) return Results.Unauthorized();
 
             // SECURITY: Ownership check — only the owning engineer, the student themselves, or admin
-            if (role == "Engineer")
-            {
-            }
-
-            var student = await db.Students.Find(s => s.Id == id).FirstOrDefaultAsync();
+            var student = role == "Admin"
+                ? await db.GlobalStudents.Find(s => s.Id == id).FirstOrDefaultAsync()
+                : await db.Students.Find(s => s.Id == id).FirstOrDefaultAsync();
+            
             if (student == null)
                 return Results.NotFound(new { error = "Student not found." });
 
-            var records = await db.AttendanceRecords.Find(ar => ar.StudentId == id).ToListAsync();
+            // SECURITY: Ownership check
+            if (role == "Engineer")
+            {
+                var owningGroup = await db.Groups.Find(g => g.Id == student.GroupId).FirstOrDefaultAsync();
+                if (owningGroup == null || owningGroup.EngineerId != uid)
+                    return Results.Forbid();
+            }
+            else if (role == "Student")
+            {
+                var user = await db.Users.Find(u => u.Id == uid).FirstOrDefaultAsync();
+                if (user == null || user.StudentId != student.StudentId)
+                    return Results.Forbid();
+            }
+
+            var records = role == "Admin"
+                ? await db.GlobalAttendanceRecords.Find(ar => ar.StudentId == id).ToListAsync()
+                : await db.AttendanceRecords.Find(ar => ar.StudentId == id).ToListAsync();
             
             // Fix N+1 Query: Batch load sessions entirely instead of looping db.Sessions.Find
             var sessionIds = records.Select(ar => ar.SessionId).Distinct().ToList();
-            var sessions = await db.Sessions.Find(s => sessionIds.Contains(s.Id)).ToListAsync();
+            var sessions = role == "Admin"
+                ? await db.GlobalSessions.Find(s => sessionIds.Contains(s.Id)).ToListAsync()
+                : await db.Sessions.Find(s => sessionIds.Contains(s.Id)).ToListAsync();
             var sessionDict = sessions.ToDictionary(s => s.Id);
             
             // Fix N+1 Query: Batch load groups entirely instead of looping db.Groups.Find
             var groupIds = sessions.Select(s => s.GroupId).Distinct().ToList();
-            var groups = await db.Groups.Find(g => groupIds.Contains(g.Id)).ToListAsync();
+            var groups = role == "Admin"
+                ? await db.GlobalGroups.Find(g => groupIds.Contains(g.Id)).ToListAsync()
+                : await db.Groups.Find(g => groupIds.Contains(g.Id)).ToListAsync();
             var groupDict = groups.ToDictionary(g => g.Id);
 
             var list = new List<object>();

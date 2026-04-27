@@ -44,8 +44,8 @@ public static class AdminUserEndpoints
 
             var filter = filters.Count > 0 ? filterBuilder.And(filters) : filterBuilder.Empty;
 
-            var totalCount = await db.Users.CountDocumentsAsync(filter);
-            var users = await db.Users.Find(filter)
+            var totalCount = await db.GlobalUsers.CountDocumentsAsync(filter);
+            var users = await db.GlobalUsers.Find(filter)
                 .SortByDescending(u => u.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Limit(pageSize)
@@ -89,7 +89,7 @@ public static class AdminUserEndpoints
 
             if (payload == null) return Results.BadRequest(new { error = "Invalid payload." });
 
-            var user = await db.Users.Find(u => u.Id == id).FirstOrDefaultAsync();
+            var user = await db.GlobalUsers.Find(u => u.Id == id).FirstOrDefaultAsync();
             if (user == null) return Results.NotFound(new { error = "User not found." });
             if (user.Role == UserRole.Admin) return Results.BadRequest(new { error = "Cannot restrict an admin." });
 
@@ -121,7 +121,7 @@ public static class AdminUserEndpoints
                 .Set(u => u.RestrictionReason, reason)
                 .Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
 
-            await db.Users.UpdateOneAsync(u => u.Id == id, update);
+            await db.GlobalUsers.UpdateOneAsync(u => u.Id == id, update);
 
             // Audit log
             var audit = new AuditLog
@@ -133,7 +133,7 @@ public static class AdminUserEndpoints
                 EntityId = id.ToString(),
                 Details = $"{caller.Name} restricted user {user.Name} ({reason})"
             };
-            await db.AuditLogs.InsertOneAsync(audit);
+            await db.GlobalAuditLogs.InsertOneAsync(audit);
 
             string notificationTitle = payload.Days == -1 ? "🚫 Account Banned" : "⚠️ Access Restricted";
             string notificationMessage = payload.Days == -1 
@@ -151,7 +151,7 @@ public static class AdminUserEndpoints
             var caller = await auth.GetUserFromClaimsAsync(ctx.User);
             if (caller?.Role != UserRole.Admin) return Results.Forbid();
 
-            var user = await db.Users.Find(u => u.Id == id).FirstOrDefaultAsync();
+            var user = await db.GlobalUsers.Find(u => u.Id == id).FirstOrDefaultAsync();
             if (user == null) return Results.NotFound(new { error = "User not found." });
             if (user.Role == UserRole.Admin) return Results.BadRequest(new { error = "Cannot modify governance for an admin." });
 
@@ -160,7 +160,7 @@ public static class AdminUserEndpoints
                 .Set(u => u.RestrictionReason, (string?)null)
                 .Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
 
-            await db.Users.UpdateOneAsync(u => u.Id == id, update);
+            await db.GlobalUsers.UpdateOneAsync(u => u.Id == id, update);
 
             // Audit log
             var audit = new AuditLog
@@ -172,7 +172,7 @@ public static class AdminUserEndpoints
                 EntityId = id.ToString(),
                 Details = $"{caller.Name} restored access for user {user.Name}"
             };
-            await db.AuditLogs.InsertOneAsync(audit);
+            await db.GlobalAuditLogs.InsertOneAsync(audit);
 
             await notifService.CreateNotificationAsync(id, "✅ Access Restored", "All restrictions on your account have been lifted.", NotificationType.Success);
             await eventBus.PublishAsync(SessionFlow.Desktop.Services.EventBus.Events.UserUpdated, SessionFlow.Desktop.Services.EventBus.EventTargetType.User, id.ToString(), new { });
@@ -192,7 +192,7 @@ public static class AdminUserEndpoints
 
             if (payload == null) return Results.BadRequest(new { error = "Invalid payload." });
 
-            var user = await db.Users.Find(u => u.Id == id).FirstOrDefaultAsync();
+            var user = await db.GlobalUsers.Find(u => u.Id == id).FirstOrDefaultAsync();
             if (user == null) return Results.NotFound(new { error = "User not found." });
             if (user.Role == UserRole.Admin) return Results.BadRequest(new { error = "Cannot modify governance for an admin." });
 
@@ -200,7 +200,7 @@ public static class AdminUserEndpoints
                 .Set(u => u.BlockedPages, payload.Pages ?? new List<string>())
                 .Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
 
-            await db.Users.UpdateOneAsync(u => u.Id == id, update);
+            await db.GlobalUsers.UpdateOneAsync(u => u.Id == id, update);
 
             // Audit log
             var audit = new AuditLog
@@ -212,7 +212,7 @@ public static class AdminUserEndpoints
                 EntityId = id.ToString(),
                 Details = $"{caller.Name} updated blocked pages for {user.Name}: [{string.Join(", ", payload.Pages ?? new List<string>())}]"
             };
-            await db.AuditLogs.InsertOneAsync(audit);
+            await db.GlobalAuditLogs.InsertOneAsync(audit);
 
             await notifService.CreateNotificationAsync(id, "🔒 Page Access Changed", "Access to certain pages has been restricted. Contact your admin for details.", NotificationType.Warning);
             await eventBus.PublishAsync(SessionFlow.Desktop.Services.EventBus.Events.UserUpdated, SessionFlow.Desktop.Services.EventBus.EventTargetType.User, id.ToString(), new { });

@@ -20,6 +20,9 @@ public static class ReportingEndpoints
             if (identityError != null) return Results.Unauthorized();
 
             // SECURITY: Ownership check — only the owning engineer or admin can download reports
+            var session = await db.GlobalSessions.Find(s => s.Id == id).FirstOrDefaultAsync();
+            if (session == null) return Results.NotFound(new { error = "Session not found." });
+            if (role != "Admin" && session.EngineerId != uid) return Results.Forbid();
 
             try
             {

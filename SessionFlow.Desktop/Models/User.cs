@@ -15,7 +15,7 @@ public class User : ITenantEntity
     [BsonIgnore]
     Guid ITenantEntity.EngineerId 
     { 
-        get => EngineerId ?? Id; 
+        get => EngineerId; 
         set => EngineerId = value; 
     }
 
@@ -54,9 +54,8 @@ public class User : ITenantEntity
     
     public string? EngineerCode { get; set; } // The engineer code used during student registration
     
-    [BsonIgnoreIfNull]
     [BsonRepresentation(BsonType.String)]
-    public Guid? EngineerId { get; set; } // For students, links to their managing engineer (tenant)
+    public Guid EngineerId { get; set; } = Guid.Empty; // Scoped tenant ID
 
 
     // Premium System fields

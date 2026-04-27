@@ -30,7 +30,17 @@ public class NotificationService
             CreatedAt = DateTimeOffset.UtcNow
         };
 
-        await _db.Notifications.InsertOneAsync(notification);
+        // Explicitly set the EngineerId to the recipient's ID if they are an Engineer/Admin
+        // This ensures the notification is visible in their own tenant context.
+        var user = await _db.GlobalUsers.Find(u => u.Id == userId).FirstOrDefaultAsync();
+        if (user != null)
+        {
+            notification.EngineerId = user.Role == UserRole.Admin || user.Role == UserRole.Engineer 
+                ? user.Id 
+                : (user.EngineerId ?? Guid.Empty);
+        }
+
+        await _db.GlobalNotifications.InsertOneAsync(notification);
         
         // Publish through event bus (decoupled from SignalR)
         await _eventBus.PublishAsync(Events.NotificationCreated, EventTargetType.User, userId.ToString(), new
@@ -46,7 +56,7 @@ public class NotificationService
 
     public async Task<List<Notification>> GetUserNotificationsAsync(Guid userId, int limit = 20)
     {
-        return await _db.Notifications
+        return await _db.GlobalNotifications
             .Find(n => n.UserId == userId)
             .SortByDescending(n => n.CreatedAt)
             .Limit(limit)
@@ -55,11 +65,11 @@ public class NotificationService
 
     public async Task MarkAsReadAsync(Guid notificationId)
     {
-        var notification = await _db.Notifications.Find(n => n.Id == notificationId).FirstOrDefaultAsync();
+        var notification = await _db.GlobalNotifications.Find(n => n.Id == notificationId).FirstOrDefaultAsync();
         if (notification == null) return;
 
         var update = Builders<Notification>.Update.Set(n => n.IsRead, true);
-        await _db.Notifications.UpdateOneAsync(n => n.Id == notificationId, update);
+        await _db.GlobalNotifications.UpdateOneAsync(n => n.Id == notificationId, update);
         
         // Notify client to update count via event bus
         await _eventBus.PublishAsync(Events.NotificationRead, EventTargetType.User, notification.UserId.ToString(), new
@@ -72,7 +82,7 @@ public class NotificationService
     public async Task MarkAllAsReadAsync(Guid userId)
     {
         var update = Builders<Notification>.Update.Set(n => n.IsRead, true);
-        await _db.Notifications.UpdateManyAsync(n => n.UserId == userId && !n.IsRead, update);
+        await _db.GlobalNotifications.UpdateManyAsync(n => n.UserId == userId && !n.IsRead, update);
         
         // Notify client to update count via event bus
         await _eventBus.PublishAsync(Events.NotificationRead, EventTargetType.User, userId.ToString(), new
@@ -83,12 +93,12 @@ public class NotificationService
 
     public async Task<long> GetUnreadCountAsync(Guid userId)
     {
-        return await _db.Notifications.CountDocumentsAsync(n => n.UserId == userId && !n.IsRead);
+        return await _db.GlobalNotifications.CountDocumentsAsync(n => n.UserId == userId && !n.IsRead);
     }
 
     public async Task NotifyAdminsAsync(string title, string message, NotificationType type = NotificationType.Warning)
     {
-        var admins = await _db.Users.Find(u => u.Role == UserRole.Admin).ToListAsync();
+        var admins = await _db.GlobalUsers.Find(u => u.Role == UserRole.Admin).ToListAsync();
         foreach (var admin in admins)
         {
             await CreateNotificationAsync(admin.Id, title, message, type);

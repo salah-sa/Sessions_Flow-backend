@@ -28,12 +28,8 @@ public static class GroupEndpoints
             var filter = builder.Eq(g => g.IsDeleted, false);
 
             // Zero Trust: Every user (including Admin) is restricted to their own tenant scope.
-            // Legacy orphaned groups are backfilled to the primary Admin account via App.xaml.cs migration.
-            if (roleStr == "Engineer" || roleStr == "Admin")
-            {
-                filter &= builder.Eq(g => g.EngineerId, userId);
-            }
-            else if (roleStr == "Student")
+            // Enforcement is handled automatically by TenantRepository<Group>.
+            if (roleStr == "Student")
             {
                 // Use global resolver for consistent StudentId/UniqueStudentCode matching
                 var user = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
@@ -150,7 +146,9 @@ public static class GroupEndpoints
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
             if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
 
-            var g = await db.Groups.Find(x => x.Id == id && !x.IsDeleted).FirstOrDefaultAsync();
+            var g = role == "Admin"
+                ? await db.GlobalGroups.Find(x => x.Id == id && !x.IsDeleted).FirstOrDefaultAsync()
+                : await db.Groups.Find(x => x.Id == id && !x.IsDeleted).FirstOrDefaultAsync();
             if (g == null) return Results.NotFound(new { error = "Group not found." });
 
             // Security Check
@@ -163,11 +161,15 @@ public static class GroupEndpoints
                 if (studentInfos == null || !studentInfos.Any(s => s.GroupId == id)) return Results.Forbid();
             }
 
-            var engineer = await db.Users.Find(u => u.Id == g.EngineerId).FirstOrDefaultAsync();
-            var schedules = await db.GroupSchedules.Find(s => s.GroupId == g.Id).ToListAsync();
+            var engineer = await db.GlobalUsers.Find(u => u.Id == g.EngineerId).FirstOrDefaultAsync();
+            var schedules = role == "Admin"
+                ? await db.GlobalGroupSchedules.Find(s => s.GroupId == g.Id).ToListAsync()
+                : await db.GroupSchedules.Find(s => s.GroupId == g.Id).ToListAsync();
             
             // Deduplicate to get the true unique student count
-            var allRawStudents = await db.Students.Find(s => s.GroupId == g.Id && !s.IsDeleted).ToListAsync();
+            var allRawStudents = role == "Admin"
+                ? await db.GlobalStudents.Find(s => s.GroupId == g.Id && !s.IsDeleted).ToListAsync()
+                : await db.Students.Find(s => s.GroupId == g.Id && !s.IsDeleted).ToListAsync();
             var uniqueStudents = allRawStudents
                 .GroupBy(s => s.Name.ToLower().Trim())
                 .Select(group => group.OrderByDescending(s => s.UserId != null).ThenByDescending(s => s.CreatedAt).First())
@@ -175,7 +177,9 @@ public static class GroupEndpoints
             
             var studentCount = uniqueStudents.Count;
             
-            var groupSessions = await db.Sessions.Find(s => s.GroupId == g.Id && !s.IsDeleted).ToListAsync();
+            var groupSessions = role == "Admin"
+                ? await db.GlobalSessions.Find(s => s.GroupId == g.Id && !s.IsDeleted).ToListAsync()
+                : await db.Sessions.Find(s => s.GroupId == g.Id && !s.IsDeleted).ToListAsync();
             var completedSessionsCount = groupSessions.Count(s => s.Status == SessionStatus.Ended);
 
             // All authenticated members of this group can see the member list
@@ -228,9 +232,7 @@ public static class GroupEndpoints
             if (identityError != null) return Results.Unauthorized();
 
             var filter = Builders<Group>.Filter.Eq(g => g.Name, name.Trim()) & Builders<Group>.Filter.Eq(g => g.IsDeleted, false);
-            // SECURITY: Scope name uniqueness check per-engineer (multi-tenant isolation)
-            if (role == "Engineer")
-                filter &= Builders<Group>.Filter.Eq(g => g.EngineerId, uid);
+            // SECURITY: Uniqueness check is automatically scoped per-engineer by TenantRepository.
             if (excludeId.HasValue)
                 filter &= Builders<Group>.Filter.Ne(g => g.Id, excludeId.Value);
 
@@ -418,7 +420,9 @@ public static class GroupEndpoints
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
             if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
 
-            var g = await db.Groups.Find(x => x.Id == id).FirstOrDefaultAsync();
+            var g = role == "Admin"
+                ? await db.GlobalGroups.Find(x => x.Id == id).FirstOrDefaultAsync()
+                : await db.Groups.Find(x => x.Id == id).FirstOrDefaultAsync();
             if (g == null) return Results.NotFound(new { error = "Group not found." });
 
             if (role != "Admin" && g.EngineerId != userId)
@@ -468,7 +472,7 @@ public static class GroupEndpoints
             var strictTotal = CurriculumConstants.GetTotalSessions(req.Level ?? g.Level);
             update = update.Set(x => x.TotalSessions, strictTotal);
 
-            await db.Groups.UpdateOneAsync(x => x.Id == id, update);
+            await db.GlobalGroups.UpdateOneAsync(x => x.Id == id, update);
 
             // AUTO-REGENERATE if schedule-impacting fields changed
             if (req.Frequency.HasValue || req.Level.HasValue || req.Schedules != null || req.StartingSessionNumber.HasValue)
@@ -479,7 +483,7 @@ public static class GroupEndpoints
                     // If schedules were provided in the same PUT, update them first
                     if (req.Schedules != null)
                     {
-                        await db.GroupSchedules.DeleteManyAsync(s => s.GroupId == id);
+                        await db.GlobalGroupSchedules.DeleteManyAsync(s => s.GroupId == id);
                         var newSchedules = new List<GroupSchedule>();
                         foreach (var sched in req.Schedules)
                         {
@@ -494,7 +498,7 @@ public static class GroupEndpoints
                                 DurationMinutes = sched.DurationMinutes > 0 ? sched.DurationMinutes : 60
                             });
                         }
-                        await db.GroupSchedules.InsertManyAsync(newSchedules);
+                        await db.GlobalGroupSchedules.InsertManyAsync(newSchedules);
                     }
 
                     await sessionService.RegenerateFutureSessionsAsync(finalGroup);
@@ -522,7 +526,9 @@ public static class GroupEndpoints
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
             if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
 
-            var g = await db.Groups.Find(x => x.Id == id && !x.IsDeleted).FirstOrDefaultAsync();
+            var g = role == "Admin"
+                ? await db.GlobalGroups.Find(x => x.Id == id && !x.IsDeleted).FirstOrDefaultAsync()
+                : await db.Groups.Find(x => x.Id == id && !x.IsDeleted).FirstOrDefaultAsync();
             if (g == null) return Results.NotFound(new { error = "Group not found." });
 
             if (role != "Admin" && g.EngineerId != userId)
@@ -563,14 +569,16 @@ public static class GroupEndpoints
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
             if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
 
-            var g = await db.Groups.Find(x => x.Id == id).FirstOrDefaultAsync();
+            var g = role == "Admin"
+                ? await db.GlobalGroups.Find(x => x.Id == id).FirstOrDefaultAsync()
+                : await db.Groups.Find(x => x.Id == id).FirstOrDefaultAsync();
             if (g == null) return Results.NotFound(new { error = "Group not found." });
 
             if (role != "Admin" && g.EngineerId != userId)
                 return Results.Forbid();
 
             // UX FIX: Prevent deleting if there's an ACTIVE session
-            var hasActiveSession = await db.Sessions.Find(s => s.GroupId == id && s.Status == SessionStatus.Active && !s.IsDeleted).AnyAsync();
+            var hasActiveSession = await db.GlobalSessions.Find(s => s.GroupId == id && s.Status == SessionStatus.Active && !s.IsDeleted).AnyAsync();
             if (hasActiveSession)
                 return Results.BadRequest(new { error = "Cannot delete group while a session is currently ACTIVE. Please end the session first." });
 
@@ -585,31 +593,31 @@ public static class GroupEndpoints
                     .Set(g => g.DeletedAt, DateTimeOffset.UtcNow)
                     .Set(g => g.UpdatedAt, DateTimeOffset.UtcNow);
                 
-                await db.Groups.UpdateOneAsync(session, g => g.Id == id, update);
+                await db.GlobalGroups.UpdateOneAsync(session, g => g.Id == id, update);
 
                 // Cascade soft-delete to students
-                await db.Students.UpdateManyAsync(
+                await db.GlobalStudents.UpdateManyAsync(
                     session,
                     s => s.GroupId == id && !s.IsDeleted,
                     Builders<Student>.Update.Set(s => s.IsDeleted, true).Set(s => s.UpdatedAt, DateTimeOffset.UtcNow)
                 );
 
                 // Cascade soft-delete to ALL sessions (Scheduled, Active, or Ended)
-                await db.Sessions.UpdateManyAsync(
+                await db.GlobalSessions.UpdateManyAsync(
                     session,
                     s => s.GroupId == id && !s.IsDeleted,
                     Builders<Session>.Update.Set(s => s.IsDeleted, true).Set(s => s.UpdatedAt, DateTimeOffset.UtcNow)
                 );
 
                 // Cascade soft-delete to chat messages
-                await db.ChatMessages.UpdateManyAsync(
+                await db.GlobalChatMessages.UpdateManyAsync(
                     session,
                     m => m.GroupId == id && !m.IsDeleted,
                     Builders<ChatMessage>.Update.Set(m => m.IsDeleted, true).Set(m => m.UpdatedAt, DateTimeOffset.UtcNow)
                 );
 
                 // Cleanup recurring schedules
-                await db.GroupSchedules.DeleteManyAsync(session, s => s.GroupId == id);
+                await db.GlobalGroupSchedules.DeleteManyAsync(session, s => s.GroupId == id);
 
                 await session.CommitTransactionAsync();
 
@@ -630,7 +638,9 @@ public static class GroupEndpoints
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
             if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
 
-            var g = await db.Groups.Find(x => x.Id == id).FirstOrDefaultAsync();
+            var g = role == "Admin"
+                ? await db.GlobalGroups.Find(x => x.Id == id).FirstOrDefaultAsync()
+                : await db.Groups.Find(x => x.Id == id).FirstOrDefaultAsync();
             if (g == null) return Results.NotFound(new { error = "Group not found." });
 
             if (role == "Engineer" && g.EngineerId != userId)
@@ -644,10 +654,9 @@ public static class GroupEndpoints
                 if (studentInfos == null || !studentInfos.Any(s => s.GroupId == id)) return Results.Forbid();
             }
 
-            var rawStudents = await db.Students
-                .Find(s => s.GroupId == id && !s.IsDeleted)
-                .SortBy(s => s.Name)
-                .ToListAsync();
+            var rawStudents = role == "Admin"
+                ? await db.GlobalStudents.Find(s => s.GroupId == id && !s.IsDeleted).SortBy(s => s.Name).ToListAsync()
+                : await db.Students.Find(s => s.GroupId == id && !s.IsDeleted).SortBy(s => s.Name).ToListAsync();
 
             var students = rawStudents
                 .GroupBy(s => s.Name.ToLower().Trim())
@@ -673,7 +682,9 @@ public static class GroupEndpoints
             var (uid, role, identityError) = AuthorizationGuard.ExtractIdentity(ctx);
             if (identityError != null) return Results.Unauthorized();
 
-            var g = await db.Groups.Find(x => x.Id == id).FirstOrDefaultAsync();
+            var g = role == "Admin"
+                ? await db.GlobalGroups.Find(x => x.Id == id).FirstOrDefaultAsync()
+                : await db.Groups.Find(x => x.Id == id).FirstOrDefaultAsync();
             if (g == null) return Results.NotFound(new { error = "Group not found." });
 
             // SECURITY: Ownership check — only the owning engineer or admin can add students
@@ -683,7 +694,9 @@ public static class GroupEndpoints
             if (string.IsNullOrWhiteSpace(req.Name))
                 return Results.BadRequest(new { error = "Student name is required." });
 
-            var activeStudents = (int)await db.Students.CountDocumentsAsync(s => s.GroupId == id && !s.IsDeleted);
+            var activeStudents = role == "Admin"
+                ? (int)await db.GlobalStudents.CountDocumentsAsync(s => s.GroupId == id && !s.IsDeleted)
+                : (int)await db.Students.CountDocumentsAsync(s => s.GroupId == id && !s.IsDeleted);
             var maxStudents = CurriculumConstants.GetMaxStudents(g.Level);
 
             if (activeStudents >= maxStudents)
@@ -696,7 +709,7 @@ public static class GroupEndpoints
                 UniqueStudentCode = Student.GenerateCode(req.Name.Trim(), id)
             };
 
-            await db.Students.InsertOneAsync(student);
+            await db.GlobalStudents.InsertOneAsync(student);
 
             return Results.Created($"/api/students/{student.Id}", new
             {

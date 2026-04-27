@@ -76,12 +76,12 @@ public static class ChatEndpoints
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
             if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
 
-            var g = await db.Groups.Find(x => x.Id == groupId && !x.IsDeleted).FirstOrDefaultAsync();
+            var g = role == "Admin"
+                ? await db.GlobalGroups.Find(x => x.Id == groupId && !x.IsDeleted).FirstOrDefaultAsync()
+                : await db.Groups.Find(x => x.Id == groupId && !x.IsDeleted).FirstOrDefaultAsync();
             if (g == null)
                 return Results.NotFound(new { error = "Group not found." });
 
-            if (role == "Engineer" && g.EngineerId != userId)
-                return Results.Forbid();
 
             if (role == "Student")
             {
@@ -98,14 +98,20 @@ public static class ChatEndpoints
                 filter &= Builders<ChatMessage>.Filter.Lt(m => m.SentAt, before.Value);
             }
 
-            var messages = await db.ChatMessages
-                .Find(filter)
-                .SortByDescending(m => m.SentAt)
-                .Limit(queryLimit)
-                .ToListAsync();
+            var messages = role == "Admin"
+                ? await db.GlobalChatMessages
+                    .Find(filter)
+                    .SortByDescending(m => m.SentAt)
+                    .Limit(queryLimit)
+                    .ToListAsync()
+                : await db.ChatMessages
+                    .Find(filter)
+                    .SortByDescending(m => m.SentAt)
+                    .Limit(queryLimit)
+                    .ToListAsync();
 
             var senderIds = messages.Select(m => m.SenderId).Distinct().ToList();
-            var senders = await db.Users.Find(u => senderIds.Contains(u.Id)).ToListAsync();
+            var senders = await db.GlobalUsers.Find(u => senderIds.Contains(u.Id)).ToListAsync();
             var senderDict = senders.ToDictionary(u => u.Id);
 
             var result = new List<object>();
@@ -147,15 +153,15 @@ public static class ChatEndpoints
 
             var userRole = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
 
-            var g = await db.Groups.Find(x => x.Id == groupId && !x.IsDeleted).FirstOrDefaultAsync();
+            var g = role == "Admin"
+                ? await db.GlobalGroups.Find(x => x.Id == groupId && !x.IsDeleted).FirstOrDefaultAsync()
+                : await db.Groups.Find(x => x.Id == groupId && !x.IsDeleted).FirstOrDefaultAsync();
             if (g == null)
                 return Results.NotFound(new { error = "Group not found." });
 
-            if (userRole == "Engineer" && g.EngineerId != userGuid)
-                return Results.Forbid();
 
             // 1. Resolve User & Authorization
-            var user = await db.Users.Find(u => u.Id == userGuid).FirstOrDefaultAsync();
+            var user = await db.GlobalUsers.Find(u => u.Id == userGuid).FirstOrDefaultAsync();
             if (user == null) return Results.Forbid();
 
             if (userRole == "Student")
@@ -272,9 +278,9 @@ public static class ChatEndpoints
                 SentAt = DateTimeOffset.UtcNow
             };
 
-            await db.ChatMessages.InsertOneAsync(message);
+            await db.GlobalChatMessages.InsertOneAsync(message);
 
-            var sender = await db.Users.Find(u => u.Id == userGuid).FirstOrDefaultAsync();
+            var sender = await db.GlobalUsers.Find(u => u.Id == userGuid).FirstOrDefaultAsync();
 
             var msgData = new
             {

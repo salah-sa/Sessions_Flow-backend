@@ -78,8 +78,12 @@ public static class SettingsEndpoints
 
 
         // POST /api/export/history
-        app.MapPost("/api/export/history", async (ExportRequest req, MongoService db, IConfiguration config) =>
+        app.MapPost("/api/export/history", async (ExportRequest req, MongoService db, IConfiguration config, ClaimsPrincipal user) =>
         {
+            var role = user.FindFirst(ClaimTypes.Role)?.Value;
+            var uidClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            Guid.TryParse(uidClaim, out var uid);
+
             if (string.IsNullOrWhiteSpace(req.FilePath))
                 return Results.BadRequest(new { error = "File path is required." });
 
@@ -93,17 +97,25 @@ public static class SettingsEndpoints
             if (!string.IsNullOrEmpty(req.GroupId) && Guid.TryParse(req.GroupId, out var gid))
                 sessionFilter &= sessionBuilder.Eq(s => s.GroupId, gid);
 
-            var sessions = await db.Sessions.Find(sessionFilter).ToListAsync();
+            var sessions = role == "Admin"
+                ? await db.GlobalSessions.Find(sessionFilter).ToListAsync()
+                : await db.Sessions.Find(sessionFilter).ToListAsync();
             var sessionIds = sessions.Select(s => s.Id).ToList();
 
-            var records = await db.AttendanceRecords.Find(r => sessionIds.Contains(r.SessionId)).ToListAsync();
+            var records = role == "Admin"
+                ? await db.GlobalAttendanceRecords.Find(r => sessionIds.Contains(r.SessionId)).ToListAsync()
+                : await db.AttendanceRecords.Find(r => sessionIds.Contains(r.SessionId)).ToListAsync();
 
             var studentIds = records.Select(r => r.StudentId).Distinct().ToList();
-            var students = await db.Students.Find(s => studentIds.Contains(s.Id)).ToListAsync();
+            var students = role == "Admin"
+                ? await db.GlobalStudents.Find(s => studentIds.Contains(s.Id)).ToListAsync()
+                : await db.Students.Find(s => studentIds.Contains(s.Id)).ToListAsync();
             var studentDict = students.ToDictionary(s => s.Id);
 
             var groupIds = sessions.Select(s => s.GroupId).Distinct().ToList();
-            var groups = await db.Groups.Find(g => groupIds.Contains(g.Id)).ToListAsync();
+            var groups = role == "Admin"
+                ? await db.GlobalGroups.Find(g => groupIds.Contains(g.Id)).ToListAsync()
+                : await db.Groups.Find(g => groupIds.Contains(g.Id)).ToListAsync();
             var groupDict = groups.ToDictionary(g => g.Id);
 
             var sessionDict = sessions.ToDictionary(s => s.Id);

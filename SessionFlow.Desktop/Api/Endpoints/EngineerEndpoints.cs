@@ -22,20 +22,20 @@ public static class EngineerEndpoints
             if (role != "Admin")
                 return Results.Forbid();
 
-            var engineerUsers = await db.Users
+            var engineerUsers = await db.GlobalUsers
                 .Find(u => u.Role == UserRole.Engineer && u.IsApproved)
                 .ToListAsync();
 
             var engineerIds = engineerUsers.Select(u => u.Id).ToList();
 
-            var allSessions = await db.Sessions.Find(s => engineerIds.Contains(s.EngineerId) && !s.IsDeleted).ToListAsync();
+            var allSessions = await db.GlobalSessions.Find(s => engineerIds.Contains(s.EngineerId) && !s.IsDeleted).ToListAsync();
             var sessionsByEng = allSessions.GroupBy(s => s.EngineerId).ToDictionary(g => g.Key, g => g.ToList());
 
-            var allGroups = await db.Groups.Find(g => engineerIds.Contains(g.EngineerId) && !g.IsDeleted).ToListAsync();
+            var allGroups = await db.GlobalGroups.Find(g => engineerIds.Contains(g.EngineerId) && !g.IsDeleted).ToListAsync();
             var groupsByEng = allGroups.GroupBy(g => g.EngineerId).ToDictionary(g => g.Key, g => g.ToList());
 
             var groupIds = allGroups.Select(g => g.Id).ToList();
-            var allStudents = await db.Students.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync();
+            var allStudents = await db.GlobalStudents.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync();
             var studentsByGroup = allStudents.GroupBy(s => s.GroupId).ToDictionary(g => g.Key, g => g.Count());
 
             var engineerList = new List<object>();
@@ -80,21 +80,21 @@ public static class EngineerEndpoints
             if (role != "Admin")
                 return Results.Forbid();
 
-            var engineer = await db.Users.Find(u => u.Id == id).FirstOrDefaultAsync();
+            var engineer = await db.GlobalUsers.Find(u => u.Id == id).FirstOrDefaultAsync();
             if (engineer == null)
                 return Results.NotFound(new { error = "Engineer not found." });
 
-            var sessions = await db.Sessions.Find(s => s.EngineerId == id && !s.IsDeleted).ToListAsync();
+            var sessions = await db.GlobalSessions.Find(s => s.EngineerId == id && !s.IsDeleted).ToListAsync();
             var totalSessions = sessions.Count;
             var completedSessions = sessions.Count(s => s.Status == SessionStatus.Ended);
             var activeSessions = sessions.Count(s => s.Status == SessionStatus.Active);
             
-            var groups = await db.Groups.Find(g => g.EngineerId == id && !g.IsDeleted).ToListAsync();
+            var groups = await db.GlobalGroups.Find(g => g.EngineerId == id && !g.IsDeleted).ToListAsync();
             var groupIds = groups.Select(g => g.Id).ToList();
-            var students = await db.Students.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync();
+            var students = await db.GlobalStudents.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync();
 
             var sessionIds = sessions.Where(s => s.Status == SessionStatus.Ended).Select(s => s.Id).ToList();
-            var allAttendance = await db.AttendanceRecords.Find(ar => sessionIds.Contains(ar.SessionId)).ToListAsync();
+            var allAttendance = await db.GlobalAttendanceRecords.Find(ar => sessionIds.Contains(ar.SessionId)).ToListAsync();
             
             var avgAttendanceRate = allAttendance.Count > 0
                 ? (double)allAttendance.Count(ar => ar.Status == AttendanceStatus.Present || ar.Status == AttendanceStatus.Late) / allAttendance.Count * 100.0
@@ -228,7 +228,7 @@ public static class EngineerEndpoints
 
             // Batch-load users to avoid N+1
             var usedByEngineerIds = codeList.Where(c => c.UsedByEngineerId.HasValue).Select(c => c.UsedByEngineerId!.Value).Distinct().ToList();
-            var userMap = (await db.Users.Find(u => usedByEngineerIds.Contains(u.Id)).ToListAsync())
+            var userMap = (await db.GlobalUsers.Find(u => usedByEngineerIds.Contains(u.Id)).ToListAsync())
                 .ToDictionary(u => u.Id, u => u.Name);
 
             var result = codeList.Select(c => new

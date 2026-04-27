@@ -37,6 +37,7 @@ public class TenantContextService : ITenantAccessor
             var engineerIdClaim = user.FindFirst("engineer_id")?.Value;
             if (Guid.TryParse(engineerIdClaim, out var engId))
             {
+                if (engId == Guid.Empty) return null; // Fail-fast on uninitialized tenant context
                 return engId;
             }
 
@@ -44,6 +45,7 @@ public class TenantContextService : ITenantAccessor
             var idStr = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (Guid.TryParse(idStr, out var id))
             {
+                if (id == Guid.Empty) return null;
                 return id;
             }
             return null;
@@ -61,6 +63,12 @@ public class TenantContextService : ITenantAccessor
 
     public void SetSystemContext()
     {
+        // Absolute Guard: System context must NEVER be set mid-request.
+        // It is intended only for background services or startup migrations.
+        if (_httpContextAccessor.HttpContext != null)
+        {
+            throw new InvalidOperationException("CRITICAL SECURITY VIOLATION: Attempted to elevate to System context within an active HTTP request boundary.");
+        }
         _isSystemContext.Value = true;
     }
 }

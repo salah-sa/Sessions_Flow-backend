@@ -20,8 +20,8 @@ public class SessionService
     public async Task AutoGenerateSessionsAsync(Group group, IClientSessionHandle? session = null, CancellationToken ct = default)
     {
         var schedules = session != null
-            ? await _db.GroupSchedules.Find(session, gs => gs.GroupId == group.Id).ToListAsync(ct)
-            : await _db.GroupSchedules.Find(gs => gs.GroupId == group.Id).ToListAsync(ct);
+            ? await _db.GlobalGroupSchedules.Find(session, gs => gs.GroupId == group.Id).ToListAsync(ct)
+            : await _db.GlobalGroupSchedules.Find(gs => gs.GroupId == group.Id).ToListAsync(ct);
 
         if (schedules.Count == 0)
             return;
@@ -50,15 +50,15 @@ public class SessionService
             }).ToList();
 
             if (session != null)
-                await _db.Sessions.InsertManyAsync(session, sessionsToInsert, cancellationToken: ct);
+                await _db.GlobalSessions.InsertManyAsync(session, sessionsToInsert, cancellationToken: ct);
             else
-                await _db.Sessions.InsertManyAsync(sessionsToInsert, cancellationToken: ct);
+                await _db.GlobalSessions.InsertManyAsync(sessionsToInsert, cancellationToken: ct);
         }
     }
 
     public async Task MaintainAllGroupsSessionsAsync(CancellationToken ct = default)
     {
-        var activeGroups = await _db.Groups.Find(g => g.Status == GroupStatus.Active && !g.IsDeleted).ToListAsync(ct);
+        var activeGroups = await _db.GlobalGroups.Find(g => g.Status == GroupStatus.Active && !g.IsDeleted).ToListAsync(ct);
         foreach (var group in activeGroups)
         {
             if (ct.IsCancellationRequested) break;
@@ -69,10 +69,10 @@ public class SessionService
     public async Task MaintainSessionsAsync(Group group, CancellationToken ct = default)
     {
         // Ensure at least 4 future sessions exist
-        var futureCount = await _db.Sessions.CountDocumentsAsync(s => s.GroupId == group.Id && s.ScheduledAt > DateTimeOffset.UtcNow && !s.IsDeleted, cancellationToken: ct);
+        var futureCount = await _db.GlobalSessions.CountDocumentsAsync(s => s.GroupId == group.Id && s.ScheduledAt > DateTimeOffset.UtcNow && !s.IsDeleted, cancellationToken: ct);
         if (futureCount >= 4) return;
 
-        var lastSession = await _db.Sessions
+        var lastSession = await _db.GlobalSessions
             .Find(s => s.GroupId == group.Id && !s.IsDeleted && !s.IsSkipped)
             .SortByDescending(s => s.ScheduledAt)
             .FirstOrDefaultAsync();
@@ -82,7 +82,7 @@ public class SessionService
 
         if (lastSessionNum >= group.TotalSessions) return;
 
-        var schedules = await _db.GroupSchedules.Find(gs => gs.GroupId == group.Id).ToListAsync();
+        var schedules = await _db.GlobalGroupSchedules.Find(gs => gs.GroupId == group.Id).ToListAsync();
         if (schedules.Count == 0) return;
 
         var cairoTz = GetConfiguredTimeZone();
@@ -128,13 +128,13 @@ public class SessionService
 
         if (newSessions.Count > 0)
         {
-            await _db.Sessions.InsertManyAsync(newSessions);
+            await _db.GlobalSessions.InsertManyAsync(newSessions);
         }
     }
 
     public async Task<(Session? session, string? error)> StartSessionAsync(Guid sessionId)
     {
-        var session = await _db.Sessions.Find(s => s.Id == sessionId).FirstOrDefaultAsync();
+        var session = await _db.GlobalSessions.Find(s => s.Id == sessionId).FirstOrDefaultAsync();
         if (session == null)
             return (null, "Session not found.");
 
@@ -149,7 +149,7 @@ public class SessionService
             return (null, $"Security Restriction: This session is scheduled for later. You can only start it within 30 minutes of the scheduled time (Wait another {Math.Floor(diff.TotalMinutes - 30)} minutes).");
         }
 
-        var hasActive = await _db.Sessions
+        var hasActive = await _db.GlobalSessions
             .Find(s => s.GroupId == session.GroupId && s.Status == SessionStatus.Active && s.Id != sessionId)
             .AnyAsync();
 
@@ -157,7 +157,7 @@ public class SessionService
             return (null, "There is already an active session for this group. End it before starting a new one.");
 
         // Sequential Validation: Ensure we are starting the CORRECT session number
-        var group = await _db.Groups.Find(g => g.Id == session.GroupId).FirstOrDefaultAsync();
+        var group = await _db.GlobalGroups.Find(g => g.Id == session.GroupId).FirstOrDefaultAsync();
         if (group == null)
             return (null, "Group not found.");
 
@@ -171,7 +171,7 @@ public class SessionService
             .Set(s => s.StartedAt, DateTimeOffset.UtcNow)
             .Set(s => s.UpdatedAt, DateTimeOffset.UtcNow);
         
-        var result = await _db.Sessions.UpdateOneAsync(s => s.Id == sessionId && s.Status == SessionStatus.Scheduled, update);
+        var result = await _db.GlobalSessions.UpdateOneAsync(s => s.Id == sessionId && s.Status == SessionStatus.Scheduled, update);
         if (result.ModifiedCount == 0)
         {
             return (null, "Session could not be started. It might already be active or ended.");
@@ -180,8 +180,8 @@ public class SessionService
         session.Status = SessionStatus.Active;
 
         // Create attendance records — batch check for existing
-        var students = await _db.Students.Find(s => s.GroupId == session.GroupId && !s.IsDeleted).ToListAsync();
-        var existingRecords = await _db.AttendanceRecords
+        var students = await _db.GlobalStudents.Find(s => s.GroupId == session.GroupId && !s.IsDeleted).ToListAsync();
+        var existingRecords = await _db.GlobalAttendanceRecords
             .Find(ar => ar.SessionId == sessionId)
             .ToListAsync();
         var existingStudentIds = new HashSet<Guid>(existingRecords.Select(ar => ar.StudentId));
@@ -199,7 +199,7 @@ public class SessionService
 
         if (newRecords.Count > 0)
         {
-            await _db.AttendanceRecords.InsertManyAsync(newRecords);
+            await _db.GlobalAttendanceRecords.InsertManyAsync(newRecords);
         }
 
         return (session, null);
@@ -207,14 +207,14 @@ public class SessionService
 
     public async Task<(Session? session, string? error)> EndSessionAsync(Guid sessionId, string? notes = null, bool force = false)
     {
-        var session = await _db.Sessions.Find(s => s.Id == sessionId).FirstOrDefaultAsync();
+        var session = await _db.GlobalSessions.Find(s => s.Id == sessionId).FirstOrDefaultAsync();
         if (session == null)
             return (null, "Session not found.");
 
         if (session.Status != SessionStatus.Active)
             return (null, $"Cannot end a session with status '{session.Status}'. Only active sessions can be ended.");
 
-        var records = await _db.AttendanceRecords.Find(ar => ar.SessionId == sessionId).ToListAsync();
+        var records = await _db.GlobalAttendanceRecords.Find(ar => ar.SessionId == sessionId).ToListAsync();
         
         if (!force && records.Any(r => r.Status == AttendanceStatus.Unmarked))
         {
@@ -252,7 +252,7 @@ public class SessionService
             .Set(s => s.TotalStudents, total)
             .Set(s => s.AttendanceRate, attendanceRate);
         
-        var result = await _db.Sessions.UpdateOneAsync(s => s.Id == sessionId && s.Status == SessionStatus.Active, update);
+        var result = await _db.GlobalSessions.UpdateOneAsync(s => s.Id == sessionId && s.Status == SessionStatus.Active, update);
         if (result.ModifiedCount == 0)
         {
             return (null, "Session could not be ended. It might already be ended.");
@@ -281,7 +281,7 @@ public class SessionService
                     .Set(g => g.CompletedAt, DateTimeOffset.UtcNow);
             }
 
-            await _db.Groups.UpdateOneAsync(g => g.Id == group.Id, groupUpdate);
+            await _db.GlobalGroups.UpdateOneAsync(g => g.Id == group.Id, groupUpdate);
         }
 
         return (session, null);
@@ -290,7 +290,7 @@ public class SessionService
     public async Task<(List<AttendanceRecord>? records, string? error)> UpdateAttendanceAsync(
         Guid sessionId, List<(Guid studentId, AttendanceStatus status)> updates, string userRole = "Engineer")
     {
-        var session = await _db.Sessions.Find(s => s.Id == sessionId).FirstOrDefaultAsync();
+        var session = await _db.GlobalSessions.Find(s => s.Id == sessionId).FirstOrDefaultAsync();
         if (session == null)
             return (null, "Session not found.");
 
@@ -308,7 +308,7 @@ public class SessionService
                 if (endedCairo.Date == cairoNow.Date)
                 {
                     // Check if attendance already has non-Unmarked records (already finalized today)
-                    var existingRecords = await _db.AttendanceRecords
+                    var existingRecords = await _db.GlobalAttendanceRecords
                         .Find(ar => ar.SessionId == sessionId && ar.Status != AttendanceStatus.Unmarked)
                         .AnyAsync();
                     if (existingRecords)
@@ -352,7 +352,7 @@ public class SessionService
                 ReturnDocument = ReturnDocument.After
             };
 
-            var record = await _db.AttendanceRecords.FindOneAndUpdateAsync(filter, update, options);
+            var record = await _db.GlobalAttendanceRecords.FindOneAndUpdateAsync(filter, update, options);
             if (record != null)
             {
                 updatedRecords.Add(record);
@@ -364,7 +364,7 @@ public class SessionService
 
     public async Task<(Session? session, string? error)> SkipSessionAsync(Guid sessionId, string? reason = null)
     {
-        var session = await _db.Sessions.Find(s => s.Id == sessionId).FirstOrDefaultAsync();
+        var session = await _db.GlobalSessions.Find(s => s.Id == sessionId).FirstOrDefaultAsync();
         if (session == null)
             return (null, "Session not found.");
 
@@ -378,10 +378,10 @@ public class SessionService
             .Set(s => s.SkipReason, reason ?? "Session did not take place")
             .Set(s => s.UpdatedAt, DateTimeOffset.UtcNow);
 
-        await _db.Sessions.UpdateOneAsync(s => s.Id == sessionId, update);
+        await _db.GlobalSessions.UpdateOneAsync(s => s.Id == sessionId, update);
 
         // Cleanup: remove any attendance records for this session
-        await _db.AttendanceRecords.DeleteManyAsync(ar => ar.SessionId == sessionId);
+        await _db.GlobalAttendanceRecords.DeleteManyAsync(ar => ar.SessionId == sessionId);
 
         // Important: Do NOT advance Group.CurrentSessionNumber
         // The next session generation will reuse the same number
@@ -400,7 +400,7 @@ public class SessionService
         var todayStart = new DateTimeOffset(cairoNow.Date, cairoTz.GetUtcOffset(cairoNow));
         var todayEnd = todayStart.AddDays(1);
 
-        var sessions = await _db.Sessions
+        var sessions = await _db.GlobalSessions
             .Find(s => s.ScheduledAt >= todayStart && s.ScheduledAt < todayEnd && !s.IsDeleted)
             .SortBy(s => s.ScheduledAt)
             .ToListAsync();
@@ -409,7 +409,7 @@ public class SessionService
         var groupIds = sessions.Select(s => s.GroupId).Distinct().ToList();
         var engineerIds = sessions.Select(s => s.EngineerId).Distinct().ToList();
 
-        var groups = await _db.Groups.Find(g => groupIds.Contains(g.Id) && !g.IsDeleted).ToListAsync();
+        var groups = await _db.GlobalGroups.Find(g => groupIds.Contains(g.Id) && !g.IsDeleted).ToListAsync();
         var engineers = await _db.Users.Find(u => engineerIds.Contains(u.Id)).ToListAsync();
 
         var groupDict = groups.ToDictionary(g => g.Id);
@@ -431,14 +431,14 @@ public class SessionService
         var tomorrowStart = new DateTimeOffset(cairoNow.Date.AddDays(1), cairoTz.GetUtcOffset(cairoNow.AddDays(1)));
         var tomorrowEnd = tomorrowStart.AddDays(1);
 
-        var sessions = await _db.Sessions
+        var sessions = await _db.GlobalSessions
             .Find(s => s.ScheduledAt >= tomorrowStart && s.ScheduledAt < tomorrowEnd && !s.IsDeleted)
             .SortBy(s => s.ScheduledAt)
             .ToListAsync();
 
         var groupIds = sessions.Select(s => s.GroupId).Distinct().ToList();
         var engineerIds = sessions.Select(s => s.EngineerId).Distinct().ToList();
-        var groups = await _db.Groups.Find(g => groupIds.Contains(g.Id) && !g.IsDeleted).ToListAsync();
+        var groups = await _db.GlobalGroups.Find(g => groupIds.Contains(g.Id) && !g.IsDeleted).ToListAsync();
         var engineers = await _db.Users.Find(u => engineerIds.Contains(u.Id)).ToListAsync();
         var groupDict = groups.ToDictionary(g => g.Id);
         var engDict = engineers.ToDictionary(u => u.Id);
@@ -457,7 +457,7 @@ public class SessionService
         var now = DateTimeOffset.UtcNow;
         var cutoff = now.AddMinutes(withinMinutes);
 
-        var sessions = await _db.Sessions
+        var sessions = await _db.GlobalSessions
             .Find(s => s.Status == SessionStatus.Scheduled
                         && s.ScheduledAt > now
                         && s.ScheduledAt <= cutoff
@@ -466,7 +466,7 @@ public class SessionService
 
         var groupIds = sessions.Select(s => s.GroupId).Distinct().ToList();
         var engineerIds = sessions.Select(s => s.EngineerId).Distinct().ToList();
-        var groups = await _db.Groups.Find(g => groupIds.Contains(g.Id) && !g.IsDeleted).ToListAsync();
+        var groups = await _db.GlobalGroups.Find(g => groupIds.Contains(g.Id) && !g.IsDeleted).ToListAsync();
         var engineers = await _db.Users.Find(u => engineerIds.Contains(u.Id)).ToListAsync();
         var groupDict = groups.ToDictionary(g => g.Id);
         var engDict = engineers.ToDictionary(u => u.Id);
@@ -486,10 +486,10 @@ public class SessionService
         var filter = Builders<Session>.Filter.Eq(s => s.GroupId, group.Id) & 
                      Builders<Session>.Filter.Eq(s => s.Status, SessionStatus.Scheduled);
         
-        await _db.Sessions.DeleteManyAsync(filter);
+        await _db.GlobalSessions.DeleteManyAsync(filter);
 
         // 2. Find the last session (Ended or Active) to determine the next session number
-        var lastCompletedSession = await _db.Sessions
+        var lastCompletedSession = await _db.GlobalSessions
             .Find(s => s.GroupId == group.Id && !s.IsDeleted)
             .SortByDescending(s => s.SessionNumber)
             .FirstOrDefaultAsync();
@@ -498,7 +498,7 @@ public class SessionService
         
         if (startFromNum > group.TotalSessions) return;
 
-        var schedules = await _db.GroupSchedules.Find(gs => gs.GroupId == group.Id).ToListAsync();
+        var schedules = await _db.GlobalGroupSchedules.Find(gs => gs.GroupId == group.Id).ToListAsync();
         if (schedules.Count == 0) return;
 
         // 3. Refill up to TotalSessions
@@ -549,7 +549,7 @@ public class SessionService
 
         if (newSessions.Count > 0)
         {
-            await _db.Sessions.InsertManyAsync(newSessions);
+            await _db.GlobalSessions.InsertManyAsync(newSessions);
         }
     }
 
@@ -572,17 +572,17 @@ public class SessionService
         // --- 1. AUTOMATIC CLEANUP (Self-Healing) ---
         
         // A. Identify 'Test' data to be hidden
-        var testGroups = await _db.Groups.Find(g => g.Name.ToLower().Contains("test")).ToListAsync(ct);
+        var testGroups = await _db.GlobalGroups.Find(g => g.Name.ToLower().Contains("test")).ToListAsync(ct);
         var testGroupIds = new HashSet<Guid>(testGroups.Select(g => g.Id));
 
         // B. Find ALL valid schedules for today
-        var todaySchedules = await _db.GroupSchedules
+        var todaySchedules = await _db.GlobalGroupSchedules
             .Find(gs => gs.DayOfWeek == todayDow)
             .ToListAsync(ct);
         var validGroupIdsForToday = new HashSet<Guid>(todaySchedules.Select(s => s.GroupId));
 
         // C. Find all existing sessions for today's Cairo window
-        var existingSessions = await _db.Sessions
+        var existingSessions = await _db.GlobalSessions
             .Find(s => s.ScheduledAt >= todayStart && s.ScheduledAt < todayEnd && !s.IsDeleted)
             .ToListAsync(ct);
 
@@ -596,7 +596,7 @@ public class SessionService
 
         if (sessionsToPurge.Count > 0)
         {
-            await _db.Sessions.UpdateManyAsync(
+            await _db.GlobalSessions.UpdateManyAsync(
                 s => sessionsToPurge.Contains(s.Id),
                 Builders<Session>.Update.Set(s => s.IsDeleted, true).Set(s => s.DeletedAt, DateTimeOffset.UtcNow),
                 cancellationToken: ct
@@ -617,7 +617,7 @@ public class SessionService
         {
             var sorted = dg.OrderBy(s => s.CreatedAt).ToList();
             var extras = sorted.Skip(1).Select(s => s.Id).ToList();
-            await _db.Sessions.UpdateManyAsync(
+            await _db.GlobalSessions.UpdateManyAsync(
                 s => extras.Contains(s.Id),
                 Builders<Session>.Update.Set(s => s.IsDeleted, true).Set(s => s.DeletedAt, DateTimeOffset.UtcNow),
                 cancellationToken: ct
@@ -631,14 +631,14 @@ public class SessionService
         var groupIdsWithSchedule = todaySchedules.Select(s => s.GroupId).Distinct().ToList();
 
         // Get all active, non-test groups that own those schedules
-        var activeGroups = await _db.Groups
+        var activeGroups = await _db.GlobalGroups
             .Find(g => groupIdsWithSchedule.Contains(g.Id) && g.Status == GroupStatus.Active && !g.IsDeleted && !g.Name.ToLower().Contains("test"))
             .ToListAsync(ct);
 
         if (activeGroups.Count == 0) return;
 
         // Re-map existing sessions after cleanup for final gap filling
-        var finalExistingSessions = await _db.Sessions
+        var finalExistingSessions = await _db.GlobalSessions
             .Find(s => groupIdsWithSchedule.Contains(s.GroupId) && s.ScheduledAt >= todayStart && s.ScheduledAt < todayEnd && !s.IsDeleted)
             .ToListAsync(ct);
 
@@ -698,7 +698,7 @@ public class SessionService
 
         if (newSessions.Count > 0)
         {
-            await _db.Sessions.InsertManyAsync(newSessions, cancellationToken: ct);
+            await _db.GlobalSessions.InsertManyAsync(newSessions, cancellationToken: ct);
         }
     }
 

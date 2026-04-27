@@ -51,10 +51,6 @@ public static class TimetableEndpoints
 
                 sessionFilter &= sessionBuilder.In(s => s.GroupId, studentGroupIds);
             }
-            else if (role == "Engineer")
-            {
-                sessionFilter &= sessionBuilder.Eq(s => s.EngineerId, uid);
-            }
 
             var sessions = await db.Sessions.Find(sessionFilter).SortBy(s => s.ScheduledAt).ToListAsync();
             
@@ -98,10 +94,6 @@ public static class TimetableEndpoints
                 // Actually, availability is per engineer. Students don't have availability entries.
                 availabilityFilter &= availabilityBuilder.Eq(t => t.Id, Guid.Empty); 
             }
-            else if (role == "Engineer")
-            {
-                availabilityFilter &= availabilityBuilder.Eq(t => t.EngineerId, uid);
-            }
 
             var availability = await db.TimetableEntries.Find(availabilityFilter).ToListAsync();
 
@@ -117,7 +109,7 @@ public static class TimetableEndpoints
             }
             else // Engineer
             {
-                activeGroupIds = await db.Groups.Find(g => g.EngineerId == uid && !g.IsDeleted).Project(g => g.Id).ToListAsync();
+                activeGroupIds = await db.Groups.Find(g => !g.IsDeleted).Project(g => g.Id).ToListAsync();
             }
 
             var schedules = await db.GroupSchedules.Find(gs => activeGroupIds.Contains(gs.GroupId)).ToListAsync();
@@ -182,7 +174,7 @@ public static class TimetableEndpoints
                 return Results.Unauthorized();
 
             var entries = await db.TimetableEntries
-                .Find(t => t.EngineerId == uid)
+                .Find(t => true)
                 .SortBy(t => t.DayOfWeek)
                 .ToListAsync();
 
@@ -207,7 +199,7 @@ public static class TimetableEndpoints
             foreach (var item in items)
             {
                 var entry = await db.TimetableEntries
-                    .Find(t => t.EngineerId == uid && t.DayOfWeek == item.DayOfWeek)
+                    .Find(t => t.DayOfWeek == item.DayOfWeek)
                     .FirstOrDefaultAsync();
 
                 if (entry != null)
@@ -244,7 +236,7 @@ public static class TimetableEndpoints
                 return Results.Unauthorized();
 
             // Get all groups managed by this engineer
-            var groups = await db.Groups.Find(g => g.EngineerId == uid && !g.IsDeleted).ToListAsync();
+            var groups = await db.Groups.Find(g => !g.IsDeleted).ToListAsync();
             var groupIds = groups.Select(g => g.Id).ToList();
 
             // Get all schedules for these groups
@@ -273,7 +265,7 @@ public static class TimetableEndpoints
                         .Set(t => t.UpdatedAt, DateTimeOffset.UtcNow);
 
                     await db.TimetableEntries.UpdateOneAsync(
-                        t => t.EngineerId == uid && t.DayOfWeek == day,
+                        t => t.DayOfWeek == day,
                         update,
                         new UpdateOptions { IsUpsert = true }
                     );
@@ -288,7 +280,7 @@ public static class TimetableEndpoints
                         .Set(t => t.UpdatedAt, DateTimeOffset.UtcNow);
 
                     await db.TimetableEntries.UpdateOneAsync(
-                        t => t.EngineerId == uid && t.DayOfWeek == day,
+                        t => t.DayOfWeek == day,
                         update,
                         new UpdateOptions { IsUpsert = true }
                     );

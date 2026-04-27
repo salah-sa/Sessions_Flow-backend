@@ -123,9 +123,9 @@ public class AuthService
         if (code == null || !code.UsedByEngineerId.HasValue)
             return (null, "Invalid Engineer Code.");
 
-        var groupIds = await _db.Groups.Find(g => g.EngineerId == code.UsedByEngineerId.Value && !g.IsDeleted).Project(g => g.Id).ToListAsync();
+        var groupIds = await _db.GlobalGroups.Find(g => g.EngineerId == code.UsedByEngineerId.Value && !g.IsDeleted).Project(g => g.Id).ToListAsync();
 
-        var studentRecord = await _db.Students.Find(s => groupIds.Contains(s.GroupId) && (s.StudentId == studentId || s.UniqueStudentCode == studentId) && !s.IsDeleted && s.UserId == null).FirstOrDefaultAsync();
+        var studentRecord = await _db.GlobalStudents.Find(s => groupIds.Contains(s.GroupId) && (s.StudentId == studentId || s.UniqueStudentCode == studentId) && !s.IsDeleted && s.UserId == null).FirstOrDefaultAsync();
         if (studentRecord == null)
             return (null, "Student ID not found in any group managed by this engineer, or already registered.");
 
@@ -174,7 +174,7 @@ public class AuthService
         var groupFilter = Builders<Group>.Filter.Regex(g => g.Name, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(groupName)}$", "i"))
                         & Builders<Group>.Filter.Eq(g => g.IsDeleted, false);
         
-        var groups = await _db.Groups.Find(groupFilter).ToListAsync(ct);
+        var groups = await _db.GlobalGroups.Find(groupFilter).ToListAsync(ct);
         if (groups.Count == 0)
             return (null, "Group not found. Please ensure you entered the exact correct group name.");
 
@@ -195,7 +195,7 @@ public class AuthService
             Status = PendingStatus.Pending
         };
 
-        await _db.PendingStudentRequests.InsertOneAsync(pending);
+        await _db.GlobalPendingStudentRequests.InsertOneAsync(pending);
 
         // Notify the specific Engineer
         await _notificationService.CreateNotificationAsync(
@@ -229,7 +229,7 @@ public class AuthService
 
     public async Task<(User? user, string? error)> ApproveStudentRequestAsync(Guid pendingId, User executor, CancellationToken ct = default)
     {
-        var pending = await _db.PendingStudentRequests.Find(p => p.Id == pendingId).FirstOrDefaultAsync(ct);
+        var pending = await _db.GlobalPendingStudentRequests.Find(p => p.Id == pendingId).FirstOrDefaultAsync(ct);
         if (pending == null) return (null, "Request not found.");
         
         // Strict Scoping Enforcement
@@ -349,13 +349,13 @@ public class AuthService
 
         // Link the student record
         var updateStudent = Builders<Student>.Update.Set(s => s.UserId, user.Id).Set(s => s.UpdatedAt, DateTimeOffset.UtcNow);
-        await _db.Students.UpdateOneAsync(s => s.Id == studentRecordId, updateStudent);
+        await _db.GlobalStudents.UpdateOneAsync(s => s.Id == studentRecordId, updateStudent);
 
         // Update pending status
         var updatePending = Builders<PendingStudentRequest>.Update
             .Set(p => p.Status, PendingStatus.Approved)
             .Set(p => p.UpdatedAt, DateTimeOffset.UtcNow);
-        await _db.PendingStudentRequests.UpdateOneAsync(p => p.Id == pendingId, updatePending);
+        await _db.GlobalPendingStudentRequests.UpdateOneAsync(p => p.Id == pendingId, updatePending);
 
         // Send activation email (scoped background task with error logging)
         _ = Task.Run(async () =>
@@ -447,7 +447,7 @@ public class AuthService
 
     public async Task<(bool success, string? error)> DenyStudentRequestAsync(Guid pendingId, User executor, CancellationToken ct = default)
     {
-        var pending = await _db.PendingStudentRequests.Find(p => p.Id == pendingId).FirstOrDefaultAsync();
+        var pending = await _db.GlobalPendingStudentRequests.Find(p => p.Id == pendingId).FirstOrDefaultAsync();
         if (pending == null) return (false, "Request not found.");
         
         // Strict Scoping Enforcement
@@ -460,7 +460,7 @@ public class AuthService
             .Set(p => p.Status, PendingStatus.Denied)
             .Set(p => p.UpdatedAt, DateTimeOffset.UtcNow);
         
-        var result = await _db.PendingStudentRequests.UpdateOneAsync(p => p.Id == pendingId && p.Status == PendingStatus.Pending, update);
+        var result = await _db.GlobalPendingStudentRequests.UpdateOneAsync(p => p.Id == pendingId && p.Status == PendingStatus.Pending, update);
         
         if (result.MatchedCount == 0)
             return (false, "Request not found or already processed.");
@@ -498,6 +498,7 @@ public class AuthService
             PasswordHash = pending.PasswordHash,
             Role = UserRole.Engineer,
             EngineerCode = newCode,
+            EngineerId = user.Id,
             IsApproved = true
         };
 
@@ -715,7 +716,7 @@ public class AuthService
     public async Task<Student?> ResolveStudentForUser(User user, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(user.StudentId)) return null;
-        return await _db.Students.Find(s =>
+        return await _db.GlobalStudents.Find(s =>
             (s.StudentId == user.StudentId || s.UniqueStudentCode == user.StudentId)
             && !s.IsDeleted
         ).FirstOrDefaultAsync();
@@ -739,7 +740,7 @@ public class AuthService
 
         // Optional: Filter strictly by the Engineer Code the user signed up with
         // First we get ALL student records matching the ID.
-        var students = await _db.Students.Find(filter).ToListAsync();
+        var students = await _db.GlobalStudents.Find(filter).ToListAsync();
         
         if (students.Count == 0 || string.IsNullOrEmpty(user.EngineerCode)) 
             return students;
@@ -752,7 +753,7 @@ public class AuthService
             var groupIds = students.Select(s => s.GroupId).Distinct().ToList();
             
             // Get valid groups mapped to this engineer
-            var validGroupIds = await _db.Groups
+            var validGroupIds = await _db.GlobalGroups
                 .Find(g => g.EngineerId == engineerId && groupIds.Contains(g.Id) && !g.IsDeleted)
                 .Project(g => g.Id)
                 .ToListAsync();
@@ -1091,6 +1092,7 @@ public class AuthService
         {
             var migrateUpdate = Builders<User>.Update
                 .Set(u => u.Email, newAdminEmail)
+                .Set(u => u.EngineerId, legacyAdmin.Id)
                 .Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
             await _db.GlobalUsers.UpdateOneAsync(u => u.Id == legacyAdmin.Id, migrateUpdate);
             return;
@@ -1110,6 +1112,7 @@ public class AuthService
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(_generatedAdminPassword),
             Role = UserRole.Admin,
             EngineerCode = "Eng1",
+            EngineerId = admin.Id,
             IsApproved = true
         };
 
@@ -1176,7 +1179,9 @@ public class AuthService
             } while (await _db.GlobalUsers.Find(u => u.EngineerCode == newCode).AnyAsync());
 
             // Update user
-            var update = Builders<User>.Update.Set(u => u.EngineerCode, newCode);
+            var update = Builders<User>.Update
+                .Set(u => u.EngineerCode, newCode)
+                .Set(u => u.EngineerId, eng.Id);
             await _db.GlobalUsers.UpdateOneAsync(u => u.Id == eng.Id, update);
 
             // Ensure the code is also in the EngineerCodes collection
