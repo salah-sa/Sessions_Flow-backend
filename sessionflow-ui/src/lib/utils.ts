@@ -19,7 +19,12 @@ export function formatTime12h(time: string | null) {
   return `${h12}:${minutes} ${ampm}`;
 }
 
-export function formatDateTo12h(date: Date): string {
+export function formatDateTo12h(date: Date | string | null): string {
+  if (!date) return "--:--";
+  const d = date instanceof Date ? date : new Date(date);
+  
+  if (isNaN(d.getTime())) return "--:--";
+
   // Enforce Africa/Cairo timezone to prevent local OS offset mismatch
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Africa/Cairo',
@@ -27,18 +32,24 @@ export function formatDateTo12h(date: Date): string {
     minute: '2-digit',
     hour12: true
   });
-  return formatter.format(date);
+  return formatter.format(d);
 }
 
 export function getCairoDateStr(): string {
   // Always query based on the active day in Cairo, bypassing local browser time.
-  const formatter = new Intl.DateTimeFormat('en-CA', {
+  const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Africa/Cairo',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit'
   });
-  return formatter.format(new Date());
+  
+  const parts = formatter.formatToParts(new Date());
+  const year = parts.find(p => p.type === 'year')?.value;
+  const month = parts.find(p => p.type === 'month')?.value;
+  const day = parts.find(p => p.type === 'day')?.value;
+  
+  return `${year}-${month}-${day}`;
 }
 
 export function formatDate(date: string | Date) {

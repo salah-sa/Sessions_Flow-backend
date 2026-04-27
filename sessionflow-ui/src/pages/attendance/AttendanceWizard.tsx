@@ -48,9 +48,11 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
     const activeSession = detailedSession || session;
     if (activeSession && isOpen) {
       const raw = new Date(activeSession.scheduledAt);
-      const h = raw.getHours();
-      const m = raw.getMinutes();
-      const dateStr = format(raw, "yyyy-MM-dd");
+      const isValid = !isNaN(raw.getTime());
+      
+      const h = isValid ? raw.getHours() : 0;
+      const m = isValid ? raw.getMinutes() : 0;
+      const dateStr = isValid ? format(raw, "yyyy-MM-dd") : "-----";
       
       const startTimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
       const endH = (h + 2) % 24;

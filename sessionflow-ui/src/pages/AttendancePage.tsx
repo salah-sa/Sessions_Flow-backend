@@ -316,7 +316,7 @@ const SessionCard: React.FC<{
   onSkip: () => void
 }> = ({ session, index, onAction, onSkip }) => {
   const isScheduled = session.status === "Scheduled";
-  const startTimeStr = formatDateTo12h(new Date(session.scheduledAt));
+  const startTimeStr = formatDateTo12h(session.scheduledAt);
 
   return (
     <motion.div

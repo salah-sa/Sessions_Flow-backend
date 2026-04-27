@@ -297,26 +297,33 @@ public static class SessionEndpoints
             if (!Guid.TryParse(req.GroupId, out var groupId))
                 return Results.BadRequest(new { error = "Invalid group ID." });
 
-            var targetGroup = await db.Groups.Find(g => g.Id == groupId).FirstOrDefaultAsync();
+            var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
+            var targetGroup = role == "Admin"
+                ? await db.GlobalGroups.Find(g => g.Id == groupId).FirstOrDefaultAsync()
+                : await db.Groups.Find(g => g.Id == groupId).FirstOrDefaultAsync();
+
             if (targetGroup == null)
                 return Results.NotFound(new { error = "Group not found." });
 
-
-            var maxSession = await db.Sessions.Find(s => s.GroupId == groupId && !s.IsDeleted)
-                                              .SortByDescending(s => s.SessionNumber)
-                                              .FirstOrDefaultAsync();
+            var maxSession = role == "Admin"
+                ? await db.GlobalSessions.Find(s => s.GroupId == groupId && !s.IsDeleted).SortByDescending(s => s.SessionNumber).FirstOrDefaultAsync()
+                : await db.Sessions.Find(s => s.GroupId == groupId && !s.IsDeleted).SortByDescending(s => s.SessionNumber).FirstOrDefaultAsync();
+            
             var nextSessionNumber = maxSession != null ? maxSession.SessionNumber + 1 : targetGroup.StartingSessionNumber;
 
             var session = new Session
             {
                 GroupId = groupId,
-                EngineerId = engineerId,
+                EngineerId = targetGroup.EngineerId, // Preserve group's engineer
                 ScheduledAt = req.ScheduledAt.ToUniversalTime(),
                 Status = SessionStatus.Scheduled,
                 SessionNumber = nextSessionNumber
             };
 
-            await db.Sessions.InsertOneAsync(session);
+            if (role == "Admin")
+                await db.GlobalSessions.InsertOneAsync(session);
+            else
+                await db.Sessions.InsertOneAsync(session);
 
             return Results.Created($"/api/sessions/{session.Id}", new { id = session.Id });
         });
