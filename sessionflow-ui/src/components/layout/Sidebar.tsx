@@ -210,13 +210,13 @@ const Sidebar: React.FC = () => {
         
         <NavItem to="/sessions" icon={Target} label={t("nav.sessions") || "Sessions"} locked={isStudent} pageBlocked={isBlocked("/sessions")} />
         
-        {!isEngineer && !isStudent && <NavItem to="/students" icon={User} label={t("nav.students")} premiumLocked={isAdmin && !isPremium} pageBlocked={isBlocked("/students")} />}
+        {!isStudent && <NavItem to="/students" icon={User} label={t("nav.students")} premiumLocked={isAdmin && !isPremium} pageBlocked={isBlocked("/students")} />}
         
         {!isStudent && <NavItem to="/timetable" icon={Calendar} label={t("nav.timetable")} pageBlocked={isBlocked("/timetable")} />}
         
         <NavItem to="/attendance" icon={CheckCircle} label={t("nav.attendance") || "Attendance"} locked={isStudent} premiumLocked={isAdmin && !isPremium} pageBlocked={isBlocked("/attendance")} />
         
-        {!isEngineer && !isStudent && <NavItem to="/chat" icon={MessageSquare} label={t("nav.chat")} badge={chatBadgeCount} pageBlocked={isBlocked("/chat")} />}
+        <NavItem to="/chat" icon={MessageSquare} label={t("nav.chat")} badge={chatBadgeCount} pageBlocked={isBlocked("/chat")} />
         
         {!isEngineer && !isStudent && <NavItem to="/history" icon={Clock} label={t("nav.history") || "History"} pageBlocked={isBlocked("/history")} />}
         
@@ -236,7 +236,7 @@ const Sidebar: React.FC = () => {
         )}
         
         {!isEngineer && !isStudent && <NavItem to="/archive" icon={Archive} label={t("nav.archive") || "Archive"} />}
-        {isAdmin && <NavItem to="/plans" icon={Crown} label={t("nav.plans") || "Plans & Upgrades"} />}
+        {(isAdmin || isEngineer) && <NavItem to="/plans" icon={Crown} label={t("nav.plans") || "Plans & Upgrades"} />}
         <NavItem to="/profile" icon={UserCircle} label={t("nav.profile") || "Profile"} />
         {isAdmin && <NavItem to="/settings" icon={Settings} label={t("nav.settings")} />}
 
