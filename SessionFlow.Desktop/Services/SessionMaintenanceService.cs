@@ -28,6 +28,9 @@ public class SessionMaintenanceService : BackgroundService
             {
                 using (var scope = _services.CreateScope())
                 {
+                    var tenantAccessor = scope.ServiceProvider.GetRequiredService<ITenantAccessor>();
+                    tenantAccessor.SetSystemContext();
+
                     var sessionService = scope.ServiceProvider.GetRequiredService<SessionService>();
                     _logger.LogInformation("Executing tactical session maintenance sweep...");
                     await sessionService.MaintainAllGroupsSessionsAsync();

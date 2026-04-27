@@ -11,8 +11,11 @@ public enum AttendanceStatus
     Unmarked = 3
 }
 
-public class AttendanceRecord
+public class AttendanceRecord : ITenantEntity
 {
+    [BsonRepresentation(BsonType.String)]
+    public Guid EngineerId { get; set; }
+
     [BsonId]
     [BsonRepresentation(BsonType.String)]
     public Guid Id { get; set; } = Guid.NewGuid();

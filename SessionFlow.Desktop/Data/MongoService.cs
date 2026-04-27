@@ -10,18 +10,9 @@ public class MongoService
     private readonly IMongoDatabase _database;
 
     private readonly SessionFlow.Desktop.Services.ITenantAccessor _tenantAccessor;
-    public MongoService(IConfiguration configuration, SessionFlow.Desktop.Services.ITenantAccessor tenantAccessor)
+    public MongoService(IMongoDatabase database, SessionFlow.Desktop.Services.ITenantAccessor tenantAccessor)
     {
-        var connectionString = configuration["Database:ConnectionString"];
-        var databaseName = configuration["Database:DatabaseName"] ?? "SessionFlow";
-
-        if (string.IsNullOrEmpty(connectionString))
-        {
-            throw new ArgumentException("Critical Error: Database ConnectionString is null or empty. Please check appsettings.json.");
-        }
-
-        var client = new MongoClient(connectionString);
-        _database = client.GetDatabase(databaseName);
+        _database = database;
         _tenantAccessor = tenantAccessor;
     }
 
@@ -180,21 +171,22 @@ public class MongoService
             Builders<Invoice>.IndexKeys.Ascending(i => i.UserId)));
     }
 
-    public IMongoCollection<User> Users => _database.GetCollection<User>("Users");
+    public IMongoCollection<User> GlobalUsers => _database.GetCollection<User>("Users");
+    public TenantRepository<User> Users => new TenantRepository<User>(_database, "Users", _tenantAccessor);
     public TenantRepository<Group> Groups => new TenantRepository<Group>(_database, "Groups", _tenantAccessor);
     public TenantRepository<GroupSchedule> GroupSchedules => new TenantRepository<GroupSchedule>(_database, "GroupSchedules", _tenantAccessor);
     public TenantRepository<Student> Students => new TenantRepository<Student>(_database, "Students", _tenantAccessor);
     public TenantRepository<Session> Sessions => new TenantRepository<Session>(_database, "Sessions", _tenantAccessor);
-    public IMongoCollection<AttendanceRecord> AttendanceRecords => _database.GetCollection<AttendanceRecord>("AttendanceRecords");
-    public IMongoCollection<ChatMessage> ChatMessages => _database.GetCollection<ChatMessage>("ChatMessages");
+    public TenantRepository<AttendanceRecord> AttendanceRecords => new TenantRepository<AttendanceRecord>(_database, "AttendanceRecords", _tenantAccessor);
+    public TenantRepository<ChatMessage> ChatMessages => new TenantRepository<ChatMessage>(_database, "ChatMessages", _tenantAccessor);
     public TenantRepository<TimetableEntry> TimetableEntries => new TenantRepository<TimetableEntry>(_database, "TimetableEntries", _tenantAccessor);
     public IMongoCollection<Setting> Settings => _database.GetCollection<Setting>("Settings");
     public IMongoCollection<EngineerCode> EngineerCodes => _database.GetCollection<EngineerCode>("EngineerCodes");
     public IMongoCollection<PendingEngineer> PendingEngineers => _database.GetCollection<PendingEngineer>("PendingEngineers");
     public TenantRepository<PendingStudentRequest> PendingStudentRequests => new TenantRepository<PendingStudentRequest>(_database, "PendingStudentRequests", _tenantAccessor);
     public IMongoCollection<Station> Stations => _database.GetCollection<Station>("Stations");
-    public IMongoCollection<Notification> Notifications => _database.GetCollection<Notification>("Notifications");
-    public IMongoCollection<AuditLog> AuditLogs => _database.GetCollection<AuditLog>("AuditLogs");
+    public TenantRepository<Notification> Notifications => new TenantRepository<Notification>(_database, "Notifications", _tenantAccessor);
+    public TenantRepository<AuditLog> AuditLogs => new TenantRepository<AuditLog>(_database, "AuditLogs", _tenantAccessor);
     public IMongoCollection<PasswordResetToken> PasswordResetTokens => _database.GetCollection<PasswordResetToken>("PasswordResetTokens");
     
     // Premium System Collections

@@ -93,8 +93,21 @@ public static class ApiHost
         });
 
         builder.Services.AddHttpContextAccessor();
-        builder.Services.AddSingleton<SessionFlow.Desktop.Services.ITenantAccessor, SessionFlow.Desktop.Services.TenantContextService>();
-        builder.Services.AddSingleton<MongoService>();
+        builder.Services.AddSingleton<IMongoClient>(sp => {
+            var config = sp.GetRequiredService<IConfiguration>();
+            var connectionString = config["Database:ConnectionString"];
+            if (string.IsNullOrEmpty(connectionString)) throw new ArgumentException("Database:ConnectionString is missing.");
+            return new MongoClient(connectionString);
+        });
+        builder.Services.AddSingleton<IMongoDatabase>(sp => {
+            var client = sp.GetRequiredService<IMongoClient>();
+            var config = sp.GetRequiredService<IConfiguration>();
+            var databaseName = config["Database:DatabaseName"] ?? "SessionFlow";
+            return client.GetDatabase(databaseName);
+        });
+
+        builder.Services.AddScoped<SessionFlow.Desktop.Services.ITenantAccessor, SessionFlow.Desktop.Services.TenantContextService>();
+        builder.Services.AddScoped<MongoService>();
         builder.Services.AddSingleton<StorageService>();
         
         // ── Redis Infrastructure (Graceful Fallback) ──────────────────

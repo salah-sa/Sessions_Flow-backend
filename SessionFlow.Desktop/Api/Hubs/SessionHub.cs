@@ -33,13 +33,10 @@ public class SessionHub : Hub
 
         var role = Context.User?.FindFirst(ClaimTypes.Role)?.Value;
 
-        if (role == "Admin")
+        if (role == "Admin" || role == "Engineer")
         {
-            // Admins join all active chat groups to monitor presence across the entire system
-            return await _db.Groups.Find(g => !g.IsDeleted).Project(g => g.Id).ToListAsync();
-        }
-        if (role == "Engineer")
-        {
+            // Enforce Tenant Isolation: Both Admins and Engineers can only monitor presence
+            // and join chats for groups they explicitly own.
             return await _db.Groups.Find(g => g.EngineerId == userGuid && !g.IsDeleted).Project(g => g.Id).ToListAsync();
         }
         if (role == "Student")
@@ -258,23 +255,16 @@ public class SessionHub : Hub
         var role = Context.User?.FindFirst(ClaimTypes.Role)?.Value;
         var payload = new { userId };
 
-        if (role == "Admin")
+        // For all users (Admin, Engineer, Student), we broadcast ONLY to their chat groups
+        // to maintain absolute tenant isolation.
+        var groups = Context.Items["groups"] as List<Guid> ?? await GetUserGroupIds(userId);
+        foreach (var gId in groups)
         {
-            // Admins are seen by everyone
-            await _eventBus.PublishAsync(eventName, EventTargetType.All, "", payload);
+            await _eventBus.PublishAsync(eventName, EventTargetType.Group, $"chat_{gId}", payload);
         }
-        else
-        {
-            // For non-admins, we broadcast to their chat groups
-            var groups = Context.Items["groups"] as List<Guid> ?? await GetUserGroupIds(userId);
-            foreach (var gId in groups)
-            {
-                await _eventBus.PublishAsync(eventName, EventTargetType.Group, $"chat_{gId}", payload);
-            }
 
-            // And to all admins (admins monitor everyone)
-            await _eventBus.PublishAsync(eventName, EventTargetType.Role, "Admin", payload);
-        }
+        // Broadcast to the user themselves (for multi-device sync)
+        await _eventBus.PublishAsync(eventName, EventTargetType.User, userId, payload);
     }
 
     // ═══════════════════════════════════════════════
@@ -353,24 +343,17 @@ public class SessionHub : Hub
 
         var onlineUsers = _presence.GetOnlineUserIds();
 
-        if (role == "Admin") 
-        {
-            var adminSnapshot = _presence.GetPresenceSnapshot(onlineUsers);
-            await Clients.Caller.SendAsync(Events.PresenceSnapshot, adminSnapshot);
-            return;
-        }
-
         var visibleUserIds = new HashSet<string>();
         visibleUserIds.Add(userIdStr);
 
-        if (role == "Engineer")
+        if (role == "Admin" || role == "Engineer")
         {
             var groups = await _db.Groups.Find(g => g.EngineerId == userGuid && !g.IsDeleted).ToListAsync();
             var groupIds = groups.Select(g => g.Id).ToList();
             var students = await _db.Students.Find(s => groupIds.Contains(s.GroupId) && !s.IsDeleted).ToListAsync();
             foreach (var s in students) {
-                var studentUserId = s.UserId.ToString();
-                if (s.UserId != Guid.Empty && !string.IsNullOrEmpty(studentUserId)) visibleUserIds.Add(studentUserId);
+                var studentUserId = s.UserId?.ToString();
+                if (s.UserId != null && s.UserId != Guid.Empty && !string.IsNullOrEmpty(studentUserId)) visibleUserIds.Add(studentUserId);
             }
         }
         else if (role == "Student")
@@ -394,10 +377,9 @@ public class SessionHub : Hub
             }
         }
 
-        var admins = await _db.Users.Find(u => u.Role == UserRole.Admin).ToListAsync();
-        foreach(var admin in admins) {
-            visibleUserIds.Add(admin.Id.ToString());
-        }
+        // Global Admin visibility removed to enforce absolute tenant isolation.
+        // Students already added their group's managing engineer/admin in the block above.
+
 
         var filteredUsers = onlineUsers.Where(u => visibleUserIds.Contains(u)).ToList();
         var snapshot = _presence.GetPresenceSnapshot(filteredUsers);

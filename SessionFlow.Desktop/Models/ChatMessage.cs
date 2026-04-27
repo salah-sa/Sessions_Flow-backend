@@ -3,8 +3,11 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace SessionFlow.Desktop.Models;
 
-public class ChatMessage
+public class ChatMessage : ITenantEntity
 {
+    [BsonRepresentation(BsonType.String)]
+    public Guid EngineerId { get; set; }
+
     [BsonId]
     [BsonRepresentation(BsonType.String)]
     public Guid Id { get; set; } = Guid.NewGuid();

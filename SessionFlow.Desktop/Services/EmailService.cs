@@ -162,6 +162,9 @@ public class EmailReminderService : BackgroundService
     private async Task CheckAndSendRemindersAsync(CancellationToken ct)
     {
         using var scope = _serviceProvider.CreateScope();
+        var tenantAccessor = scope.ServiceProvider.GetRequiredService<ITenantAccessor>();
+        tenantAccessor.SetSystemContext();
+        
         var db = scope.ServiceProvider.GetRequiredService<MongoService>();
         var emailService = scope.ServiceProvider.GetRequiredService<EmailService>();
 
@@ -233,6 +236,9 @@ public class EmailReminderService : BackgroundService
         _logger.LogInformation("Checking for tomorrow's student reminders...");
 
         using var scope = _serviceProvider.CreateScope();
+        var tenantAccessor = scope.ServiceProvider.GetRequiredService<ITenantAccessor>();
+        tenantAccessor.SetSystemContext();
+
         var db = scope.ServiceProvider.GetRequiredService<MongoService>();
         var emailService = scope.ServiceProvider.GetRequiredService<EmailService>();
         var notifService = scope.ServiceProvider.GetRequiredService<NotificationService>();
@@ -307,6 +313,9 @@ public class EmailReminderService : BackgroundService
         _lastDailySummary = cairoNow;
 
         using var scope = _serviceProvider.CreateScope();
+        var tenantAccessor = scope.ServiceProvider.GetRequiredService<ITenantAccessor>();
+        tenantAccessor.SetSystemContext();
+
         var db = scope.ServiceProvider.GetRequiredService<MongoService>();
         var emailService = scope.ServiceProvider.GetRequiredService<EmailService>();
 
@@ -372,6 +381,9 @@ public class EmailReminderService : BackgroundService
         _lastMissedAttendanceCheck = cairoNow;
 
         using var scope = _serviceProvider.CreateScope();
+        var tenantAccessor = scope.ServiceProvider.GetRequiredService<ITenantAccessor>();
+        tenantAccessor.SetSystemContext();
+
         var db = scope.ServiceProvider.GetRequiredService<MongoService>();
         var emailService = scope.ServiceProvider.GetRequiredService<EmailService>();
 

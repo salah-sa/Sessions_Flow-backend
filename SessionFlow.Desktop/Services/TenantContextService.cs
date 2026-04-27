@@ -33,6 +33,14 @@ public class TenantContextService : ITenantAccessor
             var user = _httpContextAccessor.HttpContext?.User;
             if (user == null) return null;
 
+            // Prioritize the explicit engineer_id claim (cached in JWT)
+            var engineerIdClaim = user.FindFirst("engineer_id")?.Value;
+            if (Guid.TryParse(engineerIdClaim, out var engId))
+            {
+                return engId;
+            }
+
+            // Fallback to NameIdentifier for Engineers/Admins who are their own tenant
             var idStr = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (Guid.TryParse(idStr, out var id))
             {

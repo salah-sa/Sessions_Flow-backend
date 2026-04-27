@@ -44,14 +44,14 @@ public class AuthService
             var filter = Builders<User>.Filter.Eq(u => u.Username, identifier)
                        & Builders<User>.Filter.Eq(u => u.StudentId, studentId)
                        & Builders<User>.Filter.Eq(u => u.EngineerCode, engineerCode);
-            user = await _db.Users.Find(filter, new FindOptions { Collation = new Collation("en", strength: CollationStrength.Secondary) })
+            user = await _db.GlobalUsers.Find(filter, new FindOptions { Collation = new Collation("en", strength: CollationStrength.Secondary) })
                 .FirstOrDefaultAsync(ct);
         }
         else
         {
             // Admin/Engineer Login
             var filter = Builders<User>.Filter.Eq(u => u.Email, identifier);
-            user = await _db.Users.Find(filter, new FindOptions { Collation = new Collation("en", strength: CollationStrength.Secondary) })
+            user = await _db.GlobalUsers.Find(filter, new FindOptions { Collation = new Collation("en", strength: CollationStrength.Secondary) })
                 .FirstOrDefaultAsync(ct);
 
             if (user != null && user.Role == UserRole.Student)
@@ -75,7 +75,7 @@ public class AuthService
     {
         // Check if email already exists in Users or PendingEngineers
         var userFilter = Builders<User>.Filter.Regex(u => u.Email, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(email)}$", "i"));
-        var existingUser = await _db.Users.Find(userFilter).AnyAsync(ct);
+        var existingUser = await _db.GlobalUsers.Find(userFilter).AnyAsync(ct);
         if (existingUser)
             return (null, "An account with this email already exists.");
 
@@ -111,10 +111,10 @@ public class AuthService
     {
         // ... legacy signup ... 
         var usernameFilter = Builders<User>.Filter.Regex(u => u.Username, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(username)}$", "i"));
-        var usernameExists = await _db.Users.Find(usernameFilter).AnyAsync(ct);
+        var usernameExists = await _db.GlobalUsers.Find(usernameFilter).AnyAsync(ct);
         if (usernameExists) return (null, "Username already taken.");
 
-        var sidExists = await _db.Users.Find(u => u.StudentId == studentId).AnyAsync(ct);
+        var sidExists = await _db.GlobalUsers.Find(u => u.StudentId == studentId).AnyAsync(ct);
         if (sidExists) return (null, "An account with this Student ID already exists.");
 
         var codeFilter = Builders<EngineerCode>.Filter.Regex(c => c.Code, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(engineerCode)}$", "i"))
@@ -138,10 +138,11 @@ public class AuthService
             EngineerCode = engineerCode,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
             Role = UserRole.Student,
+            EngineerId = code.UsedByEngineerId.Value,
             IsApproved = true
         };
 
-        await _db.Users.InsertOneAsync(user);
+        await _db.GlobalUsers.InsertOneAsync(user);
 
         var updateStudent = Builders<Student>.Update.Set(s => s.UserId, user.Id).Set(s => s.UpdatedAt, DateTimeOffset.UtcNow);
         await _db.Students.UpdateOneAsync(s => s.Id == studentRecord.Id, updateStudent);
@@ -163,11 +164,11 @@ public class AuthService
 
         // 2. Check if username exists
         var usernameFilter = Builders<User>.Filter.Regex(u => u.Username, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(username)}$", "i"));
-        var usernameExists = await _db.Users.Find(usernameFilter).AnyAsync(ct);
+        var usernameExists = await _db.GlobalUsers.Find(usernameFilter).AnyAsync(ct);
         if (usernameExists) return (null, "Username is already taken.");
 
         var emailFilter = Builders<User>.Filter.Eq(u => u.Email, email);
-        if (await _db.Users.Find(emailFilter).AnyAsync(ct)) return (null, "Email address is already registered.");
+        if (await _db.GlobalUsers.Find(emailFilter).AnyAsync(ct)) return (null, "Email address is already registered.");
 
         // 2. Find groups that match this name (case-insensitive)
         var groupFilter = Builders<Group>.Filter.Regex(g => g.Name, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(groupName)}$", "i"))
@@ -239,16 +240,16 @@ public class AuthService
 
         // Double check username availability
         var usernameFilter = Builders<User>.Filter.Regex(u => u.Username, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(pending.Username)}$", "i"));
-        if (await _db.Users.Find(usernameFilter).AnyAsync(ct))
+        if (await _db.GlobalUsers.Find(usernameFilter).AnyAsync(ct))
             return (null, "The requested username is no longer available.");
 
         // Double check email availability (prevents DuplicateKeyException on InsertOneAsync)
         var emailFilter = Builders<User>.Filter.Eq(u => u.Email, pending.Email);
-        if (await _db.Users.Find(emailFilter).AnyAsync(ct))
+        if (await _db.GlobalUsers.Find(emailFilter).AnyAsync(ct))
             return (null, "The requested email address is already registered to another account.");
 
         // Look up the engineer to get their EngineerCode
-        var engineer = await _db.Users.Find(u => u.Id == pending.EngineerId).FirstOrDefaultAsync(ct);
+        var engineer = await _db.GlobalUsers.Find(u => u.Id == pending.EngineerId).FirstOrDefaultAsync(ct);
         if (engineer == null)
         {
             if (executor.Role == UserRole.Admin)
@@ -269,7 +270,7 @@ public class AuthService
             if (engineer.Role == UserRole.Admin)
             {
                 engineer.EngineerCode = "Eng1";
-                await _db.Users.UpdateOneAsync(u => u.Id == engineer.Id, Builders<User>.Update.Set(x => x.EngineerCode, "Eng1"), cancellationToken: ct);
+                await _db.GlobalUsers.UpdateOneAsync(u => u.Id == engineer.Id, Builders<User>.Update.Set(x => x.EngineerCode, "Eng1"), cancellationToken: ct);
             }
             else
             {
@@ -341,9 +342,10 @@ public class AuthService
             EngineerCode = engineer.EngineerCode,
             PasswordHash = pending.PasswordHash,
             Role = UserRole.Student,
+            EngineerId = engineer.Id,
             IsApproved = true
         };
-        await _db.Users.InsertOneAsync(user);
+        await _db.GlobalUsers.InsertOneAsync(user);
 
         // Link the student record
         var updateStudent = Builders<Student>.Update.Set(s => s.UserId, user.Id).Set(s => s.UpdatedAt, DateTimeOffset.UtcNow);
@@ -480,7 +482,7 @@ public class AuthService
 
         // Double check email uniqueness in Users collection before proceeding
         var userFilter = Builders<User>.Filter.Regex(u => u.Email, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(pending.Email)}$", "i"));
-        var existingUser = await _db.Users.Find(userFilter).AnyAsync();
+        var existingUser = await _db.GlobalUsers.Find(userFilter).AnyAsync();
         if (existingUser)
             return (null, "A user with this email address already exists in the system.");
 
@@ -499,7 +501,7 @@ public class AuthService
             IsApproved = true
         };
 
-        await _db.Users.InsertOneAsync(user);
+        await _db.GlobalUsers.InsertOneAsync(user);
 
         // Record the EngineerCode for students
         var codeEntity = new EngineerCode
@@ -609,7 +611,7 @@ public class AuthService
 
     public async Task<(bool success, string? error, int remaining)> ResendCredentialsAsync(string email, CancellationToken ct = default)
     {
-        var user = await _db.Users.Find(u => u.Email == email).FirstOrDefaultAsync(ct);
+        var user = await _db.GlobalUsers.Find(u => u.Email == email).FirstOrDefaultAsync(ct);
         if (user == null) 
             return (false, "Email not found in our system.", 0);
 
@@ -631,7 +633,7 @@ public class AuthService
         }
         
         user.LastCredentialResendAt = now;
-        await _db.Users.ReplaceOneAsync(u => u.Id == user.Id, user, cancellationToken: ct);
+        await _db.GlobalUsers.ReplaceOneAsync(u => u.Id == user.Id, user, cancellationToken: ct);
 
         // Send Email asynchronously
         _ = Task.Run(async () => {
@@ -694,7 +696,7 @@ public class AuthService
 
     public async Task<User?> GetUserByIdAsync(Guid userId)
     {
-        return await _db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
+        return await _db.GlobalUsers.Find(u => u.Id == userId).FirstOrDefaultAsync();
     }
 
     public async Task<User?> GetUserFromClaimsAsync(ClaimsPrincipal principal)
@@ -807,7 +809,7 @@ public class AuthService
         var update = Builders<User>.Update
             .Set(u => u.AvatarUrl, avatarUrl)
             .Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
-        await _db.Users.UpdateOneAsync(u => u.Id == userId, update);
+        await _db.GlobalUsers.UpdateOneAsync(u => u.Id == userId, update);
 
         return avatarUrl;
     }
@@ -835,7 +837,7 @@ public class AuthService
             .Set(u => u.PasswordHash, newHash)
             .Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
 
-        await _db.Users.UpdateOneAsync(u => u.Id == userId, update);
+        await _db.GlobalUsers.UpdateOneAsync(u => u.Id == userId, update);
         return (true, null);
     }
 
@@ -852,7 +854,7 @@ public class AuthService
             .Set(u => u.DisplayName, displayName.Trim())
             .Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
 
-        await _db.Users.UpdateOneAsync(u => u.Id == userId, update, cancellationToken: ct);
+        await _db.GlobalUsers.UpdateOneAsync(u => u.Id == userId, update, cancellationToken: ct);
         return (true, null);
     }
 
@@ -872,7 +874,7 @@ public class AuthService
 
         // Check uniqueness
         var emailFilter = Builders<User>.Filter.Regex(u => u.Email, new MongoDB.Bson.BsonRegularExpression($"^{System.Text.RegularExpressions.Regex.Escape(newEmail)}$", "i"));
-        if (await _db.Users.Find(emailFilter).AnyAsync(ct))
+        if (await _db.GlobalUsers.Find(emailFilter).AnyAsync(ct))
             return (false, "This email address is already registered to another account.");
 
         // Rate limit (60s cooldown)
@@ -947,7 +949,7 @@ public class AuthService
             .Set(u => u.Email, token.NewEmail)
             .Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
 
-        await _db.Users.UpdateOneAsync(u => u.Id == userId, userUpdate, cancellationToken: ct);
+        await _db.GlobalUsers.UpdateOneAsync(u => u.Id == userId, userUpdate, cancellationToken: ct);
 
         // Mark token as used
         await _db.EmailChangeTokens.UpdateOneAsync(
@@ -979,7 +981,7 @@ public class AuthService
             .Set(u => u.SubscriptionTier, tier)
             .Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
         
-        await _db.Users.UpdateOneAsync(u => u.Id == userId, userUpdate, cancellationToken: ct);
+        await _db.GlobalUsers.UpdateOneAsync(u => u.Id == userId, userUpdate, cancellationToken: ct);
 
         // 2. Upsert Subscription Record
         var durationDays = isAnnual ? 365 : 30;
@@ -1038,6 +1040,21 @@ public class AuthService
             new Claim(ClaimTypes.Role, user.Role.ToString())
         };
 
+        // Enforce absolute tenant isolation: Every user must have an EngineerId claim
+        // which defines their data boundary.
+        if (user.Role == UserRole.Admin || user.Role == UserRole.Engineer)
+        {
+            claims.Add(new Claim("engineer_id", user.Id.ToString()));
+        }
+        else if (user.Role == UserRole.Student)
+        {
+            // For students, we use the cached EngineerId from their User record
+            if (user.EngineerId.HasValue)
+            {
+                claims.Add(new Claim("engineer_id", user.EngineerId.ToString()!));
+            }
+        }
+
         if (user.Role == UserRole.Admin)
         {
             claims.Add(new Claim("scope", "view:student_requests"));
@@ -1069,17 +1086,17 @@ public class AuthService
         const string oldAdminEmail = "admin@sessionflow.local";
 
         // Migration path: If admin exists with old email, update to new email
-        var legacyAdmin = await _db.Users.Find(u => u.Email == oldAdminEmail).FirstOrDefaultAsync();
+        var legacyAdmin = await _db.GlobalUsers.Find(u => u.Email == oldAdminEmail).FirstOrDefaultAsync();
         if (legacyAdmin != null)
         {
             var migrateUpdate = Builders<User>.Update
                 .Set(u => u.Email, newAdminEmail)
                 .Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
-            await _db.Users.UpdateOneAsync(u => u.Id == legacyAdmin.Id, migrateUpdate);
+            await _db.GlobalUsers.UpdateOneAsync(u => u.Id == legacyAdmin.Id, migrateUpdate);
             return;
         }
 
-        var existingAdmin = await _db.Users.Find(u => u.Email == newAdminEmail).FirstOrDefaultAsync();
+        var existingAdmin = await _db.GlobalUsers.Find(u => u.Email == newAdminEmail).FirstOrDefaultAsync();
         if (existingAdmin != null)
         {
             // PROD FIX: Only seed if missing. Do NOT overwrite existing password on restart.
@@ -1096,7 +1113,7 @@ public class AuthService
             IsApproved = true
         };
 
-        await _db.Users.InsertOneAsync(admin);
+        await _db.GlobalUsers.InsertOneAsync(admin);
 
         // Create default timetable entries for admin
         var timetableEntries = new List<TimetableEntry>();
@@ -1136,7 +1153,7 @@ public class AuthService
     public async Task EnsureEngineerCodesAsync()
     {
         // Find all approved engineers who don't have an EngineerCode set
-        var legacyEngineers = await _db.Users
+        var legacyEngineers = await _db.GlobalUsers
             .Find(u => u.IsApproved && (u.EngineerCode == null || u.EngineerCode == "" || u.EngineerCode == "N/A"))
             .ToListAsync();
 
@@ -1146,7 +1163,7 @@ public class AuthService
             if (eng.Role == UserRole.Admin)
             {
                 var adminUpdate = Builders<User>.Update.Set(u => u.EngineerCode, "Eng1");
-                await _db.Users.UpdateOneAsync(u => u.Id == eng.Id, adminUpdate);
+                await _db.GlobalUsers.UpdateOneAsync(u => u.Id == eng.Id, adminUpdate);
                 continue;
             }
 
@@ -1156,11 +1173,11 @@ public class AuthService
             string newCode;
             do {
                 newCode = "ENG-" + Guid.NewGuid().ToString().Substring(0, 8).ToUpper();
-            } while (await _db.Users.Find(u => u.EngineerCode == newCode).AnyAsync());
+            } while (await _db.GlobalUsers.Find(u => u.EngineerCode == newCode).AnyAsync());
 
             // Update user
             var update = Builders<User>.Update.Set(u => u.EngineerCode, newCode);
-            await _db.Users.UpdateOneAsync(u => u.Id == eng.Id, update);
+            await _db.GlobalUsers.UpdateOneAsync(u => u.Id == eng.Id, update);
 
             // Ensure the code is also in the EngineerCodes collection
             var codeEntity = new EngineerCode {
@@ -1176,7 +1193,7 @@ public class AuthService
     public async Task<(bool success, string? error)> RequestPasswordResetAsync(string email, CancellationToken ct = default)
     {
         // 1. Find user
-        var user = await _db.Users.Find(u => u.Email == email, new FindOptions { Collation = new Collation("en", strength: CollationStrength.Secondary) }).FirstOrDefaultAsync();
+        var user = await _db.GlobalUsers.Find(u => u.Email == email, new FindOptions { Collation = new Collation("en", strength: CollationStrength.Secondary) }).FirstOrDefaultAsync();
         if (user == null)
             return (false, "If an account with this email exists, a reset code has been sent."); // Standard security response
 
@@ -1274,7 +1291,7 @@ public class AuthService
             .Set(u => u.PasswordHash, hashedPassword)
             .Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
 
-        await _db.Users.UpdateOneAsync(u => u.Id == token.UserId, userUpdate);
+        await _db.GlobalUsers.UpdateOneAsync(u => u.Id == token.UserId, userUpdate);
 
         // Invalidate token
         await _db.PasswordResetTokens.UpdateOneAsync(t => t.Id == token.Id, Builders<PasswordResetToken>.Update.Set(t => t.IsUsed, true));
@@ -1295,7 +1312,7 @@ public class AuthService
 
     public async Task<(bool success, string? error)> LinkSocialAccountAsync(Guid userId, string provider, string socialId, CancellationToken ct = default)
     {
-        var user = await _db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync(ct);
+        var user = await _db.GlobalUsers.Find(u => u.Id == userId).FirstOrDefaultAsync(ct);
         if (user == null) return (false, "User not found.");
 
         var update = Builders<User>.Update.Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
@@ -1303,13 +1320,13 @@ public class AuthService
         if (provider.ToLower() == "google")
         {
             // Ensure this social ID isn't already linked to another account
-            var existing = await _db.Users.Find(u => u.GoogleId == socialId && u.Id != userId).AnyAsync(ct);
+            var existing = await _db.GlobalUsers.Find(u => u.GoogleId == socialId && u.Id != userId).AnyAsync(ct);
             if (existing) return (false, "This Google account is already linked to another user.");
             update = update.Set(u => u.GoogleId, socialId);
         }
         else if (provider.ToLower() == "facebook")
         {
-            var existing = await _db.Users.Find(u => u.FacebookId == socialId && u.Id != userId).AnyAsync(ct);
+            var existing = await _db.GlobalUsers.Find(u => u.FacebookId == socialId && u.Id != userId).AnyAsync(ct);
             if (existing) return (false, "This Facebook account is already linked to another user.");
             update = update.Set(u => u.FacebookId, socialId);
         }
@@ -1318,7 +1335,7 @@ public class AuthService
             return (false, "Invalid social provider.");
         }
 
-        await _db.Users.UpdateOneAsync(u => u.Id == userId, update, cancellationToken: ct);
+        await _db.GlobalUsers.UpdateOneAsync(u => u.Id == userId, update, cancellationToken: ct);
         return (true, null);
     }
 
@@ -1338,7 +1355,7 @@ public class AuthService
             return (null, null, "Invalid social provider.");
         }
 
-        var user = await _db.Users.Find(filter).FirstOrDefaultAsync(ct);
+        var user = await _db.GlobalUsers.Find(filter).FirstOrDefaultAsync(ct);
         if (user == null)
             return (null, null, "This social account is not linked to any SessionFlow user. Please sign in with your email first and link it from your profile.");
 

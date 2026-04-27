@@ -9,9 +9,9 @@ public class StorageService
 {
     private readonly IGridFSBucket _bucket;
 
-    public StorageService(MongoService db)
+    public StorageService(IMongoDatabase database)
     {
-        _bucket = new GridFSBucket(db.Database, new GridFSBucketOptions
+        _bucket = new GridFSBucket(database, new GridFSBucketOptions
         {
             BucketName = "media",
             ChunkSizeBytes = 1048576, // 1MB chunks

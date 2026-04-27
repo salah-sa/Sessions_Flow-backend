@@ -10,8 +10,15 @@ public enum UserRole
     Student = 2
 }
 
-public class User
+public class User : ITenantEntity
 {
+    [BsonIgnore]
+    Guid ITenantEntity.EngineerId 
+    { 
+        get => EngineerId ?? Id; 
+        set => EngineerId = value; 
+    }
+
     [BsonId]
     [BsonRepresentation(BsonType.String)]
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -46,6 +53,11 @@ public class User
     public string? StudentId { get; set; } // Unique student identifier
     
     public string? EngineerCode { get; set; } // The engineer code used during student registration
+    
+    [BsonIgnoreIfNull]
+    [BsonRepresentation(BsonType.String)]
+    public Guid? EngineerId { get; set; } // For students, links to their managing engineer (tenant)
+
 
     // Premium System fields
     public SubscriptionTier SubscriptionTier { get; set; } = SubscriptionTier.Free;
