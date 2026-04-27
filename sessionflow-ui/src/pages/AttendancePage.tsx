@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { 
@@ -24,6 +25,8 @@ import { cn, formatDateTo12h, getCairoDateStr } from "../lib/utils";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { sounds } from "../lib/sounds";
+import { AttendanceFormData, generateAttendanceFormUrl } from "./attendance/AttendanceGoogleFormService";
+import { format } from "date-fns";
 
 const AttendancePage: React.FC = () => {
   const { t } = useTranslation();
@@ -40,8 +43,9 @@ const AttendancePage: React.FC = () => {
     endDate: todayStr,
     pageSize: 100
   });
-
-  const { skipMutation } = useSessionMutations();
+  
+  const queryClient = useQueryClient();
+  const { skipMutation, signMutation } = useSessionMutations();
 
   const sessions = data?.pages.flatMap(p => p.items) || [];
   
@@ -63,9 +67,53 @@ const AttendancePage: React.FC = () => {
     completed: completedSessions.length
   };
 
-  const handleMakeAttendance = (session: Session) => {
+  const handleMakeAttendance = async (session: Session) => {
     sounds.playSessionLaunch();
-    setWizardSession(session);
+    
+    try {
+      // 1. Prepare Tactical Data for Google Form
+      const raw = new Date(session.scheduledAt);
+      const h = raw.getHours();
+      const m = raw.getMinutes();
+      const dateStr = format(raw, "yyyy-MM-dd");
+      const startTimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      const endH = (h + 2) % 24;
+      const endTimeStr = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+
+      const formData: AttendanceFormData = {
+        groupName: session.groupName || "",
+        dayOfWeek: raw.getDay(),
+        startTime: startTimeStr,
+        endTime: endTimeStr,
+        date: dateStr,
+        lectureNumber: session.sessionNumber || 1,
+        isLastLecture: false,
+        isNextLastLecture: false,
+        notes: "Automated via One-Click Sign",
+        students: (session as any).students?.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          isPresent: true,
+          attendanceOnTime: "Yes",
+          taskSubmission: "Yes",
+          interaction: "Yes",
+          research: "Yes",
+          teamwork: "Yes",
+          comment: ""
+        })) || []
+      };
+
+      // 2. Open Google Form in New Tab
+      const url = generateAttendanceFormUrl(formData);
+      window.open(url, "_blank");
+
+      // 3. One-Click Completion & Progression
+      await signMutation.mutateAsync(session.id);
+      
+      toast.success(`${session.groupName} signed and advanced.`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to sign session.");
+    }
   };
 
   return (
@@ -328,7 +376,7 @@ const SessionCard: React.FC<{
       {/* Glow Effect */}
       <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--att-ember)] to-[var(--att-crimson)] rounded-[2rem] opacity-0 group-hover:opacity-10 transition duration-500 blur-xl" />
       
-      <Card className="relative h-full p-8 bg-[var(--att-surface)] border border-white/5 group-hover:border-white/10 group-hover:bg-[var(--att-surface-elevated)] transition-all duration-500 rounded-[2rem] flex flex-col overflow-hidden">
+      <Card className="relative h-full p-8 bg-[var(--att-surface)] border-2 border-white/5 group-hover:border-[var(--att-ember)]/30 group-hover:bg-[var(--att-surface-elevated)] transition-all duration-500 rounded-[2rem] flex flex-col overflow-hidden shadow-xl">
         {/* State Accent Strip */}
         <div className={cn(
           "absolute left-0 top-0 bottom-0 w-1.5",
@@ -402,21 +450,21 @@ const SessionCard: React.FC<{
           <Button 
             onClick={onAction}
             className={cn(
-              "w-full h-14 rounded-2xl font-black uppercase tracking-[0.15em] text-[10px] flex items-center justify-center gap-3 transition-all duration-500",
+              "w-full h-14 rounded-2xl font-black uppercase tracking-[0.15em] text-[10px] flex items-center justify-center gap-3 transition-all duration-500 border-2",
               isScheduled 
-                ? "bg-[var(--att-gradient)] text-white shadow-[0_10px_30px_rgba(249,115,22,0.2)] hover:shadow-[0_15px_40px_rgba(249,115,22,0.4)] hover:-translate-y-1" 
-                : "bg-emerald-600 text-white shadow-[0_10px_30px_rgba(16,185,129,0.2)]"
+                ? "bg-[var(--att-gradient)] text-white border-white/20 shadow-[0_10px_30px_rgba(249,115,22,0.2)] hover:shadow-[0_15px_40px_rgba(249,115,22,0.4)] hover:-translate-y-1" 
+                : "bg-emerald-600 text-white border-emerald-400 shadow-[0_10px_30px_rgba(16,185,129,0.2)]"
             )}
           >
             {isScheduled ? (
               <>
                 <TrendingUp className="w-4 h-4 animate-bounce" />
-                Launch Session
+                Sign in Google Form
               </>
             ) : (
               <>
                 <ExternalLink className="w-4 h-4" />
-                Open Intel Form
+                Sign in Google Form
               </>
             )}
           </Button>

@@ -44,6 +44,7 @@ export const sessionsApi = {
       method: "POST",
       body: JSON.stringify({ reason }),
     }),
+  sign: (id: string) => fetchWithAuth<Session>(`/sessions/${id}/sign`, { method: "POST" }),
 };
 
 // Students Module
@@ -113,7 +114,8 @@ export const chatApi = {
       method: "POST",
       body: formData,
     });
-  }
+  },
+  getUsage: () => fetchWithAuth<{ used: number; total: number | null; tier: string }>("/chat/usage"),
 };
 
 // Engineers Module

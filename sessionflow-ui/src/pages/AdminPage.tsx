@@ -5,7 +5,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
 import { Card, Button, Input, Badge, Skeleton } from "../components/ui";
 import { ConfirmDeleteModal } from "../components/ui/ConfirmDeleteModal";
-import { useSystemQueries, useAdminMutations, useUserMutations } from "../queries/useAdminQueries";
+import { useSystemQueries, useAdminMutations, useUserMutations, useSettings, useSettingsMutations } from "../queries/useAdminQueries";
 import { usePendingStudentRequests, useEngineerMutations } from "../queries/useEngineerQueries";
 import { PendingEngineer, EngineerCode } from "../types";
 import { cn } from "../lib/utils";
@@ -672,15 +672,37 @@ const UserManagementSection: React.FC<{ onBan: (id: string, role: any) => void; 
 };
 
 const SystemSettingsSection: React.FC = () => {
-  const [saving, setSaving] = React.useState(false);
+  const { data: settings, isLoading } = useSettings();
+  const { updateSettingsMutation } = useSettingsMutations();
+  
+  const [prices, setPrices] = useState({
+    PRO_SUBSCRIPTION_PRICE: "30.00",
+    ULTRA_SUBSCRIPTION_PRICE: "50.00"
+  });
 
-  const handleSave = () => {
-    setSaving(true);
-    setTimeout(() => {
-        setSaving(false);
-        toast.success("Pricing matrix updated successfully");
-    }, 1200);
+  useEffect(() => {
+    if (settings) {
+      const pro = settings.find(s => s.key === "PRO_SUBSCRIPTION_PRICE")?.value;
+      const ultra = settings.find(s => s.key === "ULTRA_SUBSCRIPTION_PRICE")?.value;
+      if (pro || ultra) {
+        setPrices({
+          PRO_SUBSCRIPTION_PRICE: pro || "30.00",
+          ULTRA_SUBSCRIPTION_PRICE: ultra || "50.00"
+        });
+      }
+    }
+  }, [settings]);
+
+  const handleSave = async () => {
+    try {
+      await updateSettingsMutation.mutateAsync(prices);
+      toast.success("Pricing matrix updated successfully");
+    } catch (err) {
+      toast.error("Failed to update pricing");
+    }
   };
+
+  if (isLoading) return <div className="p-10"><Skeleton className="h-64 rounded-3xl" /></div>;
 
   return (
     <div className="p-4 lg:p-8 animate-fade-in space-y-8 text-start">
@@ -699,34 +721,42 @@ const SystemSettingsSection: React.FC = () => {
           <div className="space-y-5 flex-1">
              <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Base Subscription</label>
-                    <span className="text-[10px] font-bold text-[var(--ui-accent)] tracking-widest">$29.00 / mo</span>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pro Tier (EGP)</label>
+                    <span className="text-[10px] font-bold text-[var(--ui-accent)] tracking-widest">Lvl 1-2 Access</span>
                 </div>
-                <Input defaultValue="29.00" className="bg-black/20 border-white/5 h-12 text-white font-bold" />
+                <Input 
+                  value={prices.PRO_SUBSCRIPTION_PRICE} 
+                  onChange={e => setPrices(prev => ({ ...prev, PRO_SUBSCRIPTION_PRICE: e.target.value }))}
+                  className="bg-black/20 border-white/5 h-12 text-white font-bold" 
+                />
              </div>
              
              <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pro Tier Premium</label>
-                    <span className="text-[10px] font-bold text-[var(--ui-accent)] tracking-widest">x2.5 Value</span>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ultra Tier (EGP)</label>
+                    <span className="text-[10px] font-bold text-[var(--ui-accent)] tracking-widest">Infinite Sovereignty</span>
                 </div>
-                <Input defaultValue="2.5" className="bg-black/20 border-white/5 h-12 text-white font-bold" />
+                <Input 
+                  value={prices.ULTRA_SUBSCRIPTION_PRICE} 
+                  onChange={e => setPrices(prev => ({ ...prev, ULTRA_SUBSCRIPTION_PRICE: e.target.value }))}
+                  className="bg-black/20 border-white/5 h-12 text-white font-bold" 
+                />
              </div>
 
              <div className="p-4 bg-[var(--ui-accent)]/[0.03] border border-[var(--ui-accent)]/10 rounded-xl">
                 <p className="text-[10px] text-slate-500 font-medium leading-relaxed italic">
-                    Changes to the pricing matrix will apply to all future checkouts. Existing subscriptions remain on their original ledger entries.
+                    Note: Pricing updates affect new subscriptions only. Values are stored in EGP and processed via Paymob.
                 </p>
              </div>
           </div>
 
           <Button 
             onClick={handleSave}
-            disabled={saving}
+            disabled={updateSettingsMutation.isPending}
             className="w-full h-12 bg-[var(--ui-accent)] hover:bg-[var(--ui-accent)]/90 text-white font-bold text-xs uppercase tracking-widest shadow-glow shadow-[var(--ui-accent)]/20 mt-4"
           >
-            {saving ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : null}
-            Update Matrix
+            {updateSettingsMutation.isPending ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : null}
+            Update Global Matrix
           </Button>
         </Card>
 

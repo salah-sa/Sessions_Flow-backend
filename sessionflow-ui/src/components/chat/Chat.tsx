@@ -11,21 +11,85 @@ import { toast } from "sonner";
 import { AudioPlayer } from "./AudioPlayer";
 import { ImageViewer } from "./ImageViewer";
 import { format, isToday, isYesterday } from "date-fns";
+import { sounds } from "../../lib/sounds";
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { Group, Student, User as ProjectUser } from "../../types";
 import { createMentionEngine, MentionEngine, MentionableMember } from "../../lib/MentionEngine";
 import { usePresenceStore, PresenceStatus } from "../../store/presenceStore";
 import AnimatedChatIcon from "../ui/AnimatedChatIcon";
+import { useChatUsage } from "../../queries/useChatQueries";
+
+const CodeBlock: React.FC<{ code: string; language?: string }> = ({ code, language }) => {
+  const [copied, setCopied] = useState(false);
+  
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Simple regex-based syntax highlighter
+  const highlightCode = (code: string) => {
+    return code
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/\b(await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|export|extends|false|finally|for|function|if|import|in|instanceof|new|null|return|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)\b/g, '<span class="text-[#c678dd]">$1</span>') // Keywords
+      .replace(/\b(console|window|document|Math|JSON|Object|Array|String|Number|Boolean|Promise)\b/g, '<span class="text-[#e5c07b]">$1</span>') // Built-ins
+      .replace(/("[^"]*"|'[^']*'|`[^`]*`)/g, '<span class="text-[#98c379]">$1</span>') // Strings
+      .replace(/(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/g, '<span class="text-[#5c6370] italic">$1</span>') // Comments
+      .replace(/\b(\d+)\b/g, '<span class="text-[#d19a66]">$1</span>'); // Numbers
+  };
+
+  return (
+    <div className="my-4 rounded-2xl overflow-hidden border border-white/10 bg-black/40 group/code">
+      <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/5">
+        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{language || "Code"}</span>
+        <button 
+          onClick={handleCopy}
+          className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-all flex items-center gap-2"
+        >
+          {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+          <span className="text-[9px] font-bold uppercase tracking-wider">{copied ? "Copied" : "Copy"}</span>
+        </button>
+      </div>
+      <pre className="p-4 overflow-x-auto font-mono text-[13px] leading-relaxed selection:bg-white/20 custom-scrollbar">
+        <code dangerouslySetInnerHTML={{ __html: highlightCode(code) }} />
+      </pre>
+    </div>
+  );
+};
 
 const BlockMessageRenderer: React.FC<{ message: ChatMessage }> = ({ message }) => {
   const { text, blocks } = message;
+  
+  const renderContent = (content: string) => {
+    // Check for triple backtick code blocks
+    const codeBlockMatch = content.match(/```(\w+)?\n([\s\S]*?)```/);
+    if (codeBlockMatch) {
+      const parts = content.split(/```(\w+)?\n[\s\S]*?```/);
+      return (
+        <>
+          {parts[0] && <div className="mb-2">{parts[0]}</div>}
+          <CodeBlock code={codeBlockMatch[2]} language={codeBlockMatch[1]} />
+          {parts[parts.length - 1] && <div className="mt-2">{parts[parts.length - 1]}</div>}
+        </>
+      );
+    }
+
+    // Heuristic for inline code or code-like patterns
+    const isLikelyCode = content.includes("{") && content.includes("}") && (content.includes("=>") || content.includes("function") || content.includes("public") || content.includes("void"));
+    if (isLikelyCode && content.length > 20 && !content.includes("```")) {
+      return <CodeBlock code={content} />;
+    }
+
+    return content;
+  };
   
   if (blocks && blocks.length > 0) {
     return (
       <div className="whitespace-pre-wrap break-words leading-relaxed selection:bg-white/10">
         {blocks.map((block, i) => {
-          if (block.type === "text") return <React.Fragment key={i}>{block.content}</React.Fragment>;
+          if (block.type === "text") return <React.Fragment key={i}>{renderContent(block.content)}</React.Fragment>;
           if (block.type === "mention") {
             return (
               <span 
@@ -42,7 +106,7 @@ const BlockMessageRenderer: React.FC<{ message: ChatMessage }> = ({ message }) =
     );
   }
 
-  return <div className="whitespace-pre-wrap break-words leading-relaxed selection:bg-white/10">{text}</div>;
+  return <div className="whitespace-pre-wrap break-words leading-relaxed selection:bg-white/10">{renderContent(text || "")}</div>;
 };
 
 const ProfileImage: React.FC<{ userId?: string; url?: string | null; initial?: string; isMe: boolean; }> = ({ userId, url, initial, isMe }) => {
@@ -206,6 +270,8 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [activeMentions, setActiveMentions] = useState<MessageMention[]>([]);
   
+  const { data: usage } = useChatUsage();
+  
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastTypingEvent = useRef<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -287,7 +353,26 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
     if (text.trim() || selectedFile) {
       const validatedMentions = activeMentions.filter(m => text.substring(m.indices[0], m.indices[1] + 1).includes(`@${m.name}`));
       onSendMessage(text.trim(), selectedFile || undefined, validatedMentions, MentionEngine.buildBlocks(text.trim(), validatedMentions));
+      sounds.playChatSend();
       setText(""); setSelectedFile(null); setActiveMentions([]); setShowMentions(false); setShowEmojiPicker(false);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        const file = items[i].getAsFile();
+        if (file) {
+          // Rename to clipboard-<timestamp>.png
+          const newFile = new File([file], `clipboard-${Date.now()}.png`, { type: file.type });
+          setSelectedFile(newFile);
+          toast.success("Image attached from clipboard");
+          break;
+        }
+      }
     }
   };
 
@@ -356,7 +441,35 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
       </div>
 
       <div className="p-4 md:p-8 bg-ui-bg/95 border-t border-white/5 flex flex-col gap-4 relative z-50">
-        <TypingIndicator activeGroupId={activeGroupId} />
+        <div className="flex items-center justify-between px-2">
+          <TypingIndicator activeGroupId={activeGroupId} />
+          
+          {usage && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className={cn(
+                "ms-auto mb-2 px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-[0.1em] flex items-center gap-3 backdrop-blur-md transition-all duration-500",
+                usage.total === null 
+                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500" 
+                  : (usage.used / usage.total > 0.8)
+                    ? "bg-rose-500/10 border-rose-500/30 text-rose-500 animate-pulse"
+                    : "bg-white/5 border-white/10 text-slate-400"
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <Target className="w-3.5 h-3.5" />
+                <span>{usage.tier} Quota</span>
+              </div>
+              <div className="w-px h-3 bg-white/10" />
+              <div className="flex items-center gap-1.5 font-mono">
+                <span className="text-white">{usage.used}</span>
+                <span className="opacity-40">/</span>
+                <span>{usage.total ?? "∞"}</span>
+              </div>
+            </motion.div>
+          )}
+        </div>
         
         <AnimatePresence>
           {showEmojiPicker && (
@@ -429,7 +542,10 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
           </motion.div>
         )}
 
-        <div className="flex items-center gap-3 bg-white/[0.03] rounded-full border border-white/10 px-4 md:px-6 h-14 md:h-16 shadow-xl transition-all focus-within:border-[var(--chat-accent-warm)]/40 focus-within:bg-white/[0.05]">
+        <div 
+          onPaste={handlePaste}
+          className="flex items-center gap-3 bg-white/[0.03] rounded-full border border-white/10 px-4 md:px-6 h-14 md:h-16 shadow-xl transition-all focus-within:border-[var(--chat-accent-warm)]/40 focus-within:bg-white/[0.05]"
+        >
           <button 
             onClick={() => setShowEmojiPicker(!showEmojiPicker)} 
             className="p-2 text-slate-500 hover:text-[var(--chat-accent-warm)] transition-colors"
@@ -445,6 +561,15 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
             placeholder="Type a message..." 
             className="border-none bg-transparent focus:ring-0 h-full flex-1 text-[15px] font-medium text-white placeholder:text-slate-600 min-w-0" 
           />
+
+          {text.length > 0 && (
+            <div className={cn(
+              "hidden md:flex items-center px-3 py-1 rounded-lg border text-[9px] font-black tracking-widest uppercase transition-colors",
+              text.length > 1500 ? "border-amber-500/30 text-amber-500 bg-amber-500/5" : "border-white/5 text-slate-600 bg-white/5"
+            )}>
+              {text.length} Chars
+            </div>
+          )}
           
           <div className="flex items-center gap-2">
             <button 

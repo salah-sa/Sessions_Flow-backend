@@ -136,7 +136,7 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
             if (!isMuted(msg.groupId)) {
               if (document.hidden || activeGroupId !== msg.groupId) {
-                sounds.playNotification();
+                sounds.playChatReceive();
                 useNotificationPopupStore.getState().notify(
                   msg.groupId,
                   msg.senderName ?? "Unknown",
@@ -144,7 +144,7 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
                   msg.sender?.avatarUrl ?? undefined
                 );
               } else {
-                sounds.playPop();
+                sounds.playChatReceive();
               }
             }
             incrementUnread(msg.groupId);

@@ -387,6 +387,104 @@ class SoundEngine {
     noise.start(time);
     noise.stop(time + 0.3);
   }
+  /**
+   * playChatSend - "Mercury Whoosh": Rising sine sweep for outgoing messages.
+   */
+  playChatSend() {
+    this.init();
+    if (!this.ctx) return;
+    const output = this.createOutput();
+    if (!output) return;
+
+    const time = this.ctx.currentTime;
+    
+    // Core rising sweep
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(220, time);
+    osc.frequency.exponentialRampToValueAtTime(880, time + 0.12);
+
+    gain.gain.setValueAtTime(0, time);
+    gain.gain.linearRampToValueAtTime(0.08, time + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+
+    // Harmonic friction layer
+    const harm = this.ctx.createOscillator();
+    const hGain = this.ctx.createGain();
+    harm.type = "triangle";
+    harm.frequency.setValueAtTime(440, time);
+    harm.frequency.exponentialRampToValueAtTime(1760, time + 0.1);
+    
+    hGain.gain.setValueAtTime(0, time);
+    hGain.gain.linearRampToValueAtTime(0.02, time + 0.01);
+    hGain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+
+    osc.connect(gain);
+    gain.connect(output);
+    harm.connect(hGain);
+    hGain.connect(output);
+
+    osc.start(time);
+    harm.start(time);
+    osc.stop(time + 0.2);
+    harm.stop(time + 0.2);
+  }
+
+  /**
+   * playChatReceive - "Luminous Drop": Descending chime for incoming messages.
+   */
+  playChatReceive() {
+    this.init();
+    if (!this.ctx) return;
+    const output = this.createOutput();
+    if (!output) return;
+
+    const time = this.ctx.currentTime;
+
+    // Bell body
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(1200, time);
+    osc.frequency.exponentialRampToValueAtTime(600, time + 0.15);
+
+    gain.gain.setValueAtTime(0, time);
+    gain.gain.linearRampToValueAtTime(0.1, time + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.4);
+
+    // Shimmer overtone
+    const shimmer = this.ctx.createOscillator();
+    const sGain = this.ctx.createGain();
+    shimmer.type = "sine";
+    shimmer.frequency.setValueAtTime(2400, time);
+    sGain.gain.setValueAtTime(0, time);
+    sGain.gain.linearRampToValueAtTime(0.04, time + 0.005);
+    sGain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+
+    // Sub-bass thud
+    const sub = this.ctx.createOscillator();
+    const subGain = this.ctx.createGain();
+    sub.type = "sine";
+    sub.frequency.setValueAtTime(100, time);
+    subGain.gain.setValueAtTime(0, time);
+    subGain.gain.linearRampToValueAtTime(0.05, time + 0.01);
+    subGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+
+    osc.connect(gain);
+    gain.connect(output);
+    shimmer.connect(sGain);
+    sGain.connect(output);
+    sub.connect(subGain);
+    subGain.connect(output);
+
+    osc.start(time);
+    shimmer.start(time);
+    sub.start(time);
+    osc.stop(time + 0.5);
+    shimmer.stop(time + 0.5);
+    sub.stop(time + 0.2);
+  }
 }
 
 export const sounds = new SoundEngine();

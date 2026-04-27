@@ -401,6 +401,34 @@ public static class SessionEndpoints
             await eventBus.PublishAsync(Services.EventBus.Events.SessionStatusChanged, Services.EventBus.EventTargetType.Group, $"session_{id}", new { sessionId = id.ToString(), status = "Skipped" });
             return Results.Ok(new { id = session!.Id, status = session.Status.ToString(), isSkipped = true, skipReason = session.SkipReason });
         });
+
+        // POST /api/sessions/{id}/sign — ONE-CLICK COMPLETION & PROGRESSION
+        group.MapPost("/{id:guid}/sign", async (Guid id, SessionService sessionService, Services.EventBus.IEventBus eventBus, MongoService db) =>
+        {
+            var session = await db.Sessions.Find(s => s.Id == id).FirstOrDefaultAsync();
+            if (session == null) return Results.NotFound(new { error = "Session not found." });
+
+            // 1. If Scheduled, transition to Active first (simulates starting the lecture)
+            if (session.Status == SessionStatus.Scheduled)
+            {
+                var (started, startErr) = await sessionService.StartSessionAsync(id);
+                if (startErr != null) return Results.BadRequest(new { error = startErr });
+            }
+
+            // 2. Transition to Ended with Force=true (One-click bypass for attendance)
+            var (ended, endErr) = await sessionService.EndSessionAsync(id, "Automated via Quick Sign", force: true);
+            if (endErr != null) return Results.BadRequest(new { error = endErr });
+
+            // 3. Publish Events
+            await eventBus.PublishAsync(Services.EventBus.Events.SessionStatusChanged, Services.EventBus.EventTargetType.Group, $"session_{id}", new { sessionId = id.ToString(), status = "Ended" });
+            
+            return Results.Ok(new { 
+                id = ended!.Id, 
+                status = ended.Status.ToString(), 
+                endedAt = ended.EndedAt,
+                nextSessionNumber = (await db.Groups.Find(g => g.Id == ended.GroupId).FirstOrDefaultAsync())?.CurrentSessionNumber
+            });
+        });
     }
 
     public record CreateSessionRequest(string GroupId, DateTimeOffset ScheduledAt);

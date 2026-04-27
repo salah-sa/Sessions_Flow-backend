@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { chatApi } from "../api/resources_extra";
 import { queryKeys } from "./keys";
 import { ChatMessage, MessageMention } from "../types";
@@ -62,6 +62,16 @@ export const useSendMessage = () => {
           return { ...old, pages: newPages };
         }
       );
+      // Invalidate usage on success
+      queryClient.invalidateQueries({ queryKey: ["chat", "usage"] });
     },
+  });
+};
+
+export const useChatUsage = () => {
+  return useQuery({
+    queryKey: ["chat", "usage"],
+    queryFn: () => chatApi.getUsage(),
+    refetchInterval: 30000,
   });
 };

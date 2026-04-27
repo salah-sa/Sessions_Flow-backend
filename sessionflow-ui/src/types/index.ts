@@ -1,5 +1,5 @@
 export type UserRole = "Admin" | "Engineer" | "Student";
-export type SubscriptionTier = "Free" | "Pro" | "Enterprise";
+export type SubscriptionTier = "Free" | "Pro" | "Ultra";
 export type SubscriptionStatus = "None" | "Active" | "PastDue" | "Canceled" | "Unpaid";
 
 export interface User {

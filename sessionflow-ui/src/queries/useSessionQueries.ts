@@ -104,11 +104,23 @@ export const useSessionMutations = () => {
     },
   });
 
+  const signMutation = useMutation({
+    mutationFn: (id: string) => sessionsApi.sign(id),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(queryKeys.sessions.byId(updated.id), updated);
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups.all });
+      sounds.playArchive();
+    },
+  });
+
   return {
     createMutation,
     startMutation,
     endMutation,
     updateAttendanceMutation,
     skipMutation,
+    signMutation,
   };
 };

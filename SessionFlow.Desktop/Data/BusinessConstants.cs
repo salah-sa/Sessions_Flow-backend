@@ -21,14 +21,14 @@ public static class BusinessConstants
         // Subscription Pricing Keys (Admin-editable, consumed by Plans page)
         public const string SubPriceProMonthly = "subscription_price_pro_monthly";
         public const string SubPriceProAnnual = "subscription_price_pro_annual";
-        public const string SubPriceEnterpriseMonthly = "subscription_price_enterprise_monthly";
-        public const string SubPriceEnterpriseAnnual = "subscription_price_enterprise_annual";
+        public const string SubPriceUltraMonthly = "subscription_price_ultra_monthly";
+        public const string SubPriceUltraAnnual = "subscription_price_ultra_annual";
         public const string SubFeaturesFreePlan = "subscription_features_free";
         public const string SubFeaturesProPlan = "subscription_features_pro";
-        public const string SubFeaturesEnterprisePlan = "subscription_features_enterprise";
+        public const string SubFeaturesUltraPlan = "subscription_features_ultra";
         public const string SubDescriptionFree = "subscription_desc_free";
         public const string SubDescriptionPro = "subscription_desc_pro";
-        public const string SubDescriptionEnterprise = "subscription_desc_enterprise";
+        public const string SubDescriptionUltra = "subscription_desc_ultra";
     }
 
     public static class Defaults

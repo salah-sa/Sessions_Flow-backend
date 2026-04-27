@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, UseQueryResult } from "@tanstack/react-query";
-import { auditApi, engineersApi, studentsApi } from "../api/resources_extra";
+import { auditApi, engineersApi, studentsApi, settingsApi } from "../api/resources_extra";
 import { groupsApi as coreGroupsApi } from "../api/resources";
 import { queryKeys } from "./keys";
 import { useAuthStore } from "../store/stores";
@@ -13,6 +13,17 @@ export const useAuditLogs = () => {
     queryFn: () => auditApi.getLogs(),
     enabled: !!token && hydrated,
     retry: 2,
+  });
+};
+
+export const useSettings = () => {
+  const token = useAuthStore((s) => s.token);
+  const hydrated = useAuthStore((s) => s._hasHydrated);
+
+  return useQuery({
+    queryKey: ["settings"],
+    queryFn: () => settingsApi.getAll(),
+    enabled: !!token && hydrated,
   });
 };
 
@@ -138,6 +149,19 @@ export const useEngineerMutations = () => {
     approveEngineer: muts.approveMutation,
     denyEngineer: muts.denyMutation
   };
+};
+
+export const useSettingsMutations = () => {
+  const queryClient = useQueryClient();
+
+  const updateSettingsMutation = useMutation({
+    mutationFn: (settings: Record<string, string>) => settingsApi.update(settings),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+    },
+  });
+
+  return { updateSettingsMutation };
 };
 
 export const usePurgeMutation = () => {

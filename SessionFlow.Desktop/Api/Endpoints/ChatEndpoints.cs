@@ -36,6 +36,37 @@ public static class ChatEndpoints
             }
         }).AllowAnonymous(); // Depending on auth requirement, leaving open for image rendering
 
+        // GET: /api/chat/usage
+        group.MapGet("/usage", async (HttpContext ctx, MongoService db, AuthService auth) =>
+        {
+            var user = await auth.GetUserFromClaimsAsync(ctx.User);
+            if (user == null) return Results.Unauthorized();
+
+            var effectiveTier = user.Role == UserRole.Student ? SubscriptionTier.Ultra : user.SubscriptionTier;
+            
+            var today = DateTimeOffset.UtcNow.Date;
+            var tomorrow = today.AddDays(1);
+
+            var messagesCount = await db.ChatMessages.CountDocumentsAsync(m => 
+                m.SenderId == user.Id && m.SentAt >= today && m.SentAt < tomorrow);
+
+            var imagesCount = await db.ChatMessages.CountDocumentsAsync(m => 
+                m.SenderId == user.Id && m.SentAt >= today && m.SentAt < tomorrow && m.FileType != null && m.FileType.StartsWith("image/"));
+
+            var videosCount = await db.ChatMessages.CountDocumentsAsync(m => 
+                m.SenderId == user.Id && m.SentAt >= today && m.SentAt < tomorrow && m.FileType != null && m.FileType.StartsWith("video/"));
+
+            return Results.Ok(new
+            {
+                tier = effectiveTier.ToString(),
+                messages = new { used = (int)messagesCount, limit = PlanLimit.GetMaxDailyMessages(effectiveTier) },
+                images = new { used = (int)imagesCount, limit = PlanLimit.GetMaxDailyImages(effectiveTier) },
+                videos = new { used = (int)videosCount, limit = PlanLimit.GetMaxDailyVideos(effectiveTier) },
+                charLimit = PlanLimit.GetMaxCharactersPerMessage(effectiveTier),
+                resetsAt = tomorrow
+            });
+        }).RequireAuthorization();
+
         // GET /api/chat/{groupId}/messages — Supports cursor-based pagination
         group.MapGet("/{groupIdStr}/messages", async (string groupIdStr, DateTime? before, int? limit, MongoService db, HttpContext ctx, AuthService auth) =>
         {
@@ -131,6 +162,27 @@ public static class ChatEndpoints
                 if (studentInfos == null || !studentInfos.Any(s => s.GroupId == groupId)) return Results.Forbid();
             }
 
+            // 1. Determine Effective Tier & Limits
+            var user = await db.Users.Find(u => u.Id == userGuid).FirstOrDefaultAsync();
+            if (user == null) return Results.Forbid();
+            var effectiveTier = user.Role == UserRole.Student ? SubscriptionTier.Ultra : user.SubscriptionTier;
+
+            // 2. Load today's usage for quota check
+            var today = DateTimeOffset.UtcNow.Date;
+            var tomorrow = today.AddDays(1);
+            var messagesCount = await db.ChatMessages.CountDocumentsAsync(m => 
+                m.SenderId == userGuid && m.SentAt >= today && m.SentAt < tomorrow);
+
+            if (messagesCount >= PlanLimit.GetMaxDailyMessages(effectiveTier))
+            {
+                return Results.BadRequest(new { 
+                    error = $"Daily message limit reached ({messagesCount}/{PlanLimit.GetMaxDailyMessages(effectiveTier)}).",
+                    limit = PlanLimit.GetMaxDailyMessages(effectiveTier),
+                    used = (int)messagesCount,
+                    tier = effectiveTier.ToString()
+                });
+            }
+
             string textParams = string.Empty;
             string? fileUrl = null;
             string? fileName = null;
@@ -140,10 +192,32 @@ public static class ChatEndpoints
             {
                 var form = await req.ReadFormAsync();
                 textParams = form["text"].ToString();
+
+                // 3. Character length validation
+                if (textParams.Length > PlanLimit.GetMaxCharactersPerMessage(effectiveTier))
+                {
+                    return Results.BadRequest(new { error = $"Message too long. Maximum {PlanLimit.GetMaxCharactersPerMessage(effectiveTier)} characters allowed for your plan." });
+                }
+
                 var file = form.Files.GetFile("file");
 
                 if (file != null && file.Length > 0)
                 {
+                    // 4. Media quota validation
+                    if (file.ContentType.StartsWith("image/"))
+                    {
+                        var imagesCount = await db.ChatMessages.CountDocumentsAsync(m => 
+                            m.SenderId == userGuid && m.SentAt >= today && m.SentAt < tomorrow && m.FileType != null && m.FileType.StartsWith("image/"));
+                        if (imagesCount >= PlanLimit.GetMaxDailyImages(effectiveTier))
+                            return Results.BadRequest(new { error = "Daily image limit reached." });
+                    }
+                    else if (file.ContentType.StartsWith("video/"))
+                    {
+                        var videosCount = await db.ChatMessages.CountDocumentsAsync(m => 
+                            m.SenderId == userGuid && m.SentAt >= today && m.SentAt < tomorrow && m.FileType != null && m.FileType.StartsWith("video/"));
+                        if (videosCount >= PlanLimit.GetMaxDailyVideos(effectiveTier))
+                            return Results.BadRequest(new { error = "Daily video limit reached." });
+                    }
                     // SECURITY: Enforce file size limit (10MB)
                     const long maxFileSize = 10 * 1024 * 1024;
                     if (file.Length > maxFileSize)

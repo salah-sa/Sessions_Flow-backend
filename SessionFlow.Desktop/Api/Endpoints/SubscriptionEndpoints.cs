@@ -27,7 +27,7 @@ public static class SubscriptionEndpoints
             {
                 return Results.Ok(new
                 {
-                    tier = "Enterprise",
+                    tier = "Ultra",
                     paymobCustomerId = user.PaymobCustomerId,
                     subscriptionId = (Guid?)null,
                     status = "Active",
@@ -48,7 +48,7 @@ public static class SubscriptionEndpoints
                 subscriptionId = subscription?.Id,
                 status = subscription?.Status.ToString() ?? "None",
                 expiryDate = subscription?.CurrentPeriodEnd,
-                canUpgrade = user.SubscriptionTier != SubscriptionTier.Enterprise
+                canUpgrade = user.SubscriptionTier != SubscriptionTier.Ultra
             });
         }).RequireAuthorization();
 
@@ -96,15 +96,15 @@ public static class SubscriptionEndpoints
                     buttonVariant = "primary"
                 },
                 new {
-                    name = "Enterprise",
-                    tier = "Enterprise",
-                    description = V(BusinessConstants.Settings.SubDescriptionEnterprise, "White-glove service."),
-                    priceMonthly = $"EGP {V(BusinessConstants.Settings.SubPriceEnterpriseMonthly, "499")}",
-                    priceAnnual = $"EGP {V(BusinessConstants.Settings.SubPriceEnterpriseAnnual, "4990")}",
-                    priceMonthlyRaw = int.TryParse(V(BusinessConstants.Settings.SubPriceEnterpriseMonthly, "499"), out var em) ? em : 499,
-                    priceAnnualRaw = int.TryParse(V(BusinessConstants.Settings.SubPriceEnterpriseAnnual, "4990"), out var ea) ? ea : 4990,
-                    features = ParseFeatures(V(BusinessConstants.Settings.SubFeaturesEnterprisePlan,
-                        "[\"Everything in Pro\",\"Admin Portal Access\",\"Custom Features\",\"Account Manager\",\"White-labeled Reports\"]")),
+                    name = "Ultra",
+                    tier = "Ultra",
+                    description = V(BusinessConstants.Settings.SubDescriptionUltra, "The ultimate experience."),
+                    priceMonthly = $"EGP {V(BusinessConstants.Settings.SubPriceUltraMonthly, "50")}",
+                    priceAnnual = $"EGP {V(BusinessConstants.Settings.SubPriceUltraAnnual, "500")}",
+                    priceMonthlyRaw = int.TryParse(V(BusinessConstants.Settings.SubPriceUltraMonthly, "50"), out var um) ? um : 50,
+                    priceAnnualRaw = int.TryParse(V(BusinessConstants.Settings.SubPriceUltraAnnual, "500"), out var ua) ? ua : 500,
+                    features = ParseFeatures(V(BusinessConstants.Settings.SubFeaturesUltraPlan,
+                        "[\"Everything in Pro\",\"Unlimited Messages\",\"Admin Portal Access\",\"Custom Features\",\"Dedicated Account Manager\"]")),
                     popular = false,
                     color = "from-amber-400 to-orange-500",
                     bgClass = "bg-amber-500/5 hover:bg-amber-500/10",
