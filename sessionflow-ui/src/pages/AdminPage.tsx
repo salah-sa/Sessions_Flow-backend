@@ -29,7 +29,7 @@ const AdminPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [studentProcessingIds, setStudentProcessingIds] = useState<Set<string>>(new Set());
-  const [banTarget, setBanTarget] = useState<{ id: string; role: "Student" | "Engineer" } | null>(null);
+  const [terminationTarget, setTerminationTarget] = useState<{ id: string; role: "Student" | "Engineer" } | null>(null);
 
   const dateLocale = i18n.language === "ar" ? ar : enUS;
 
@@ -53,7 +53,7 @@ const AdminPage: React.FC = () => {
   } = useSystemQueries();
 
   const { data: pendingStudentsData, isLoading: isLoadingStudents } = usePendingStudentRequests();
-  const { banMutation, suspendMutation, restoreMutation } = useUserMutations();
+  const { terminateMutation, suspendMutation, restoreMutation } = useUserMutations();
 
   const loading = pendingEngineers.isLoading || engineerCodes.isLoading || allEngineers.isLoading || auditLogsQuery.isLoading || isLoadingStudents;
   const pending = pendingEngineers.data || [];
@@ -71,18 +71,18 @@ const AdminPage: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ["students"] });
   };
 
-  const handleBanUser = (id: string, role: "Student" | "Engineer") => {
-    setBanTarget({ id, role });
+  const handleTerminateUser = (id: string, role: "Student" | "Engineer") => {
+    setTerminationTarget({ id, role });
   };
 
-  const onConfirmBan = async () => {
-    if (!banTarget) return;
+  const onConfirmTermination = async () => {
+    if (!terminationTarget) return;
     try {
-      await banMutation.mutateAsync(banTarget);
-      toast.success("User banned successfully.");
-      setBanTarget(null);
+      await terminateMutation.mutateAsync(terminationTarget);
+      toast.success("User access terminated successfully.");
+      setTerminationTarget(null);
     } catch (err) {
-      toast.error("Failed to ban user.");
+      toast.error("Failed to terminate user access.");
     }
   };
 
@@ -261,7 +261,7 @@ const AdminPage: React.FC = () => {
          {[
            { id: "pending", name: t("admin.tabs.pending"), icon: UserPlus },
            { id: "students", name: t("admin.tabs.students"), icon: Users },
-            { id: "users", name: "User Management", icon: ShieldAlert },
+            { id: "users", name: "Governance", icon: ShieldAlert },
            { id: "codes", name: t("admin.tabs.codes"), icon: Key },
            { id: "engineers", name: t("admin.tabs.engineers"), icon: Shield },
            { id: "settings", name: "Settings", icon: Settings2 },
@@ -432,7 +432,7 @@ const AdminPage: React.FC = () => {
                 </div>
              </div>
           ) : activeTab === "users" ? (
-               <UserManagementSection onBan={handleBanUser} onRestore={handleRestoreUser} />
+                <UserManagementSection onTerminate={handleTerminateUser} onRestore={handleRestoreUser} />
            ) : activeTab === "codes" ? (
             <div className="p-8 space-y-8 animate-fade-in text-start">
                <div className="flex items-center justify-between pb-6 border-b border-white/5">
@@ -580,10 +580,10 @@ const AdminPage: React.FC = () => {
       </div>
 
       <ConfirmDeleteModal
-        isOpen={!!banTarget}
-        onClose={() => setBanTarget(null)}
-        onConfirm={onConfirmBan}
-        isLoading={banMutation.isPending}
+        isOpen={!!terminationTarget}
+        onClose={() => setTerminationTarget(null)}
+        onConfirm={onConfirmTermination}
+        isLoading={terminateMutation.isPending}
         title="Terminate User Access"
         description="This will immediately revoke all access to the system for this user. This action is recorded in the audit logs."
         confirmText="TERMINATE"
@@ -592,7 +592,7 @@ const AdminPage: React.FC = () => {
   );
 };
 
-const UserManagementSection: React.FC<{ onBan: (id: string, role: any) => void; onRestore: (id: string, role: any) => void }> = ({ onBan, onRestore }) => {
+const UserManagementSection: React.FC<{ onTerminate: (id: string, role: any) => void; onRestore: (id: string, role: any) => void }> = ({ onTerminate, onRestore }) => {
   const { allEngineers } = useSystemQueries();
   const engineers = allEngineers.data || [];
   
@@ -655,7 +655,7 @@ const UserManagementSection: React.FC<{ onBan: (id: string, role: any) => void; 
                         variant="ghost" 
                         size="sm" 
                         className="text-rose-500 hover:bg-rose-500/10 hover:text-rose-400 font-bold text-[10px] uppercase tracking-widest px-4"
-                        onClick={() => onBan(user.id, user.role)}
+                        onClick={() => onTerminate(user.id, user.role)}
                       >
                         <Ban className="w-3.5 h-3.5 mr-2" />
                         Terminate

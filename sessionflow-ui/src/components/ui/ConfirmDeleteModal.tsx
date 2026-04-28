@@ -168,7 +168,7 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
                   ) : (
                     <>
                       <Trash2 className="w-4 h-4 me-2" />
-                      Delete
+                      {confirmText}
                     </>
                   )}
                 </Button>

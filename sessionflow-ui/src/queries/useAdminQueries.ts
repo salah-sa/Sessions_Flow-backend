@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, UseQueryResult } from "@tanstack/react-query";
-import { auditApi, engineersApi, studentsApi } from "../api/resources_extra";
+import { auditApi, engineersApi, studentsApi, adminUsersApi } from "../api/resources_extra";
 import { groupsApi as coreGroupsApi } from "../api/resources";
 import { queryKeys } from "./keys";
 import { useAuthStore } from "../store/stores";
@@ -96,9 +96,9 @@ export const useAdminMutations = () => {
 export const useUserMutations = () => {
   const queryClient = useQueryClient();
 
-  const banMutation = useMutation({
-    mutationFn: async ({ id, role }: { id: string, role: "Student" | "Engineer" }) => {
-      return role === "Student" ? studentsApi.ban(id) : engineersApi.ban(id);
+  const terminateMutation = useMutation({
+    mutationFn: async ({ id }: { id: string, role?: string }) => {
+      return adminUsersApi.restrict(id, -1, "Account terminated by administrator");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.engineers.all });
@@ -126,7 +126,7 @@ export const useUserMutations = () => {
     }
   });
 
-  return { banMutation, suspendMutation, restoreMutation };
+  return { terminateMutation, suspendMutation, restoreMutation };
 };
 
 export const useEngineerMutations = () => {
