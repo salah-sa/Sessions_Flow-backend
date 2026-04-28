@@ -55,9 +55,9 @@ public class TenantProvider : ITenantProvider
     {
         var builder = Builders<T>.Filter;
         
-        if (IsSystem() || IsAdmin())
+        if (IsSystem())
         {
-            return builder.Empty; // Full access
+            return builder.Empty; // Full access ONLY for system-level background jobs
         }
 
         var tenantId = GetCurrentTenantId();
