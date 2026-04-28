@@ -28,9 +28,6 @@ public class TenantProvider : ITenantProvider
         var ctx = _httpContextAccessor.HttpContext;
         if (ctx == null) return null; // System/Background Context
 
-        // Admin might not be a tenant
-        if (IsAdmin()) return null;
-
         var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (Guid.TryParse(userIdStr, out var userId))
         {
