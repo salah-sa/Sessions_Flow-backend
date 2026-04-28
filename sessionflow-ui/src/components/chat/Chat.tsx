@@ -458,11 +458,12 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
               const file = e.target.files?.[0];
               if (file) {
                 // Tiered file size limits based on subscription
-                const tier = user?.subscriptionTier || "Free";
-                const limits: Record<string, number> = { Free: 5, Pro: 25, Enterprise: 100 };
-                const maxMB = limits[tier] || 5;
+                const tier = user?.role === "Admin" ? "Ultra" : (user?.subscriptionTier || "Free");
+                const limits: Record<string, number> = { Free: 5, Pro: 25, Enterprise: 100, Ultra: 500 };
+                const isStudent = user?.role === "Student";
+                const maxMB = isStudent ? 100 : (limits[tier] || 5);
                 if (file.size > maxMB * 1024 * 1024) {
-                  toast?.error?.(`File exceeds ${maxMB}MB limit for ${tier} tier. Upgrade your plan for larger uploads.`);
+                  toast?.error?.(`File exceeds ${maxMB}MB limit for ${isStudent ? 'Students' : tier} tier. Upgrade your plan for larger uploads.`);
                   e.target.value = "";
                   return;
                 }

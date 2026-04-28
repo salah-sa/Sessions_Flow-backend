@@ -127,11 +127,13 @@ const Shell: React.FC = () => {
           </AnimatePresence>
 
           <div className={cn(
-            "fixed lg:relative h-full z-40 transition-all duration-700 cubic-bezier(0.16, 1, 0.3, 1) transform",
-            "bg-transparent",
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+            "fixed lg:relative h-full z-40 transition-all duration-500 ease-in-out transform overflow-hidden",
+            "bg-transparent flex-shrink-0",
+            sidebarOpen ? "w-[280px] translate-x-0 opacity-100" : "w-0 -translate-x-full lg:translate-x-0 opacity-0"
           )}>
-            <Sidebar />
+            <div className="w-[280px] h-full">
+              <Sidebar />
+            </div>
           </div>
 
           <main className="flex-1 relative overflow-hidden bg-transparent h-full">

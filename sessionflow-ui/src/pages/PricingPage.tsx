@@ -110,7 +110,7 @@ export default function PricingPage() {
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-8 md:mb-20 animate-fade-in">
           <Badge variant="glow" className="mb-4 md:mb-6 mx-auto bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] border-[var(--ui-accent)]/20 px-4 md:px-5 py-1.5 md:py-2 text-[8px] md:text-[10px] font-black tracking-[0.2em] uppercase">
-            Zenith Pricing Architecture
+            SessionFlow Pricing Architecture
           </Badge>
           <h1 className="text-[clamp(2rem,7vw,4.5rem)] font-black mb-6 md:mb-8 tracking-tighter leading-[0.95] md:leading-[0.9] bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-white/20">
             Scale Your Teaching Empire

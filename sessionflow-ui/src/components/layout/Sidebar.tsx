@@ -165,8 +165,8 @@ const Sidebar: React.FC = () => {
     }
   }, [location.pathname, isAdmin, isEngineer, pendingEngineerIds.join(","), pendingStudentIds.join(","), markSectionSeen]);
 
-  const userTier = user?.subscriptionTier || "Free";
-  const isPremium = isAdmin || userTier === "Pro" || userTier === "Enterprise";
+  const userTier = isAdmin ? "Ultra" : user?.subscriptionTier || "Free";
+  const isPremium = isAdmin || userTier === "Pro" || userTier === "Enterprise" || userTier === "Ultra";
   const blockedPages = user?.blockedPages ?? [];
   const isBlocked = (routePath: string) => {
     let key = routePath.replace("/", "");
@@ -183,19 +183,21 @@ const Sidebar: React.FC = () => {
                <div className="absolute inset-0 bg-white/20 blur-xl scale-150 animate-pulse" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white tracking-widest uppercase">Zenith</h2>
-              <p className="text-[8px] font-bold text-[var(--ui-accent)] tracking-[0.4em] uppercase opacity-60">Session Flow</p>
+              <h2 className="text-xl font-bold text-white tracking-widest uppercase">SessionFlow</h2>
+              <p className="text-[8px] font-bold text-[var(--ui-accent)] tracking-[0.4em] uppercase opacity-60">Neural Engine</p>
             </div>
          </div>
          {/* Tier Badge */}
          {userTier !== "Free" && (
            <div className={cn(
              "mt-3 mx-auto flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl border text-[8px] font-black uppercase tracking-[0.2em]",
-             userTier === "Pro" 
+             userTier === "Ultra"
+               ? "bg-fuchsia-500/10 border-fuchsia-500/30 text-fuchsia-400 shadow-[0_0_15px_rgba(217,70,239,0.3)] animate-pulse"
+               : userTier === "Pro" 
                ? "bg-[var(--ui-accent)]/5 border-[var(--ui-accent)]/20 text-[var(--ui-accent)]" 
                : "bg-amber-500/5 border-amber-500/20 text-amber-400"
            )}>
-             <Crown className={cn("w-3 h-3", userTier === "Enterprise" && "text-amber-400")} />
+             <Crown className={cn("w-3 h-3", userTier === "Enterprise" && "text-amber-400", userTier === "Ultra" && "text-fuchsia-400")} />
              {userTier}
            </div>
          )}
