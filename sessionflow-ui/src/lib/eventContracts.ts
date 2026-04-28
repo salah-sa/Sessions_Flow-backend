@@ -21,9 +21,19 @@ export const Events = {
   CALL_ACCEPTED: "call:accepted",
   CALL_REJECTED: "call:rejected",
   CALL_ENDED: "call:ended",
+  CALL_BUSY: "call:busy",
   CALL_OFFER: "call:offer",
   CALL_ANSWER: "call:answer",
   CALL_ICE: "call:ice",
+  // Group Calls
+  CALL_GROUP_STARTED: "call:group-started",
+  CALL_GROUP_JOINED: "call:group-joined",
+  CALL_GROUP_LEFT: "call:group-left",
+  CALL_GROUP_OFFER: "call:group-offer",
+  CALL_GROUP_ANSWER: "call:group-answer",
+  CALL_GROUP_ICE: "call:group-ice",
+  CALL_IN_CALL: "call:in-call",
+  CALL_AVAILABLE: "call:available",
 
   // Student Requests
   REQUEST_CREATED: "request:created",

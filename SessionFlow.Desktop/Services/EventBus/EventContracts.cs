@@ -29,9 +29,19 @@ public static class Events
     public const string CallAccepted = "call:accepted";
     public const string CallRejected = "call:rejected";
     public const string CallEnded = "call:ended";
+    public const string CallBusy = "call:busy";
+    public const string CallInCall = "call:in-call";
+    public const string CallAvailable = "call:available";
     public const string CallOffer = "call:offer";
     public const string CallAnswer = "call:answer";
     public const string CallIce = "call:ice";
+    // Group Calls
+    public const string CallGroupStarted = "call:group-started";
+    public const string CallGroupJoined = "call:group-joined";
+    public const string CallGroupLeft = "call:group-left";
+    public const string CallGroupOffer = "call:group-offer";
+    public const string CallGroupAnswer = "call:group-answer";
+    public const string CallGroupIce = "call:group-ice";
 
     // ═══════════════════════════════════════════════
     // Student Requests

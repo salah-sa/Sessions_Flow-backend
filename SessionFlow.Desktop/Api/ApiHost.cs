@@ -132,6 +132,7 @@ public static class ApiHost
         });
 
         builder.Services.AddHttpClient();
+        builder.Services.AddSingleton<ICallStateService, InMemoryCallStateService>();
         builder.Services.AddScoped<AuthService>();
         builder.Services.AddScoped<SessionService>();
         builder.Services.AddScoped<GmailSenderService>();

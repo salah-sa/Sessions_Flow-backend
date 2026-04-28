@@ -16,13 +16,15 @@ public class SessionHub : Hub
     private readonly IPresenceService _presence;
     private readonly AuthService _auth;
     private readonly IEventBus _eventBus;
+    private readonly ICallStateService _callState;
 
-    public SessionHub(MongoService db, IPresenceService presence, AuthService auth, IEventBus eventBus)
+    public SessionHub(MongoService db, IPresenceService presence, AuthService auth, IEventBus eventBus, ICallStateService callState)
     {
         _db = db;
         _presence = presence;
         _auth = auth;
         _eventBus = eventBus;
+        _callState = callState;
     }
 
     private string? GetUserId() => Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -35,8 +37,9 @@ public class SessionHub : Hub
 
         if (role == "Admin")
         {
-            // Admins join all active chat groups to monitor presence across the entire system
-            return await _db.Groups.Find(g => !g.IsDeleted).Project(g => g.Id).ToListAsync();
+            // Zero-Trust: Admin scoped to own groups only
+            if (!Guid.TryParse(userId, out var adminGuid)) return new List<Guid>();
+            return await _db.Groups.Find(g => g.EngineerId == adminGuid && !g.IsDeleted).Project(g => g.Id).ToListAsync();
         }
         if (role == "Engineer")
         {
@@ -89,6 +92,9 @@ public class SessionHub : Hub
         var userId = GetUserId();
         if (!string.IsNullOrEmpty(userId))
         {
+            // Clean up any active call state on disconnect
+            _callState.SetFree(userId);
+
             bool isFullyOffline = await _presence.UserDisconnectedAsync(Context.ConnectionId);
             if (isFullyOffline)
             {
@@ -287,6 +293,17 @@ public class SessionHub : Hub
         var callerName = Context.User?.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
         if (string.IsNullOrEmpty(callerIdStr)) return;
 
+        // Busy check — if target is already in a call, send call:busy back to caller
+        if (_callState.IsBusy(targetUserId))
+        {
+            await _eventBus.PublishAsync(Events.CallBusy, EventTargetType.User, callerIdStr, new
+            {
+                targetUserId,
+                reason = "User is currently in another call"
+            });
+            return;
+        }
+
         if (Guid.TryParse(callerIdStr, out var callerGuid))
         {
             var caller = await _db.Users.Find(u => u.Id == callerGuid).FirstOrDefaultAsync();
@@ -296,6 +313,9 @@ public class SessionHub : Hub
                 callerName = caller?.Name ?? callerName,
                 callerAvatar = caller?.AvatarUrl
             });
+
+            // Mark caller as "ringing" (soft busy — they initiated)
+            _callState.SetBusy(callerIdStr, targetUserId);
         }
     }
 
@@ -304,6 +324,21 @@ public class SessionHub : Hub
         var responderId = GetUserId();
         var responderName = Context.User?.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
         if (string.IsNullOrEmpty(responderId)) return;
+
+        if (accepted)
+        {
+            // Both users are now in an active call
+            _callState.SetBusy(responderId, callerId);
+            _callState.SetBusy(callerId, responderId);
+
+            // Broadcast in-call presence to visible peers
+            await _eventBus.PublishAsync(Events.CallInCall, EventTargetType.User, callerId, new { userId = responderId });
+        }
+        else
+        {
+            // Caller's soft-busy (ringing) is released on rejection
+            _callState.SetFree(callerId);
+        }
 
         var eventName = accepted ? Events.CallAccepted : Events.CallRejected;
         await _eventBus.PublishAsync(eventName, EventTargetType.User, callerId, new
@@ -338,7 +373,94 @@ public class SessionHub : Hub
     {
         var senderId = GetUserId();
         if (string.IsNullOrEmpty(senderId)) return;
+
+        // Free both users
+        _callState.SetFree(senderId);
+        _callState.SetFree(targetUserId);
+
         await _eventBus.PublishAsync(Events.CallEnded, EventTargetType.User, targetUserId, new { senderId });
+    }
+
+    // ═══════════════════════════════════════════════
+    // Group Call Signaling
+    // ═══════════════════════════════════════════════
+
+    public async Task StartGroupCall(string groupId)
+    {
+        var callerIdStr = GetUserId();
+        if (string.IsNullOrEmpty(callerIdStr)) return;
+
+        if (!Guid.TryParse(callerIdStr, out var callerGuid) || !Guid.TryParse(groupId, out var groupGuid)) return;
+
+        // Verify ownership
+        var group = await _db.Groups.Find(g => g.Id == groupGuid && !g.IsDeleted).FirstOrDefaultAsync();
+        if (group == null) return;
+
+        var caller = await _db.Users.Find(u => u.Id == callerGuid).FirstOrDefaultAsync();
+        _callState.SetBusy(callerIdStr, groupId, isGroup: true, groupId: groupId);
+
+        await _eventBus.PublishAsync(Events.CallGroupStarted, EventTargetType.Group, $"chat_{groupId}", new
+        {
+            groupId,
+            initiatorId = callerIdStr,
+            initiatorName = caller?.Name ?? "Unknown",
+            initiatorAvatar = caller?.AvatarUrl
+        });
+    }
+
+    public async Task JoinGroupCall(string groupId)
+    {
+        var userId = GetUserId();
+        if (string.IsNullOrEmpty(userId)) return;
+
+        var user = Guid.TryParse(userId, out var userGuid)
+            ? await _db.Users.Find(u => u.Id == userGuid).FirstOrDefaultAsync()
+            : null;
+
+        _callState.SetBusy(userId, groupId, isGroup: true, groupId: groupId);
+
+        await _eventBus.PublishAsync(Events.CallGroupJoined, EventTargetType.Group, $"chat_{groupId}", new
+        {
+            groupId,
+            userId,
+            userName = user?.Name ?? "Unknown",
+            userAvatar = user?.AvatarUrl
+        });
+    }
+
+    public async Task LeaveGroupCall(string groupId)
+    {
+        var userId = GetUserId();
+        if (string.IsNullOrEmpty(userId)) return;
+
+        _callState.RemoveFromGroup(groupId, userId);
+
+        await _eventBus.PublishAsync(Events.CallGroupLeft, EventTargetType.Group, $"chat_{groupId}", new
+        {
+            groupId,
+            userId
+        });
+    }
+
+    public async Task SendGroupOffer(string groupId, string targetUserId, string sdpOffer)
+    {
+        var senderId = GetUserId();
+        if (string.IsNullOrEmpty(senderId)) return;
+        await _eventBus.PublishAsync(Events.CallGroupOffer, EventTargetType.User, targetUserId, new { senderId, groupId, sdp = sdpOffer });
+    }
+
+    public async Task SendGroupAnswer(string groupId, string targetUserId, string sdpAnswer)
+    {
+        var senderId = GetUserId();
+        if (string.IsNullOrEmpty(senderId)) return;
+        await _eventBus.PublishAsync(Events.CallGroupAnswer, EventTargetType.User, targetUserId, new { senderId, groupId, sdp = sdpAnswer });
+    }
+
+    public async Task SendGroupIce(string groupId, string targetUserId, string candidate)
+    {
+        var senderId = GetUserId();
+        if (string.IsNullOrEmpty(senderId)) return;
+        await _eventBus.PublishAsync(Events.CallGroupIce, EventTargetType.User, targetUserId, new { senderId, groupId, candidate });
     }
 
     // ═══════════════════════════════════════════════
@@ -353,9 +475,16 @@ public class SessionHub : Hub
 
         var onlineUsers = _presence.GetOnlineUserIds();
 
-        if (role == "Admin") 
+        if (role == "Admin")
         {
-            var adminSnapshot = _presence.GetPresenceSnapshot(onlineUsers);
+            // Zero-Trust: Admin only sees presence of users in their own groups
+            var adminGroups = await _db.Groups.Find(g => g.EngineerId == userGuid && !g.IsDeleted).ToListAsync();
+            var adminGroupIds = adminGroups.Select(g => g.Id).ToList();
+            var adminStudents = await _db.Students.Find(s => adminGroupIds.Contains(s.GroupId) && !s.IsDeleted && s.UserId != null).ToListAsync();
+            var adminVisibleIds = new HashSet<string> { userIdStr };
+            foreach (var s in adminStudents) adminVisibleIds.Add(s.UserId!.Value.ToString());
+            var adminFiltered = onlineUsers.Where(u => adminVisibleIds.Contains(u)).ToList();
+            var adminSnapshot = _presence.GetPresenceSnapshot(adminFiltered);
             await Clients.Caller.SendAsync(Events.PresenceSnapshot, adminSnapshot);
             return;
         }

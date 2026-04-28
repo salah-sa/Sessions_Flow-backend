@@ -414,3 +414,162 @@
     transition-delay: 0s !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   TIER BORDER SYSTEM — Premium Subscription Visual Identity
+   Free: clean static  |  Pro: purple rotation  |  Enterprise: rainbow glow
+   ═══════════════════════════════════════════════════════════════ */
+
+/* CSS Houdini @property for smooth conic-gradient animation */
+@property --tier-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes tier-rotate {
+  to { --tier-angle: 360deg; }
+}
+
+/* Firefox fallback — uses transform rotation on a wrapper element */
+@keyframes tier-rotate-fallback {
+  to { transform: rotate(360deg); }
+}
+
+/* FREE tier — subtle, clean, no animation */
+.tier-free {
+  position: relative;
+}
+.tier-free .tier-ring {
+  border: 1.5px solid rgba(255,255,255,0.08);
+}
+
+/* PRO tier — rotating violet/purple gradient border */
+.tier-pro {
+  position: relative;
+  isolation: isolate;
+}
+.tier-pro .tier-ring::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--tier-angle, 0deg),
+    #6366f1 0deg,
+    #8b5cf6 60deg,
+    #a855f7 120deg,
+    #d946ef 180deg,
+    #ec4899 240deg,
+    #8b5cf6 300deg,
+    #6366f1 360deg
+  );
+  animation: tier-rotate 4s linear infinite;
+  z-index: -1;
+  border-radius: inherit;
+}
+.tier-pro .tier-ring::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: inherit;
+  background: var(--ui-bg);
+  z-index: -1;
+}
+/* Firefox fallback for Pro */
+@supports not (background: conic-gradient(from 1deg, red, blue)) {
+  .tier-pro .tier-ring {
+    border: 2px solid #8b5cf6;
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.5);
+  }
+  .tier-pro .tier-ring::before { display: none; }
+}
+
+/* ENTERPRISE tier — dual-layer glowing rainbow border */
+.tier-enterprise {
+  position: relative;
+  isolation: isolate;
+}
+.tier-enterprise .tier-ring::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--tier-angle, 0deg),
+    #f59e0b 0deg,
+    #ef4444 51deg,
+    #ec4899 102deg,
+    #8b5cf6 153deg,
+    #3b82f6 204deg,
+    #06b6d4 255deg,
+    #10b981 306deg,
+    #f59e0b 360deg
+  );
+  animation: tier-rotate 3s linear infinite;
+  z-index: -1;
+  filter: blur(3px);
+  border-radius: inherit;
+}
+.tier-enterprise .tier-ring::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: inherit;
+  background: var(--ui-bg);
+  z-index: -1;
+}
+/* Firefox fallback for Enterprise */
+@supports not (background: conic-gradient(from 1deg, red, blue)) {
+  .tier-enterprise .tier-ring {
+    border: 2px solid #f59e0b;
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.6), 0 0 32px rgba(245, 158, 11, 0.3);
+  }
+  .tier-enterprise .tier-ring::before { display: none; }
+}
+
+/* Tier badge text shimmer for Enterprise */
+@keyframes shimmer-text {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.tier-badge-enterprise {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b, #fde68a, #f59e0b);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer-text 3s linear infinite;
+}
+
+.tier-badge-pro {
+  background: linear-gradient(90deg, #8b5cf6, #a78bfa, #d946ef, #a78bfa, #8b5cf6);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer-text 3s linear infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE CHAT — Safe Area & Virtual Keyboard
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Chat input container stays above virtual keyboard */
+.chat-input-container {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+/* Prevent iOS Safari rubber-band scroll in chat area */
+.chat-messages-area {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Larger tap zone for message bubbles */
+@media (hover: none), (pointer: coarse) {
+  .msg-bubble-tap {
+    min-height: 40px;
+  }
+}
