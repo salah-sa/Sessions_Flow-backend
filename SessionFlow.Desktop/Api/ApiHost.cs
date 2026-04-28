@@ -25,7 +25,7 @@ namespace SessionFlow.Desktop.Api;
 
 public static class ApiHost
 {
-    public static WebApplication BuildAndConfigure(string[] args)
+    public static async Task<WebApplication> BuildAndConfigureAsync(string[] args)
     {
         Log.Information("[Bootstrap] Stage 1: Initializing WebApplicationBuilder...");
         var isContainer = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
@@ -109,12 +109,12 @@ public static class ApiHost
         StackExchange.Redis.IConnectionMultiplexer? redisConnection = null;
         try
         {
-            redisConnection = StackExchange.Redis.ConnectionMultiplexer.Connect(redisConnectionString);
+            // Use ConnectAsync with a reasonable timeout for startup
+            redisConnection = await StackExchange.Redis.ConnectionMultiplexer.ConnectAsync(redisConnectionString);
             builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(redisConnection);
         }
         catch (Exception ex)
         {
-            // Serilog warning is already logged on the next line
             Serilog.Log.Warning(ex, "Redis connection failed ({Conn}) — running in local-only mode", redisConnectionString);
         }
 
@@ -243,17 +243,26 @@ public static class ApiHost
 
         // ── Database Initialization & Seeding ─────────────────────────
         // This runs on every startup (idempotent — skips if already seeded)
-        using (var scope = app.Services.CreateScope())
+        // Database Initialization & Seeding (Non-blocking)
+        _ = Task.Run(async () =>
         {
-            var mongo = scope.ServiceProvider.GetRequiredService<MongoService>();
-            mongo.InitializeAsync().GetAwaiter().GetResult();
-            Log.Information("[Bootstrap] MongoDB indexes initialized.");
+            try 
+            {
+                using var scope = app.Services.CreateScope();
+                var mongo = scope.ServiceProvider.GetRequiredService<MongoService>();
+                await mongo.InitializeAsync();
+                Log.Information("[Bootstrap] MongoDB indexes initialized.");
 
-            var auth = scope.ServiceProvider.GetRequiredService<AuthService>();
-            auth.SeedAdminAsync().GetAwaiter().GetResult();
-            auth.SeedEngineerCodesAsync().GetAwaiter().GetResult();
-            Log.Information("[Bootstrap] Admin user and engineer codes seeded.");
-        }
+                var auth = scope.ServiceProvider.GetRequiredService<AuthService>();
+                await auth.SeedAdminAsync();
+                await auth.SeedEngineerCodesAsync();
+                Log.Information("[Bootstrap] Admin user and engineer codes seeded.");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "[Bootstrap] Critical error during background initialization");
+            }
+        });
 
         // ── CSRF: Validate X-Requested-With on mutating requests ──────
         app.Use(async (context, next) =>

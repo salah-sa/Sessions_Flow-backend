@@ -5,7 +5,7 @@ Console.WriteLine(">>> [INIT] SessionFlow HeadlessHost Starting...");
 
 try 
 {
-    var app = ApiHost.BuildAndConfigure(args);
+    var app = await ApiHost.BuildAndConfigureAsync(args);
     Console.WriteLine(">>> [INIT] BuildAndConfigure Successful. Starting App...");
     app.Run();
 }
