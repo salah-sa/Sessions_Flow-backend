@@ -9,7 +9,7 @@ import NotificationPopup from "../chat/NotificationPopup";
 import CallOverlay from "../call/CallOverlay";
 import OfflineNotification from "./OfflineNotification";
 import { GeoAuthorization } from "../dashboard/GeoAuthorization";
-import StudentWelcomeModal from "../StudentWelcomeModal";
+import { StudentWelcomeModal } from "../StudentWelcomeModal";
 
 import { useRealtimeNotifications } from "../../hooks/realtime";
 import { useHeartbeat } from "../../hooks/useHeartbeat";

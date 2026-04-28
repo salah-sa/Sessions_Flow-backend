@@ -23,11 +23,8 @@ import {
   MapPin
 } from "lucide-react";
 import { format, differenceInSeconds } from "date-fns";
-import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, Button, Badge } from "../components/ui";
-import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../queries/keys";
 import { cn } from "../lib/utils";
 
