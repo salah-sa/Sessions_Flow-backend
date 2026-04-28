@@ -85,8 +85,6 @@ const AttendancePage: React.FC = () => {
              />
            </div>
            
-          </div>
-          
           {user?.role === "Engineer" && (
             <div className={cn(
               "flex items-center gap-2 px-4 py-2 bg-white/[0.03] border rounded-xl",
