@@ -49,10 +49,10 @@ const ProfileImage: React.FC<{ userId?: string; url?: string | null; initial?: s
   const status = usePresenceStore((s) => isMe ? "online" : (userId ? s.getPresence(userId).status : "offline"));
   
   return (
-    <div className={cn("rounded-2xl", getTierBorderClass(subscriptionTier))}>
+    <div className={cn("w-10 h-10 rounded-2xl p-[1.5px] z-10 shrink-0", getTierBorderClass(subscriptionTier))}>
       <div className={cn(
-        "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 relative overflow-hidden transition-transform duration-300 hover:scale-105 z-10",
-        isMe ? "bg-ui-accent/20" : "bg-white/5"
+        "w-full h-full rounded-[14px] flex items-center justify-center relative overflow-hidden transition-transform duration-300 hover:scale-105 z-10",
+        isMe ? "bg-[#1f1938]" : "bg-[#1c202a]"
       )}>
         {url ? (
           <img src={url} alt="Profile" className="w-full h-full object-cover" />
@@ -510,6 +510,23 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
           </motion.div>
         )}
 
+        {/* Messages Remaining Indicator */}
+        {localRemaining !== null && (
+          <div className="flex justify-center mb-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.05] shadow-sm backdrop-blur-md">
+              <div className={cn(
+                "w-1.5 h-1.5 rounded-full animate-pulse",
+                isLimitReached ? "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]" : 
+                localRemaining <= 3 ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]" : 
+                "bg-ui-accent shadow-[0_0_8px_rgba(var(--ui-accent-rgb),0.6)]"
+              )} />
+              <span className="text-[10px] font-semibold tracking-wider text-slate-300 uppercase">
+                {localRemaining} message{localRemaining !== 1 ? 's' : ''} remaining
+              </span>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center gap-3 bg-white/[0.03] rounded-[24px] border border-white/10 px-4 md:px-6 h-16 md:h-20 shadow-2xl transition-all focus-within:border-ui-accent/40 focus-within:bg-white/[0.05]">
           <Button 
             variant="ghost" 
@@ -530,37 +547,42 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
           />
           
           <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => fileInputRef.current?.click()} 
-              className="text-slate-500 hover:text-ui-accent transition-colors"
-            >
-              <Paperclip className="w-6 h-6" />
-            </Button>
+            <div className="relative">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => fileInputRef.current?.click()} 
+                className="text-slate-500 hover:text-ui-accent transition-colors"
+                disabled={isLimitReached}
+              >
+                <Paperclip className="w-6 h-6" />
+              </Button>
+              {filesRemaining !== null && (
+                <span className={cn(
+                  "absolute -top-1 -end-1 min-w-[16px] h-4 rounded-full text-[8px] font-bold flex items-center justify-center px-1 pointer-events-none shadow-sm border",
+                  filesRemaining === 0 
+                    ? "bg-rose-500/20 text-rose-500 border-rose-500/50" 
+                    : "bg-slate-800 border-slate-600 text-slate-300"
+                )}>
+                  {filesRemaining}
+                </span>
+              )}
+            </div>
             
             <motion.button 
               whileHover={{ scale: isLimitReached ? 1 : 1.05 }}
               whileTap={{ scale: isLimitReached ? 1 : 0.95 }}
               onClick={handleSend} 
               disabled={(!text.trim() && !selectedFile) || isLimitReached} 
-              className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-ui-accent text-white flex items-center justify-center shadow-[0_8px_20px_rgba(var(--ui-accent-rgb),0.3)] transition-all disabled:opacity-20 disabled:grayscale relative"
-              title={isLimitReached ? `Daily limit of ${dailyLimit} messages reached` : undefined}
-            >
-              <Send className="w-5 h-5" />
-              {/* Daily limit counter pill */}
-              {localRemaining !== null && dailyLimit !== null && (
-                <span className={cn(
-                  "absolute -top-2 -end-2 min-w-[20px] h-5 rounded-full text-[9px] font-black flex items-center justify-center px-1 border border-ui-bg",
-                  isLimitReached
-                    ? "bg-rose-500 text-white"
-                    : localRemaining <= 3
-                    ? "bg-amber-500 text-black"
-                    : "bg-emerald-500 text-black"
-                )}>
-                  {localRemaining}
-                </span>
+              className={cn(
+                "w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-all relative",
+                isLimitReached 
+                  ? "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed" 
+                  : "bg-ui-accent text-white shadow-[0_8px_20px_rgba(var(--ui-accent-rgb),0.3)] disabled:opacity-20 disabled:grayscale"
               )}
+              title={isLimitReached ? "Message limit reached" : undefined}
+            >
+              {isLimitReached ? <Lock className="w-5 h-5" /> : <Send className="w-5 h-5" />}
             </motion.button>
           </div>
           
