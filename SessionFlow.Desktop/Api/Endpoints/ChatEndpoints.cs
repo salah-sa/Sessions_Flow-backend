@@ -142,14 +142,16 @@ public static class ChatEndpoints
 
             // ─── B.1: DAILY MESSAGE LIMIT ENFORCEMENT ───────────────────────
             var senderUser = await db.Users.Find(u => u.Id == userGuid).FirstOrDefaultAsync();
+            int todayMsgCount = 0;
+            int maxMsgs = 0;
             if (senderUser != null)
             {
                 var todayStart = DateTimeOffset.UtcNow.Date;
                 var todayEnd   = todayStart.AddDays(1);
-                var todayMsgCount = (int)await db.ChatMessages.CountDocumentsAsync(
+                todayMsgCount = (int)await db.ChatMessages.CountDocumentsAsync(
                     m => m.SenderId == userGuid && m.SentAt >= todayStart && m.SentAt < todayEnd
                 );
-                var maxMsgs    = PlanLimit.GetMaxDailyMessages(senderUser.SubscriptionTier);
+                maxMsgs    = PlanLimit.GetMaxDailyMessages(senderUser.SubscriptionTier);
                 var remaining  = Math.Max(0, maxMsgs - todayMsgCount);
                 if (todayMsgCount >= maxMsgs)
                 {
@@ -162,9 +164,8 @@ public static class ChatEndpoints
                         tier    = senderUser.SubscriptionTier.ToString()
                     }, statusCode: 429);
                 }
-                // Attach remaining count to response header for frontend counter
-                ctx.Response.Headers["X-Messages-Remaining"] = remaining.ToString();
-                ctx.Response.Headers["X-Messages-Limit"]     = maxMsgs.ToString();
+                // We'll attach remaining count to the JSON response body instead of headers
+                // to make it easier for the frontend to consume within the ChatMessage type.
             }
             // ──────────────────────────────────────────────────────────────────
 
@@ -258,7 +259,11 @@ public static class ChatEndpoints
                 fileUrl = AuthEndpoints.ResolveAvatarUrl(message.FileUrl, req),
                 fileName = message.FileName,
                 fileType = message.FileType,
-                sentAt = message.SentAt
+                sentAt = message.SentAt,
+                _usage = senderUser != null ? new { 
+                    remaining = Math.Max(0, maxMsgs - todayMsgCount - 1), 
+                    limit = maxMsgs
+                } : null
             };
 
             await eventBus.PublishAsync(SessionFlow.Desktop.Services.EventBus.Events.MessageReceive, SessionFlow.Desktop.Services.EventBus.EventTargetType.Group, $"chat_{groupId}", new { message = msgData, groupId = groupId });

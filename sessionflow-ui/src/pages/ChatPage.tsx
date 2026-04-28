@@ -152,12 +152,11 @@ const ChatPage: React.FC = () => {
 
     try {
       const result = await sendMessageMutation.mutateAsync({ groupId: activeGroupId, message: text, blocks, mentions, file, id: messageId });
-      // Parse remaining limit from response headers if available
-      if (result?.headers) {
-        const rem = result.headers.get?.("x-messages-remaining");
-        const lim = result.headers.get?.("x-messages-limit");
-        if (rem !== null && rem !== undefined) setDailyRemaining(Number(rem));
-        if (lim !== null && lim !== undefined) setDailyLimit(Number(lim));
+      
+      // Consume usage data if returned by the API
+      if (result?._usage) {
+        setDailyRemaining(result._usage.remaining);
+        setDailyLimit(result._usage.limit);
       }
     } catch (err: any) {
       const isLimitError = err?.code === "DAILY_LIMIT_REACHED" || err?.status === 429;

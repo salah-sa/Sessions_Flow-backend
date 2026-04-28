@@ -157,6 +157,10 @@ export interface ChatMessage {
   status?: "pending" | "sent" | "delivered" | "read";
   isRead?: boolean;
   readBy?: ReadByEntry[];
+  _usage?: {
+    remaining: number;
+    limit: number;
+  };
 }
 
 
