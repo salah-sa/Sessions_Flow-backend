@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { Users, Volume2, VolumeX, ChevronDown, Shield, Pencil, ChevronLeft, Zap, Activity, Info, Phone, PhoneOff } from "lucide-react";
-import { cn } from "../../lib/utils";
+import { cn, getTierBorderClass } from "../../lib/utils";
 import { Group, User } from "../../types";
 import { usePresenceStore } from "../../store/presenceStore";
 import { useAuthStore, useChatStore } from "../../store/stores";
@@ -56,14 +56,17 @@ const MemberAvatar: React.FC<{
   userId: string;
   avatarUrl?: string | null;
   isEngineer?: boolean;
-}> = ({ name, userId, avatarUrl, isEngineer }) => {
+  subscriptionTier?: string;
+}> = ({ name, userId, avatarUrl, isEngineer, subscriptionTier }) => {
   return (
     <div className="relative group/avatar" title={name}>
-      <div className={cn(
-        "w-8 h-8 rounded-full flex items-center justify-center text-[9px] font-bold uppercase overflow-hidden transition-all duration-300 hover:scale-110 hover:z-20 border",
-        isEngineer ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/40 text-white" : "bg-[var(--ui-sidebar-bg)] border-white/10 text-slate-500"
-      )}>
-        {avatarUrl ? <img src={avatarUrl} alt={name} className="w-full h-full object-cover" /> : name?.charAt(0)}
+      <div className={cn("rounded-full", getTierBorderClass(isEngineer ? subscriptionTier : undefined))}>
+        <div className={cn(
+          "w-8 h-8 rounded-full flex items-center justify-center text-[9px] font-bold uppercase overflow-hidden transition-all duration-300 hover:scale-110 hover:z-20 relative z-10",
+          isEngineer ? "bg-[var(--ui-accent)]/10 text-white" : "bg-[var(--ui-sidebar-bg)] text-slate-500"
+        )}>
+          {avatarUrl ? <img src={avatarUrl} alt={name} className="w-full h-full object-cover" /> : name?.charAt(0)}
+        </div>
       </div>
       <div className="absolute -bottom-0.5 -end-0.5">
         <PresenceDot userId={userId} size="sm" />
@@ -170,7 +173,7 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
         <div className="hidden md:flex items-center">
           <div className="flex -space-x-3">
             {(window.innerWidth < 1024 ? members.slice(0, 3) : visibleAvatars).map((m) => (
-              <MemberAvatar key={m.id} name={m.name} userId={m.userId} isEngineer={m.isEngineer} />
+              <MemberAvatar key={m.id} name={m.name} userId={m.userId} isEngineer={m.isEngineer} subscriptionTier={user?.subscriptionTier} />
             ))}
             {(overflow > 0 || (window.innerWidth < 1024 && members.length > 3)) && (
               <div className="w-8 h-8 rounded-full bg-[var(--ui-sidebar-bg)] border border-white/10 flex items-center justify-center text-[8px] font-bold text-slate-500 relative z-10">

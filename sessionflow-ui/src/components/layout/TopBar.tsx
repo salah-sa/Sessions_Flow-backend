@@ -25,7 +25,7 @@ import { format } from "date-fns";
 import { useAuthStore, useAppStore, useUIStore } from "../../store/stores";
 import { useTranslation } from "react-i18next";
 import { useNavigate, Link } from "react-router-dom";
-import { cn } from "../../lib/utils";
+import { cn, getTierBorderClass } from "../../lib/utils";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import NotificationCenter from "./NotificationCenter";
@@ -269,8 +269,10 @@ const TopBar: React.FC = () => {
             <p className="text-[8px] font-bold text-[var(--ui-accent)] uppercase tracking-widest mt-1.5 opacity-80">{user?.role} NODE</p>
           </div>
           <div className="relative">
-             <div className="w-10 h-10 rounded-xl bg-[var(--ui-surface)] border border-white/5 flex items-center justify-center text-white overflow-hidden shadow-xl transition-all duration-300 group-hover:border-[var(--ui-accent)]/50 group-hover:shadow-[var(--ui-accent)]/10 ring-0 group-hover:ring-4 ring-[var(--ui-accent)]/5">
-                {user?.avatarUrl ? <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" /> : <div className="text-xs font-black">{user?.name?.charAt(0)}</div>}
+             <div className={cn("rounded-xl", getTierBorderClass(user?.subscriptionTier))}>
+               <div className="w-10 h-10 rounded-xl bg-[var(--ui-surface)] flex items-center justify-center text-white overflow-hidden shadow-xl transition-all duration-300 group-hover:shadow-[var(--ui-accent)]/10 relative z-10">
+                  {user?.avatarUrl ? <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" /> : <div className="text-xs font-black">{user?.name?.charAt(0)}</div>}
+               </div>
              </div>
              
              {/* Device-aware Online Indicator LED */}

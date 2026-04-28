@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { X, Shield, User as UserIcon, Crown, Wifi, WifiOff, Phone, Activity, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "../../lib/utils";
+import { cn, getTierBorderClass } from "../../lib/utils";
 import { Group, Student } from "../../types";
 import { toast } from "sonner";
 import { usePresenceStore, PresenceStatus } from "../../store/presenceStore";
@@ -22,6 +22,7 @@ interface MemberEntry {
   name: string;
   role: "Engineer" | "Student" | "Admin";
   avatarUrl?: string | null;
+  subscriptionTier?: string;
 }
 
 const StatusDot: React.FC<{ status: PresenceStatus; confidence: number }> = ({ status, confidence }) => {
@@ -95,11 +96,13 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
       )}
     >
       <div className="relative shrink-0">
-        <div className={cn(
-          "w-9 h-9 xs:w-10 xs:h-10 rounded-full flex items-center justify-center text-[10px] xs:text-xs font-bold uppercase overflow-hidden border",
-          member.role === "Engineer" ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/40 text-white shadow-glow shadow-[var(--ui-accent)]/10" : "bg-[var(--ui-sidebar-bg)] border-white/10 text-slate-500"
-        )}>
-          {member.avatarUrl ? <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" /> : member.name?.charAt(0)}
+        <div className={cn("rounded-full", getTierBorderClass(member.role === "Engineer" ? member.subscriptionTier : undefined))}>
+          <div className={cn(
+            "w-9 h-9 xs:w-10 xs:h-10 rounded-full flex items-center justify-center text-[10px] xs:text-xs font-bold uppercase overflow-hidden relative z-10",
+            member.role === "Engineer" ? "bg-[var(--ui-accent)]/10 text-white shadow-glow shadow-[var(--ui-accent)]/10" : "bg-[var(--ui-sidebar-bg)] text-slate-500"
+          )}>
+            {member.avatarUrl ? <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" /> : member.name?.charAt(0)}
+          </div>
         </div>
         <div className="absolute -bottom-0.5 -end-0.5">
           <div className={cn("w-2.5 h-2.5 xs:w-3 xs:h-3 rounded-full border border-[var(--ui-bg)] transition-all duration-500 relative", status === "online" ? "bg-[var(--ui-accent)] shadow-[0_0_8px_rgba(var(--ui-accent-rgb),0.6)]" : "bg-[var(--ui-surface)]")}>
@@ -155,10 +158,11 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
 const MembersPanel: React.FC<MembersPanelProps> = ({ group, isOpen, onClose }) => {
   const { t } = useTranslation();
   const isOnline = usePresenceStore((s) => s.isOnline);
+  const currentUser = useAuthStore((s) => s.user);
 
   const members = useMemo(() => {
     const result: MemberEntry[] = [];
-    if (group.engineerId) result.push({ id: group.engineerId, userId: group.engineerId, name: group.engineerName || "Engineer", role: "Engineer", avatarUrl: group.engineer?.avatarUrl });
+    if (group.engineerId) result.push({ id: group.engineerId, userId: group.engineerId, name: group.engineerName || "Engineer", role: "Engineer", avatarUrl: group.engineer?.avatarUrl, subscriptionTier: currentUser?.subscriptionTier });
     
     if (group.students) {
       // Deduplicate by ID to prevent masking students with identical names
