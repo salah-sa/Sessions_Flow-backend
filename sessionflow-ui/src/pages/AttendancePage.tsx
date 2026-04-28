@@ -8,6 +8,8 @@ import { Card, Button, Badge } from "../components/ui";
 import { AttendanceWizard } from "./attendance/AttendanceWizard";
 import { cn, formatDateTo12h, getCairoDateStr } from "../lib/utils";
 import { toast } from "sonner";
+import { useAuthStore } from "../store/stores";
+import { getTierLimits } from "../lib/limits";
 
 const AttendancePage: React.FC = () => {
   const { t } = useTranslation();
@@ -37,7 +39,11 @@ const AttendancePage: React.FC = () => {
 
   const { startMutation, endMutation, skipMutation } = useSessionMutations();
 
+  const user = useAuthStore(s => s.user);
+  const limits = getTierLimits(user?.subscriptionTier);
+  
   const sessions = data?.pages.flatMap(p => p.items) || [];
+  const completedToday = sessions.filter(s => s.status === "Ended" && !s.isSkipped).length;
   
   const filteredSessions = sessions.filter(s => {
     if (searchQuery && !s.groupName?.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -79,12 +85,19 @@ const AttendancePage: React.FC = () => {
              />
            </div>
            
-          <div className="flex items-center gap-2 px-4 py-2 bg-white/[0.03] border border-white/10 rounded-xl">
-            <Calendar className="w-4 h-4 text-[var(--ui-accent)]" />
-            <span className="text-sm font-medium text-white">
-              {new Intl.DateTimeFormat('en-US', { timeZone: 'Africa/Cairo', month: 'short', day: 'numeric', year: 'numeric' }).format(new Date())}
-            </span>
           </div>
+          
+          {user?.role === "Engineer" && (
+            <div className={cn(
+              "flex items-center gap-2 px-4 py-2 bg-white/[0.03] border rounded-xl",
+              completedToday >= limits.maxDailyAttendance ? "border-rose-500/30 bg-rose-500/5" : "border-white/10"
+            )}>
+              <Zap className={cn("w-4 h-4", completedToday >= limits.maxDailyAttendance ? "text-rose-500" : "text-amber-500")} />
+              <span className="text-sm font-medium text-white">
+                Quota: <span className={cn(completedToday >= limits.maxDailyAttendance ? "text-rose-400" : "text-amber-400")}>{completedToday}</span> / {limits.maxDailyAttendance}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -156,7 +169,15 @@ const AttendancePage: React.FC = () => {
                       "w-full h-11 text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-all duration-300",
                       isAttendable ? "opacity-100 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]" : "opacity-50 pointer-events-none"
                     )}
-                    onClick={() => handleMakeAttendance(session)}
+                    onClick={() => {
+                      if (completedToday >= limits.maxDailyAttendance && session.status !== "Active") {
+                        toast.error(`Daily attendance limit reached (${limits.maxDailyAttendance}/day). Upgrade for more.`, {
+                          icon: <Zap className="w-4 h-4 text-rose-500" />
+                        });
+                        return;
+                      }
+                      handleMakeAttendance(session);
+                    }}
                     disabled={!isAttendable}
                   >
                     {!isAttendable ? (

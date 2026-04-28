@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Send, User as UserIcon, Smile, Paperclip, X, MessageSquare, Loader2, Clock, Check, CheckCheck, Lock, ChevronDown, Zap, Target, Copy, Sparkles, Info } from "lucide-react";
+import { Send, User as UserIcon, Smile, Paperclip, X, MessageSquare, Loader2, Clock, Check, CheckCheck, Lock, ChevronDown, Zap, Target, Copy, Sparkles, Info, MoreVertical, Eye, Image as ImageIcon, Video, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn, getTierBorderClass } from "../../lib/utils";
 import { Card, Button, Input, EmptyState, Skeleton, Badge } from "../ui";
@@ -179,9 +179,9 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
                       onClick={() => setShowReadBy(!showReadBy)}
                       onMouseEnter={() => setShowReadBy(true)}
                       onMouseLeave={() => setShowReadBy(false)}
-                      className="p-1 rounded-full hover:bg-white/10 transition-colors text-slate-500 hover:text-white"
+                      className="p-1 rounded-md hover:bg-white/10 transition-colors text-slate-500 hover:text-white"
                     >
-                      <Info className="w-3 h-3" />
+                      <MoreVertical className="w-3.5 h-3.5" />
                     </button>
                     
                     <AnimatePresence>
@@ -233,7 +233,7 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
   );
 });
 
-export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean; onSendMessage: (text: string, file?: File, mentions?: MessageMention[], blocks?: any[]) => void; activeGroupId: string | null; currentGroup: Group | null; fetchNextPage?: () => void; hasNextPage?: boolean; isFetchingNextPage?: boolean; dailyRemaining?: number | null; dailyLimit?: number | null; }> = ({ messages, isLoading, onSendMessage, activeGroupId, currentGroup, fetchNextPage, hasNextPage, isFetchingNextPage, dailyRemaining, dailyLimit }) => {
+export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean; onSendMessage: (text: string, file?: File, mentions?: MessageMention[], blocks?: any[]) => void; activeGroupId: string | null; currentGroup: Group | null; fetchNextPage?: () => void; hasNextPage?: boolean; isFetchingNextPage?: boolean; usage?: { remaining: number; limit: number; imagesRemaining?: number; videosRemaining?: number; filesRemaining?: number; } | null; }> = ({ messages, isLoading, onSendMessage, activeGroupId, currentGroup, fetchNextPage, hasNextPage, isFetchingNextPage, usage }) => {
   const [text, setText] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedFileUrl, setSelectedFileUrl] = useState<string | null>(null);
@@ -250,10 +250,20 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
   const inputRef = useRef<HTMLInputElement>(null);
   const { invoke } = useSignalR();
   const user = useAuthStore((s) => s.user);
-  const [localRemaining, setLocalRemaining] = useState<number | null>(dailyRemaining ?? null);
+  const [localRemaining, setLocalRemaining] = useState<number | null>(usage?.remaining ?? null);
+  const [imagesRemaining, setImagesRemaining] = useState<number | null>(usage?.imagesRemaining ?? null);
+  const [videosRemaining, setVideosRemaining] = useState<number | null>(usage?.videosRemaining ?? null);
+  const [filesRemaining, setFilesRemaining] = useState<number | null>(usage?.filesRemaining ?? null);
 
-  // Sync when parent updates dailyRemaining (e.g. after first load)
-  useEffect(() => { setLocalRemaining(dailyRemaining ?? null); }, [dailyRemaining]);
+  // Sync when parent updates usage
+  useEffect(() => { 
+    if (usage) {
+      setLocalRemaining(usage.remaining);
+      setImagesRemaining(usage.imagesRemaining ?? null);
+      setVideosRemaining(usage.videosRemaining ?? null);
+      setFilesRemaining(usage.filesRemaining ?? null);
+    }
+  }, [usage]);
 
   const isLimitReached = localRemaining !== null && localRemaining <= 0;
 
@@ -334,6 +344,11 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
       setText(""); setSelectedFile(null); setActiveMentions([]); setShowMentions(false); setShowEmojiPicker(false);
       // Optimistic decrement
       if (localRemaining !== null) setLocalRemaining(prev => Math.max(0, (prev ?? 1) - 1));
+      if (selectedFile) {
+        if (selectedFile.type.startsWith("image/")) setImagesRemaining(prev => Math.max(0, (prev ?? 1) - 1));
+        else if (selectedFile.type.startsWith("video/")) setVideosRemaining(prev => Math.max(0, (prev ?? 1) - 1));
+        else setFilesRemaining(prev => Math.max(0, (prev ?? 1) - 1));
+      }
     }
   };
 
@@ -393,7 +408,34 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
         </AnimatePresence>
       </div>
 
-      <div className="p-4 md:p-8 bg-ui-bg/95 border-t border-white/5 flex flex-col gap-4 relative z-50">
+      <div className="px-4 md:px-8 py-3 bg-ui-bg/95 border-t border-white/5 flex flex-col gap-4 relative z-50">
+        <div className="flex flex-wrap gap-2 sm:gap-4 mb-1">
+          {localRemaining !== null && (
+             <Badge variant="outline" className={cn("text-[9px] font-bold uppercase tracking-widest h-6 px-3 bg-white/5", localRemaining <= 3 ? "border-amber-500/30 text-amber-500" : "border-emerald-500/20 text-emerald-500")}>
+                <MessageSquare className="w-3 h-3 me-1.5" />
+                {localRemaining} Msgs Left
+             </Badge>
+          )}
+          {imagesRemaining !== null && (
+             <Badge variant="outline" className={cn("text-[9px] font-bold uppercase tracking-widest h-6 px-3 bg-white/5", imagesRemaining <= 0 ? "border-rose-500/30 text-rose-500 opacity-50" : "border-blue-500/20 text-blue-400")}>
+                <ImageIcon className="w-3 h-3 me-1.5" />
+                {imagesRemaining} Images
+             </Badge>
+          )}
+          {videosRemaining !== null && (
+             <Badge variant="outline" className={cn("text-[9px] font-bold uppercase tracking-widest h-6 px-3 bg-white/5", videosRemaining <= 0 ? "border-rose-500/30 text-rose-500 opacity-50" : "border-purple-500/20 text-purple-400")}>
+                <Video className="w-3 h-3 me-1.5" />
+                {videosRemaining} Videos
+             </Badge>
+          )}
+          {filesRemaining !== null && (
+             <Badge variant="outline" className={cn("text-[9px] font-bold uppercase tracking-widest h-6 px-3 bg-white/5", filesRemaining <= 0 ? "border-rose-500/30 text-rose-500 opacity-50" : "border-slate-500/20 text-slate-400")}>
+                <FileText className="w-3 h-3 me-1.5" />
+                {filesRemaining} Files
+             </Badge>
+          )}
+        </div>
+
         <TypingIndicator activeGroupId={activeGroupId} />
         
         <AnimatePresence>

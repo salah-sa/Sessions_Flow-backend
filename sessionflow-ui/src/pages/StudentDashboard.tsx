@@ -15,7 +15,8 @@ import {
   User,
   ExternalLink,
   BookOpen,
-  ShieldCheck
+  ShieldCheck,
+  MapPin
 } from "lucide-react";
 import { format, differenceInSeconds } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -25,7 +26,6 @@ import { Card, Button, Badge } from "../components/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../queries/keys";
 import { cn } from "../lib/utils";
-import StudentFreeModal from "../components/StudentFreeModal";
 
 // --- Sub-components ---
 
@@ -92,6 +92,7 @@ export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const studentLocation = useAuthStore(s => s.studentLocation);
 
 
   if (isLoading) {
@@ -161,7 +162,6 @@ export const StudentDashboard: React.FC = () => {
 
   return (
     <>
-    <StudentFreeModal />
     <div className="w-full h-full overflow-y-auto custom-scrollbar p-4 lg:p-10 space-y-8 animate-fade-in font-sans">
       <div className="max-w-6xl mx-auto space-y-10">
         
@@ -191,10 +191,16 @@ export const StudentDashboard: React.FC = () => {
               <h1 className="text-3xl lg:text-4xl font-sora font-semibold text-white">
                 {t("dashboard.welcome_back", "Welcome Back")}, {identity.name.split(' ')[0]}
               </h1>
-              <div className="flex items-center gap-3 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+              <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
                 <span className="flex items-center gap-1.5"><Activity className="w-3.5 h-3.5 text-emerald-500" /> {t("common.id", "ID")}: {identity.studentId}</span>
                 <span className="w-1 h-1 rounded-full bg-slate-700" />
                 <span>{t("common.level", "Level")} {identity.level}</span>
+                {studentLocation && (
+                  <>
+                    <span className="w-1 h-1 rounded-full bg-slate-700" />
+                    <span className="flex items-center gap-1.5 text-emerald-500/80"><MapPin className="w-3.5 h-3.5" /> {studentLocation}</span>
+                  </>
+                )}
               </div>
             </div>
           </div>

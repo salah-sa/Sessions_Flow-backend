@@ -96,8 +96,7 @@ const ChatPage: React.FC = () => {
   const sendMessageMutation = useSendMessage();
   const { checkConnectivity } = useRequiresInternet();
   const [searchTerm, setSearchTerm] = useState("");
-  const [dailyRemaining, setDailyRemaining] = useState<number | null>(null);
-  const [dailyLimit, setDailyLimit] = useState<number | null>(null);
+  const [usage, setUsage] = useState<{ remaining: number; limit: number; imagesRemaining?: number; videosRemaining?: number; filesRemaining?: number; } | null>(null);
 
   const filteredActive = React.useMemo(() => 
     activeGroups.filter(g => g.name.toLowerCase().includes(searchTerm.toLowerCase())),
@@ -155,14 +154,13 @@ const ChatPage: React.FC = () => {
       
       // Consume usage data if returned by the API
       if (result?._usage) {
-        setDailyRemaining(result._usage.remaining);
-        setDailyLimit(result._usage.limit);
+        setUsage(result._usage);
       }
     } catch (err: any) {
       const isLimitError = err?.code === "DAILY_LIMIT_REACHED" || err?.status === 429;
       if (isLimitError) {
-        setDailyRemaining(0);
-        toast.error(`Daily message limit reached (${err?.limit ?? dailyLimit} msgs/day). Upgrade your plan for more.`, { duration: 6000 });
+        setUsage(prev => prev ? { ...prev, remaining: 0 } : { remaining: 0, limit: 15 });
+        toast.error(`Daily message limit reached. Upgrade your plan for more.`, { duration: 6000 });
         // Remove pending from UI
         queryClient.setQueryData(queryKeys.chat.messages(activeGroupId), (old: any) => {
           if (!old) return old;
@@ -357,8 +355,8 @@ const ChatPage: React.FC = () => {
                   fetchNextPage={fetchNextPage}
                   hasNextPage={hasNextPage}
                   isFetchingNextPage={isFetchingNextPage}
-                  dailyRemaining={dailyRemaining}
-                  dailyLimit={dailyLimit}
+                  isFetchingNextPage={isFetchingNextPage}
+                  usage={usage}
                 />
               </div>
 

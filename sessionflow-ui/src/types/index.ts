@@ -160,6 +160,9 @@ export interface ChatMessage {
   _usage?: {
     remaining: number;
     limit: number;
+    imagesRemaining?: number;
+    videosRemaining?: number;
+    filesRemaining?: number;
   };
 }
 

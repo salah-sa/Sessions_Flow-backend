@@ -10,6 +10,7 @@ import { validateSession } from "./api/authService";
 
 import { CustomerServiceFab } from "./components/support/CustomerServiceFab";
 import { SystemUpdatePopup } from "./components/support/SystemUpdatePopup";
+import { StudentWelcomeModal } from "./components/StudentWelcomeModal";
 
 const App: React.FC = () => {
   const [showSplash, setShowSplash] = useState(true);
@@ -40,6 +41,24 @@ const App: React.FC = () => {
     UIStyleManager.apply(UIStyleConfig.current);
   }, []);
 
+  // Identity Mirror: Automatic Location Detection for Students
+  useEffect(() => {
+    if (token) {
+      const { user, setStudentLocation } = useAuthStore.getState();
+      if (user?.role === "Student") {
+        fetch("https://ipapi.co/json/")
+          .then(res => res.json())
+          .then(data => {
+            if (data.city) {
+              setStudentLocation(data.city);
+              console.log(`[Identity Mirror] Detected location: ${data.city}`);
+            }
+          })
+          .catch(err => console.error("Location detection failed", err));
+      }
+    }
+  }, [token]);
+
   // Validate stored token on app load
   useEffect(() => {
     if (token) {
@@ -57,6 +76,7 @@ const App: React.FC = () => {
       <ErrorBoundary onRetry={() => window.location.reload()}>
         <SignalRProvider>
           <RouterProvider router={router} />
+          <StudentWelcomeModal />
           <CustomerServiceFab />
           <SystemUpdatePopup />
         </SignalRProvider>

@@ -28,6 +28,7 @@ export interface AuthState {
   updateUser: (user: User) => void;
   setHasHydrated: (val: boolean) => void;
   logout: () => void;
+  setHasAcknowledgedFreeModal: (val: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -40,6 +41,7 @@ export const useAuthStore = create<AuthState>()(
       studentLocationData: null,
       _hasHydrated: false,
       _lastLoginAt: 0,
+      hasAcknowledgedFreeModal: false,
       setAuth: (user, token) => {
         set({ user, token, _lastLoginAt: Date.now() });
       },
@@ -52,9 +54,10 @@ export const useAuthStore = create<AuthState>()(
       updateUser: (user) => set({ user }),
       setHasHydrated: (val) => set({ _hasHydrated: val }),
       logout: () => {
-        set({ user: null, token: null, rememberMe: false, studentLocation: null, studentLocationData: null });
+        set({ user: null, token: null, rememberMe: false, studentLocation: null, studentLocationData: null, hasAcknowledgedFreeModal: false });
         clearSessionCaches();
       },
+      setHasAcknowledgedFreeModal: (val) => set({ hasAcknowledgedFreeModal: val }),
     }),
     {
       name: "sf-auth-storage",

@@ -143,16 +143,34 @@ public static class ChatEndpoints
             // ─── B.1: DAILY MESSAGE LIMIT ENFORCEMENT ───────────────────────
             var senderUser = await db.Users.Find(u => u.Id == userGuid).FirstOrDefaultAsync();
             int todayMsgCount = 0;
+            int todayImgCount = 0;
+            int todayVidCount = 0;
+            int todayFileCount = 0;
+
             int maxMsgs = 0;
+            int maxImgs = 0;
+            int maxVids = 0;
+            int maxFiles = 0;
+
             if (senderUser != null)
             {
                 var todayStart = DateTimeOffset.UtcNow.Date;
                 var todayEnd   = todayStart.AddDays(1);
-                todayMsgCount = (int)await db.ChatMessages.CountDocumentsAsync(
-                    m => m.SenderId == userGuid && m.SentAt >= todayStart && m.SentAt < todayEnd
-                );
-                maxMsgs    = PlanLimit.GetMaxDailyMessages(senderUser.SubscriptionTier);
-                var remaining  = Math.Max(0, maxMsgs - todayMsgCount);
+                
+                var todayMessages = await db.ChatMessages
+                    .Find(m => m.SenderId == userGuid && m.SentAt >= todayStart && m.SentAt < todayEnd)
+                    .ToListAsync();
+
+                todayMsgCount = todayMessages.Count;
+                todayImgCount = todayMessages.Count(m => m.FileType?.StartsWith("image/") == true);
+                todayVidCount = todayMessages.Count(m => m.FileType?.StartsWith("video/") == true);
+                todayFileCount = todayMessages.Count(m => !string.IsNullOrEmpty(m.FileType) && !m.FileType.StartsWith("image/") && !m.FileType.StartsWith("video/"));
+
+                maxMsgs = PlanLimit.GetMaxDailyMessages(senderUser.SubscriptionTier);
+                maxImgs = PlanLimit.GetMaxDailyImages(senderUser.SubscriptionTier);
+                maxVids = PlanLimit.GetMaxDailyVideos(senderUser.SubscriptionTier);
+                maxFiles = PlanLimit.GetMaxDailyFiles(senderUser.SubscriptionTier);
+
                 if (todayMsgCount >= maxMsgs)
                 {
                     return Results.Json(new
@@ -164,8 +182,6 @@ public static class ChatEndpoints
                         tier    = senderUser.SubscriptionTier.ToString()
                     }, statusCode: 429);
                 }
-                // We'll attach remaining count to the JSON response body instead of headers
-                // to make it easier for the frontend to consume within the ChatMessage type.
             }
             // ──────────────────────────────────────────────────────────────────
 
@@ -202,6 +218,16 @@ public static class ChatEndpoints
                     };
                     if (!allowedTypes.Contains(file.ContentType?.ToLowerInvariant() ?? ""))
                         return Results.BadRequest(new { error = "File type not allowed." });
+
+                    // SECURITY: Enforce tiered media limits
+                    if (file.ContentType?.StartsWith("image/") == true && todayImgCount >= maxImgs)
+                        return Results.Json(new { error = $"Image limit reached ({maxImgs}/day). Upgrade for more.", code = "IMAGE_LIMIT_REACHED" }, statusCode: 429);
+                    
+                    if (file.ContentType?.StartsWith("video/") == true && todayVidCount >= maxVids)
+                        return Results.Json(new { error = $"Video limit reached ({maxVids}/day). Upgrade for more.", code = "VIDEO_LIMIT_REACHED" }, statusCode: 429);
+                    
+                    if (!file.ContentType?.StartsWith("image/") == true && !file.ContentType?.StartsWith("video/") == true && todayFileCount >= maxFiles)
+                        return Results.Json(new { error = $"File limit reached ({maxFiles}/day). Upgrade for more.", code = "FILE_LIMIT_REACHED" }, statusCode: 429);
 
                     // Use purely GridFS storage instead of local disk to prevent Docker volume wipes
                     using (var readStream = file.OpenReadStream()) 
@@ -262,7 +288,10 @@ public static class ChatEndpoints
                 sentAt = message.SentAt,
                 _usage = senderUser != null ? new { 
                     remaining = Math.Max(0, maxMsgs - todayMsgCount - 1), 
-                    limit = maxMsgs
+                    limit = maxMsgs,
+                    imagesRemaining = Math.Max(0, maxImgs - todayImgCount - (fileType?.StartsWith("image/") == true ? 1 : 0)),
+                    videosRemaining = Math.Max(0, maxVids - todayVidCount - (fileType?.StartsWith("video/") == true ? 1 : 0)),
+                    filesRemaining = Math.Max(0, maxFiles - todayFileCount - (!string.IsNullOrEmpty(fileType) && !fileType.StartsWith("image/") && !fileType.StartsWith("video/") ? 1 : 0))
                 } : null
             };
 
