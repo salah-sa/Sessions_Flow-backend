@@ -9,7 +9,7 @@ import NotificationPopup from "../chat/NotificationPopup";
 import CallOverlay from "../call/CallOverlay";
 import OfflineNotification from "./OfflineNotification";
 import { GeoAuthorization } from "../dashboard/GeoAuthorization";
-import StudentFreeModal from "../StudentFreeModal";
+import StudentWelcomeModal from "../StudentWelcomeModal";
 
 import { useRealtimeNotifications } from "../../hooks/realtime";
 import { useHeartbeat } from "../../hooks/useHeartbeat";
@@ -80,7 +80,7 @@ const Shell: React.FC = () => {
       <CallOverlay />
       <OfflineNotification />
       <GeoAuthorization />
-      <StudentFreeModal />
+      <StudentWelcomeModal />
 
       
       {/* Zenith Central Horizon Lighting */}
