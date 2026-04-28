@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Users, Volume2, VolumeX, ChevronDown, Shield, Pencil, ChevronLeft, Zap, Activity, Info } from "lucide-react";
+import { Users, Volume2, VolumeX, ChevronDown, Shield, Pencil, ChevronLeft, Zap, Activity, Info, Phone, PhoneOff } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Group, User } from "../../types";
 import { usePresenceStore } from "../../store/presenceStore";
@@ -12,6 +12,8 @@ interface GroupHeaderProps {
   onToggleMembers: () => void;
   onToggleMute: () => void;
   onEditDescription?: () => void;
+  onStartCall?: () => void;
+  canCall?: boolean;
   isMuted: boolean;
   membersOpen: boolean;
 }
@@ -75,6 +77,8 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
   onToggleMembers,
   onToggleMute,
   onEditDescription,
+  onStartCall,
+  canCall = false,
   isMuted,
   membersOpen,
 }) => {
@@ -177,6 +181,26 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5 xs:gap-2 md:gap-3 shrink-0">
+          {/* Group Call — Engineers only */}
+          {canEdit && (
+            canCall && onStartCall ? (
+              <button
+                onClick={onStartCall}
+                className="w-10 h-10 xs:w-11 xs:h-11 rounded-xl flex items-center justify-center transition-all border shrink-0 touch-target-min bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
+                title="Start Group Call"
+              >
+                <Phone className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                disabled
+                className="w-10 h-10 xs:w-11 xs:h-11 rounded-xl flex items-center justify-center transition-all border shrink-0 touch-target-min bg-white/[0.02] border-white/5 text-slate-700 cursor-not-allowed"
+                title="Upgrade to Pro/Ultra for group calls"
+              >
+                <PhoneOff className="w-4 h-4" />
+              </button>
+            )
+          )}
           <button onClick={onToggleMute} className={cn("w-10 h-10 xs:w-11 xs:h-11 rounded-xl flex items-center justify-center transition-all border shrink-0 touch-target-min", isMuted ? "bg-rose-500/10 border-rose-500/30 text-rose-500" : "bg-white/[0.02] border-white/5 text-slate-600 hover:text-[var(--ui-accent)] hover:border-[var(--ui-accent)]/20")}>
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>

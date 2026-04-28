@@ -314,13 +314,18 @@ public class EmailReminderService : BackgroundService
         using var scope = _serviceProvider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MongoService>();
         var emailService = scope.ServiceProvider.GetRequiredService<EmailService>();
+        var sessionService = scope.ServiceProvider.GetRequiredService<SessionService>();
+
+        // Ensure maintenance has generated tomorrow's sessions (including last sessions of near-complete groups)
+        try { await sessionService.MaintainAllGroupsSessionsAsync(ct); }
+        catch (Exception ex) { _logger.LogWarning(ex, "Session maintenance before daily summary failed — continuing with existing data."); }
 
         var tomorrowStart = new DateTimeOffset(cairoNow.Date.AddDays(1), cairoOffset);
         var tomorrowEnd = tomorrowStart.AddDays(1);
 
         var tomorrowSessions = await db.Sessions
             .Find(s => s.ScheduledAt >= tomorrowStart && s.ScheduledAt < tomorrowEnd
-                        && s.Status == SessionStatus.Scheduled)
+                        && !s.IsDeleted && !s.IsSkipped)
             .ToListAsync(ct);
 
         var byEngineer = tomorrowSessions.GroupBy(s => s.EngineerId);

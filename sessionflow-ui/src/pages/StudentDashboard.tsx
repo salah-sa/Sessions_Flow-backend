@@ -25,6 +25,7 @@ import { Card, Button, Badge } from "../components/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../queries/keys";
 import { cn } from "../lib/utils";
+import StudentFreeModal from "../components/StudentFreeModal";
 
 // --- Sub-components ---
 
@@ -159,6 +160,8 @@ export const StudentDashboard: React.FC = () => {
   };
 
   return (
+    <>
+    <StudentFreeModal />
     <div className="w-full h-full overflow-y-auto custom-scrollbar p-4 lg:p-10 space-y-8 animate-fade-in font-sans">
       <div className="max-w-6xl mx-auto space-y-10">
         
@@ -487,6 +490,7 @@ export const StudentDashboard: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

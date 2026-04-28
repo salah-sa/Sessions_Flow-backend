@@ -572,4 +572,141 @@
   .msg-bubble-tap {
     min-height: 40px;
   }
-}
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ULTRA TIER — Animated Rainbow Conic-Gradient Border
+   ═══════════════════════════════════════════════════════════════ */
+
+.tier-ultra {
+  position: relative;
+  isolation: isolate;
+}
+.tier-ultra .tier-ring::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--tier-angle, 0deg),
+    #a855f7 0deg,
+    #ec4899 72deg,
+    #f59e0b 144deg,
+    #10b981 216deg,
+    #3b82f6 288deg,
+    #a855f7 360deg
+  );
+  animation: tier-rotate 2.5s linear infinite;
+  z-index: -1;
+  border-radius: inherit;
+}
+.tier-ultra .tier-ring::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: inherit;
+  background: var(--ui-bg);
+  z-index: -1;
+}
+/* Ultra outer glow for extra wow */
+.tier-ultra .tier-ring {
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.3), 0 0 40px rgba(236, 72, 153, 0.15);
+}
+/* Firefox fallback for Ultra */
+@supports not (background: conic-gradient(from 1deg, red, blue)) {
+  .tier-ultra .tier-ring {
+    border: 2px solid #a855f7;
+    box-shadow: 0 0 16px rgba(168, 85, 247, 0.5), 0 0 32px rgba(236, 72, 153, 0.3);
+  }
+  .tier-ultra .tier-ring::before { display: none; }
+}
+
+.tier-badge-ultra {
+  background: linear-gradient(90deg, #a855f7, #ec4899, #f59e0b, #ec4899, #a855f7);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer-text 2s linear infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STANDALONE TIER-BORDER UTILITIES
+   Used by getTierBorderClass() — self-contained, no wrapper needed
+   ═══════════════════════════════════════════════════════════════ */
+
+.tier-border-free {
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+.tier-border-pro {
+  border: 1px solid transparent !important;
+  box-shadow:
+    0 0 0 1.5px rgba(139, 92, 246, 0.5),
+    0 0 12px rgba(139, 92, 246, 0.15);
+}
+
+.tier-border-enterprise {
+  border: 1px solid transparent !important;
+  box-shadow:
+    0 0 0 1.5px rgba(245, 158, 11, 0.6),
+    0 0 16px rgba(245, 158, 11, 0.2);
+}
+
+/* Ultra — Animated conic-gradient spinning border */
+@property --ultra-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes ultra-border-spin {
+  to { --ultra-angle: 360deg; }
+}
+
+.tier-border-ultra {
+  position: relative;
+  border: none !important;
+  isolation: isolate;
+  overflow: visible;
+}
+
+.tier-border-ultra::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  z-index: -2;
+  background: conic-gradient(
+    from var(--ultra-angle),
+    #a855f7,
+    #ec4899,
+    #f59e0b,
+    #10b981,
+    #3b82f6,
+    #a855f7
+  );
+  animation: ultra-border-spin 3s linear infinite;
+}
+
+.tier-border-ultra::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: inherit;
+  z-index: -1;
+  background: var(--ui-bg, #0f1117);
+}
+
+/* Firefox fallback (no @property support before v128) */
+@supports not (background: conic-gradient(from 0deg, red, blue)) {
+  .tier-border-ultra {
+    border: 2px solid #a855f7 !important;
+    box-shadow: 0 0 16px rgba(168, 85, 247, 0.4);
+  }
+  .tier-border-ultra::before,
+  .tier-border-ultra::after {
+    display: none;
+  }
+}
+

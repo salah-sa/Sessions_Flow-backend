@@ -20,7 +20,7 @@ import { useMuteStore } from "../store/muteStore";
 import { usePresenceStore } from "../store/presenceStore";
 import { useSignalR } from "../providers/SignalRProvider";
 import AnimatedChatIcon from "../components/ui/AnimatedChatIcon";
-import { cn } from "../lib/utils";
+import { cn, getTierBorderClass } from "../lib/utils";
 import { Group, ChatMessage, MessageMention, Student, PaginatedResponse } from "../types";
 import { formatDistanceToNow } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
@@ -224,10 +224,11 @@ const ChatPage: React.FC = () => {
                         key={group.id}
                         onClick={() => { setActiveGroup(group.id); clearUnread(group.id); }}
                         className={cn(
-                          "w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 relative group overflow-hidden border",
+                          "w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 relative group overflow-hidden",
+                          getTierBorderClass(user?.subscriptionTier),
                           isSelected
-                            ? "bg-[var(--ui-accent)]/5 border-[var(--ui-accent)]/20 shadow-xl shadow-[var(--ui-accent)]/10"
-                            : "bg-transparent border-transparent hover:bg-white/[0.02] hover:border-white/5"
+                            ? "bg-[var(--ui-accent)]/5 shadow-xl shadow-[var(--ui-accent)]/10"
+                            : "bg-transparent hover:bg-white/[0.02]"
                         )}
                       >
                         <div className={cn(
@@ -312,6 +313,13 @@ const ChatPage: React.FC = () => {
               onToggleMembers={() => setMembersOpen((v) => !v)}
               onToggleMute={() => toggleMute(currentGroup.id)}
               onEditDescription={() => setDescriptionModalOpen(true)}
+              onStartCall={() => {
+                toast.info("Group calls — coming soon for Pro/Ultra plans!", {
+                  description: "This feature is under development.",
+                  duration: 4000,
+                });
+              }}
+              canCall={['Pro', 'Ultra', 'Enterprise'].includes(user?.subscriptionTier ?? '')}
               isMuted={isMuted(currentGroup.id)}
               membersOpen={membersOpen}
             />

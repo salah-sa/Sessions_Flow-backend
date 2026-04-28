@@ -66,3 +66,34 @@ export async function getHost() {
   return null;
 }
 
+/**
+ * Returns the CSS class for subscription tier visual border.
+ */
+export function getTierBorderClass(tier?: string): string {
+  switch (tier?.toLowerCase()) {
+    case "pro":
+      return "tier-border-pro";
+    case "ultra":
+      return "tier-border-ultra";
+    case "enterprise":
+      return "tier-border-enterprise";
+    default:
+      return "tier-border-free";
+  }
+}
+
+/**
+ * Returns badge label + CSS class for subscription tier pill, or null for Free.
+ */
+export function getTierBadge(tier?: string): { label: string; className: string } | null {
+  switch (tier?.toLowerCase()) {
+    case "pro":
+      return { label: "💎 PRO", className: "tier-badge-pro" };
+    case "ultra":
+      return { label: "⚡ ULTRA", className: "tier-badge-ultra" };
+    case "enterprise":
+      return { label: "🏢 ENT", className: "tier-badge-enterprise" };
+    default:
+      return null;
+  }
+}
