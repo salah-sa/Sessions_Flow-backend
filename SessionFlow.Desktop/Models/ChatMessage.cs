@@ -11,6 +11,9 @@ public class ChatMessage
     
     [BsonRepresentation(BsonType.String)]
     public Guid GroupId { get; set; }
+
+    [BsonRepresentation(BsonType.String)]
+    public Guid EngineerId { get; set; }
     
     [BsonRepresentation(BsonType.String)]
     public Guid SenderId { get; set; }

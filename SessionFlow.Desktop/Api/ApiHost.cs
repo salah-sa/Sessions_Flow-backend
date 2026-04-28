@@ -144,8 +144,13 @@ public static class ApiHost
         builder.Services.AddScoped<GoogleAuthService>();
         builder.Services.AddScoped<ReportingService>();
         builder.Services.AddScoped<PaymobService>();
+
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddScoped<SessionFlow.Desktop.Services.MultiTenancy.ITenantProvider, SessionFlow.Desktop.Services.MultiTenancy.TenantProvider>();
+
         builder.Services.AddHostedService<EmailReminderService>();
         builder.Services.AddHostedService<SessionMaintenanceService>();
+        builder.Services.AddHostedService<TenantDataMigrationService>();
         builder.Services.AddHostedService<Services.EventBus.EventDispatcher>();
         
         var signalRBuilder = builder.Services.AddSignalR();
@@ -303,7 +308,9 @@ public static class ApiHost
         AuditEndpoints.Map(app);
         ImportEndpoints.Map(app);
         GoogleAuthEndpoints.Map(app);
+        PaymentEndpoints.Map(app);
         SubscriptionEndpoints.Map(app);
+        AccessEndpoints.Map(app);
         ReportingEndpoints.Map(app);
         SupportEndpoints.Map(app);
         SystemEndpoints.Map(app);

@@ -59,6 +59,9 @@ public class MongoService
                 .Ascending(s => s.Status)
                 .Descending(s => s.ScheduledAt)));
 
+        await Sessions.Indexes.CreateOneAsync(new CreateIndexModel<Session>(
+            Builders<Session>.IndexKeys.Ascending(s => s.EngineerId)));
+
         // Attendance: Session + Student (Unique)
         await AttendanceRecords.Indexes.CreateOneAsync(new CreateIndexModel<AttendanceRecord>(
             Builders<AttendanceRecord>.IndexKeys.Ascending(ar => ar.SessionId).Ascending(ar => ar.StudentId),
@@ -68,6 +71,9 @@ public class MongoService
         await AttendanceRecords.Indexes.CreateOneAsync(new CreateIndexModel<AttendanceRecord>(
             Builders<AttendanceRecord>.IndexKeys.Ascending(ar => ar.StudentId)));
 
+        await AttendanceRecords.Indexes.CreateOneAsync(new CreateIndexModel<AttendanceRecord>(
+            Builders<AttendanceRecord>.IndexKeys.Ascending(ar => ar.EngineerId)));
+
         // Pagination Index: Groups Name (Search/Sort)
         await Groups.Indexes.CreateOneAsync(new CreateIndexModel<Group>(
             Builders<Group>.IndexKeys.Ascending(g => g.Name)));
@@ -76,9 +82,15 @@ public class MongoService
         await Students.Indexes.CreateOneAsync(new CreateIndexModel<Student>(
             Builders<Student>.IndexKeys.Ascending(s => s.Name)));
 
+        await Students.Indexes.CreateOneAsync(new CreateIndexModel<Student>(
+            Builders<Student>.IndexKeys.Ascending(s => s.EngineerId)));
+
         // Chat: Group + Date
         await ChatMessages.Indexes.CreateOneAsync(new CreateIndexModel<ChatMessage>(
             Builders<ChatMessage>.IndexKeys.Ascending(cm => cm.GroupId).Descending(cm => cm.SentAt)));
+
+        await ChatMessages.Indexes.CreateOneAsync(new CreateIndexModel<ChatMessage>(
+            Builders<ChatMessage>.IndexKeys.Ascending(cm => cm.EngineerId)));
 
         // Phase 9: TTL Index — Auto-delete chat messages older than 90 days
         await ChatMessages.Indexes.CreateOneAsync(new CreateIndexModel<ChatMessage>(
@@ -202,6 +214,9 @@ public class MongoService
     public IMongoCollection<SupportTicket> SupportTickets => _database.GetCollection<SupportTicket>("SupportTickets");
     public IMongoCollection<SystemBroadcast> SystemBroadcasts => _database.GetCollection<SystemBroadcast>("SystemBroadcasts");
     public IMongoCollection<EmailChangeToken> EmailChangeTokens => _database.GetCollection<EmailChangeToken>("EmailChangeTokens");
+
+    public IMongoCollection<ResourceAccessRequest> ResourceAccessRequests => _database.GetCollection<ResourceAccessRequest>("ResourceAccessRequests");
+    public IMongoCollection<AccessGrant> AccessGrants => _database.GetCollection<AccessGrant>("AccessGrants");
 
     public IMongoDatabase Database => _database;
     public IMongoClient Client => _database.Client;

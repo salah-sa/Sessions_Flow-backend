@@ -35,6 +35,10 @@ public class Student
     
     [BsonRepresentation(BsonType.String)]
     public Guid GroupId { get; set; }
+
+    [BsonRepresentation(BsonType.String)]
+    public Guid EngineerId { get; set; }
+
     
     [BsonRepresentation(BsonType.String)]
     public Guid? UserId { get; set; } // Links to User account (if student self-registered)

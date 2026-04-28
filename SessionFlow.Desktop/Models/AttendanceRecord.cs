@@ -22,6 +22,10 @@ public class AttendanceRecord
     
     [BsonRepresentation(BsonType.String)]
     public Guid StudentId { get; set; }
+
+    [BsonRepresentation(BsonType.String)]
+    public Guid EngineerId { get; set; }
+
     
     public AttendanceStatus Status { get; set; } = AttendanceStatus.Absent;
     public DateTimeOffset MarkedAt { get; set; } = DateTimeOffset.UtcNow;
