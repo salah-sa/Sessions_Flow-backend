@@ -223,6 +223,9 @@ public static class ChatEndpoints
                 sentAt = message.SentAt
             };
 
+            await eventBus.PublishAsync(SessionFlow.Desktop.Services.EventBus.Events.MessageReceive, SessionFlow.Desktop.Services.EventBus.EventTargetType.Group, $"chat_{groupId}", new { message = msgData, groupId = groupId });
+
+
             // IMPORTANT MESSAGE NOTIFICATION TRIGGER
             if (textParams.Trim().StartsWith("//"))
             {

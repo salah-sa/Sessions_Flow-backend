@@ -232,7 +232,7 @@ public static class GroupEndpoints
         });
 
         // POST /api/groups — create group + auto-generate sessions
-        group.MapPost("/", async (CreateGroupRequest req, MongoService db, SessionService sessionService, HttpContext ctx) =>
+        group.MapPost("/", async (CreateGroupRequest req, MongoService db, SessionService sessionService, HttpContext ctx, SessionFlow.Desktop.Services.EventBus.IEventBus eventBus) =>
         {
             try
             {
@@ -358,7 +358,7 @@ public static class GroupEndpoints
                     }
 
                     // Return full object to satisfy frontend expectations
-                    return Results.Created($"/api/groups/{newGroup.Id}", new
+                    var responseData = new
                     {
                         id = newGroup.Id,
                         name = newGroup.Name,
@@ -383,7 +383,11 @@ public static class GroupEndpoints
                             studentId = s.StudentId,
                             uniqueStudentCode = s.UniqueStudentCode
                         })
-                    });
+                    };
+
+                    await eventBus.PublishAsync(SessionFlow.Desktop.Services.EventBus.Events.GroupCreated, SessionFlow.Desktop.Services.EventBus.EventTargetType.All, "", responseData);
+
+                    return Results.Created($"/api/groups/{newGroup.Id}", responseData);
                 }
                 catch (Exception ex)
                 {
@@ -402,7 +406,7 @@ public static class GroupEndpoints
         });
 
         // PUT /api/groups/{id} — update group info
-        group.MapPut("/{id:guid}", async (Guid id, UpdateGroupRequest req, MongoService db, SessionService sessionService, HttpContext ctx) =>
+        group.MapPut("/{id:guid}", async (Guid id, UpdateGroupRequest req, MongoService db, SessionService sessionService, HttpContext ctx, SessionFlow.Desktop.Services.EventBus.IEventBus eventBus) =>
         {
             var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
@@ -491,7 +495,7 @@ public static class GroupEndpoints
             }
 
             var updated = await db.Groups.Find(x => x.Id == id).FirstOrDefaultAsync();
-            return Results.Ok(new
+            var responseData = new
             {
                 id = updated!.Id,
                 name = updated.Name,
@@ -501,7 +505,11 @@ public static class GroupEndpoints
                 numberOfStudents = updated.NumberOfStudents,
                 colorTag = updated.ColorTag,
                 status = updated.Status.ToString()
-            });
+            };
+
+            await eventBus.PublishAsync(SessionFlow.Desktop.Services.EventBus.Events.GroupStatusChanged, SessionFlow.Desktop.Services.EventBus.EventTargetType.All, "", new { groupId = updated!.Id, group = responseData });
+
+            return Results.Ok(responseData);
         });
 
         // POST /api/groups/{id}/regenerate-sessions — manual trigger
@@ -522,7 +530,7 @@ public static class GroupEndpoints
         });
 
         // DELETE /api/groups/all — hard delete all groups and related data (factory reset)
-        group.MapDelete("/all", async (MongoService db, HttpContext ctx) =>
+        group.MapDelete("/all", async (MongoService db, HttpContext ctx, SessionFlow.Desktop.Services.EventBus.IEventBus eventBus) =>
         {
             // SECURITY: Factory reset is Admin-only — prevent accidental or malicious data wipe
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
@@ -540,13 +548,16 @@ public static class GroupEndpoints
                 await db.Students.DeleteManyAsync(s => groupIds.Contains(s.GroupId));
                 await db.ChatMessages.DeleteManyAsync(s => groupIds.Contains(s.GroupId));
                 await db.Groups.DeleteManyAsync(filter);
+                foreach (var gId in groupIds) {
+                    await eventBus.PublishAsync(SessionFlow.Desktop.Services.EventBus.Events.GroupDeleted, SessionFlow.Desktop.Services.EventBus.EventTargetType.All, "", new { groupId = gId });
+                }
             }
 
             return Results.Ok(new { message = $"Successfully deleted {groupIds.Count} groups and all associated data." });
         });
 
         // DELETE /api/groups/{id} — soft delete / archive
-        group.MapDelete("/{id:guid}", async (Guid id, MongoService db, HttpContext ctx) =>
+        group.MapDelete("/{id:guid}", async (Guid id, MongoService db, HttpContext ctx, SessionFlow.Desktop.Services.EventBus.IEventBus eventBus) =>
         {
             var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
@@ -597,10 +608,11 @@ public static class GroupEndpoints
                     Builders<ChatMessage>.Update.Set(m => m.IsDeleted, true).Set(m => m.UpdatedAt, DateTimeOffset.UtcNow)
                 );
 
-                // Cleanup recurring schedules
                 await db.GroupSchedules.DeleteManyAsync(session, s => s.GroupId == id);
 
                 await session.CommitTransactionAsync();
+
+                await eventBus.PublishAsync(SessionFlow.Desktop.Services.EventBus.Events.GroupDeleted, SessionFlow.Desktop.Services.EventBus.EventTargetType.All, "", new { groupId = id });
 
                 return Results.Ok(new { message = $"Group '{g.Name}' has been successfully archived." });
             }
