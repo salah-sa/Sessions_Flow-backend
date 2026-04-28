@@ -84,8 +84,8 @@ public static class ApiHost
 
         // 1. Core Services - Singletons/Scoped
         builder.Services.AddHealthChecks()
-            .AddCheck("MongoDB", new MongoHealthCheck(builder.Services.BuildServiceProvider().GetRequiredService<MongoService>()))
-            .AddCheck("Redis", new RedisHealthCheck(builder.Configuration));
+            .AddCheck<MongoHealthCheck>("MongoDB")
+            .AddCheck<RedisHealthCheck>("Redis");
             
         builder.Services.ConfigureHttpJsonOptions(options =>
         {

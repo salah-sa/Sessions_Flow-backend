@@ -45,13 +45,14 @@ public static class SecureBootstrapService
 
         // Ensure DB connection string exists
         var dbConn = Environment.GetEnvironmentVariable($"{EnvPrefix}DB_CONNECTION")
+                     ?? Environment.GetEnvironmentVariable($"{EnvPrefix}DB_CONNECTIONSTRING")
+                     ?? Environment.GetEnvironmentVariable("MONGO_URL")
+                     ?? Environment.GetEnvironmentVariable("MONGODB_URI")
                      ?? tempConfig[DbConnStringKey];
 
         if (string.IsNullOrWhiteSpace(dbConn))
         {
-            // Cannot auto-generate a DB connection — log a warning.
-            // The app will fail gracefully when trying to connect.
-            dbConn = "";
+            dbConn = ""; // App will log failure on startup
         }
 
         // Ensure Admin password exists (for seeding)
@@ -68,6 +69,7 @@ public static class SecureBootstrapService
         // --- Redis Injection (Railway REDIS_URL support) ---
         var redisUrl = Environment.GetEnvironmentVariable("REDIS_URL");
         var redisConn = Environment.GetEnvironmentVariable($"{EnvPrefix}REDIS_CONNECTION") 
+                       ?? Environment.GetEnvironmentVariable($"{EnvPrefix}REDIS_CONNECTIONSTRING")
                        ?? tempConfig[RedisConnStringKey];
 
         if (!string.IsNullOrWhiteSpace(redisUrl) && redisUrl.StartsWith("redis://"))

@@ -21,6 +21,7 @@ public class MongoService
 
         var client = new MongoClient(connectionString);
         _database = client.GetDatabase(databaseName);
+        Serilog.Log.Information("[Mongo] Initialized MongoService for database: {DatabaseName}", databaseName);
     }
 
     public async Task InitializeAsync()
