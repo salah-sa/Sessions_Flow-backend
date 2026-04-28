@@ -171,8 +171,9 @@ public static class StudentEndpoints
             var builder = Builders<Student>.Filter;
             var filter = builder.Eq(s => s.IsDeleted, false);
 
-            if (role == "Engineer")
+            if (role == "Engineer" || role == "Admin")
             {
+                // Zero-Trust: both Engineer AND Admin only see students in their own groups
                 var myGroups = await db.Groups.Find(g => g.EngineerId == userId && !g.IsDeleted).ToListAsync();
                 var myGroupIds = myGroups.Select(g => g.Id).ToList();
                 if (myGroupIds.Count == 0)
@@ -267,7 +268,8 @@ public static class StudentEndpoints
             if (student == null)
                 return Results.NotFound(new { error = "Student not found." });
 
-            if (role == "Engineer")
+            // Zero-Trust: verify ownership through group chain for both Engineer and Admin
+            if (role == "Engineer" || role == "Admin")
             {
                 var gOwner = await db.Groups.Find(g => g.Id == student.GroupId).FirstOrDefaultAsync();
                 if (gOwner == null || gOwner.EngineerId != userId)
@@ -307,12 +309,10 @@ public static class StudentEndpoints
             if (student == null)
                 return Results.NotFound(new { error = "Student not found." });
 
-            if (role != "Admin")
-            {
-                var gOwner = await db.Groups.Find(g => g.Id == student.GroupId).FirstOrDefaultAsync();
-                if (gOwner == null || gOwner.EngineerId != userId)
-                    return Results.Forbid();
-            }
+            // Zero-Trust: both Engineer AND Admin must own the student's group
+            var gOwner = await db.Groups.Find(g => g.Id == student.GroupId).FirstOrDefaultAsync();
+            if (gOwner == null || gOwner.EngineerId != userId)
+                return Results.Forbid();
 
             var update = Builders<Student>.Update.Set(s => s.UpdatedAt, DateTimeOffset.UtcNow);
 
@@ -324,6 +324,10 @@ public static class StudentEndpoints
                 var newGroup = await db.Groups.Find(g => g.Id == req.GroupId.Value).FirstOrDefaultAsync();
                 if (newGroup == null)
                     return Results.BadRequest(new { error = "Target group not found." });
+
+                // Zero-Trust: target group must also belong to the same engineer
+                if (newGroup.EngineerId != userId)
+                    return Results.Forbid();
 
                 var activeStudents = (int)await db.Students.CountDocumentsAsync(s => s.GroupId == req.GroupId.Value && !s.IsDeleted && s.Id != id);
                 var maxStudents = CurriculumConstants.GetMaxStudents(newGroup.Level);
@@ -338,8 +342,18 @@ public static class StudentEndpoints
         });
 
         // DELETE /api/students/{id}
-        group.MapDelete("/{id:guid}", async (Guid id, MongoService db) =>
+        group.MapDelete("/{id:guid}", async (Guid id, MongoService db, HttpContext ctx) =>
         {
+            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
+
+            // Zero-Trust: verify student belongs to caller's group before deleting
+            var student = await db.Students.Find(s => s.Id == id && !s.IsDeleted).FirstOrDefaultAsync();
+            if (student == null) return Results.NotFound(new { error = "Student not found." });
+
+            var gOwner = await db.Groups.Find(g => g.Id == student.GroupId).FirstOrDefaultAsync();
+            if (gOwner == null || gOwner.EngineerId != userId) return Results.Forbid();
+
             var update = Builders<Student>.Update
                 .Set(s => s.IsDeleted, true)
                 .Set(s => s.DeletedAt, DateTimeOffset.UtcNow)
@@ -352,11 +366,29 @@ public static class StudentEndpoints
         });
 
         // GET /api/students/{id}/attendance
-        group.MapGet("/{id:guid}/attendance", async (Guid id, MongoService db) =>
+        group.MapGet("/{id:guid}/attendance", async (Guid id, MongoService db, HttpContext ctx) =>
         {
+            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
+
             var student = await db.Students.Find(s => s.Id == id).FirstOrDefaultAsync();
             if (student == null)
                 return Results.NotFound(new { error = "Student not found." });
+
+            // Zero-Trust: verify ownership through group chain
+            if (role == "Engineer" || role == "Admin")
+            {
+                var gOwner = await db.Groups.Find(g => g.Id == student.GroupId).FirstOrDefaultAsync();
+                if (gOwner == null || gOwner.EngineerId != userId)
+                    return Results.Forbid();
+            }
+            else if (role == "Student")
+            {
+                var user = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
+                if (user == null || user.StudentId != student.StudentId)
+                    return Results.Forbid();
+            }
 
             var records = await db.AttendanceRecords.Find(ar => ar.StudentId == id).ToListAsync();
             
@@ -432,19 +464,36 @@ public static class StudentEndpoints
             return Results.Ok();
         }).RequireAuthorization();
 
-        // GET /api/students/locations - Get all user locations for the world map
+        // GET /api/students/locations - Get scoped user locations for the world map
         app.MapGet("/api/students/locations", async (MongoService db, IPresenceService presence, HttpContext ctx) =>
         {
-            // Fetch all roles (Student, Engineer, Admin) who have location data
+            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
+
+            // Zero-Trust: engineers/admins only see locations of users in their own groups
+            List<Guid> allowedUserIds = new();
+            if (role == "Engineer" || role == "Admin")
+            {
+                var myGroups = await db.Groups.Find(g => g.EngineerId == userId && !g.IsDeleted).ToListAsync();
+                var myGroupIds = myGroups.Select(g => g.Id).ToList();
+                var myStudents = await db.Students.Find(s => myGroupIds.Contains(s.GroupId) && s.UserId != null && !s.IsDeleted).ToListAsync();
+                allowedUserIds = myStudents.Where(s => s.UserId.HasValue).Select(s => s.UserId!.Value).ToList();
+                allowedUserIds.Add(userId); // also include themselves
+            }
+            else if (role == "Student")
+            {
+                allowedUserIds.Add(userId); // students only see themselves
+            }
+
             var usersWithLocation = await db.Users
-                .Find(u => u.Latitude != null && u.Longitude != null)
+                .Find(u => u.Latitude != null && u.Longitude != null && allowedUserIds.Contains(u.Id))
                 .ToListAsync();
 
             if (!usersWithLocation.Any()) return Results.Ok(new List<object>());
 
             var onlineUserIds = presence.GetOnlineUserIds().ToHashSet();
 
-            // Get associated Student records to get GroupId and Level
             var userIds = usersWithLocation.Select(u => u.Id).ToList();
             var studentDocs = await db.Students.Find(s => s.UserId != null && userIds.Contains(s.UserId.Value)).ToListAsync();
             var studentDict = studentDocs.ToDictionary(s => s.UserId!.Value);

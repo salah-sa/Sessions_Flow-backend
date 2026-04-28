@@ -52,6 +52,10 @@ public static class ChatEndpoints
             if (role == "Engineer" && g.EngineerId != userId)
                 return Results.Forbid();
 
+            // Zero-Trust: Admin also scoped to their own groups
+            if (role == "Admin" && g.EngineerId != userId)
+                return Results.Forbid();
+
             if (role == "Student")
             {
                 var user = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
@@ -121,6 +125,10 @@ public static class ChatEndpoints
                 return Results.NotFound(new { error = "Group not found." });
 
             if (userRole == "Engineer" && g.EngineerId != userGuid)
+                return Results.Forbid();
+
+            // Zero-Trust: Admin also scoped to their own groups
+            if (userRole == "Admin" && g.EngineerId != userGuid)
                 return Results.Forbid();
 
             if (userRole == "Student")

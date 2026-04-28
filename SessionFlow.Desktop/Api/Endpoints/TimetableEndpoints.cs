@@ -113,7 +113,8 @@ public static class TimetableEndpoints
             }
             else if (role == "Admin")
             {
-                activeGroupIds = await db.Groups.Find(g => !g.IsDeleted).Project(g => g.Id).ToListAsync();
+                // Zero-Trust: Admin sees only their own groups
+                activeGroupIds = await db.Groups.Find(g => g.EngineerId == uid && !g.IsDeleted).Project(g => g.Id).ToListAsync();
             }
             else // Engineer
             {
@@ -150,12 +151,22 @@ public static class TimetableEndpoints
         });
 
         // PUT /api/timetable — update group schedules
-        group.MapPut("/", async (List<UpdateScheduleItem> items, MongoService db) =>
+        group.MapPut("/", async (List<UpdateScheduleItem> items, MongoService db, HttpContext ctx) =>
         {
+            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdStr, out var uid)) return Results.Unauthorized();
+
             foreach (var item in items)
             {
                 if (Guid.TryParse(item.Id, out var id))
                 {
+                    // Zero-Trust: verify the schedule belongs to a group owned by the caller
+                    var schedule = await db.GroupSchedules.Find(gs => gs.Id == id).FirstOrDefaultAsync();
+                    if (schedule == null) continue;
+
+                    var group = await db.Groups.Find(g => g.Id == schedule.GroupId).FirstOrDefaultAsync();
+                    if (group == null || group.EngineerId != uid) continue; // skip items caller doesn't own
+
                     var update = Builders<GroupSchedule>.Update
                         .Set(gs => gs.DayOfWeek, item.DayOfWeek)
                         .Set(gs => gs.StartTime, TimeSpan.Parse(item.StartTime))

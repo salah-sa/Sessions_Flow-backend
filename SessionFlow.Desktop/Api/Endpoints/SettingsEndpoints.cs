@@ -78,13 +78,17 @@ public static class SettingsEndpoints
 
 
         // POST /api/export/history
-        app.MapPost("/api/export/history", async (ExportRequest req, MongoService db, IConfiguration config) =>
+        app.MapPost("/api/export/history", async (ExportRequest req, MongoService db, IConfiguration config, HttpContext ctx) =>
         {
             if (string.IsNullOrWhiteSpace(req.FilePath))
                 return Results.BadRequest(new { error = "File path is required." });
 
+            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
+
             var sessionBuilder = Builders<Session>.Filter;
-            var sessionFilter = sessionBuilder.Empty;
+            // Zero-Trust: scope export to caller's sessions only
+            var sessionFilter = sessionBuilder.Eq(s => s.EngineerId, userId);
 
             if (req.StartDate.HasValue)
                 sessionFilter &= sessionBuilder.Gte(s => s.ScheduledAt, req.StartDate.Value);

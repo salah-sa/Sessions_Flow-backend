@@ -235,11 +235,29 @@ public static class SessionEndpoints
         });
 
         // GET /api/sessions/{id}/attendance — attendance records for a session
-        group.MapGet("/{id:guid}/attendance", async (Guid id, MongoService db) =>
+        group.MapGet("/{id:guid}/attendance", async (Guid id, MongoService db, HttpContext ctx) =>
         {
-            var session = await db.Sessions.Find(s => s.Id == id).FirstOrDefaultAsync();
+            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
+
+            var session = await db.Sessions.Find(s => s.Id == id && !s.IsDeleted).FirstOrDefaultAsync();
             if (session == null)
                 return Results.NotFound(new { error = "Session not found." });
+
+            // Zero-Trust: verify caller owns this session's engineer slot
+            if (role == "Engineer" || role == "Admin")
+            {
+                if (session.EngineerId != userId)
+                    return Results.Forbid();
+            }
+            else if (role == "Student")
+            {
+                var user = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
+                if (user == null || string.IsNullOrEmpty(user.StudentId)) return Results.Forbid();
+                var studentInfo = await db.Students.Find(s => s.StudentId == user.StudentId && !s.IsDeleted).FirstOrDefaultAsync();
+                if (studentInfo == null || studentInfo.GroupId != session.GroupId) return Results.Forbid();
+            }
 
             var records = await db.AttendanceRecords.Find(ar => ar.SessionId == id).ToListAsync();
             var studentIds = records.Select(r => r.StudentId).Distinct().ToList();
@@ -277,7 +295,8 @@ public static class SessionEndpoints
             if (targetGroup == null)
                 return Results.NotFound(new { error = "Group not found." });
 
-            if (ctx.User.FindFirstValue(ClaimTypes.Role) != "Admin" && targetGroup.EngineerId != engineerId)
+            // Zero-Trust: every user (including Admin) can only create sessions in their own groups
+            if (targetGroup.EngineerId != engineerId)
                 return Results.Forbid();
 
             var maxSession = await db.Sessions.Find(s => s.GroupId == groupId && !s.IsDeleted)
@@ -300,8 +319,16 @@ public static class SessionEndpoints
         });
 
         // POST /api/sessions/{id}/start
-        group.MapPost("/{id:guid}/start", async (Guid id, SessionService sessionService, Services.EventBus.IEventBus eventBus) =>
+        group.MapPost("/{id:guid}/start", async (Guid id, MongoService db, HttpContext ctx, SessionService sessionService, Services.EventBus.IEventBus eventBus) =>
         {
+            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
+
+            // Zero-Trust: verify ownership before starting
+            var existing = await db.Sessions.Find(s => s.Id == id && !s.IsDeleted).FirstOrDefaultAsync();
+            if (existing == null) return Results.NotFound(new { error = "Session not found." });
+            if (existing.EngineerId != userId) return Results.Forbid();
+
             var (session, error) = await sessionService.StartSessionAsync(id);
             if (error != null)
                 return Results.BadRequest(new { error });
@@ -311,8 +338,15 @@ public static class SessionEndpoints
         });
 
         // POST /api/sessions/{id}/end
-        group.MapPost("/{id:guid}/end", async (Guid id, EndSessionRequest? req, bool? force, SessionService sessionService, Services.EventBus.IEventBus eventBus, MongoService db) =>
+        group.MapPost("/{id:guid}/end", async (Guid id, EndSessionRequest? req, bool? force, HttpContext ctx, SessionService sessionService, Services.EventBus.IEventBus eventBus, MongoService db) =>
         {
+            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
+
+            // Zero-Trust: verify ownership before ending
+            var existing = await db.Sessions.Find(s => s.Id == id && !s.IsDeleted).FirstOrDefaultAsync();
+            if (existing == null) return Results.NotFound(new { error = "Session not found." });
+            if (existing.EngineerId != userId) return Results.Forbid();
             var (session, error) = await sessionService.EndSessionAsync(id, req?.Notes, force ?? false);
             if (error != null)
                 return Results.BadRequest(new { error });
@@ -339,8 +373,16 @@ public static class SessionEndpoints
 
         // PUT /api/sessions/{id}/attendance
         group.MapPut("/{id:guid}/attendance", async (Guid id, List<AttendanceUpdateItem> items,
-            SessionService sessionService, Services.EventBus.IEventBus eventBus, HttpContext ctx) =>
+            SessionService sessionService, Services.EventBus.IEventBus eventBus, MongoService db, HttpContext ctx) =>
         {
+            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
+
+            // Zero-Trust: verify ownership before updating attendance
+            var existing = await db.Sessions.Find(s => s.Id == id && !s.IsDeleted).FirstOrDefaultAsync();
+            if (existing == null) return Results.NotFound(new { error = "Session not found." });
+            if (existing.EngineerId != userId) return Results.Forbid();
+
             var userRole = ctx.User.FindFirst(ClaimTypes.Role)?.Value ?? "Engineer";
 
             if (items == null || items.Count == 0)
@@ -381,8 +423,16 @@ public static class SessionEndpoints
         });
 
         // DELETE /api/sessions/{id}
-        group.MapDelete("/{id:guid}", async (Guid id, MongoService db) =>
+        group.MapDelete("/{id:guid}", async (Guid id, MongoService db, HttpContext ctx) =>
         {
+            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
+
+            // Zero-Trust: verify ownership before deleting
+            var existing = await db.Sessions.Find(s => s.Id == id && !s.IsDeleted).FirstOrDefaultAsync();
+            if (existing == null) return Results.NotFound(new { error = "Session not found." });
+            if (existing.EngineerId != userId) return Results.Forbid();
+
             var update = Builders<Session>.Update
                 .Set(s => s.IsDeleted, true)
                 .Set(s => s.DeletedAt, DateTimeOffset.UtcNow)
@@ -397,8 +447,16 @@ public static class SessionEndpoints
 
         // POST /api/sessions/{id}/skip — mark session as skipped (does NOT advance session number)
         group.MapPost("/{id:guid}/skip", async (Guid id, SkipSessionRequest? req,
-            SessionService sessionService, Services.EventBus.IEventBus eventBus) =>
+            MongoService db, HttpContext ctx, SessionService sessionService, Services.EventBus.IEventBus eventBus) =>
         {
+            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
+
+            // Zero-Trust: verify ownership before skipping
+            var existing = await db.Sessions.Find(s => s.Id == id && !s.IsDeleted).FirstOrDefaultAsync();
+            if (existing == null) return Results.NotFound(new { error = "Session not found." });
+            if (existing.EngineerId != userId) return Results.Forbid();
+
             var (session, error) = await sessionService.SkipSessionAsync(id, req?.Reason);
             if (error != null)
                 return Results.BadRequest(new { error });
