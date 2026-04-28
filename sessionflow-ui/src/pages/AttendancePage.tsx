@@ -74,17 +74,17 @@ const AttendancePage: React.FC = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-           <div className="relative flex-1 sm:flex-initial">
-             <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
-             <input
-               type="text"
-               placeholder="Search today's groups..."
-               value={searchQuery}
-               onChange={(e) => setSearchQuery(e.target.value)}
-               className="w-full sm:w-72 bg-white/[0.03] border border-white/10 rounded-xl py-2.5 pl-11 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[var(--ui-accent)]/50 focus:border-[var(--ui-accent)] transition-all"
-             />
-           </div>
-           
+          <div className="relative flex-1 sm:flex-initial">
+            <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search today's groups..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full sm:w-72 bg-white/[0.03] border border-white/10 rounded-xl py-2.5 pl-11 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[var(--ui-accent)]/50 focus:border-[var(--ui-accent)] transition-all"
+            />
+          </div>
+          
           {user?.role === "Engineer" && (
             <div className={cn(
               "flex items-center gap-2 px-4 py-2 bg-white/[0.03] border rounded-xl",
@@ -133,85 +133,84 @@ const AttendancePage: React.FC = () => {
               }
               
               const studentCount = session.totalStudents || 0;
-              
               const isAttendable = session.status !== "Ended"; 
               const isScheduled = session.status === "Scheduled";
 
               return (
-              <Card key={session.id} className={cn(
-                "p-5 sm:p-6 border border-white/5 bg-[var(--ui-sidebar-bg)]/40 backdrop-blur-3xl hover:bg-white/[0.04] transition-all group flex flex-col relative overflow-hidden",
-                !isAttendable && "opacity-75"
-              )}>
-                {isScheduled && (
-                  <div className="absolute top-0 right-0 px-3 py-1 bg-amber-500/10 text-amber-500 text-[8px] font-black uppercase tracking-[0.2em] rounded-bl-xl border-b border-l border-amber-500/20">
-                    Ready
-                  </div>
-                )}
-                <div className="flex justify-between items-start mb-6">
-                  <div className="min-w-0 pr-4">
-                    <h3 className="text-lg sm:text-xl font-bold text-white mb-2 truncate">{session.groupName || "Unnamed Group"}</h3>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                      <span className="flex items-center gap-1.5 shrink-0"><Clock className="w-3.5 h-3.5 text-[var(--ui-accent)]" /> {startTimeStr} {endTimeStr ? `- ${endTimeStr}` : ""}</span>
-                      <span className="flex items-center gap-1.5 shrink-0"><Users className="w-3.5 h-3.5 text-emerald-500" /> {studentCount} Cadets</span>
+                <Card key={session.id} className={cn(
+                  "p-5 sm:p-6 border border-white/5 bg-[var(--ui-sidebar-bg)]/40 backdrop-blur-3xl hover:bg-white/[0.04] transition-all group flex flex-col relative overflow-hidden",
+                  !isAttendable && "opacity-75"
+                )}>
+                  {isScheduled && (
+                    <div className="absolute top-0 right-0 px-3 py-1 bg-amber-500/10 text-amber-500 text-[8px] font-black uppercase tracking-[0.2em] rounded-bl-xl border-b border-l border-amber-500/20">
+                      Ready
                     </div>
+                  )}
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="min-w-0 pr-4">
+                      <h3 className="text-lg sm:text-xl font-bold text-white mb-2 truncate">{session.groupName || "Unnamed Group"}</h3>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        <span className="flex items-center gap-1.5 shrink-0"><Clock className="w-3.5 h-3.5 text-[var(--ui-accent)]" /> {startTimeStr} {endTimeStr ? `- ${endTimeStr}` : ""}</span>
+                        <span className="flex items-center gap-1.5 shrink-0"><Users className="w-3.5 h-3.5 text-emerald-500" /> {studentCount} Cadets</span>
+                      </div>
+                    </div>
+                    <Badge variant={session.status === "Ended" ? "success" : session.status === "Active" ? "warning" : "default"} className="uppercase text-[8px] sm:text-[9px] tracking-widest shrink-0">
+                      {session.status}
+                    </Badge>
                   </div>
-                  <Badge variant={session.status === "Ended" ? "success" : session.status === "Active" ? "warning" : "default"} className="uppercase text-[8px] sm:text-[9px] tracking-widest shrink-0">
-                    {session.status}
-                  </Badge>
-                </div>
-                
-                <div className="mt-auto pt-6 border-t border-white/5 space-y-2">
-                  <Button 
-                    variant={isScheduled ? "outline" : "primary"}
-                    className={cn(
-                      "w-full h-11 text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-all duration-300",
-                      isAttendable ? "opacity-100 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]" : "opacity-50 pointer-events-none"
-                    )}
-                    onClick={() => {
-                      if (completedToday >= limits.maxDailyAttendance && session.status !== "Active") {
-                        toast.error(`Daily attendance limit reached (${limits.maxDailyAttendance}/day). Upgrade for more.`, {
-                          icon: <Zap className="w-4 h-4 text-rose-500" />
-                        });
-                        return;
-                      }
-                      handleMakeAttendance(session);
-                    }}
-                    disabled={!isAttendable}
-                  >
-                    {!isAttendable ? (
-                      <>
-                        <CheckCircle className="w-4 h-4" />
-                        Completed ✓
-                      </>
-                    ) : isScheduled ? (
-                      <>
-                        <Zap className="w-4 h-4" />
-                        Start & Form
-                      </>
-                    ) : (
-                      <>
-                        <ExternalLink className="w-4 h-4" />
-                        Open Google Form
-                      </>
-                    )}
-                  </Button>
-                  {(session.status === "Scheduled" || session.status === "Active") && !session.isSkipped && (
-                    <button
-                      onClick={() => { setSkipSessionId(session.id); setSkipReason(""); }}
-                      className="w-full h-9 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-amber-500 bg-white/[0.02] border border-white/5 rounded-xl hover:border-amber-500/20 hover:bg-amber-500/5 transition-all"
+                  
+                  <div className="mt-auto pt-6 border-t border-white/5 space-y-2">
+                    <Button 
+                      variant={isScheduled ? "outline" : "primary"}
+                      className={cn(
+                        "w-full h-11 text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-all duration-300",
+                        isAttendable ? "opacity-100 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]" : "opacity-50 pointer-events-none"
+                      )}
+                      onClick={() => {
+                        if (completedToday >= limits.maxDailyAttendance && session.status !== "Active") {
+                          toast.error(`Daily attendance limit reached (${limits.maxDailyAttendance}/day). Upgrade for more.`, {
+                            icon: <Zap className="w-4 h-4 text-rose-500" />
+                          });
+                          return;
+                        }
+                        handleMakeAttendance(session);
+                      }}
+                      disabled={!isAttendable}
                     >
-                      <SkipForward className="w-3.5 h-3.5" />
-                      Skip Session
-                    </button>
-                  )}
-                  {session.isSkipped && (
-                    <div className="w-full h-9 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-amber-500/60 bg-amber-500/5 border border-amber-500/10 rounded-xl">
-                      <SkipForward className="w-3.5 h-3.5" />
-                      Skipped{session.skipReason ? ` · ${session.skipReason}` : ""}
-                    </div>
-                  )}
-                </div>
-              </Card>
+                      {!isAttendable ? (
+                        <>
+                          <CheckCircle className="w-4 h-4" />
+                          Completed ✓
+                        </>
+                      ) : isScheduled ? (
+                        <>
+                          <Zap className="w-4 h-4" />
+                          Start & Form
+                        </>
+                      ) : (
+                        <>
+                          <ExternalLink className="w-4 h-4" />
+                          Open Google Form
+                        </>
+                      )}
+                    </Button>
+                    {(session.status === "Scheduled" || session.status === "Active") && !session.isSkipped && (
+                      <button
+                        onClick={() => { setSkipSessionId(session.id); setSkipReason(""); }}
+                        className="w-full h-9 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-amber-500 bg-white/[0.02] border border-white/5 rounded-xl hover:border-amber-500/20 hover:bg-amber-500/5 transition-all"
+                      >
+                        <SkipForward className="w-3.5 h-3.5" />
+                        Skip Session
+                      </button>
+                    )}
+                    {session.isSkipped && (
+                      <div className="w-full h-9 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-amber-500/60 bg-amber-500/5 border border-amber-500/10 rounded-xl">
+                        <SkipForward className="w-3.5 h-3.5" />
+                        Skipped{session.skipReason ? ` · ${session.skipReason}` : ""}
+                      </div>
+                    )}
+                  </div>
+                </Card>
               );
             })}
           </div>
@@ -238,7 +237,7 @@ const AttendancePage: React.FC = () => {
                   endMutation.mutate({ id: pendingSessionId, force: true, notes: "Attendance managed via external Google Form." });
                   setPendingSessionId(null);
                 }} 
-                className="h-10 px-6 text-sm bg-emerald-600 hover:bg-emerald-500 border-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                className="h-10 px-6 text-sm bg-emerald-600 hover:bg-emerald-500 border-emerald-500 text-white shadow-[0_0_20_rgba(16,185,129,0.3)]"
                 disabled={endMutation.isPending}
               >
                 Yes, Submitted ✓
@@ -256,7 +255,6 @@ const AttendancePage: React.FC = () => {
         />
       )}
 
-      {/* Skip Session Confirmation Modal */}
       {skipSessionId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <Card className="max-w-md w-full p-6 sm:p-8 border border-amber-500/20 bg-[var(--ui-sidebar-bg)] shadow-2xl relative overflow-hidden">

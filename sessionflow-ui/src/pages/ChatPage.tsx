@@ -355,7 +355,6 @@ const ChatPage: React.FC = () => {
                   fetchNextPage={fetchNextPage}
                   hasNextPage={hasNextPage}
                   isFetchingNextPage={isFetchingNextPage}
-                  isFetchingNextPage={isFetchingNextPage}
                   usage={usage}
                 />
               </div>
