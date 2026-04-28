@@ -254,6 +254,7 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
   const [imagesRemaining, setImagesRemaining] = useState<number | null>(usage?.imagesRemaining ?? null);
   const [videosRemaining, setVideosRemaining] = useState<number | null>(usage?.videosRemaining ?? null);
   const [filesRemaining, setFilesRemaining] = useState<number | null>(usage?.filesRemaining ?? null);
+  const dailyLimit = usage?.limit ?? null;
 
   // Sync when parent updates usage
   useEffect(() => { 

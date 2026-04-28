@@ -21,6 +21,7 @@ export interface AuthState {
   studentLocationData: StudentLocationData | null;
   _hasHydrated: boolean;
   _lastLoginAt: number; // Timestamp of last successful login
+  hasAcknowledgedFreeModal: boolean;
   setAuth: (user: User, token: string) => void;
   setRememberMe: (val: boolean) => void;
   setStudentLocation: (loc: string) => void;
