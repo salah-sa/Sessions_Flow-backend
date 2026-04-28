@@ -40,9 +40,10 @@ public class MongoService
             Builders<User>.IndexKeys.Ascending(u => u.StudentId),
             new CreateIndexOptions { Unique = true, Sparse = true }));
 
-        // Sessions: Group + Date
+        // Sessions: Group + Date (Unique — prevents duplicate session creation under concurrent maintenance)
         await Sessions.Indexes.CreateOneAsync(new CreateIndexModel<Session>(
-            Builders<Session>.IndexKeys.Ascending(s => s.GroupId).Ascending(s => s.ScheduledAt)));
+            Builders<Session>.IndexKeys.Ascending(s => s.GroupId).Ascending(s => s.ScheduledAt),
+            new CreateIndexOptions { Unique = true }));
             
         // Performance Index: Sessions by Date (Dashboard/Upcoming queries)
         await Sessions.Indexes.CreateOneAsync(new CreateIndexModel<Session>(

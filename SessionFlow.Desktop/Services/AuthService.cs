@@ -151,8 +151,10 @@ public class AuthService
 
     public async Task<(PendingStudentRequest? pending, string? error)> QueueStudentRequestAsync(string name, string username, string email, string password, string groupName, string? studentId = null, CancellationToken ct = default)
     {
-        // 1. Check rate limits (max 3 requests per day)
-        var startOfDay = DateTimeOffset.UtcNow.Date;
+        // 1. Check rate limits (max 3 requests per day) — anchored to Cairo midnight
+        var cairoTz = TimeZoneHelper.GetConfiguredTimeZone(_config);
+        var cairoNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, cairoTz);
+        var startOfDay = new DateTimeOffset(cairoNow.Date, cairoTz.GetUtcOffset(cairoNow.Date));
         var requestCount = await _db.PendingStudentRequests
             .Find(p => (p.Email.ToLower() == email.ToLower() || p.Username.ToLower() == username.ToLower()) 
                   && p.RequestedAt >= startOfDay)
@@ -403,8 +405,7 @@ public class AuthService
                 {
                     if (attempt == maxRetries)
                     {
-                        // Log to structured logging instead of Debug.WriteLine
-                        Console.Error.WriteLine($"[EMAIL] Failed after {maxRetries} retries for {user.Email}: {ex.Message}");
+                        Serilog.Log.Error(ex, "[EMAIL] Failed after {MaxRetries} retries for {Email}", maxRetries, user.Email);
                     }
                     else
                     {
@@ -426,7 +427,7 @@ public class AuthService
                     NotificationType.Success
                 );
             } catch (Exception ex) {
-                Console.Error.WriteLine($"[NOTIF] Failed to create approval notification for student {user.Id}: {ex.Message}");
+                Serilog.Log.Error(ex, "[NOTIF] Failed to create approval notification for student {UserId}", user.Id);
             }
         });
 
@@ -577,7 +578,7 @@ public class AuthService
                 {
                     if (attempt == maxRetries)
                     {
-                        Console.Error.WriteLine($"[EMAIL] Failed after {maxRetries} retries for engineer {user.Email}: {ex.Message}");
+                        Serilog.Log.Error(ex, "[EMAIL] Failed after {MaxRetries} retries for engineer {Email}", maxRetries, user.Email);
                     }
                     else
                     {
@@ -599,7 +600,7 @@ public class AuthService
                     NotificationType.Success
                 );
             } catch (Exception ex) {
-                Console.Error.WriteLine($"[NOTIF] Failed to create approval notification for engineer {user.Id}: {ex.Message}");
+                Serilog.Log.Error(ex, "[NOTIF] Failed to create approval notification for engineer {UserId}", user.Id);
             }
         });
 
@@ -616,22 +617,43 @@ public class AuthService
         if (!user.IsApproved)
             return (false, "Your account has not been approved by an administrator yet. Please check back later.", 0);
 
-        // Check daily limit (3 requests per day)
+        // Atomic rate-limit enforcement: use FindOneAndUpdate to prevent race conditions
         var now = DateTimeOffset.UtcNow;
+        var dailyLimit = 6;
+
+        // Determine if we're still within the same UTC day to decide inc vs reset
+        UpdateDefinition<User> updateDef;
         if (user.LastCredentialResendAt.HasValue && user.LastCredentialResendAt.Value.Date == now.Date)
         {
-            if (user.ResendCredentialsCount >= 6)
+            if (user.ResendCredentialsCount >= dailyLimit)
                 return (false, "Daily limit reached. You can request your credentials up to 6 times per day.", 0);
-            
-            user.ResendCredentialsCount++;
+
+            // Atomic increment — only succeeds if still under the limit
+            updateDef = Builders<User>.Update
+                .Inc(u => u.ResendCredentialsCount, 1)
+                .Set(u => u.LastCredentialResendAt, now);
         }
         else
         {
-            user.ResendCredentialsCount = 1;
+            // New day: reset counter atomically
+            updateDef = Builders<User>.Update
+                .Set(u => u.ResendCredentialsCount, 1)
+                .Set(u => u.LastCredentialResendAt, now);
         }
-        
-        user.LastCredentialResendAt = now;
-        await _db.Users.ReplaceOneAsync(u => u.Id == user.Id, user, cancellationToken: ct);
+
+        var updatedUser = await _db.Users.FindOneAndUpdateAsync(
+            u => u.Id == user.Id,
+            updateDef,
+            new FindOneAndUpdateOptions<User> { ReturnDocument = ReturnDocument.After },
+            cancellationToken: ct);
+
+        if (updatedUser == null)
+            return (false, "Failed to update rate limit. Please try again.", 0);
+
+        if (updatedUser.ResendCredentialsCount > dailyLimit)
+            return (false, "Daily limit reached. You can request your credentials up to 6 times per day.", 0);
+
+        var remaining = dailyLimit - updatedUser.ResendCredentialsCount;
 
         // Send Email asynchronously
         _ = Task.Run(async () => {
@@ -671,7 +693,7 @@ public class AuthService
 
                 await mail.SendEmailAsync(user.Email, subject, body);
             } catch (Exception ex) {
-                Console.Error.WriteLine($"[EMAIL] Resend credentials email failed for {user.Email}: {ex.Message}");
+                Serilog.Log.Error(ex, "[EMAIL] Resend credentials email failed for {Email}", user.Email);
             }
         });
 

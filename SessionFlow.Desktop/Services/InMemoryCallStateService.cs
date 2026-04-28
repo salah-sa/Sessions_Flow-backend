@@ -11,7 +11,7 @@ public class InMemoryCallStateService : ICallStateService
 {
     private readonly ConcurrentDictionary<string, ActiveCall> _activeCalls = new();
     // groupId → set of participant userIds
-    private readonly ConcurrentDictionary<string, HashSet<string>> _groupParticipants = new();
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> _groupParticipants = new();
 
     public void SetBusy(string userId, string peerId, bool isGroup = false, string? groupId = null)
     {
@@ -31,9 +31,10 @@ public class InMemoryCallStateService : ICallStateService
 
     public void SetGroupBusy(string groupId, IEnumerable<string> participantIds)
     {
-        var participants = participantIds.ToHashSet();
+        var participants = new ConcurrentDictionary<string, byte>(
+            participantIds.Select(id => new KeyValuePair<string, byte>(id, 0)));
         _groupParticipants[groupId] = participants;
-        foreach (var uid in participants)
+        foreach (var uid in participants.Keys)
         {
             _activeCalls[uid] = new ActiveCall(groupId, DateTimeOffset.UtcNow, IsGroup: true, GroupId: groupId);
         }
@@ -42,10 +43,10 @@ public class InMemoryCallStateService : ICallStateService
     public void RemoveFromGroup(string groupId, string userId)
     {
         _activeCalls.TryRemove(userId, out _);
-        if (_groupParticipants.TryGetValue(groupId, out var set))
+        if (_groupParticipants.TryGetValue(groupId, out var dict))
         {
-            set.Remove(userId);
-            if (set.Count == 0) _groupParticipants.TryRemove(groupId, out _);
+            dict.TryRemove(userId, out _);
+            if (dict.IsEmpty) _groupParticipants.TryRemove(groupId, out _);
         }
     }
 }

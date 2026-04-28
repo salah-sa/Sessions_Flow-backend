@@ -19,10 +19,13 @@ public class RateLimitingMiddleware
     // Track: IP -> list of attempt timestamps
     private static readonly ConcurrentDictionary<string, List<DateTime>> _attempts = new();
 
+    // Static cleanup timer — rooted in a field to prevent GC collection; runs for process lifetime
+    private static readonly System.Threading.Timer _cleanupTimer;
+
     static RateLimitingMiddleware()
     {
         // Periodic cleanup to prevent memory leak from static dictionary
-        var timer = new System.Threading.Timer(_ => 
+        _cleanupTimer = new System.Threading.Timer(_ => 
         {
             var now = DateTime.UtcNow;
             var window = TimeSpan.FromMinutes(1);

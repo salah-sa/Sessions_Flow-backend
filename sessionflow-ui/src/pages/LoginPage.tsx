@@ -55,9 +55,10 @@ const LoginPage: React.FC = () => {
         sharedAuth.setMascotState("success");
         toast.success(t("auth.login_success") || "Login successful!");
         
-        // Ensure student lands on student dashboard even if portal was mismarked
+        // Route students to their dedicated dashboard, everyone else to the main dashboard
         setTimeout(() => {
-          sharedAuth.onNavigate("/dashboard");
+          const destination = isStudent ? "/student-dashboard" : "/dashboard";
+          sharedAuth.onNavigate(destination);
         }, 800);
       } else {
         sharedAuth.setMascotState("error");

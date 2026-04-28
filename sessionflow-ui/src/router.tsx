@@ -23,6 +23,7 @@ const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const ArchivePage = lazy(() => import("./pages/ArchivePage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 const UsersPage = lazy(() => import("./pages/UsersPage"));
+const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
 
 const PageLoader = () => (
   <div className="h-full w-full flex items-center justify-center bg-slate-950/50 backdrop-blur-md animate-fade-in">
@@ -59,6 +60,16 @@ export const router = createBrowserRouter([
       {
         index: true,
         element: <Navigate to="/dashboard" replace />,
+      },
+      {
+        path: "student-dashboard",
+        element: (
+          <RoleGuard allowedRoles={["Student"]}>
+            <Suspense fallback={<PageLoader />}>
+              <StudentDashboard />
+            </Suspense>
+          </RoleGuard>
+        ),
       },
       {
         path: "dashboard",

@@ -180,7 +180,8 @@ export const useSectionBadgeStore = create<SectionBadgeState>()(
         })),
       getUnseenCount: (sectionKey, currentIds) => {
         const seen = get().seenItemIds[sectionKey] || [];
-        return currentIds.filter((id) => !seen.includes(id)).length;
+        const seenSet = new Set(seen);
+        return currentIds.filter((id) => !seenSet.has(id)).length;
       },
     }),
     { name: "sf-section-badge-storage" }
