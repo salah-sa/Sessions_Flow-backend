@@ -8,7 +8,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver;
 using SessionFlow.Desktop.Data;
+using SessionFlow.Desktop.Helpers;
 using SessionFlow.Desktop.Models;
+using Serilog;
 using SessionFlow.Desktop.Services.EventBus;
 
 namespace SessionFlow.Desktop.Services;
