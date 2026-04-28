@@ -11,7 +11,7 @@ namespace SessionFlow.Desktop.Models
         [BsonRepresentation(BsonType.String)]
         public Guid Id { get; set; } = Guid.NewGuid();
 
-        public string Version { get; set; }
+        public string Version { get; set; } = "1.0.0";
         public List<string> Notes { get; set; } = new List<string>();
 
         [BsonRepresentation(BsonType.String)]

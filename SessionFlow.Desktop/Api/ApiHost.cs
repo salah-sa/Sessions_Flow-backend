@@ -308,7 +308,6 @@ public static class ApiHost
         AuditEndpoints.Map(app);
         ImportEndpoints.Map(app);
         GoogleAuthEndpoints.Map(app);
-        PaymentEndpoints.Map(app);
         SubscriptionEndpoints.Map(app);
         AccessEndpoints.Map(app);
         ReportingEndpoints.Map(app);
