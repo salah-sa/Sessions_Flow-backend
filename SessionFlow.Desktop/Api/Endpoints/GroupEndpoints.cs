@@ -17,7 +17,7 @@ public static class GroupEndpoints
         var group = app.MapGroup("/api/groups").RequireAuthorization();
 
         // GET /api/groups — list all groups with student count and schedule
-        group.MapGet("/", async (MongoService db, HttpContext ctx, AuthService auth,
+        group.MapGet("/", async (MongoService db, HttpContext ctx, AuthService auth, SessionFlow.Desktop.Services.MultiTenancy.ITenantProvider tenantProvider,
             int? page, int? pageSize, string? search, string? status) =>
         {
             var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -27,9 +27,10 @@ public static class GroupEndpoints
             var builder = Builders<Group>.Filter;
             var filter = builder.Eq(g => g.IsDeleted, false);
 
-            if (role == "Engineer")
+            if (role == "Engineer" || role == "Admin")
             {
-                filter &= builder.Eq(g => g.EngineerId, userId);
+                var tenantFilter = await tenantProvider.GetTenantFilterAsync<Group>(db);
+                filter &= tenantFilter;
             }
             else if (role == "Student")
             {
@@ -143,24 +144,30 @@ public static class GroupEndpoints
         });
 
         // GET /api/groups/{id} — get detailed group info
-        group.MapGet("/{id:guid}", async (Guid id, MongoService db, HttpContext ctx, AuthService auth) =>
+        group.MapGet("/{id:guid}", async (Guid id, MongoService db, HttpContext ctx, AuthService auth, SessionFlow.Desktop.Services.MultiTenancy.ITenantProvider tenantProvider) =>
         {
             var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
             if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
 
-            var g = await db.Groups.Find(x => x.Id == id && !x.IsDeleted).FirstOrDefaultAsync();
-            if (g == null) return Results.NotFound(new { error = "Group not found." });
+            var builder = Builders<Group>.Filter;
+            var filter = builder.Eq(g => g.Id, id) & builder.Eq(g => g.IsDeleted, false);
 
-            // Security Check
-            if (role == "Engineer" && g.EngineerId != userId) return Results.Forbid();
-            if (role == "Student")
+            if (role == "Engineer" || role == "Admin")
+            {
+                var tenantFilter = await tenantProvider.GetTenantFilterAsync<Group>(db);
+                filter &= tenantFilter;
+            }
+            else if (role == "Student")
             {
                 var user = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
                 if (user == null) return Results.Forbid();
                 var studentInfos = await auth.ResolveAllStudentsForUser(user);
                 if (studentInfos == null || !studentInfos.Any(s => s.GroupId == id)) return Results.Forbid();
             }
+
+            var g = await db.Groups.Find(filter).FirstOrDefaultAsync();
+            if (g == null) return Results.NotFound(new { error = "Group not found." });
 
             var engineer = await db.Users.Find(u => u.Id == g.EngineerId).FirstOrDefaultAsync();
             var schedules = await db.GroupSchedules.Find(s => s.GroupId == g.Id).ToListAsync();
@@ -232,13 +239,13 @@ public static class GroupEndpoints
         });
 
         // POST /api/groups — create group + auto-generate sessions
-        group.MapPost("/", async (CreateGroupRequest req, MongoService db, SessionService sessionService, HttpContext ctx, SessionFlow.Desktop.Services.EventBus.IEventBus eventBus) =>
+        group.MapPost("/", async (CreateGroupRequest req, MongoService db, SessionService sessionService, HttpContext ctx, SessionFlow.Desktop.Services.EventBus.IEventBus eventBus, SessionFlow.Desktop.Services.MultiTenancy.ITenantProvider tenantProvider) =>
         {
             try
             {
-                var userId = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var engineerId))
-                    return Results.Unauthorized();
+                var tenantId = tenantProvider.GetCurrentTenantId();
+                if (tenantId == null) return Results.Unauthorized();
+                var engineerId = tenantId.Value;
 
                 if (string.IsNullOrWhiteSpace(req.Name))
                     return Results.BadRequest(new { error = "Group name is required." });

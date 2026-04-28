@@ -20,7 +20,7 @@ public static class SessionEndpoints
         var group = app.MapGroup("/api/sessions").RequireAuthorization();
 
         // GET /api/sessions — list sessions with filters
-        group.MapGet("/", async (MongoService db, SessionService sessionService, HttpContext ctx, IConfiguration config,
+        group.MapGet("/", async (MongoService db, SessionService sessionService, HttpContext ctx, IConfiguration config, SessionFlow.Desktop.Services.MultiTenancy.ITenantProvider tenantProvider,
             int? page, int? pageSize, string? groupId, string? status, string? date, 
             string? startDate, string? endDate) =>
         {
@@ -32,9 +32,10 @@ public static class SessionEndpoints
             var builder = Builders<Session>.Filter;
             var filter = builder.Eq(s => s.IsDeleted, false);
 
-            if (role == "Engineer")
+            if (role == "Engineer" || role == "Admin")
             {
-                filter &= builder.Eq(s => s.EngineerId, userId);
+                var tenantFilter = await tenantProvider.GetTenantFilterAsync<Session>(db);
+                filter &= tenantFilter;
             }
             else if (role == "Student")
             {
@@ -150,18 +151,24 @@ public static class SessionEndpoints
         });
 
         // GET /api/sessions/{id} — session detail
-        group.MapGet("/{id:guid}", async (Guid id, MongoService db, HttpContext ctx) =>
+        group.MapGet("/{id:guid}", async (Guid id, MongoService db, HttpContext ctx, SessionFlow.Desktop.Services.MultiTenancy.ITenantProvider tenantProvider) =>
         {
             var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
             if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
 
-            var session = await db.Sessions.Find(s => s.Id == id).FirstOrDefaultAsync();
+            var builder = Builders<Session>.Filter;
+            var filter = builder.Eq(s => s.Id, id);
+
+            if (role == "Engineer" || role == "Admin")
+            {
+                var tenantFilter = await tenantProvider.GetTenantFilterAsync<Session>(db);
+                filter &= tenantFilter;
+            }
+
+            var session = await db.Sessions.Find(filter).FirstOrDefaultAsync();
             if (session == null)
                 return Results.NotFound(new { error = "Session not found." });
-
-            if (role == "Engineer" && session.EngineerId != userId)
-                return Results.Forbid();
 
             if (role == "Student")
             {
