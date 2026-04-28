@@ -158,7 +158,7 @@ public static class SessionEndpoints
             if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
 
             var builder = Builders<Session>.Filter;
-            var filter = builder.Eq(s => s.Id, id);
+            var filter = builder.Eq(s => s.Id, id) & builder.Eq(s => s.IsDeleted, false);
 
             if (role == "Engineer" || role == "Admin")
             {

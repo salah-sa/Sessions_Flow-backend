@@ -413,16 +413,16 @@ public static class GroupEndpoints
         });
 
         // PUT /api/groups/{id} — update group info
-        group.MapPut("/{id:guid}", async (Guid id, UpdateGroupRequest req, MongoService db, SessionService sessionService, HttpContext ctx, SessionFlow.Desktop.Services.EventBus.IEventBus eventBus) =>
+        group.MapPut("/{id:guid}", async (Guid id, UpdateGroupRequest req, MongoService db, SessionService sessionService, HttpContext ctx, SessionFlow.Desktop.Services.EventBus.IEventBus eventBus, SessionFlow.Desktop.Services.MultiTenancy.ITenantProvider tenantProvider) =>
         {
-            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
-            if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
+            var tenantId = tenantProvider.GetCurrentTenantId();
+            if (tenantId == null) return Results.Unauthorized();
 
             var g = await db.Groups.Find(x => x.Id == id).FirstOrDefaultAsync();
             if (g == null) return Results.NotFound(new { error = "Group not found." });
 
-            if (role != "Admin" && g.EngineerId != userId)
+            if (role != "Admin" && g.EngineerId != tenantId.Value)
                 return Results.Forbid();
 
             var update = Builders<Group>.Update.Set(x => x.UpdatedAt, DateTimeOffset.UtcNow);
@@ -520,16 +520,16 @@ public static class GroupEndpoints
         });
 
         // POST /api/groups/{id}/regenerate-sessions — manual trigger
-        group.MapPost("/{id:guid}/regenerate-sessions", async (Guid id, MongoService db, SessionService sessionService, HttpContext ctx) =>
+        group.MapPost("/{id:guid}/regenerate-sessions", async (Guid id, MongoService db, SessionService sessionService, HttpContext ctx, SessionFlow.Desktop.Services.MultiTenancy.ITenantProvider tenantProvider) =>
         {
-            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
-            if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
+            var tenantId = tenantProvider.GetCurrentTenantId();
+            if (tenantId == null) return Results.Unauthorized();
 
             var g = await db.Groups.Find(x => x.Id == id && !x.IsDeleted).FirstOrDefaultAsync();
             if (g == null) return Results.NotFound(new { error = "Group not found." });
 
-            if (role != "Admin" && g.EngineerId != userId)
+            if (role != "Admin" && g.EngineerId != tenantId.Value)
                 return Results.Forbid();
 
             await sessionService.RegenerateFutureSessionsAsync(g);
@@ -564,16 +564,16 @@ public static class GroupEndpoints
         });
 
         // DELETE /api/groups/{id} — soft delete / archive
-        group.MapDelete("/{id:guid}", async (Guid id, MongoService db, HttpContext ctx, SessionFlow.Desktop.Services.EventBus.IEventBus eventBus) =>
+        group.MapDelete("/{id:guid}", async (Guid id, MongoService db, HttpContext ctx, SessionFlow.Desktop.Services.EventBus.IEventBus eventBus, SessionFlow.Desktop.Services.MultiTenancy.ITenantProvider tenantProvider) =>
         {
-            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
-            if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
+            var tenantId = tenantProvider.GetCurrentTenantId();
+            if (tenantId == null) return Results.Unauthorized();
 
             var g = await db.Groups.Find(x => x.Id == id).FirstOrDefaultAsync();
             if (g == null) return Results.NotFound(new { error = "Group not found." });
 
-            if (role != "Admin" && g.EngineerId != userId)
+            if (role != "Admin" && g.EngineerId != tenantId.Value)
                 return Results.Forbid();
 
             // UX FIX: Prevent deleting if there's an ACTIVE session
