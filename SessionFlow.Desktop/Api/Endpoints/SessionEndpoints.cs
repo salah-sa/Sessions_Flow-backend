@@ -385,6 +385,34 @@ public static class SessionEndpoints
 
             var userRole = ctx.User.FindFirst(ClaimTypes.Role)?.Value ?? "Engineer";
 
+            // ─── B.3: DAILY ATTENDANCE LIMIT ENFORCEMENT ────────────────────
+            var engineerUser = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
+            if (engineerUser != null)
+            {
+                var todayStart = DateTimeOffset.UtcNow.Date;
+                var todayEnd   = todayStart.AddDays(1);
+                // Count DISTINCT sessions this engineer has already marked attendance for today
+                var todaySessionIds = await db.Sessions
+                    .Find(s => s.EngineerId == userId && s.EndedAt >= todayStart && s.EndedAt < todayEnd && !s.IsDeleted)
+                    .Project(s => s.Id)
+                    .ToListAsync();
+                // Exclude the current session (this is the one being marked now)
+                var alreadyMarkedToday = todaySessionIds.Count(sid => sid != id);
+                var maxDaily = PlanLimit.GetMaxDailyAttendance(engineerUser.SubscriptionTier);
+                if (alreadyMarkedToday >= maxDaily)
+                {
+                    return Results.Json(new
+                    {
+                        error = $"Daily attendance limit reached ({maxDaily} sessions/day on your {engineerUser.SubscriptionTier} plan). Upgrade to mark more sessions today.",
+                        code  = "ATTENDANCE_LIMIT_REACHED",
+                        limit = maxDaily,
+                        used  = alreadyMarkedToday,
+                        tier  = engineerUser.SubscriptionTier.ToString()
+                    }, statusCode: 429);
+                }
+            }
+            // ────────────────────────────────────────────────────────────────
+
             if (items == null || items.Count == 0)
                 return Results.BadRequest(new { error = "Validation Error: Payload must contain at least one attendance record." });
 

@@ -134,6 +134,13 @@ export type MessageBlock =
   | { type: "text"; content: string }
   | { type: "mention"; userId: string; name: string; role: string };
 
+export interface ReadByEntry {
+  userId: string;
+  userName: string;
+  userRole: string;
+  readAt: string;
+}
+
 export interface ChatMessage {
   id: string; // UUID for deduplication
   groupId: string;
@@ -149,7 +156,9 @@ export interface ChatMessage {
   sender?: User;
   status?: "pending" | "sent" | "delivered" | "read";
   isRead?: boolean;
+  readBy?: ReadByEntry[];
 }
+
 
 export interface TimeSegment {
   startTime: string;

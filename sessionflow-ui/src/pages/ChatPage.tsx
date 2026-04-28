@@ -96,6 +96,8 @@ const ChatPage: React.FC = () => {
   const sendMessageMutation = useSendMessage();
   const { checkConnectivity } = useRequiresInternet();
   const [searchTerm, setSearchTerm] = useState("");
+  const [dailyRemaining, setDailyRemaining] = useState<number | null>(null);
+  const [dailyLimit, setDailyLimit] = useState<number | null>(null);
 
   const filteredActive = React.useMemo(() => 
     activeGroups.filter(g => g.name.toLowerCase().includes(searchTerm.toLowerCase())),
@@ -149,8 +151,27 @@ const ChatPage: React.FC = () => {
     });
 
     try {
-      await sendMessageMutation.mutateAsync({ groupId: activeGroupId, message: text, blocks, mentions, file, id: messageId });
+      const result = await sendMessageMutation.mutateAsync({ groupId: activeGroupId, message: text, blocks, mentions, file, id: messageId });
+      // Parse remaining limit from response headers if available
+      if (result?.headers) {
+        const rem = result.headers.get?.("x-messages-remaining");
+        const lim = result.headers.get?.("x-messages-limit");
+        if (rem !== null && rem !== undefined) setDailyRemaining(Number(rem));
+        if (lim !== null && lim !== undefined) setDailyLimit(Number(lim));
+      }
     } catch (err: any) {
+      const isLimitError = err?.code === "DAILY_LIMIT_REACHED" || err?.status === 429;
+      if (isLimitError) {
+        setDailyRemaining(0);
+        toast.error(`Daily message limit reached (${err?.limit ?? dailyLimit} msgs/day). Upgrade your plan for more.`, { duration: 6000 });
+        // Remove pending from UI
+        queryClient.setQueryData(queryKeys.chat.messages(activeGroupId), (old: any) => {
+          if (!old) return old;
+          const newPages = old.pages.map((page: ChatMessage[]) => page.filter(m => m.id !== messageId));
+          return { ...old, pages: newPages };
+        });
+        return;
+      }
       const isNetworkError = !navigator.onLine || err?.message?.includes("Network");
       if (isNetworkError) {
         queryClient.setQueryData(queryKeys.chat.messages(activeGroupId), (old: any) => {
@@ -337,6 +358,8 @@ const ChatPage: React.FC = () => {
                   fetchNextPage={fetchNextPage}
                   hasNextPage={hasNextPage}
                   isFetchingNextPage={isFetchingNextPage}
+                  dailyRemaining={dailyRemaining}
+                  dailyLimit={dailyLimit}
                 />
               </div>
 

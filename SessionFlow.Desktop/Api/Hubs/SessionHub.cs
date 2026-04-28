@@ -161,13 +161,36 @@ public class SessionHub : Hub
     // Use POST /api/chat/{groupId}/messages instead.
 
     /// <summary>
-    /// Notify others in the group that messages have been read.
+    /// Notify others in the group that messages have been read, and persist ReadBy entries.
     /// </summary>
     public async Task MarkMessagesAsRead(string groupId)
     {
         var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var userName = Context.User?.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
-        if (string.IsNullOrEmpty(userId)) return;
+        var userRole = Context.User?.FindFirst(ClaimTypes.Role)?.Value ?? "Student";
+        if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid) || !Guid.TryParse(groupId, out var groupGuid)) return;
+
+        // ── C.2: Persist ReadBy entries ─────────────────────────────────────
+        // Add ReadBy entry to messages in this group not yet read by this user.
+        // We only look at the last 100 messages to keep this efficient.
+        try
+        {
+            var cutoff = DateTimeOffset.UtcNow.AddDays(-7); // Only mark messages from last 7 days
+            var filter = Builders<ChatMessage>.Filter.And(
+                Builders<ChatMessage>.Filter.Eq(m => m.GroupId, groupGuid),
+                Builders<ChatMessage>.Filter.Eq(m => m.IsDeleted, false),
+                Builders<ChatMessage>.Filter.Gte(m => m.SentAt, cutoff),
+                Builders<ChatMessage>.Filter.Not(
+                    Builders<ChatMessage>.Filter.ElemMatch(m => m.ReadBy,
+                        Builders<ReadByEntry>.Filter.Eq(r => r.UserId, userGuid))
+                )
+            );
+            var readByEntry = new ReadByEntry { UserId = userGuid, UserName = userName, UserRole = userRole, ReadAt = DateTimeOffset.UtcNow };
+            var update = Builders<ChatMessage>.Update.Push(m => m.ReadBy, readByEntry);
+            await _db.ChatMessages.UpdateManyAsync(filter, update);
+        }
+        catch { /* Non-blocking — don't fail the SignalR call if DB write fails */ }
+        // ────────────────────────────────────────────────────────────────────
 
         await _eventBus.PublishAsync(Events.MessageRead, EventTargetType.Group, $"chat_{groupId}", new
         {
@@ -176,6 +199,7 @@ public class SessionHub : Hub
             userName
         });
     }
+
 
     // ═══════════════════════════════════════════════
     // Presence — via Event Bus + Redis

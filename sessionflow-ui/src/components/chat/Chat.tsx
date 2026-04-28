@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Send, User as UserIcon, Smile, Paperclip, X, MessageSquare, Loader2, Clock, Check, CheckCheck, Lock, ChevronDown, Zap, Target, Copy, Sparkles } from "lucide-react";
+import { Send, User as UserIcon, Smile, Paperclip, X, MessageSquare, Loader2, Clock, Check, CheckCheck, Lock, ChevronDown, Zap, Target, Copy, Sparkles, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn, getTierBorderClass } from "../../lib/utils";
 import { Card, Button, Input, EmptyState, Skeleton, Badge } from "../ui";
@@ -83,6 +83,7 @@ const ProfileImage: React.FC<{ userId?: string; url?: string | null; initial?: s
 
 export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; showSender?: boolean; }>(({ message, isMe, showSender }) => {
   const [isViewerOpen, setIsViewerOpen] = React.useState(false);
+  const [showReadBy, setShowReadBy] = React.useState(false);
   const currentUser = useAuthStore((s) => s.user);
 
   const profileImageUrl = isMe ? currentUser?.avatarUrl : message.sender?.avatarUrl;
@@ -170,10 +171,55 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
               {format(new Date(message.sentAt), "HH:mm")}
             </span>
             {isMe && (
-              <div className="flex items-center">
+              <div className="flex items-center gap-2">
+                {/* Seen-By Info Button for Engineers */}
+                {currentUser?.role === "Engineer" && message.readBy && message.readBy.length > 0 && (
+                  <div className="relative">
+                    <button 
+                      onClick={() => setShowReadBy(!showReadBy)}
+                      onMouseEnter={() => setShowReadBy(true)}
+                      onMouseLeave={() => setShowReadBy(false)}
+                      className="p-1 rounded-full hover:bg-white/10 transition-colors text-slate-500 hover:text-white"
+                    >
+                      <Info className="w-3 h-3" />
+                    </button>
+                    
+                    <AnimatePresence>
+                      {showReadBy && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          className="absolute bottom-full right-0 mb-2 w-48 bg-ui-sidebar-bg/95 backdrop-blur-xl border border-white/10 rounded-2xl p-3 shadow-2xl z-[70] overflow-hidden"
+                        >
+                          <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2 border-b border-white/5 pb-1 flex justify-between">
+                            <span>Seen By</span>
+                            <span className="text-ui-accent">{message.readBy.length}</span>
+                          </div>
+                          <div className="space-y-1.5 max-h-[150px] overflow-y-auto custom-scrollbar">
+                            {message.readBy.map((r, idx) => (
+                              <div key={idx} className="flex items-center justify-between gap-2 group/read">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div className="w-4 h-4 rounded-md bg-ui-accent/20 flex items-center justify-center text-[8px] font-bold text-ui-accent shrink-0">
+                                    {r.userName.charAt(0)}
+                                  </div>
+                                  <span className="text-[10px] font-medium text-slate-300 truncate tracking-tight">{r.userName}</span>
+                                </div>
+                                <span className="text-[8px] font-bold text-slate-600 shrink-0">
+                                  {format(new Date(r.readAt), "HH:mm")}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+
                 {message.status === "pending" ? (
                   <Clock className="w-3 h-3 text-slate-600 animate-pulse" />
-                ) : message.status === "read" ? (
+                ) : (message.readBy && message.readBy.length > 0) || message.status === "read" ? (
                   <CheckCheck className="w-3 h-3 text-emerald-500" />
                 ) : (
                   <Check className="w-3 h-3 text-slate-600" />
@@ -187,7 +233,7 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
   );
 });
 
-export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean; onSendMessage: (text: string, file?: File, mentions?: MessageMention[], blocks?: any[]) => void; activeGroupId: string | null; currentGroup: Group | null; fetchNextPage?: () => void; hasNextPage?: boolean; isFetchingNextPage?: boolean; }> = ({ messages, isLoading, onSendMessage, activeGroupId, currentGroup, fetchNextPage, hasNextPage, isFetchingNextPage }) => {
+export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean; onSendMessage: (text: string, file?: File, mentions?: MessageMention[], blocks?: any[]) => void; activeGroupId: string | null; currentGroup: Group | null; fetchNextPage?: () => void; hasNextPage?: boolean; isFetchingNextPage?: boolean; dailyRemaining?: number | null; dailyLimit?: number | null; }> = ({ messages, isLoading, onSendMessage, activeGroupId, currentGroup, fetchNextPage, hasNextPage, isFetchingNextPage, dailyRemaining, dailyLimit }) => {
   const [text, setText] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedFileUrl, setSelectedFileUrl] = useState<string | null>(null);
@@ -204,6 +250,12 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
   const inputRef = useRef<HTMLInputElement>(null);
   const { invoke } = useSignalR();
   const user = useAuthStore((s) => s.user);
+  const [localRemaining, setLocalRemaining] = useState<number | null>(dailyRemaining ?? null);
+
+  // Sync when parent updates dailyRemaining (e.g. after first load)
+  useEffect(() => { setLocalRemaining(dailyRemaining ?? null); }, [dailyRemaining]);
+
+  const isLimitReached = localRemaining !== null && localRemaining <= 0;
 
   const mentionEngine = useMemo(() => {
     const members: MentionableMember[] = [
@@ -276,10 +328,12 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
   };
 
   const handleSend = () => {
-    if (text.trim() || selectedFile) {
+    if ((text.trim() || selectedFile) && !isLimitReached) {
       const validatedMentions = activeMentions.filter(m => text.substring(m.indices[0], m.indices[1] + 1).includes(`@${m.name}`));
       onSendMessage(text.trim(), selectedFile || undefined, validatedMentions, MentionEngine.buildBlocks(text.trim(), validatedMentions));
       setText(""); setSelectedFile(null); setActiveMentions([]); setShowMentions(false); setShowEmojiPicker(false);
+      // Optimistic decrement
+      if (localRemaining !== null) setLocalRemaining(prev => Math.max(0, (prev ?? 1) - 1));
     }
   };
 
@@ -443,13 +497,27 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
             </Button>
             
             <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: isLimitReached ? 1 : 1.05 }}
+              whileTap={{ scale: isLimitReached ? 1 : 0.95 }}
               onClick={handleSend} 
-              disabled={!text.trim() && !selectedFile} 
-              className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-ui-accent text-white flex items-center justify-center shadow-[0_8px_20px_rgba(var(--ui-accent-rgb),0.3)] transition-all disabled:opacity-20 disabled:grayscale"
+              disabled={(!text.trim() && !selectedFile) || isLimitReached} 
+              className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-ui-accent text-white flex items-center justify-center shadow-[0_8px_20px_rgba(var(--ui-accent-rgb),0.3)] transition-all disabled:opacity-20 disabled:grayscale relative"
+              title={isLimitReached ? `Daily limit of ${dailyLimit} messages reached` : undefined}
             >
               <Send className="w-5 h-5" />
+              {/* Daily limit counter pill */}
+              {localRemaining !== null && dailyLimit !== null && (
+                <span className={cn(
+                  "absolute -top-2 -end-2 min-w-[20px] h-5 rounded-full text-[9px] font-black flex items-center justify-center px-1 border border-ui-bg",
+                  isLimitReached
+                    ? "bg-rose-500 text-white"
+                    : localRemaining <= 3
+                    ? "bg-amber-500 text-black"
+                    : "bg-emerald-500 text-black"
+                )}>
+                  {localRemaining}
+                </span>
+              )}
             </motion.button>
           </div>
           

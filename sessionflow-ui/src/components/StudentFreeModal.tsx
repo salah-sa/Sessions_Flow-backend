@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useAuthStore } from "../store/stores";
 import { motion, AnimatePresence } from "framer-motion";
 import { GraduationCap, Sparkles, X } from "lucide-react";
 
@@ -8,9 +9,19 @@ import { GraduationCap, Sparkles, X } from "lucide-react";
  * Dismissed state is stored in sessionStorage (reappears on new tab).
  */
 const StudentFreeModal: React.FC = () => {
+  const user = useAuthStore((s) => s.user);
   const [visible, setVisible] = useState(
-    !sessionStorage.getItem("student_modal_dismissed")
+    user?.role === "Student" && !sessionStorage.getItem("student_modal_dismissed")
   );
+
+  // Re-check if user changes (e.g. login)
+  React.useEffect(() => {
+    if (user?.role === "Student" && !sessionStorage.getItem("student_modal_dismissed")) {
+      setVisible(true);
+    } else {
+      setVisible(false);
+    }
+  }, [user]);
 
   const dismiss = () => {
     sessionStorage.setItem("student_modal_dismissed", "true");

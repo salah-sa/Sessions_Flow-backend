@@ -26,10 +26,25 @@ public class ChatMessage
     public DateTimeOffset? UpdatedAt { get; set; }
     public DateTimeOffset SentAt { get; set; } = DateTimeOffset.UtcNow;
 
+    /// <summary>
+    /// Tracks who has read this message. Populated when a client calls MarkMessagesAsRead.
+    /// Visible only to the message sender (engineer) for the "Seen By" feature.
+    /// </summary>
+    public List<ReadByEntry> ReadBy { get; set; } = new();
+
     // Navigation (Ignored)
     [BsonIgnore]
     public Group? Group { get; set; }
     
     [BsonIgnore]
     public User? Sender { get; set; }
+}
+
+public class ReadByEntry
+{
+    [BsonRepresentation(BsonType.String)]
+    public Guid UserId { get; set; }
+    public string UserName { get; set; } = string.Empty;
+    public string UserRole { get; set; } = string.Empty;
+    public DateTimeOffset ReadAt { get; set; } = DateTimeOffset.UtcNow;
 }

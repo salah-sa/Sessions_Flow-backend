@@ -254,6 +254,26 @@ public static class GroupEndpoints
                 if (exists)
                     return Results.Conflict(new { error = "A group with this name already exists." });
 
+                // ─── B.2: GROUP COUNT LIMIT ENFORCEMENT ──────────────────────
+                var engineer = await db.Users.Find(u => u.Id == engineerId).FirstOrDefaultAsync();
+                if (engineer != null)
+                {
+                    var currentGroupCount = (int)await db.Groups.CountDocumentsAsync(g => g.EngineerId == engineerId && !g.IsDeleted);
+                    var maxGroups = PlanLimit.GetMaxGroups(engineer.SubscriptionTier);
+                    if (currentGroupCount >= maxGroups)
+                    {
+                        return Results.Json(new
+                        {
+                            error = $"Group limit reached ({maxGroups} groups on your {engineer.SubscriptionTier} plan). Upgrade your plan to create more groups.",
+                            code = "GROUP_LIMIT_REACHED",
+                            limit = maxGroups,
+                            current = currentGroupCount,
+                            tier = engineer.SubscriptionTier.ToString()
+                        }, statusCode: 403);
+                    }
+                }
+                // ──────────────────────────────────────────────────────────────
+
                 if (req.Level < 1 || req.Level > 4)
                     return Results.BadRequest(new { error = "Level must be between 1 and 4." });
 

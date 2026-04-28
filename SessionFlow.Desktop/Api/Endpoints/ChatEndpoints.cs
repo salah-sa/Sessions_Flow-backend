@@ -96,7 +96,8 @@ public static class ChatEndpoints
                         id = sender.Id,
                         name = sender.Name,
                         role = sender.Role.ToString(),
-                        avatarUrl = AuthEndpoints.ResolveAvatarUrl(sender.AvatarUrl, ctx.Request)
+                        avatarUrl = AuthEndpoints.ResolveAvatarUrl(sender.AvatarUrl, ctx.Request),
+                        subscriptionTier = sender.SubscriptionTier.ToString()
                     } : null,
                     text = m.Text,
                     fileUrl = AuthEndpoints.ResolveAvatarUrl(m.FileUrl, ctx.Request),
@@ -138,6 +139,34 @@ public static class ChatEndpoints
                 var studentInfos = await auth.ResolveAllStudentsForUser(user);
                 if (studentInfos == null || !studentInfos.Any(s => s.GroupId == groupId)) return Results.Forbid();
             }
+
+            // ─── B.1: DAILY MESSAGE LIMIT ENFORCEMENT ───────────────────────
+            var senderUser = await db.Users.Find(u => u.Id == userGuid).FirstOrDefaultAsync();
+            if (senderUser != null)
+            {
+                var todayStart = DateTimeOffset.UtcNow.Date;
+                var todayEnd   = todayStart.AddDays(1);
+                var todayMsgCount = (int)await db.ChatMessages.CountDocumentsAsync(
+                    m => m.SenderId == userGuid && m.SentAt >= todayStart && m.SentAt < todayEnd
+                );
+                var maxMsgs    = PlanLimit.GetMaxDailyMessages(senderUser.SubscriptionTier);
+                var remaining  = Math.Max(0, maxMsgs - todayMsgCount);
+                if (todayMsgCount >= maxMsgs)
+                {
+                    return Results.Json(new
+                    {
+                        error   = $"Daily message limit reached ({maxMsgs}/day on your {senderUser.SubscriptionTier} plan). Upgrade to send more.",
+                        code    = "DAILY_LIMIT_REACHED",
+                        limit   = maxMsgs,
+                        remaining = 0,
+                        tier    = senderUser.SubscriptionTier.ToString()
+                    }, statusCode: 429);
+                }
+                // Attach remaining count to response header for frontend counter
+                ctx.Response.Headers["X-Messages-Remaining"] = remaining.ToString();
+                ctx.Response.Headers["X-Messages-Limit"]     = maxMsgs.ToString();
+            }
+            // ──────────────────────────────────────────────────────────────────
 
             string textParams = string.Empty;
             string? fileUrl = null;
@@ -222,7 +251,8 @@ public static class ChatEndpoints
                     id = sender.Id,
                     name = sender.Name,
                     role = sender.Role.ToString(),
-                    avatarUrl = AuthEndpoints.ResolveAvatarUrl(sender.AvatarUrl, req)
+                    avatarUrl = AuthEndpoints.ResolveAvatarUrl(sender.AvatarUrl, req),
+                    subscriptionTier = sender.SubscriptionTier.ToString()
                 } : null,
                 text = message.Text,
                 fileUrl = AuthEndpoints.ResolveAvatarUrl(message.FileUrl, req),

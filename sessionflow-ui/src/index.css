@@ -636,7 +636,8 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .tier-border-free {
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border: 1.5px solid rgba(100, 116, 139, 0.35) !important;
+  box-shadow: 0 0 0 0.5px rgba(100, 116, 139, 0.1);
 }
 
 .tier-border-pro {
