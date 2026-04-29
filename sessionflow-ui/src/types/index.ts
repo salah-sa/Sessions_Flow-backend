@@ -457,9 +457,9 @@ export interface Wallet {
 export interface WalletTransaction {
   referenceCode: string;
   type: string;
-  direction: "Inbound" | "Outbound";
+  direction: "Sent" | "Received";
   amountEgp: number;
-  relatedPhone: string;
+  counterpartyPhone: string;
   note?: string;
   status: string;
   createdAt: string;

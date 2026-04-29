@@ -2,9 +2,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
-using SessionFlow.Desktop.Data;
-using SessionFlow.Desktop.Models;
-using MongoDB.Driver;
 using SessionFlow.Desktop.Helpers;
 
 namespace SessionFlow.Desktop.Services;
@@ -42,8 +39,12 @@ public class WalletBackgroundService : BackgroundService
                 // Wait until midnight
                 await Task.Delay(delay, stoppingToken);
 
-                // Perform the reset
-                await ResetDailyLimitsAsync(stoppingToken);
+                // Perform the reset via WalletService
+                using var scope = _serviceProvider.CreateScope();
+                var walletService = scope.ServiceProvider.GetRequiredService<WalletService>();
+                await walletService.ResetDailyLimitsAsync(stoppingToken);
+
+                _logger.LogInformation("Daily wallet limit reset completed at {Time} UTC.", DateTimeOffset.UtcNow);
             }
             catch (TaskCanceledException)
             {
@@ -59,25 +60,5 @@ public class WalletBackgroundService : BackgroundService
 
         _logger.LogInformation("WalletBackgroundService is stopping.");
     }
-
-    private async Task ResetDailyLimitsAsync(CancellationToken stoppingToken)
-    {
-        _logger.LogInformation("Resetting daily wallet limits at {Time} UTC.", DateTimeOffset.UtcNow);
-
-        using var scope = _serviceProvider.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MongoService>();
-
-        var filter = Builders<Wallet>.Filter.Gt(w => w.DailyTransferredPiasters, 0);
-        var update = Builders<Wallet>.Update.Set(w => w.DailyTransferredPiasters, 0).Set(w => w.UpdatedAt, DateTimeOffset.UtcNow);
-
-        try
-        {
-            var result = await db.Wallets.UpdateManyAsync(filter, update, cancellationToken: stoppingToken);
-            _logger.LogInformation("Successfully reset {Count} wallets.", result.ModifiedCount);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to reset daily wallet limits in MongoDB.");
-        }
-    }
 }
+

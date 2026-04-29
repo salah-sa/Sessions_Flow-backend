@@ -47,9 +47,9 @@ public class WalletService
         {
             UserId = userId,
             PhoneNumber = phone,
-            PinHash = BCrypt.Net.BCrypt.HashPassword(pin),
+            PinHash = BCrypt.Net.BCrypt.HashPassword(pin, workFactor: 12),
             BalancePiasters = 0,
-            DailyTransferLimitPiasters = 10000000, // 100,000 EGP
+            DailyTransferLimitPiasters = 500_000, // Default 5,000 EGP
             DailyTransferredPiasters = 0,
             IsActive = true,
             CreatedAt = DateTimeOffset.UtcNow,
@@ -67,7 +67,12 @@ public class WalletService
         }
     }
 
-    public async Task<(bool isValid, string? error)> VerifyPinAsync(string phone, string pin, CancellationToken ct = default)
+    /// <summary>
+    /// Verify PIN with Redis-backed rate limiting (max 5 attempts per 15 minutes).
+    /// Returns (isValid, error, attemptsRemaining, unlockAt).
+    /// </summary>
+    public async Task<(bool isValid, string? error, int? attemptsRemaining, DateTimeOffset? unlockAt)> VerifyPinAsync(
+        string phone, string pin, CancellationToken ct = default)
     {
         var db = _redis.GetDatabase();
         var rateLimitKey = $"wallet_pin_attempts:{phone}";
@@ -78,24 +83,26 @@ public class WalletService
         if (attempts >= 5)
         {
             var ttl = await db.KeyTimeToLiveAsync(rateLimitKey);
-            return (false, $"Too many failed attempts. Please try again in {ttl?.TotalMinutes:F0} minutes.");
+            var unlockAt = DateTimeOffset.UtcNow.Add(ttl ?? TimeSpan.FromMinutes(15));
+            return (false, "Too many failed attempts. Account is temporarily locked.", 0, unlockAt);
         }
 
         var wallet = await GetWalletByPhoneAsync(phone, ct);
         if (wallet == null || !wallet.IsActive)
-            return (false, "Wallet not found or is inactive.");
+            return (false, "Wallet not found or is inactive.", null, null);
 
         bool isCorrect = BCrypt.Net.BCrypt.Verify(pin, wallet.PinHash);
         if (!isCorrect)
         {
             attempts++;
             await db.StringSetAsync(rateLimitKey, attempts, TimeSpan.FromMinutes(15));
-            return (false, $"Invalid PIN. {5 - attempts} attempts remaining.");
+            int remaining = 5 - attempts;
+            return (false, $"Invalid PIN. {remaining} attempts remaining.", remaining, null);
         }
 
         // On success, clear the rate limit
         await db.KeyDeleteAsync(rateLimitKey);
-        return (true, null);
+        return (true, null, null, null);
     }
 
     public async Task<(Transaction? transaction, string? error)> TransferAsync(
@@ -104,13 +111,23 @@ public class WalletService
         if (fromPhone == toPhone)
             return (null, "Cannot transfer to the same wallet.");
 
+        if (!_validationService.IsValidEgyptianNumber(toPhone))
+            return (null, "Invalid recipient phone number.");
+
         long amountPiasters = (long)(amountEGP * 100);
         
         if (!_validationService.IsValidAmount(amountPiasters))
             return (null, "Transfer amount must be between 0.01 EGP and 100,000 EGP.");
 
-        var (pinValid, pinError) = await VerifyPinAsync(fromPhone, pin, ct);
-        if (!pinValid) return (null, pinError);
+        var sanitizedNote = _validationService.SanitizeNote(note);
+
+        var (pinValid, pinError, _, unlockAt) = await VerifyPinAsync(fromPhone, pin, ct);
+        if (!pinValid)
+        {
+            if (unlockAt.HasValue)
+                return (null, $"Account locked. Try again after {unlockAt.Value:HH:mm:ss} UTC.");
+            return (null, pinError);
+        }
 
         using var session = await _db.Client.StartSessionAsync(cancellationToken: ct);
         
@@ -118,7 +135,7 @@ public class WalletService
         {
             session.StartTransaction();
 
-            // Fetch wallets outside of write lock first to check conditions, then we will use conditions in the Update command.
+            // Fetch wallets inside transaction for consistency
             var fromWallet = await _db.Wallets.Find(session, w => w.PhoneNumber == fromPhone).FirstOrDefaultAsync(ct);
             var toWallet = await _db.Wallets.Find(session, w => w.PhoneNumber == toPhone).FirstOrDefaultAsync(ct);
 
@@ -133,7 +150,7 @@ public class WalletService
             if (fromWallet.DailyTransferredPiasters + amountPiasters > fromWallet.DailyTransferLimitPiasters)
                 throw new InvalidOperationException("Transfer exceeds your daily limit.");
 
-            // Check Idempotency
+            // Check Idempotency — prevent double-spend
             var existingTx = await _db.Transactions.Find(session, t => t.IdempotencyKey == idempotencyKey).FirstOrDefaultAsync(ct);
             if (existingTx != null)
             {
@@ -141,6 +158,7 @@ public class WalletService
                 return (existingTx, null);
             }
 
+            // Atomic debit from sender
             var fromUpdate = Builders<Wallet>.Update
                 .Inc(w => w.BalancePiasters, -amountPiasters)
                 .Inc(w => w.DailyTransferredPiasters, amountPiasters)
@@ -153,6 +171,7 @@ public class WalletService
             if (fromResult == null)
                 throw new InvalidOperationException("Transaction failed due to state change (insufficient funds).");
 
+            // Atomic credit to receiver
             var toUpdate = Builders<Wallet>.Update
                 .Inc(w => w.BalancePiasters, amountPiasters)
                 .Set(w => w.UpdatedAt, DateTimeOffset.UtcNow);
@@ -178,7 +197,7 @@ public class WalletService
                 ToPhone = toPhone,
                 BalanceAfterSenderPiasters = fromResult.BalancePiasters,
                 BalanceAfterReceiverPiasters = toResult.BalancePiasters,
-                Note = note,
+                Note = sanitizedNote,
                 IpAddress = ipAddress,
                 InitiatedByUserId = initiatorId,
                 CreatedAt = DateTimeOffset.UtcNow,
@@ -216,6 +235,11 @@ public class WalletService
         if (amountPiasters <= 0)
             return (null, "Top-up amount must be greater than zero.");
 
+        if (!_validationService.IsValidEgyptianNumber(targetPhone))
+            return (null, "Invalid target phone number.");
+
+        var sanitizedNote = _validationService.SanitizeNote(note) ?? "Admin Top-Up";
+
         using var session = await _db.Client.StartSessionAsync(cancellationToken: ct);
         try
         {
@@ -237,7 +261,7 @@ public class WalletService
             var refCode = _validationService.GenerateReferenceCode();
             var transaction = new Transaction
             {
-                IdempotencyKey = Guid.NewGuid(), // Admins get a new GUID
+                IdempotencyKey = Guid.NewGuid(),
                 ReferenceCode = refCode,
                 Type = WalletTransactionType.AdminTopUp,
                 Status = WalletTransactionStatus.Completed,
@@ -245,7 +269,7 @@ public class WalletService
                 ToWalletId = toWallet.Id,
                 ToPhone = targetPhone,
                 BalanceAfterReceiverPiasters = toResult.BalancePiasters,
-                Note = note,
+                Note = sanitizedNote,
                 IpAddress = ipAddress,
                 InitiatedByUserId = adminId,
                 CreatedAt = DateTimeOffset.UtcNow,
@@ -269,4 +293,70 @@ public class WalletService
             return (null, "System error during top-up.");
         }
     }
+
+    /// <summary>
+    /// Get paginated transaction history for a wallet (both sent and received).
+    /// </summary>
+    public async Task<(List<TransactionDto> items, long totalCount)> GetTransactionsAsync(
+        Guid walletId, int page, int pageSize, CancellationToken ct = default)
+    {
+        var filter = Builders<Transaction>.Filter.Or(
+            Builders<Transaction>.Filter.Eq(t => t.FromWalletId, walletId),
+            Builders<Transaction>.Filter.Eq(t => t.ToWalletId, walletId)
+        );
+
+        var totalCount = await _db.Transactions.CountDocumentsAsync(filter, cancellationToken: ct);
+
+        var items = await _db.Transactions.Find(filter)
+            .SortByDescending(t => t.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Limit(pageSize)
+            .ToListAsync(ct);
+
+        var dtos = items.Select(t => new TransactionDto(
+            t.ReferenceCode,
+            t.Type.ToString(),
+            t.ToWalletId.HasValue && t.ToWalletId.Value == walletId ? "Received" : "Sent",
+            t.AmountPiasters / 100m,
+            t.ToWalletId.HasValue && t.ToWalletId.Value == walletId ? (t.FromPhone ?? "System") : t.ToPhone!,
+            t.Note,
+            t.Status.ToString(),
+            t.CreatedAt
+        )).ToList();
+
+        return (dtos, totalCount);
+    }
+
+    /// <summary>
+    /// Get all wallets (admin-only, paginated) with basic stats.
+    /// </summary>
+    public async Task<(List<Wallet> items, long totalCount)> GetAllWalletsAsync(int page, int pageSize, CancellationToken ct = default)
+    {
+        var filter = Builders<Wallet>.Filter.Empty;
+        var totalCount = await _db.Wallets.CountDocumentsAsync(filter, cancellationToken: ct);
+
+        var items = await _db.Wallets.Find(filter)
+            .SortByDescending(w => w.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Limit(pageSize)
+            .ToListAsync(ct);
+
+        return (items, totalCount);
+    }
+
+    /// <summary>
+    /// Reset daily transfer counters for all wallets. Called by WalletBackgroundService at midnight Cairo time.
+    /// </summary>
+    public async Task ResetDailyLimitsAsync(CancellationToken ct = default)
+    {
+        var filter = Builders<Wallet>.Filter.Gt(w => w.DailyTransferredPiasters, 0);
+        var update = Builders<Wallet>.Update
+            .Set(w => w.DailyTransferredPiasters, 0)
+            .Set(w => w.LastDailyReset, DateTimeOffset.UtcNow)
+            .Set(w => w.UpdatedAt, DateTimeOffset.UtcNow);
+
+        var result = await _db.Wallets.UpdateManyAsync(filter, update, cancellationToken: ct);
+        _logger.LogInformation("Reset daily limits for {Count} wallets.", result.ModifiedCount);
+    }
 }
+

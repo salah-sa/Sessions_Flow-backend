@@ -16,6 +16,9 @@ public static class WalletEndpoints
     {
         var group = app.MapGroup("/api/wallet").RequireAuthorization();
 
+        // ═══════════════════════════════════════════════
+        // POST /api/wallet/create
+        // ═══════════════════════════════════════════════
         group.MapPost("/create", async (
             [FromBody] CreateWalletRequest req,
             ClaimsPrincipal user,
@@ -31,9 +34,17 @@ public static class WalletEndpoints
             if (error != null)
                 return Results.BadRequest(new { error });
 
-            return Results.Ok(new { message = "Wallet created successfully", walletId = wallet!.Id });
+            return Results.Created($"/api/wallet/me", new {
+                walletId = wallet!.Id.ToString(),
+                phoneNumber = wallet.PhoneNumber,
+                balance = 0.00m,
+                createdAt = wallet.CreatedAt
+            });
         });
 
+        // ═══════════════════════════════════════════════
+        // GET /api/wallet/me
+        // ═══════════════════════════════════════════════
         group.MapGet("/me", async (
             ClaimsPrincipal user,
             WalletService walletService) =>
@@ -58,6 +69,40 @@ public static class WalletEndpoints
             return Results.Ok(response);
         });
 
+        // ═══════════════════════════════════════════════
+        // POST /api/wallet/verify-pin
+        // ═══════════════════════════════════════════════
+        group.MapPost("/verify-pin", async (
+            [FromBody] VerifyPinRequest req,
+            ClaimsPrincipal user,
+            WalletService walletService) =>
+        {
+            var userIdStr = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+                return Results.Unauthorized();
+
+            var wallet = await walletService.GetWalletByUserIdAsync(userId);
+            if (wallet == null)
+                return Results.NotFound(new { error = "Wallet not found." });
+
+            var (isValid, error, attemptsRemaining, unlockAt) = await walletService.VerifyPinAsync(wallet.PhoneNumber, req.Pin);
+
+            if (unlockAt.HasValue)
+            {
+                return Results.Json(new { locked = true, unlockAt = unlockAt.Value }, statusCode: 429);
+            }
+
+            if (!isValid)
+            {
+                return Results.Json(new { valid = false, attemptsRemaining = attemptsRemaining ?? 0 }, statusCode: 401);
+            }
+
+            return Results.Ok(new { valid = true });
+        });
+
+        // ═══════════════════════════════════════════════
+        // POST /api/wallet/transfer
+        // ═══════════════════════════════════════════════
         group.MapPost("/transfer", async (
             [FromBody] TransferRequest req,
             ClaimsPrincipal user,
@@ -81,19 +126,21 @@ public static class WalletEndpoints
             if (error != null)
                 return Results.BadRequest(new { error });
 
-            // Notify Sender
+            // Notify Sender via real-time
             await eventBus.PublishAsync(Events.WalletBalanceUpdated, EventTargetType.User, userId.ToString(), new {
-                balanceEgp = transaction!.BalanceAfterSenderPiasters / 100m
+                balanceEgp = transaction!.BalanceAfterSenderPiasters / 100m,
+                transactionRef = transaction.ReferenceCode
             });
 
-            // Notify Receiver
+            // Notify Receiver via real-time
             if (transaction.ToWalletId.HasValue)
             {
                 var receiverWallet = await walletService.GetWalletByPhoneAsync(req.ToPhone);
                 if (receiverWallet != null)
                 {
                     await eventBus.PublishAsync(Events.WalletBalanceUpdated, EventTargetType.User, receiverWallet.UserId.ToString(), new {
-                        balanceEgp = transaction.BalanceAfterReceiverPiasters / 100m
+                        balanceEgp = transaction.BalanceAfterReceiverPiasters / 100m,
+                        transactionRef = transaction.ReferenceCode
                     });
 
                     await eventBus.PublishAsync(Events.WalletTransactionReceived, EventTargetType.User, receiverWallet.UserId.ToString(), new {
@@ -116,51 +163,37 @@ public static class WalletEndpoints
             return Results.Ok(response);
         });
 
+        // ═══════════════════════════════════════════════
+        // GET /api/wallet/transactions?page=1&pageSize=20
+        // ═══════════════════════════════════════════════
         group.MapGet("/transactions", async (
             int page,
-            int limit,
+            int pageSize,
             ClaimsPrincipal user,
-            SessionFlow.Desktop.Data.MongoService db) =>
+            WalletService walletService) =>
         {
             var userIdStr = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
                 return Results.Unauthorized();
 
-            // We need to fetch the user's wallet ID first
-            var wallet = await db.Wallets.Find(w => w.UserId == userId).FirstOrDefaultAsync();
+            var wallet = await walletService.GetWalletByUserIdAsync(userId);
             if (wallet == null)
-                return Results.Ok(new { items = Array.Empty<TransactionDto>(), total = 0, page, limit });
+                return Results.Ok(new { items = Array.Empty<TransactionDto>(), totalCount = 0L, page, pageSize });
 
-            var filter = Builders<Transaction>.Filter.Or(
-                Builders<Transaction>.Filter.Eq(t => t.FromWalletId, wallet.Id),
-                Builders<Transaction>.Filter.Eq(t => t.ToWalletId, wallet.Id)
-            );
+            // Clamp pageSize to prevent abuse
+            pageSize = Math.Clamp(pageSize, 1, 100);
 
-            var total = await db.Transactions.CountDocumentsAsync(filter);
-            
-            var items = await db.Transactions.Find(filter)
-                .SortByDescending(t => t.CreatedAt)
-                .Skip((page - 1) * limit)
-                .Limit(limit)
-                .ToListAsync();
+            var (items, totalCount) = await walletService.GetTransactionsAsync(wallet.Id, page, pageSize);
 
-            var dtos = items.Select(t => new TransactionDto(
-                t.ReferenceCode,
-                t.Type.ToString(),
-                t.ToWalletId == wallet.Id ? "Inbound" : "Outbound",
-                t.AmountPiasters / 100m,
-                t.ToWalletId == wallet.Id ? (t.FromPhone ?? "System") : t.ToPhone!,
-                t.Note,
-                t.Status.ToString(),
-                t.CreatedAt
-            ));
-
-            return Results.Ok(new { items = dtos, total, page, limit });
+            return Results.Ok(new { items, totalCount, page, pageSize });
         });
 
-        // Admin Endpoints
+        // ═══════════════════════════════════════════════
+        // ADMIN ENDPOINTS
+        // ═══════════════════════════════════════════════
         var adminGroup = app.MapGroup("/api/wallet/admin").RequireAuthorization("AdminOnly");
 
+        // POST /api/wallet/admin/topup
         adminGroup.MapPost("/topup", async (
             [FromBody] AdminTopUpRequest req,
             ClaimsPrincipal user,
@@ -180,14 +213,15 @@ public static class WalletEndpoints
             if (error != null)
                 return Results.BadRequest(new { error });
 
-            // Notify Receiver
+            // Notify Receiver via real-time
             if (transaction!.ToWalletId.HasValue)
             {
                 var receiverWallet = await walletService.GetWalletByPhoneAsync(req.TargetPhone);
                 if (receiverWallet != null)
                 {
                     await eventBus.PublishAsync(Events.WalletBalanceUpdated, EventTargetType.User, receiverWallet.UserId.ToString(), new {
-                        balanceEgp = transaction.BalanceAfterReceiverPiasters / 100m
+                        balanceEgp = transaction.BalanceAfterReceiverPiasters / 100m,
+                        transactionRef = transaction.ReferenceCode
                     });
 
                     await eventBus.PublishAsync(Events.WalletTransactionReceived, EventTargetType.User, receiverWallet.UserId.ToString(), new {
@@ -204,6 +238,30 @@ public static class WalletEndpoints
                 referenceCode = transaction.ReferenceCode,
                 newBalanceEgp = transaction.BalanceAfterReceiverPiasters / 100m
             });
+        });
+
+        // GET /api/wallet/admin/all?page=1&pageSize=50
+        adminGroup.MapGet("/all", async (
+            int page,
+            int pageSize,
+            WalletService walletService) =>
+        {
+            pageSize = Math.Clamp(pageSize, 1, 100);
+
+            var (wallets, totalCount) = await walletService.GetAllWalletsAsync(page, pageSize);
+
+            var items = wallets.Select(w => new {
+                walletId = w.Id.ToString(),
+                userId = w.UserId.ToString(),
+                phoneNumber = w.PhoneNumber,
+                balanceEgp = w.BalancePiasters / 100m,
+                dailyLimitEgp = w.DailyTransferLimitPiasters / 100m,
+                dailyUsedEgp = w.DailyTransferredPiasters / 100m,
+                isActive = w.IsActive,
+                createdAt = w.CreatedAt
+            });
+
+            return Results.Ok(new { items, totalCount, page, pageSize });
         });
     }
 }
