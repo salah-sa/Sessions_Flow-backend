@@ -56,7 +56,7 @@ public class SmsService
     // ─── Public API ───────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Sends OTP SMS. Tries Vonage first, then Brevo as fallback.
+    /// Sends OTP. Provider priority: WhatsApp → Vonage → Brevo.
     /// </summary>
     public Task<(bool success, string? error)> SendOtpAsync(
         string toPhone, string code, string purpose, CancellationToken ct = default)
@@ -69,35 +69,112 @@ public class SmsService
             _              => "Verification"
         };
 
-        var message = $"[SessionFlow] Your {purposeLabel} code is: {code}. Valid 5 min. Do not share.";
-        return SendSmsAsync(toPhone, message, ct);
+        var plainMessage = $"[SessionFlow] Your {purposeLabel} code is: {code}. Valid 5 min. Do not share.";
+        return SendWithFallbackAsync(toPhone, code, plainMessage, ct);
     }
 
-    /// <summary>
-    /// Sends an SMS with automatic provider selection and fallback.
-    /// </summary>
-    public async Task<(bool success, string? error)> SendSmsAsync(
-        string toPhone, string message, CancellationToken ct = default)
+    private async Task<(bool success, string? error)> SendWithFallbackAsync(
+        string toPhone, string otpCode, string plainMessage, CancellationToken ct)
     {
-        // Try Vonage first
-        var vonageKey    = Environment.GetEnvironmentVariable("VONAGE_API_KEY");
-        var vonageSecret = Environment.GetEnvironmentVariable("VONAGE_API_SECRET");
+        // 1️⃣ WhatsApp Cloud API (Meta) — free 1000 conversations/month
+        var waToken   = Environment.GetEnvironmentVariable("WHATSAPP_ACCESS_TOKEN");
+        var waPhoneId = Environment.GetEnvironmentVariable("WHATSAPP_PHONE_NUMBER_ID");
+        var waTemplate = Environment.GetEnvironmentVariable("WHATSAPP_TEMPLATE_NAME") ?? "sessionflow_otp";
 
-        if (!string.IsNullOrEmpty(vonageKey) && !string.IsNullOrEmpty(vonageSecret))
+        if (!string.IsNullOrEmpty(waToken) && !string.IsNullOrEmpty(waPhoneId))
         {
-            var (ok, err) = await SendViaVonageAsync(toPhone, message, vonageKey, vonageSecret, ct);
+            var (ok, err) = await SendViaWhatsAppAsync(toPhone, otpCode, waToken, waPhoneId, waTemplate, ct);
             if (ok) return (true, null);
-            _logger.LogWarning("[SMS] Vonage failed ({Err}), trying Brevo fallback.", err);
+            _logger.LogWarning("[SMS] WhatsApp failed ({Err}), trying Vonage.", err);
         }
 
-        // Fallback to Brevo
+        // 2️⃣ Vonage
+        var vonageKey    = Environment.GetEnvironmentVariable("VONAGE_API_KEY");
+        var vonageSecret = Environment.GetEnvironmentVariable("VONAGE_API_SECRET");
+        if (!string.IsNullOrEmpty(vonageKey) && !string.IsNullOrEmpty(vonageSecret))
+        {
+            var (ok, err) = await SendViaVonageAsync(toPhone, plainMessage, vonageKey, vonageSecret, ct);
+            if (ok) return (true, null);
+            _logger.LogWarning("[SMS] Vonage failed ({Err}), trying Brevo.", err);
+        }
+
+        // 3️⃣ Brevo
         var brevoKey = Environment.GetEnvironmentVariable("BREVO_API_KEY");
         if (!string.IsNullOrEmpty(brevoKey))
-            return await SendViaBrevoAsync(toPhone, message, brevoKey, ct);
+            return await SendViaBrevoAsync(toPhone, plainMessage, brevoKey, ct);
 
-        _logger.LogWarning("[SMS] No SMS provider configured. Set VONAGE_API_KEY/VONAGE_API_SECRET or BREVO_API_KEY.");
+        _logger.LogWarning("[SMS] No SMS provider configured. Set WHATSAPP_ACCESS_TOKEN or VONAGE_API_KEY.");
         return (false, "No SMS provider configured.");
     }
+
+    // ─── WhatsApp Cloud API ───────────────────────────────────────────────────
+
+    private async Task<(bool, string?)> SendViaWhatsAppAsync(
+        string toPhone, string otpCode,
+        string accessToken, string phoneNumberId, string templateName,
+        CancellationToken ct)
+    {
+        // WhatsApp uses same format as Vonage: 201XXXXXXXXX (no '+')
+        var normalized = NormalizeForVonage(toPhone);
+
+        // Meta authentication template payload
+        var payload = new
+        {
+            messaging_product = "whatsapp",
+            to = normalized,
+            type = "template",
+            template = new
+            {
+                name = templateName,
+                language = new { code = "en_US" },
+                components = new[]
+                {
+                    new
+                    {
+                        type = "body",
+                        parameters = new[] { new { type = "text", text = otpCode } }
+                    },
+                    new
+                    {
+                        type = "button",
+                        sub_type = "url",
+                        index = "0",
+                        parameters = new[] { new { type = "text", text = otpCode } }
+                    }
+                }
+            }
+        };
+
+        try
+        {
+            var json = JsonSerializer.Serialize(payload);
+            var url  = $"https://graph.facebook.com/v19.0/{phoneNumberId}/messages";
+
+            using var client  = _httpClientFactory.CreateClient();
+            using var request = new HttpRequestMessage(HttpMethod.Post, url);
+            request.Headers.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await client.SendAsync(request, ct);
+            var body     = await response.Content.ReadAsStringAsync(ct);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("[SMS/WhatsApp] OTP sent to {Phone}", normalized);
+                return (true, null);
+            }
+
+            _logger.LogError("[SMS/WhatsApp] Error ({Status}): {Body}", response.StatusCode, body);
+            return (false, $"WhatsApp error: {response.StatusCode} — {body}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[SMS/WhatsApp] Exception sending to {Phone}", normalized);
+            return (false, ex.Message);
+        }
+    }
+
 
     // ─── Vonage Provider ──────────────────────────────────────────────────────
 
