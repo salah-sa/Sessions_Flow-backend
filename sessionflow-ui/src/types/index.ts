@@ -446,11 +446,11 @@ export interface ImportResult extends ImportPreview {
 // ═══════════════════════════════════════════════
 
 export interface Wallet {
-  id: string;
+  walletId: string;
   phoneNumber: string;
-  balanceEgp: number;
-  dailyTransferLimitEgp: number;
-  dailyTransferredEgp: number;
+  balanceEGP: number;
+  dailyLimitEGP: number;
+  dailyUsedEGP: number;
   isActive: boolean;
 }
 
@@ -458,7 +458,7 @@ export interface WalletTransaction {
   referenceCode: string;
   type: string;
   direction: "Sent" | "Received";
-  amountEgp: number;
+  amountEGP: number;
   counterpartyPhone: string;
   note?: string;
   status: string;

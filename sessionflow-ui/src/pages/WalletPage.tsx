@@ -176,7 +176,7 @@ export function WalletPage() {
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-300">Amount (EGP)</label>
-            <Input type="number" min="1" max={wallet.balanceEgp} placeholder="0.00" value={transferAmount} onChange={(e: any) => setTransferAmount(e.target.value)} required />
+            <Input type="number" min="1" max={wallet.balanceEGP} placeholder="0.00" value={transferAmount} onChange={(e: any) => setTransferAmount(e.target.value)} required />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-300">Confirm PIN</label>
@@ -202,7 +202,7 @@ export function WalletPage() {
             <p className="font-medium text-ui-accent text-sm mb-2">Available Balance</p>
             <h2 className="text-5xl font-bold flex items-baseline gap-2 text-white">
               <span className="text-2xl font-normal text-slate-400">EGP</span>
-              {wallet.balanceEgp.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              {(wallet.balanceEGP ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </h2>
           </div>
           <div className="pt-4 flex flex-wrap gap-4 items-center justify-between border-t border-white/5">
@@ -224,14 +224,14 @@ export function WalletPage() {
               <Activity className="w-4 h-4" /> Daily Transfer Limit
             </p>
             <h3 className="text-2xl font-bold text-white">
-              EGP {wallet.dailyTransferredEgp.toLocaleString()} <span className="text-sm text-slate-500 font-normal">/ {wallet.dailyTransferLimitEgp.toLocaleString()}</span>
+              EGP {(wallet.dailyUsedEGP ?? 0).toLocaleString()} <span className="text-sm text-slate-500 font-normal">/ {(wallet.dailyLimitEGP ?? 0).toLocaleString()}</span>
             </h3>
           </div>
           <div className="mt-4">
             <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
               <div 
                 className="bg-ui-accent h-full transition-all" 
-                style={{ width: `${Math.min(100, (wallet.dailyTransferredEgp / wallet.dailyTransferLimitEgp) * 100)}%` }} 
+                style={{ width: `${Math.min(100, ((wallet.dailyUsedEGP ?? 0) / (wallet.dailyLimitEGP || 1)) * 100)}%` }} 
               />
             </div>
             <p className="text-xs text-slate-500 mt-2 text-right">
@@ -259,11 +259,11 @@ export function WalletPage() {
               {txData.items.map((tx) => (
                 <div key={tx.referenceCode} className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-black/20 hover:bg-white/[0.02] transition-colors">
                   <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-xl ${tx.direction === "Inbound" ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"}`}>
-                      {tx.direction === "Inbound" ? <ArrowDownLeft className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
+                    <div className={`p-3 rounded-xl ${tx.direction === "Received" ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"}`}>
+                      {tx.direction === "Received" ? <ArrowDownLeft className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
                     </div>
                     <div>
-                      <p className="font-medium text-white">{tx.direction === "Inbound" ? "Received from" : "Sent to"} {tx.relatedPhone}</p>
+                      <p className="font-medium text-white">{tx.direction === "Received" ? "Received from" : "Sent to"} {tx.counterpartyPhone}</p>
                       <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400 mt-1">
                         <span>{new Date(tx.createdAt).toLocaleDateString()} {new Date(tx.createdAt).toLocaleTimeString()}</span>
                         {tx.note && (
@@ -276,8 +276,8 @@ export function WalletPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={`font-bold text-lg ${tx.direction === "Inbound" ? "text-emerald-500" : "text-white"}`}>
-                      {tx.direction === "Inbound" ? "+" : "-"} EGP {tx.amountEgp.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    <p className={`font-bold text-lg ${tx.direction === "Received" ? "text-emerald-500" : "text-white"}`}>
+                      {tx.direction === "Received" ? "+" : "-"} EGP {(tx.amountEGP ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </p>
                     <Badge variant={tx.status === "Completed" ? "success" : "outline"} className="mt-1">
                       {tx.status}
