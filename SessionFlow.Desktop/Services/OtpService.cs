@@ -1,6 +1,7 @@
 using StackExchange.Redis;
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;
+using Microsoft.Extensions.Hosting;
 
 namespace SessionFlow.Desktop.Services;
 
@@ -13,16 +14,19 @@ public class OtpService
 {
     private readonly IConnectionMultiplexer _redis;
     private readonly ILogger<OtpService> _logger;
+    private readonly SmsService _sms;
+    private readonly IHostEnvironment _env;
 
-    private const int OtpLength = 6;
     private const int OtpTtlMinutes = 5;
     private const int MaxSendsPerHour = 3;
     private const int MaxVerifyAttempts = 5;
 
-    public OtpService(IConnectionMultiplexer redis, ILogger<OtpService> logger)
+    public OtpService(IConnectionMultiplexer redis, ILogger<OtpService> logger, SmsService sms, IHostEnvironment env)
     {
         _redis = redis;
         _logger = logger;
+        _sms = sms;
+        _env = env;
     }
 
     // ─── Key Helpers ─────────────────────────────────────────────────────────
@@ -62,10 +66,23 @@ public class OtpService
         await db.StringIncrementAsync(rateKey);
         await db.KeyExpireAsync(rateKey, TimeSpan.FromHours(1));
 
-        // TODO: Replace with real SMS provider (Twilio, Unifonic, etc.)
-        _logger.LogWarning("[OTP-SMS] PHONE={Phone} PURPOSE={Purpose} CODE={Code} (dev mode — not sent via SMS)", phone, purpose, code);
+        // Send real SMS via Brevo
+        var (smsSent, smsError) = await _sms.SendOtpAsync(phone, code, purpose);
+        if (!smsSent)
+        {
+            _logger.LogWarning("[OTP-SMS] SMS delivery failed for {Phone}: {Error}", phone, smsError);
+            // Still return the code in development so devs can test without SMS credits
+            if (_env.IsDevelopment())
+                return (code, null);
+            // In production, fail loudly so the user knows to retry
+            return (null, "Failed to send SMS. Please try again in a moment.");
+        }
 
-        return (code, null);
+        _logger.LogInformation("[OTP-SMS] SMS sent to {Phone} for purpose={Purpose}", phone, purpose);
+
+        // Only expose devCode in Development (never in production)
+        var devCode = _env.IsDevelopment() ? code : null;
+        return (devCode, null);
     }
 
     /// <summary>
