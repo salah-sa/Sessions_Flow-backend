@@ -39,6 +39,7 @@ export const PLAN_LIMITS = {
   }
 };
 
-export const getTierLimits = (tier?: SubscriptionTier) => {
+export const getTierLimits = (tier?: SubscriptionTier, role?: string) => {
+  if (role === "Admin") return PLAN_LIMITS["Ultra"];
   return PLAN_LIMITS[tier || "Free"];
 };

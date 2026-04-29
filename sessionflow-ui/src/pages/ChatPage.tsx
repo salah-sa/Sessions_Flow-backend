@@ -310,7 +310,7 @@ const ChatPage: React.FC = () => {
                 const studentStyle = (isStudent && !isPremium) ? getStudentBorderStyle(user?.id || "") : {};
                 return (
                   <div 
-                    className={cn("rounded-full", !studentStyle.background && getTierBorderClass(user?.subscriptionTier))}
+                    className={cn("rounded-full", !studentStyle.background && getTierBorderClass(user?.subscriptionTier, user?.role))}
                     style={studentStyle}
                   >
                     <div className="w-9 h-9 xs:w-10 xs:h-10 rounded-full bg-[var(--ui-sidebar-bg)] flex items-center justify-center text-slate-600 group-hover:text-[var(--ui-accent)] transition-colors overflow-hidden relative z-10">

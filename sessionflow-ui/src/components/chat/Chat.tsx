@@ -55,7 +55,7 @@ const ProfileImage: React.FC<{ userId?: string; url?: string | null; initial?: s
   
   return (
     <div 
-      className={cn("w-10 h-10 rounded-2xl z-10 shrink-0", !studentStyle.background && getTierBorderClass(subscriptionTier))}
+      className={cn("w-10 h-10 rounded-2xl z-10 shrink-0", !studentStyle.background && getTierBorderClass(subscriptionTier, role))}
       style={studentStyle}
     >
       <div className={cn(
@@ -217,7 +217,7 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
                             message.readBy.map((r, idx) => (
                               <div key={idx} className="flex items-center justify-between gap-2 group/read">
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <div className={cn("w-5 h-5 rounded-md flex items-center justify-center text-[8px] font-bold shrink-0", getTierBorderClass(r.subscriptionTier))}>
+                                  <div className={cn("w-5 h-5 rounded-md flex items-center justify-center text-[8px] font-bold shrink-0", getTierBorderClass(r.subscriptionTier, r.userRole))}>
                                      <div className="w-full h-full rounded-[4px] bg-ui-sidebar-bg flex items-center justify-center text-ui-accent">
                                         {r.userName.charAt(0)}
                                      </div>
@@ -275,8 +275,8 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
   const { invoke } = useSignalR();
   const user = useAuthStore((s) => s.user);
   // Initialize from tier limits so UI is always populated, even before first API response
-  const tierLimits = getTierLimits(user?.subscriptionTier);
-  const tierBadge = getTierBadge(user?.subscriptionTier);
+  const tierLimits = getTierLimits(user?.subscriptionTier, user?.role);
+  const tierBadge = getTierBadge(user?.subscriptionTier, user?.role);
   const isUnlimitedMessages = tierLimits.maxDailyMessages === Infinity;
 
   const [localRemaining, setLocalRemaining] = useState<number | null>(usage?.remaining ?? (isUnlimitedMessages ? null : tierLimits.maxDailyMessages));

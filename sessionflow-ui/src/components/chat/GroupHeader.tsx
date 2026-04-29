@@ -62,7 +62,7 @@ const MemberAvatar: React.FC<{
   return (
     <div className="relative group/avatar" title={name}>
       <div
-        className={cn("rounded-full", (isEngineer || ['ultra', 'pro', 'enterprise'].includes(subscriptionTier?.toLowerCase() || "")) ? getTierBorderClass(subscriptionTier) : "")}
+        className={cn("rounded-full", (isEngineer || subscriptionTier?.toLowerCase() === 'ultra' || ['ultra', 'pro', 'enterprise'].includes(subscriptionTier?.toLowerCase() || "")) ? getTierBorderClass(subscriptionTier, isEngineer ? "Engineer" : undefined) : "")}
         style={(!isEngineer && !['ultra', 'pro', 'enterprise'].includes(subscriptionTier?.toLowerCase() || "")) ? getStudentBorderStyle(userId) : undefined}
       >
         <div className={cn(

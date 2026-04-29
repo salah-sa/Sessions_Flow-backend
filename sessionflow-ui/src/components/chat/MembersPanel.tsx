@@ -97,8 +97,8 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
     >
       <div className="relative shrink-0">
         <div
-          className={cn("rounded-full", (member.role === "Engineer" || ['ultra', 'pro', 'enterprise'].includes(member.subscriptionTier?.toLowerCase() || "")) ? getTierBorderClass(member.subscriptionTier) : "")}
-          style={(member.role !== "Engineer" && !['ultra', 'pro', 'enterprise'].includes(member.subscriptionTier?.toLowerCase() || "")) ? getStudentBorderStyle(member.id) : undefined}
+          className={cn("rounded-full", (member.role === "Engineer" || member.role === "Admin" || ['ultra', 'pro', 'enterprise'].includes(member.subscriptionTier?.toLowerCase() || "")) ? getTierBorderClass(member.subscriptionTier, member.role) : "")}
+          style={(member.role === "Student" && !['ultra', 'pro', 'enterprise'].includes(member.subscriptionTier?.toLowerCase() || "")) ? getStudentBorderStyle(member.id) : undefined}
         >
           <div className={cn(
             "w-9 h-9 xs:w-10 xs:h-10 rounded-full flex items-center justify-center text-[10px] xs:text-xs font-bold uppercase overflow-hidden relative z-10",

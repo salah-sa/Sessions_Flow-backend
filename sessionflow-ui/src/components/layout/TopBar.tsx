@@ -289,7 +289,7 @@ const TopBar: React.FC = () => {
                 const studentStyle = (isStudent && !isPremium) ? getStudentBorderStyle(user?.id || "") : {};
                 return (
                   <div 
-                    className={cn("rounded-xl", !studentStyle.background && getTierBorderClass(user?.subscriptionTier))}
+                    className={cn("rounded-xl", !studentStyle.background && getTierBorderClass(user?.subscriptionTier, user?.role))}
                     style={studentStyle}
                   >
                     <div className="w-10 h-10 rounded-xl bg-[var(--ui-surface)] flex items-center justify-center text-white overflow-hidden shadow-xl transition-all duration-300 group-hover:shadow-[var(--ui-accent)]/10 relative z-10">
