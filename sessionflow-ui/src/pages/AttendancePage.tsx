@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
-import { Calendar, CheckCircle, Clock, Users, Zap, Search, ExternalLink, SkipForward, Loader2, X, Lock, ArrowUpRight } from "lucide-react";
+import { Calendar, CheckCircle, Clock, Users, Zap, Search, ExternalLink, SkipForward, Loader2, X, Lock, ArrowUpRight, AlertCircle, UserCheck, UserX, Info } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useInfiniteSessions, useSessionMutations } from "../queries/useSessionQueries";
 import { Session } from "../types";
@@ -12,14 +12,71 @@ import { toast } from "sonner";
 import { useAuthStore } from "../store/stores";
 import { getTierLimits } from "../lib/limits";
 
+// ─── Hover Summary Tooltip ───────────────────────────────────────────────────
+const AttendanceSummaryTooltip: React.FC<{ session: Session; visible: boolean }> = ({ session, visible }) => {
+  if (!visible || session.status !== "Ended") return null;
+
+  const present  = session.presentCount  ?? session.totalStudents ?? 0;
+  const absent   = session.absentCount   ?? 0;
+  const total    = session.totalStudents ?? (present + absent);
+  const rate     = total > 0 ? Math.round((present / total) * 100) : 0;
+  const endTime  = session.endedAt ? formatDateTo12h(new Date(session.endedAt)) : "—";
+
+  return (
+    <div className="absolute inset-x-0 -top-2 -translate-y-full z-50 animate-in fade-in slide-in-from-bottom-2 duration-150 pointer-events-none">
+      <div className="mx-2 p-4 rounded-2xl bg-[#0f172a] border border-white/10 shadow-2xl shadow-black/60 backdrop-blur-xl">
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-white/5">
+          <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+          <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Attendance Summary</p>
+        </div>
+        {/* Stats row */}
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="text-center p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+            <p className="text-lg font-bold text-emerald-400">{present}</p>
+            <p className="text-[9px] font-bold text-emerald-500/60 uppercase tracking-wider">Present</p>
+          </div>
+          <div className="text-center p-2 rounded-xl bg-rose-500/10 border border-rose-500/20">
+            <p className="text-lg font-bold text-rose-400">{absent}</p>
+            <p className="text-[9px] font-bold text-rose-500/60 uppercase tracking-wider">Absent</p>
+          </div>
+          <div className="text-center p-2 rounded-xl bg-blue-500/10 border border-blue-500/20">
+            <p className="text-lg font-bold text-blue-400">{rate}%</p>
+            <p className="text-[9px] font-bold text-blue-500/60 uppercase tracking-wider">Rate</p>
+          </div>
+        </div>
+        {/* Ended time */}
+        <div className="flex items-center gap-2 text-[10px] text-slate-500 font-semibold">
+          <Clock className="w-3 h-3" />
+          <span>Ended at {endTime} · Session #{session.sessionNumber}</span>
+        </div>
+        {/* Progress bar */}
+        <div className="mt-3 h-1.5 bg-white/5 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full transition-all duration-500"
+            style={{ width: `${rate}%` }}
+          />
+        </div>
+      </div>
+      {/* Arrow */}
+      <div className="flex justify-center">
+        <div className="w-3 h-3 rotate-45 bg-[#0f172a] border-r border-b border-white/10 -mt-1.5" />
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Page ───────────────────────────────────────────────────────────────
 const AttendancePage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery]         = useState("");
   const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
-  const [wizardSession, setWizardSession] = useState<Session | null>(null);
-  const [skipSessionId, setSkipSessionId] = useState<string | null>(null);
-  const [skipReason, setSkipReason] = useState<string>("");
+  const [wizardSession, setWizardSession]     = useState<Session | null>(null);
+  const [skipSessionId, setSkipSessionId]     = useState<string | null>(null);
+  const [skipReason, setSkipReason]           = useState<string>("");
+  const [confirmSession, setConfirmSession]   = useState<Session | null>(null); // pre-flight confirm
+  const [hoveredSessionId, setHoveredSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     (window as any).onWizardComplete = (id: string) => {
@@ -30,9 +87,7 @@ const AttendancePage: React.FC = () => {
     };
   }, []);
 
-  // Ensure we fetch the exact day in Cairo, bypassing the local machine timezone
   const todayStr = getCairoDateStr();
-  
   const { data, isLoading } = useInfiniteSessions({
     startDate: todayStr,
     endDate: todayStr,
@@ -40,24 +95,17 @@ const AttendancePage: React.FC = () => {
   });
 
   const { startMutation, endMutation, skipMutation } = useSessionMutations();
-
-  const user = useAuthStore(s => s.user);
+  const user   = useAuthStore(s => s.user);
   const limits = getTierLimits(user?.subscriptionTier);
-  
-  const sessions = data?.pages.flatMap(p => p.items) || [];
-  const completedToday = sessions.filter(s => s.status === "Ended" && !s.isSkipped).length;
-  const quotaReached = limits.maxDailyAttendance !== Infinity && completedToday >= limits.maxDailyAttendance;
-  
-  const filteredSessions = sessions.filter(s => {
-    if (searchQuery && !s.groupName?.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
-    return true;
-  });
 
-  const handleMakeAttendance = (session: Session) => {
-    setWizardSession(session);
-  };
+  const sessions         = data?.pages.flatMap(p => p.items) || [];
+  const completedToday   = sessions.filter(s => s.status === "Ended" && !s.isSkipped).length;
+  const quotaReached     = limits.maxDailyAttendance !== Infinity && completedToday >= limits.maxDailyAttendance;
+  const filteredSessions = sessions.filter(s =>
+    !searchQuery || s.groupName?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleMakeAttendance = (session: Session) => setWizardSession(session);
 
   return (
     <div className="h-full flex flex-col bg-[var(--ui-bg)] animate-fade-in overflow-hidden relative">
@@ -87,7 +135,7 @@ const AttendancePage: React.FC = () => {
               className="w-full sm:w-72 bg-white/[0.03] border border-white/10 rounded-xl py-2.5 pl-11 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[var(--ui-accent)]/50 focus:border-[var(--ui-accent)] transition-all"
             />
           </div>
-          
+
           {user?.role === "Engineer" && (
             <div className={cn(
               "flex items-center gap-2 px-4 py-2 bg-white/[0.03] border rounded-xl",
@@ -98,8 +146,8 @@ const AttendancePage: React.FC = () => {
                 Quota: <span className={cn(quotaReached ? "text-rose-400" : "text-amber-400")}>{completedToday}</span> / {limits.maxDailyAttendance === Infinity ? "∞" : limits.maxDailyAttendance}
               </span>
               {quotaReached && (
-                <button 
-                  onClick={() => navigate("/pricing")} 
+                <button
+                  onClick={() => navigate("/pricing")}
                   className="flex items-center gap-1 text-[10px] font-bold text-ui-accent uppercase tracking-widest hover:underline ms-2"
                 >
                   Upgrade <ArrowUpRight className="w-3 h-3" />
@@ -126,7 +174,7 @@ const AttendancePage: React.FC = () => {
             </div>
             <h3 className="text-lg font-medium text-white mb-2">No Sessions Found</h3>
             <p className="text-slate-400 text-sm max-w-sm">
-              {searchQuery 
+              {searchQuery
                 ? "No groups match your search for today."
                 : "There are no sessions scheduled for today."}
             </p>
@@ -134,38 +182,57 @@ const AttendancePage: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredSessions.map((session) => {
-              const rawUtcStart = new Date(session.scheduledAt);
+              const rawUtcStart  = new Date(session.scheduledAt);
               const startTimeStr = formatDateTo12h(rawUtcStart);
-              
               let endTimeStr = "";
               if (session.endedAt) {
-                 const rawUtcEnd = new Date(session.endedAt);
-                 endTimeStr = formatDateTo12h(rawUtcEnd);
+                const rawUtcEnd = new Date(session.endedAt);
+                endTimeStr = formatDateTo12h(rawUtcEnd);
               }
-              
-              const studentCount = session.totalStudents || 0;
-              const isAttendable = session.status !== "Ended"; 
-              const isScheduled = session.status === "Scheduled";
-              const isActive = session.status === "Active";
-              // Lock non-started sessions when quota is hit (allow already-active sessions)
+
+              const studentCount    = session.totalStudents || 0;
+              const isAttendable    = session.status !== "Ended";
+              const isScheduled     = session.status === "Scheduled";
+              const isActive        = session.status === "Active";
+              const isEnded         = session.status === "Ended";
               const isLockedByQuota = quotaReached && isScheduled;
+              const isHovered       = hoveredSessionId === session.id;
 
               return (
-                <Card key={session.id} className={cn(
-                  "p-5 sm:p-6 border border-white/5 bg-[var(--ui-sidebar-bg)]/40 backdrop-blur-3xl hover:bg-white/[0.04] transition-all group flex flex-col relative overflow-hidden",
-                  !isAttendable && "opacity-75",
-                  isLockedByQuota && "opacity-40 blur-[0.5px] pointer-events-none select-none"
-                )}>
+                <Card
+                  key={session.id}
+                  className={cn(
+                    "p-5 sm:p-6 border border-white/5 bg-[var(--ui-sidebar-bg)]/40 backdrop-blur-3xl hover:bg-white/[0.04] transition-all group flex flex-col relative overflow-visible",
+                    !isAttendable && "opacity-75",
+                    isLockedByQuota && "opacity-40 blur-[0.5px] pointer-events-none select-none"
+                  )}
+                  onMouseEnter={() => setHoveredSessionId(session.id)}
+                  onMouseLeave={() => setHoveredSessionId(null)}
+                >
+                  {/* ── Hover summary tooltip for completed sessions ── */}
+                  {isEnded && (
+                    <AttendanceSummaryTooltip session={session} visible={isHovered} />
+                  )}
+
                   {isScheduled && !isLockedByQuota && (
                     <div className="absolute top-0 right-0 px-3 py-1 bg-amber-500/10 text-amber-500 text-[8px] font-black uppercase tracking-[0.2em] rounded-bl-xl border-b border-l border-amber-500/20">
                       Ready
                     </div>
                   )}
+
+                  {/* ── Ended badge ── */}
+                  {isEnded && (
+                    <div className="absolute top-0 right-0 px-3 py-1 bg-emerald-500/10 text-emerald-400 text-[8px] font-black uppercase tracking-[0.2em] rounded-bl-xl border-b border-l border-emerald-500/20 flex items-center gap-1">
+                      <Info className="w-2.5 h-2.5" />
+                      Hover for summary
+                    </div>
+                  )}
+
                   {isLockedByQuota && (
                     <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm rounded-[inherit]">
                       <Lock className="w-8 h-8 text-rose-500/80 mb-3" />
                       <p className="text-[10px] font-bold text-rose-400 uppercase tracking-widest mb-2">Daily Limit Reached</p>
-                      <button 
+                      <button
                         onClick={(e) => { e.stopPropagation(); navigate("/pricing"); }}
                         className="pointer-events-auto px-4 py-1.5 rounded-lg bg-ui-accent text-white text-[10px] font-bold uppercase tracking-widest hover:bg-ui-accent/80 transition-colors flex items-center gap-1.5"
                       >
@@ -173,6 +240,7 @@ const AttendancePage: React.FC = () => {
                       </button>
                     </div>
                   )}
+
                   <div className="flex justify-between items-start mb-6">
                     <div className="min-w-0 pr-4">
                       <h3 className="text-lg sm:text-xl font-bold text-white mb-2 truncate">{session.groupName || "Unnamed Group"}</h3>
@@ -181,51 +249,48 @@ const AttendancePage: React.FC = () => {
                         <span className="flex items-center gap-1.5 shrink-0"><Users className="w-3.5 h-3.5 text-emerald-500" /> {studentCount} Cadets</span>
                       </div>
                     </div>
-                    <Badge variant={session.status === "Ended" ? "success" : session.status === "Active" ? "warning" : "default"} className="uppercase text-[8px] sm:text-[9px] tracking-widest shrink-0">
+                    <Badge variant={isEnded ? "success" : isActive ? "warning" : "default"} className="uppercase text-[8px] sm:text-[9px] tracking-widest shrink-0">
                       {session.status}
                     </Badge>
                   </div>
-                  
+
                   <div className="mt-auto pt-6 border-t border-white/5 space-y-2">
-                    <Button 
-                      variant={isScheduled ? "outline" : "primary"}
-                      className={cn(
-                        "w-full h-11 text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-all duration-300",
-                        isAttendable && !isLockedByQuota ? "opacity-100 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]" : "opacity-50 pointer-events-none"
-                      )}
-                      onClick={() => {
-                        if (completedToday >= limits.maxDailyAttendance && session.status !== "Active") {
-                          toast.error(`Daily attendance limit reached (${limits.maxDailyAttendance}/day). Upgrade for more.`, {
-                            icon: <Zap className="w-4 h-4 text-rose-500" />,
-                            action: {
-                              label: "Upgrade",
-                              onClick: () => navigate("/pricing"),
-                            },
-                          });
-                          return;
-                        }
-                        handleMakeAttendance(session);
-                      }}
-                      disabled={!isAttendable || isLockedByQuota}
-                    >
-                      {!isAttendable ? (
-                        <>
-                          <CheckCircle className="w-4 h-4" />
-                          Completed ✓
-                        </>
-                      ) : isScheduled ? (
-                        <>
-                          <Zap className="w-4 h-4" />
-                          Start & Form
-                        </>
-                      ) : (
-                        <>
-                          <ExternalLink className="w-4 h-4" />
-                          Open Google Form
-                        </>
-                      )}
-                    </Button>
-                    {(session.status === "Scheduled" || session.status === "Active") && !session.isSkipped && (
+                    {/* ── Main action button ── */}
+                    {isEnded ? (
+                      /* Locked — completed, no action */
+                      <div className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-semibold cursor-not-allowed select-none">
+                        <CheckCircle className="w-4 h-4" />
+                        Completed — Locked
+                      </div>
+                    ) : (
+                      <Button
+                        variant={isScheduled ? "outline" : "primary"}
+                        className={cn(
+                          "w-full h-11 text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-all duration-300",
+                          !isLockedByQuota ? "opacity-100 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]" : "opacity-50 pointer-events-none"
+                        )}
+                        onClick={() => {
+                          if (completedToday >= limits.maxDailyAttendance && session.status !== "Active") {
+                            toast.error(`Daily attendance limit reached (${limits.maxDailyAttendance}/day). Upgrade for more.`, {
+                              icon: <Zap className="w-4 h-4 text-rose-500" />,
+                              action: { label: "Upgrade", onClick: () => navigate("/pricing") },
+                            });
+                            return;
+                          }
+                          // Show pre-flight confirmation
+                          setConfirmSession(session);
+                        }}
+                        disabled={isLockedByQuota}
+                      >
+                        {isScheduled ? (
+                          <><Zap className="w-4 h-4" /> Start & Form</>
+                        ) : (
+                          <><ExternalLink className="w-4 h-4" /> Open Google Form</>
+                        )}
+                      </Button>
+                    )}
+
+                    {(isScheduled || isActive) && !session.isSkipped && (
                       <button
                         onClick={() => { setSkipSessionId(session.id); setSkipReason(""); }}
                         className="w-full h-9 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-amber-500 bg-white/[0.02] border border-white/5 rounded-xl hover:border-amber-500/20 hover:bg-amber-500/5 transition-all"
@@ -248,6 +313,61 @@ const AttendancePage: React.FC = () => {
         )}
       </div>
 
+      {/* ── Pre-flight "Are you sure?" confirmation ── */}
+      {confirmSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <Card className="max-w-md w-full p-6 sm:p-8 border border-white/10 bg-[var(--ui-sidebar-bg)] shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-amber-500 via-[var(--ui-accent)] to-transparent" />
+            <div className="flex items-center gap-4 mb-5">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-6 h-6 text-amber-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Start Attendance?</h3>
+                <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mt-0.5">{confirmSession.groupName}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-6 p-4 rounded-xl bg-white/[0.03] border border-white/5">
+              <div className="flex items-center gap-3 text-sm text-slate-300">
+                <Clock className="w-4 h-4 text-[var(--ui-accent)] shrink-0" />
+                <span>Scheduled: <strong className="text-white">{formatDateTo12h(new Date(confirmSession.scheduledAt))}</strong></span>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-slate-300">
+                <Users className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span>Students: <strong className="text-white">{confirmSession.totalStudents || 0} cadets</strong></span>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-slate-300">
+                <UserCheck className="w-4 h-4 text-blue-400 shrink-0" />
+                <span>Session <strong className="text-white">#{confirmSession.sessionNumber}</strong> · This action cannot be undone after completion.</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-500 leading-relaxed mb-6">
+              You will be redirected to the <strong className="text-white">Google Form</strong> after marking attendance. Once submitted and confirmed, this session will be <strong className="text-amber-400">permanently locked</strong>.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setConfirmSession(null)} className="h-10 px-5 text-sm">
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  const s = confirmSession;
+                  setConfirmSession(null);
+                  handleMakeAttendance(s);
+                }}
+                className="h-10 px-6 text-sm bg-[var(--ui-accent)] hover:bg-[var(--ui-accent)]/90 text-white font-semibold"
+              >
+                Yes, Start Attendance →
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* ── Post-form "Did you submit?" confirmation ── */}
       {pendingSessionId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <Card className="max-w-md w-full p-6 sm:p-8 border border-white/10 bg-[var(--ui-sidebar-bg)] shadow-2xl relative overflow-hidden">
@@ -262,13 +382,13 @@ const AttendancePage: React.FC = () => {
               <Button variant="outline" onClick={() => setPendingSessionId(null)} className="h-10 px-5 text-sm">
                 No, Cancel
               </Button>
-              <Button 
-                variant="primary" 
+              <Button
+                variant="primary"
                 onClick={() => {
                   endMutation.mutate({ id: pendingSessionId, force: true, notes: "Attendance managed via external Google Form." });
                   setPendingSessionId(null);
-                }} 
-                className="h-10 px-6 text-sm bg-emerald-600 hover:bg-emerald-500 border-emerald-500 text-white shadow-[0_0_20_rgba(16,185,129,0.3)]"
+                }}
+                className="h-10 px-6 text-sm bg-emerald-600 hover:bg-emerald-500 border-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)]"
                 disabled={endMutation.isPending}
               >
                 Yes, Submitted ✓
@@ -278,14 +398,16 @@ const AttendancePage: React.FC = () => {
         </div>
       )}
 
+      {/* ── Attendance Wizard ── */}
       {wizardSession && (
-        <AttendanceWizard 
+        <AttendanceWizard
           isOpen={!!wizardSession}
           session={wizardSession}
           onClose={() => setWizardSession(null)}
         />
       )}
 
+      {/* ── Skip Session Modal ── */}
       {skipSessionId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <Card className="max-w-md w-full p-6 sm:p-8 border border-amber-500/20 bg-[var(--ui-sidebar-bg)] shadow-2xl relative overflow-hidden">
@@ -300,7 +422,7 @@ const AttendancePage: React.FC = () => {
               <h3 className="text-lg font-bold text-white">Skip This Session</h3>
             </div>
             <p className="text-slate-400 text-sm mb-6 leading-relaxed">
-              Marking this session as <strong className="text-amber-400">"Skipped"</strong> means it did not take place today. 
+              Marking this session as <strong className="text-amber-400">"Skipped"</strong> means it did not take place today.
               The session number <strong className="text-white">will NOT advance</strong>, and the next scheduled session will reuse the same number.
             </p>
             <div className="space-y-3 mb-6">

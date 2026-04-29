@@ -33,12 +33,15 @@ import CommandPalette from "./CommandPalette";
 import { useNotifications } from "../../queries/useNotificationQueries";
 import { useIPGeolocation } from "../../queries/useGeoQueries";
 import { ConfirmDialog } from "../ui";
+import { useWallet } from "../../hooks/useWallet";
 
 const TopBar: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const { connectionMode, networkQuality } = useAppStore();
+  const { walletQuery } = useWallet();
+  const walletBalance = walletQuery.data?.balanceEGP;
 
   const [notifOpen, setNotifOpen] = React.useState(false);
   const [cmdOpen, setCmdOpen] = React.useState(false);
@@ -240,15 +243,27 @@ const TopBar: React.FC = () => {
 
       <div className="flex items-center gap-0" style={{ WebkitAppRegion: 'no-drag' } as any}>
         <div className="flex items-center gap-1 md:gap-4 border-r border-white/5 pe-2 md:pe-6">
-           <button 
+           {/* EGP Wallet Balance */}
+           {walletBalance !== undefined && walletBalance !== null && (
+             <button
+               onClick={() => navigate("/wallet")}
+               className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all group/wallet"
+               title="Wallet Balance"
+             >
+               <span className="text-sm">💰</span>
+               <span className="text-xs font-bold text-emerald-400 tabular-nums">{walletBalance.toFixed(2)}</span>
+               <span className="text-[9px] font-black text-emerald-500/60 uppercase tracking-widest">EGP</span>
+             </button>
+           )}
+           <button
               onClick={() => navigate("/chat")}
               className="p-2 text-slate-500 hover:text-white transition-colors relative"
            >
               <MessageCircle className="w-4 h-4" />
               <div className="absolute top-2 right-2 w-2 h-2 bg-[var(--ui-accent)] rounded-full border border-[var(--ui-sidebar-bg)] shadow-glow" />
            </button>
-           <button 
-             onClick={() => setNotifOpen(true)} 
+           <button
+             onClick={() => setNotifOpen(true)}
              className="p-2 text-slate-500 hover:text-white transition-all relative group"
            >
               <Bell className={cn("w-4 h-4 transition-all", unreadCount > 0 && "text-[var(--ui-accent)] animate-[pulse_2s_infinite]")} />

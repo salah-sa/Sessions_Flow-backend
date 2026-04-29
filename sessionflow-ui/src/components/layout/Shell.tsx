@@ -17,6 +17,7 @@ import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import { useUIStore, useAuthStore } from "../../store/stores";
 import { UIStyleManager, UIStyleConfig } from "../../styles/UIStyleManager";
 import { cn } from "../../lib/utils";
+import { X, Gift } from "lucide-react";
 
 const Shell: React.FC = () => {
   const location = useLocation();
@@ -24,8 +25,20 @@ const Shell: React.FC = () => {
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const token = useAuthStore((s) => s.token);
+  const user = useAuthStore((s) => s.user);
   const customTheme = useUIStore((s) => s.customTheme);
   const hydrated = useAuthStore((s) => s._hasHydrated);
+
+  // Student free-app banner (dismissed via localStorage)
+  const bannerKey = "sf_student_free_banner_dismissed";
+  const [showFreeBanner, setShowFreeBanner] = React.useState(() => {
+    return !localStorage.getItem(bannerKey);
+  });
+  const dismissBanner = () => {
+    localStorage.setItem(bannerKey, "1");
+    setShowFreeBanner(false);
+  };
+  const isStudent = user?.role === "Student";
   
   // Apply visual theme identity on mount and changes
   React.useEffect(() => {
@@ -111,6 +124,22 @@ const Shell: React.FC = () => {
         {/* Boundless Top Overlay */}
         <div className="z-50 bg-transparent app-no-drag">
           <TopBar />
+          {/* Student Free App Banner */}
+          {isStudent && showFreeBanner && (
+            <div className="relative flex items-center justify-center gap-3 px-4 py-2.5 bg-gradient-to-r from-violet-600/20 via-purple-600/20 to-violet-600/20 border-b border-violet-500/20 animate-in slide-in-from-top duration-500">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-violet-500/5 to-transparent animate-scan pointer-events-none" />
+              <Gift className="w-4 h-4 text-violet-400 shrink-0" />
+              <p className="text-xs font-bold text-violet-300 text-center">
+                🎉 <span className="text-white">SessionFlow is completely free for students.</span> No subscriptions, no hidden fees — ever.
+              </p>
+              <button
+                onClick={dismissBanner}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-violet-400 hover:text-white hover:bg-violet-500/20 transition-all"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
         </div>
 
         <ConnectionBanner />

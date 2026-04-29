@@ -156,7 +156,7 @@ const GroupSessionsPage: React.FC = () => {
             <Target className="w-5 h-5 text-purple-400" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase mb-1">{t("group_sessions.current_session")}</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Next Session</p>
             <div className="flex items-center gap-2">
               <span className="text-3xl font-sora font-semibold text-white leading-none">
                 {String(group?.currentSessionNumber || 1).padStart(2, '0')}
