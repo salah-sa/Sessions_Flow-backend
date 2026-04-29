@@ -440,3 +440,46 @@ export interface ImportResult extends ImportPreview {
   groupsImported: number;
   studentsImported: number;
 }
+
+// ═══════════════════════════════════════════════
+// Wallet
+// ═══════════════════════════════════════════════
+
+export interface Wallet {
+  id: string;
+  phoneNumber: string;
+  balanceEgp: number;
+  dailyTransferLimitEgp: number;
+  dailyTransferredEgp: number;
+  isActive: boolean;
+}
+
+export interface WalletTransaction {
+  referenceCode: string;
+  type: string;
+  direction: "Inbound" | "Outbound";
+  amountEgp: number;
+  relatedPhone: string;
+  note?: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface CreateWalletRequest {
+  phoneNumber: string;
+  pin: string;
+}
+
+export interface TransferRequest {
+  toPhone: string;
+  amountEgp: number;
+  pin: string;
+  note?: string;
+  idempotencyKey: string;
+}
+
+export interface AdminTopUpRequest {
+  targetPhone: string;
+  amountEgp: number;
+  note?: string;
+}

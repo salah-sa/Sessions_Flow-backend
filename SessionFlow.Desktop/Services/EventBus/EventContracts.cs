@@ -82,4 +82,10 @@ public static class Events
     // ═══════════════════════════════════════════════
     public const string SyncState = "sync:state";
     public const string UserUpdated = "user:updated";
+
+    // ═══════════════════════════════════════════════
+    // Wallet
+    // ═══════════════════════════════════════════════
+    public const string WalletBalanceUpdated = "wallet:balance-updated";
+    public const string WalletTransactionReceived = "wallet:transaction-received";
 }

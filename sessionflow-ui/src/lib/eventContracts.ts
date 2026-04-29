@@ -62,6 +62,10 @@ export const Events = {
   // System / Sync
   SYNC_STATE: "sync:state",
   USER_UPDATED: "user:updated",
+
+  // Wallet
+  WALLET_BALANCE_UPDATED: "wallet:balance-updated",
+  WALLET_TRANSACTION_RECEIVED: "wallet:transaction-received",
 } as const;
 
 export type EventName = (typeof Events)[keyof typeof Events];

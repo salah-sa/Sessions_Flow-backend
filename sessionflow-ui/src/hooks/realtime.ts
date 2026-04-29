@@ -51,10 +51,22 @@ export const useRealtimeNotifications = () => {
     // Note: Presence events (UserOnline, UserOffline, PresenceSnapshot)
     // are now handled globally in SignalRProvider — no need to duplicate here.
 
+    const unsub4 = on(Events.WALLET_BALANCE_UPDATED, () => {
+      queryClient.invalidateQueries({ queryKey: ["wallet", "me"] });
+    });
+
+    const unsub5 = on(Events.WALLET_TRANSACTION_RECEIVED, (payload: any) => {
+      queryClient.invalidateQueries({ queryKey: ["wallet", "transactions"] });
+      toast.success("Funds Received!", { description: `You received EGP ${payload.amountEgp} from ${payload.fromPhone}.` });
+      sounds.playNotification();
+    });
+
     return () => {
       unsub1();
       unsub2();
       unsub3();
+      unsub4();
+      unsub5();
     };
   }, [on, queryClient]);
 };

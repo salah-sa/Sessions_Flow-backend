@@ -330,6 +330,7 @@ public static class ApiHost
         SystemEndpoints.Map(app);
         AdminUserEndpoints.Map(app);
         AdminMaintenanceEndpoints.Map(app);
+        WalletEndpoints.Map(app);
 
         // 6. Map Real-time Hubs
         app.MapHub<SessionHub>("/hub");
