@@ -174,8 +174,8 @@ public static class WalletEndpoints
 
             if (error != null) return Results.BadRequest(new { error });
 
-            await eventBus.PublishAsync(Events.WalletBalanceUpdated, new { userId = userId.ToString() });
-            await eventBus.PublishAsync(Events.WalletTransactionReceived, new { reference = tx!.ReferenceCode });
+            await eventBus.PublishAsync(Events.WalletBalanceUpdated, EventTargetType.User, userId.ToString(), new { userId = userId.ToString() });
+            await eventBus.PublishAsync(Events.WalletTransactionReceived, EventTargetType.User, userId.ToString(), new { reference = tx!.ReferenceCode });
 
             return Results.Ok(new TransferResponse(
                 tx!.ReferenceCode, req.AmountEGP, feePiasters / 100m,
@@ -266,8 +266,8 @@ public static class WalletEndpoints
             var (tx, error) = await walletService.ApproveDepositAsync(req.DepositRequestId, adminId, req.AdminNote, ip);
             if (error != null) return Results.BadRequest(new { error });
 
-            await eventBus.PublishAsync(Events.WalletDepositApproved, new { depositId = req.DepositRequestId });
-            await eventBus.PublishAsync(Events.WalletBalanceUpdated, new { });
+            await eventBus.PublishAsync(Events.WalletDepositApproved, EventTargetType.All, "", new { depositId = req.DepositRequestId });
+            await eventBus.PublishAsync(Events.WalletBalanceUpdated, EventTargetType.All, "", new { });
 
             return Results.Ok(new { message = "Deposit approved and wallet credited.", reference = tx!.ReferenceCode });
         });
@@ -285,7 +285,7 @@ public static class WalletEndpoints
             var error = await walletService.RejectDepositAsync(req.DepositRequestId, adminId, req.AdminNote);
             if (error != null) return Results.BadRequest(new { error });
 
-            await eventBus.PublishAsync(Events.WalletDepositRejected, new { depositId = req.DepositRequestId });
+            await eventBus.PublishAsync(Events.WalletDepositRejected, EventTargetType.All, "", new { depositId = req.DepositRequestId });
             return Results.Ok(new { message = "Deposit request rejected." });
         });
 
@@ -320,7 +320,7 @@ public static class WalletEndpoints
             var (tx, error) = await walletService.AdminTopUpAsync(req.TargetPhone, req.AmountEGP, req.Note, adminId, ip);
             if (error != null) return Results.BadRequest(new { error });
 
-            await eventBus.PublishAsync(Events.WalletBalanceUpdated, new { });
+            await eventBus.PublishAsync(Events.WalletBalanceUpdated, EventTargetType.All, "", new { });
             return Results.Ok(new { message = "Wallet topped up.", reference = tx!.ReferenceCode });
         });
     }
