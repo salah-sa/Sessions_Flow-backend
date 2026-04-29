@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Send, User as UserIcon, Smile, Paperclip, X, MessageSquare, Loader2, Clock, Check, CheckCheck, Lock, ChevronDown, Zap, Target, Copy, Sparkles, Info, MoreVertical, Eye, Image as ImageIcon, Video, FileText, ArrowUpRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn, getTierBorderClass } from "../../lib/utils";
+import { cn, getTierBorderClass, getTierBadge, getStudentBorderStyle } from "../../lib/utils";
+import { getTierLimits } from "../../lib/limits";
 import { Card, Button, Input, EmptyState, Skeleton, Badge } from "../ui";
 import { ChatMessage, MessageMention } from "../../types";
 import { useAuthStore, useChatStore } from "../../store/stores";
@@ -46,13 +47,19 @@ const BlockMessageRenderer: React.FC<{ message: ChatMessage }> = ({ message }) =
   return <div className="whitespace-pre-wrap break-words leading-relaxed selection:bg-white/20">{text}</div>;
 };
 
-const ProfileImage: React.FC<{ userId?: string; url?: string | null; initial?: string; isMe: boolean; subscriptionTier?: string; }> = ({ userId, url, initial, isMe, subscriptionTier }) => {
+const ProfileImage: React.FC<{ userId?: string; url?: string | null; initial?: string; isMe: boolean; subscriptionTier?: string; role?: string; }> = ({ userId, url, initial, isMe, subscriptionTier, role }) => {
   const status = usePresenceStore((s) => isMe ? "online" : (userId ? s.getPresence(userId).status : "offline"));
   
+  const isPremiumTier = ['ultra', 'pro', 'enterprise'].includes(subscriptionTier?.toLowerCase() || "");
+  const studentStyle = (role === "Student" && userId && !isPremiumTier) ? getStudentBorderStyle(userId) : {};
+  
   return (
-    <div className={cn("w-10 h-10 rounded-2xl p-[1.5px] z-10 shrink-0", getTierBorderClass(subscriptionTier))}>
+    <div 
+      className={cn("w-10 h-10 rounded-2xl z-10 shrink-0", !studentStyle.background && getTierBorderClass(subscriptionTier))}
+      style={studentStyle}
+    >
       <div className={cn(
-        "w-full h-full rounded-[14px] flex items-center justify-center relative overflow-hidden transition-transform duration-300 hover:scale-105 z-10",
+        "w-full h-full rounded-[14px] flex items-center justify-center relative transition-transform duration-300 hover:scale-105 z-10",
         isMe ? "bg-[#1f1938]" : "bg-[#1c202a]"
       )}>
         {url ? (
@@ -111,7 +118,14 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
       )}
 
       <div className={cn("flex items-end gap-3 max-w-[85%] md:max-w-[70%]", isMe && "flex-row-reverse")}>
-        <ProfileImage userId={isMe ? currentUser?.id : message.senderId} url={profileImageUrl} initial={initial} isMe={isMe} subscriptionTier={isMe ? currentUser?.subscriptionTier : message.sender?.subscriptionTier} />
+        <ProfileImage 
+          userId={message.senderId} 
+          url={profileImageUrl} 
+          initial={initial} 
+          isMe={isMe} 
+          subscriptionTier={isMe ? currentUser?.subscriptionTier : message.sender?.subscriptionTier}
+          role={profileRole}
+        />
 
         <div className="flex flex-col gap-1.5 min-w-0">
           <div className={cn(
@@ -171,38 +185,42 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
             <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest tabular-nums">
               {format(new Date(message.sentAt), "HH:mm")}
             </span>
-            {isMe && (
-              <div className="flex items-center gap-2">
-                {/* Seen-By Info Button for Engineers */}
-                {currentUser?.role === "Engineer" && message.readBy && message.readBy.length > 0 && (
-                  <div className="relative">
-                    <button 
-                      onClick={() => setShowReadBy(!showReadBy)}
-                      onMouseEnter={() => setShowReadBy(true)}
-                      onMouseLeave={() => setShowReadBy(false)}
-                      className="p-1 rounded-md hover:bg-white/10 transition-colors text-slate-500 hover:text-white"
-                    >
-                      <MoreVertical className="w-3.5 h-3.5" />
-                    </button>
-                    
-                    <AnimatePresence>
-                      {showReadBy && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                          className="absolute bottom-full right-0 mb-2 w-48 bg-ui-sidebar-bg/95 backdrop-blur-xl border border-white/10 rounded-2xl p-3 shadow-2xl z-[70] overflow-hidden"
-                        >
-                          <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2 border-b border-white/5 pb-1 flex justify-between">
-                            <span>Seen By</span>
-                            <span className="text-ui-accent">{message.readBy.length}</span>
-                          </div>
-                          <div className="space-y-1.5 max-h-[150px] overflow-y-auto custom-scrollbar">
-                            {message.readBy.map((r, idx) => (
+            
+            <div className="flex items-center gap-2">
+              {/* Seen-By Info Button — Visible to Engineers/Admins for ALL messages */}
+              {(currentUser?.role === "Engineer" || currentUser?.role === "Admin") && (
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowReadBy(!showReadBy)}
+                    className={cn(
+                      "p-1 rounded-md transition-all",
+                      showReadBy ? "bg-ui-accent/20 text-ui-accent" : "text-slate-500 hover:bg-white/10 hover:text-white"
+                    )}
+                  >
+                    <MoreVertical className="w-3.5 h-3.5" />
+                  </button>
+                  
+                  <AnimatePresence>
+                    {showReadBy && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute bottom-full end-0 mb-2 w-48 bg-ui-sidebar-bg/95 backdrop-blur-xl border border-white/10 rounded-2xl p-3 shadow-2xl z-[70] overflow-hidden"
+                      >
+                        <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2 border-b border-white/5 pb-1 flex justify-between">
+                          <span>Neural Sync Status</span>
+                          <span className="text-ui-accent">{message.readBy?.length || 0}</span>
+                        </div>
+                        <div className="space-y-1.5 max-h-[150px] overflow-y-auto custom-scrollbar">
+                          {message.readBy && message.readBy.length > 0 ? (
+                            message.readBy.map((r, idx) => (
                               <div key={idx} className="flex items-center justify-between gap-2 group/read">
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <div className="w-4 h-4 rounded-md bg-ui-accent/20 flex items-center justify-center text-[8px] font-bold text-ui-accent shrink-0">
-                                    {r.userName.charAt(0)}
+                                  <div className={cn("w-5 h-5 rounded-md flex items-center justify-center text-[8px] font-bold shrink-0", getTierBorderClass(r.subscriptionTier))}>
+                                     <div className="w-full h-full rounded-[4px] bg-ui-sidebar-bg flex items-center justify-center text-ui-accent">
+                                        {r.userName.charAt(0)}
+                                     </div>
                                   </div>
                                   <span className="text-[10px] font-medium text-slate-300 truncate tracking-tight">{r.userName}</span>
                                 </div>
@@ -210,27 +228,31 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
                                   {format(new Date(r.readAt), "HH:mm")}
                                 </span>
                               </div>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                )}
+                            ))
+                          ) : (
+                            <div className="text-[8px] font-bold text-slate-600 uppercase tracking-widest py-2 text-center">No Signals Detected</div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
 
-                {message.status === "pending" ? (
+              {isMe && (
+                message.status === "pending" ? (
                   <Clock className="w-3 h-3 text-slate-600 animate-pulse" />
                 ) : (message.readBy && message.readBy.length > 0) || message.status === "read" ? (
                   <CheckCheck className="w-3 h-3 text-emerald-500" />
                 ) : (
                   <Check className="w-3 h-3 text-slate-600" />
-                )}
-              </div>
-            )}
+                )
+              )}
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
+  </motion.div>
   );
 });
 
@@ -252,19 +274,23 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
   const inputRef = useRef<HTMLInputElement>(null);
   const { invoke } = useSignalR();
   const user = useAuthStore((s) => s.user);
-  const [localRemaining, setLocalRemaining] = useState<number | null>(usage?.remaining ?? null);
-  const [imagesRemaining, setImagesRemaining] = useState<number | null>(usage?.imagesRemaining ?? null);
-  const [videosRemaining, setVideosRemaining] = useState<number | null>(usage?.videosRemaining ?? null);
-  const [filesRemaining, setFilesRemaining] = useState<number | null>(usage?.filesRemaining ?? null);
-  const dailyLimit = usage?.limit ?? null;
+  // Initialize from tier limits so UI is always populated, even before first API response
+  const tierLimits = getTierLimits(user?.subscriptionTier);
+  const tierBadge = getTierBadge(user?.subscriptionTier);
+  const isUnlimitedMessages = tierLimits.maxDailyMessages === Infinity;
 
-  // Sync when parent updates usage
+  const [localRemaining, setLocalRemaining] = useState<number | null>(usage?.remaining ?? (isUnlimitedMessages ? null : tierLimits.maxDailyMessages));
+  const [imagesRemaining, setImagesRemaining] = useState<number>(usage?.imagesRemaining ?? tierLimits.maxDailyImages);
+  const [videosRemaining, setVideosRemaining] = useState<number>(usage?.videosRemaining ?? tierLimits.maxDailyVideos);
+  const [filesRemaining, setFilesRemaining] = useState<number>(usage?.filesRemaining ?? tierLimits.maxDailyFiles);
+
+  // Sync when parent updates usage (API is source of truth)
   useEffect(() => { 
     if (usage) {
       setLocalRemaining(usage.remaining);
-      setImagesRemaining(usage.imagesRemaining ?? null);
-      setVideosRemaining(usage.videosRemaining ?? null);
-      setFilesRemaining(usage.filesRemaining ?? null);
+      setImagesRemaining(usage.imagesRemaining ?? tierLimits.maxDailyImages);
+      setVideosRemaining(usage.videosRemaining ?? tierLimits.maxDailyVideos);
+      setFilesRemaining(usage.filesRemaining ?? tierLimits.maxDailyFiles);
     }
   }, [usage]);
 
@@ -411,34 +437,7 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
         </AnimatePresence>
       </div>
 
-      <div className="px-4 md:px-8 py-3 bg-ui-bg/95 border-t border-white/5 flex flex-col gap-4 relative z-50">
-        <div className="flex flex-wrap gap-2 sm:gap-4 mb-1">
-          {localRemaining !== null && (
-             <Badge variant="outline" className={cn("text-[9px] font-bold uppercase tracking-widest h-6 px-3 bg-white/5", localRemaining <= 3 ? "border-amber-500/30 text-amber-500" : "border-emerald-500/20 text-emerald-500")}>
-                <MessageSquare className="w-3 h-3 me-1.5" />
-                {localRemaining} Msgs Left
-             </Badge>
-          )}
-          {imagesRemaining !== null && (
-             <Badge variant="outline" className={cn("text-[9px] font-bold uppercase tracking-widest h-6 px-3 bg-white/5", imagesRemaining <= 0 ? "border-rose-500/30 text-rose-500 opacity-50" : "border-blue-500/20 text-blue-400")}>
-                <ImageIcon className="w-3 h-3 me-1.5" />
-                {imagesRemaining} Images
-             </Badge>
-          )}
-          {videosRemaining !== null && (
-             <Badge variant="outline" className={cn("text-[9px] font-bold uppercase tracking-widest h-6 px-3 bg-white/5", videosRemaining <= 0 ? "border-rose-500/30 text-rose-500 opacity-50" : "border-purple-500/20 text-purple-400")}>
-                <Video className="w-3 h-3 me-1.5" />
-                {videosRemaining} Videos
-             </Badge>
-          )}
-          {filesRemaining !== null && (
-             <Badge variant="outline" className={cn("text-[9px] font-bold uppercase tracking-widest h-6 px-3 bg-white/5", filesRemaining <= 0 ? "border-rose-500/30 text-rose-500 opacity-50" : "border-slate-500/20 text-slate-400")}>
-                <FileText className="w-3 h-3 me-1.5" />
-                {filesRemaining} Files
-             </Badge>
-          )}
-        </div>
-
+      <div className="px-4 md:px-8 py-3 bg-ui-bg/95 border-t border-white/5 flex flex-col gap-3 relative z-50">
         <TypingIndicator activeGroupId={activeGroupId} />
         
         <AnimatePresence>
@@ -512,8 +511,46 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
           </motion.div>
         )}
 
-        {/* Messages Remaining Indicator */}
-        {localRemaining !== null && (
+        {/* ═══ Plan Info Strip ═══ Always visible above the input */}
+        <div className="flex items-center justify-between gap-3 px-4 py-2 mb-2 rounded-2xl bg-white/[0.05] border border-white/10 backdrop-blur-xl shadow-lg relative z-10">
+          {/* Tier Badge */}
+          <div className="flex items-center gap-2">
+            <span className={cn(
+              "text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border",
+              user?.subscriptionTier?.toLowerCase() === 'ultra' ? "bg-purple-500/10 border-purple-500/30 text-purple-400" :
+              user?.subscriptionTier?.toLowerCase() === 'pro' ? "bg-violet-500/10 border-violet-500/30 text-violet-400" :
+              user?.subscriptionTier?.toLowerCase() === 'enterprise' ? "bg-amber-500/10 border-amber-500/30 text-amber-400" :
+              "bg-slate-500/10 border-slate-500/30 text-slate-400"
+            )}>
+              {tierBadge.label}
+            </span>
+          </div>
+          {/* Allowances */}
+          <div className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-widest text-slate-500">
+            <span className="flex items-center gap-1">
+              <MessageSquare className="w-3 h-3" />
+              {isUnlimitedMessages ? "∞" : (localRemaining ?? tierLimits.maxDailyMessages)}
+            </span>
+            <span className="text-slate-700">·</span>
+            <span className="flex items-center gap-1">
+              <ImageIcon className="w-3 h-3" />
+              {imagesRemaining === Infinity ? "∞" : imagesRemaining}
+            </span>
+            <span className="text-slate-700">·</span>
+            <span className="flex items-center gap-1">
+              <FileText className="w-3 h-3" />
+              {filesRemaining === Infinity ? "∞" : filesRemaining}
+            </span>
+            <span className="text-slate-700">·</span>
+            <span className="flex items-center gap-1">
+              <Video className="w-3 h-3" />
+              {videosRemaining === Infinity ? "∞" : videosRemaining}
+            </span>
+          </div>
+        </div>
+
+        {/* Messages Remaining Indicator — finite tiers only */}
+        {localRemaining !== null && !isUnlimitedMessages && (
           <div className="flex justify-center mb-3">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.05] shadow-sm backdrop-blur-md">
               <div className={cn(
@@ -565,8 +602,8 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
             value={text} 
             onChange={(e) => handleInputChange(e.target.value)} 
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-            placeholder="ENCRYPTED TRANSMISSION..." 
-            className="border-none bg-transparent focus:ring-0 h-full flex-1 text-[15px] font-medium text-white placeholder:text-slate-700 placeholder:uppercase placeholder:font-bold placeholder:tracking-[0.3em] placeholder:text-[10px] min-w-0" 
+            placeholder={isLimitReached ? "QUOTA EXCEEDED - ENCRYPTION LOCKED" : "ENCRYPTED TRANSMISSION..."} 
+            className="border-none bg-transparent focus:ring-0 h-full flex-1 text-[15px] font-medium text-white placeholder:text-slate-600 placeholder:uppercase placeholder:font-black placeholder:tracking-[0.3em] placeholder:text-[10px] min-w-0" 
           />
           
           <div className="flex items-center gap-2">
@@ -576,20 +613,18 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
                 size="icon" 
                 onClick={() => fileInputRef.current?.click()} 
                 className="text-slate-500 hover:text-ui-accent transition-colors"
-                disabled={isLimitReached}
+                disabled={isLimitReached || filesRemaining <= 0}
               >
                 <Paperclip className="w-6 h-6" />
               </Button>
-              {filesRemaining !== null && (
-                <span className={cn(
-                  "absolute -top-1 -end-1 min-w-[16px] h-4 rounded-full text-[8px] font-bold flex items-center justify-center px-1 pointer-events-none shadow-sm border",
-                  filesRemaining === 0 
-                    ? "bg-rose-500/20 text-rose-500 border-rose-500/50" 
-                    : "bg-slate-800 border-slate-600 text-slate-300"
-                )}>
-                  {filesRemaining}
-                </span>
-              )}
+              <span className={cn(
+                "absolute -top-2 -right-2 min-w-[20px] h-5 rounded-full text-[9px] font-black flex items-center justify-center px-1.5 pointer-events-none shadow-xl border z-20",
+                filesRemaining <= 0 
+                  ? "bg-rose-500 text-white border-rose-400" 
+                  : "bg-ui-accent text-white border-ui-accent/50 shadow-glow shadow-ui-accent/20"
+              )}>
+                {filesRemaining === Infinity ? "∞" : filesRemaining}
+              </span>
             </div>
             
             <motion.button 

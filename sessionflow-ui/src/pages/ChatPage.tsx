@@ -20,7 +20,7 @@ import { useMuteStore } from "../store/muteStore";
 import { usePresenceStore } from "../store/presenceStore";
 import { useSignalR } from "../providers/SignalRProvider";
 import AnimatedChatIcon from "../components/ui/AnimatedChatIcon";
-import { cn, getTierBorderClass } from "../lib/utils";
+import { cn, getTierBorderClass, getTierBadge, getStudentBorderStyle } from "../lib/utils";
 import { Group, ChatMessage, MessageMention, Student, PaginatedResponse } from "../types";
 import { formatDistanceToNow } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
@@ -301,14 +301,24 @@ const ChatPage: React.FC = () => {
         </div>
 
         <div className="p-3 xs:p-4 md:p-6 bg-black/40 border-t border-white/5 mt-auto">
-          <div className="flex items-center gap-3 bg-white/[0.02] p-3 xs:p-4 rounded-xl border border-white/5 relative overflow-hidden group">
+          <div className="flex items-center gap-3 bg-white/[0.02] p-3 xs:p-4 rounded-xl border border-white/5 relative group">
             <div className="absolute inset-0 bg-[var(--ui-accent)]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative">
-              <div className={cn("rounded-full", getTierBorderClass(user?.subscriptionTier))}>
-                <div className="w-9 h-9 xs:w-10 xs:h-10 rounded-full bg-[var(--ui-sidebar-bg)] flex items-center justify-center text-slate-600 group-hover:text-[var(--ui-accent)] transition-colors overflow-hidden relative z-10">
-                  {user?.avatarUrl ? <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" /> : <UserIcon className="w-4 h-4 xs:w-5 xs:h-5" />}
-                </div>
-              </div>
+              {(() => {
+                const isPremium = ['ultra', 'pro', 'enterprise'].includes(user?.subscriptionTier?.toLowerCase() || "");
+                const isStudent = user?.role === 'Student';
+                const studentStyle = (isStudent && !isPremium) ? getStudentBorderStyle(user?.id || "") : {};
+                return (
+                  <div 
+                    className={cn("rounded-full", !studentStyle.background && getTierBorderClass(user?.subscriptionTier))}
+                    style={studentStyle}
+                  >
+                    <div className="w-9 h-9 xs:w-10 xs:h-10 rounded-full bg-[var(--ui-sidebar-bg)] flex items-center justify-center text-slate-600 group-hover:text-[var(--ui-accent)] transition-colors overflow-hidden relative z-10">
+                      {user?.avatarUrl ? <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" /> : <UserIcon className="w-4 h-4 xs:w-5 xs:h-5" />}
+                    </div>
+                  </div>
+                );
+              })()}
               <div className="absolute -bottom-0.5 -end-0.5">
                 <SelfPresenceLED />
               </div>

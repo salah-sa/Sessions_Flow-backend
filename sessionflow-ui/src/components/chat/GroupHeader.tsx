@@ -62,8 +62,8 @@ const MemberAvatar: React.FC<{
   return (
     <div className="relative group/avatar" title={name}>
       <div
-        className={cn("rounded-full", isEngineer ? getTierBorderClass(subscriptionTier) : "")}
-        style={!isEngineer && studentId ? getStudentBorderStyle(studentId) : undefined}
+        className={cn("rounded-full", (isEngineer || ['ultra', 'pro', 'enterprise'].includes(subscriptionTier?.toLowerCase() || "")) ? getTierBorderClass(subscriptionTier) : "")}
+        style={(!isEngineer && !['ultra', 'pro', 'enterprise'].includes(subscriptionTier?.toLowerCase() || "")) ? getStudentBorderStyle(userId) : undefined}
       >
         <div className={cn(
           "w-8 h-8 rounded-full flex items-center justify-center text-[9px] font-bold uppercase overflow-hidden transition-all duration-300 hover:scale-110 hover:z-20 relative z-10",

@@ -138,6 +138,7 @@ export interface ReadByEntry {
   userId: string;
   userName: string;
   userRole: string;
+  subscriptionTier?: SubscriptionTier;
   readAt: string;
 }
 

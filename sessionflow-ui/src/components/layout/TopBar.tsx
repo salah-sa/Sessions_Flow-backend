@@ -25,7 +25,7 @@ import { format } from "date-fns";
 import { useAuthStore, useAppStore, useUIStore } from "../../store/stores";
 import { useTranslation } from "react-i18next";
 import { useNavigate, Link } from "react-router-dom";
-import { cn, getTierBorderClass, getTierBadge } from "../../lib/utils";
+import { cn, getTierBorderClass, getTierBadge, getStudentBorderStyle } from "../../lib/utils";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import NotificationCenter from "./NotificationCenter";
@@ -283,11 +283,21 @@ const TopBar: React.FC = () => {
             </div>
           </div>
           <div className="relative">
-             <div className={cn("rounded-xl", getTierBorderClass(user?.subscriptionTier))}>
-               <div className="w-10 h-10 rounded-xl bg-[var(--ui-surface)] flex items-center justify-center text-white overflow-hidden shadow-xl transition-all duration-300 group-hover:shadow-[var(--ui-accent)]/10 relative z-10">
-                  {user?.avatarUrl ? <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" /> : <div className="text-xs font-black">{user?.name?.charAt(0)}</div>}
-               </div>
-             </div>
+             {(() => {
+                const isPremium = ['ultra', 'pro', 'enterprise'].includes(user?.subscriptionTier?.toLowerCase() || "");
+                const isStudent = user?.role === 'Student';
+                const studentStyle = (isStudent && !isPremium) ? getStudentBorderStyle(user?.id || "") : {};
+                return (
+                  <div 
+                    className={cn("rounded-xl", !studentStyle.background && getTierBorderClass(user?.subscriptionTier))}
+                    style={studentStyle}
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-[var(--ui-surface)] flex items-center justify-center text-white overflow-hidden shadow-xl transition-all duration-300 group-hover:shadow-[var(--ui-accent)]/10 relative z-10">
+                        {user?.avatarUrl ? <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" /> : <div className="text-xs font-black">{user?.name?.charAt(0)}</div>}
+                    </div>
+                  </div>
+                );
+             })()}
              
              {/* Device-aware Online Indicator LED */}
              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#0a0a0a] border border-white/10 rounded-lg flex items-center justify-center shadow-xl z-10">
