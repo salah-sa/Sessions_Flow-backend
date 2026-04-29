@@ -638,16 +638,19 @@
 
 .tier-border-free {
   background: rgba(100, 116, 139, 0.35);
+  padding: 1.5px;
 }
 
 .tier-border-pro {
   background: linear-gradient(135deg, #8b5cf6, #d946ef);
   box-shadow: 0 0 12px rgba(139, 92, 246, 0.15);
+  padding: 2px;
 }
 
 .tier-border-enterprise {
   background: linear-gradient(135deg, #f59e0b, #ec4899);
   box-shadow: 0 0 16px rgba(245, 158, 11, 0.2);
+  padding: 2px;
 }
 
 /* Ultra — Animated conic-gradient spinning border */
@@ -666,6 +669,7 @@
   background: transparent;
   isolation: isolate;
   overflow: visible;
+  padding: 2.5px;
 }
 
 .tier-border-ultra::before {

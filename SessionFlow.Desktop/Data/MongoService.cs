@@ -131,16 +131,20 @@ public class MongoService
             (BusinessConstants.Settings.LengthLevel3, "16"),
             (BusinessConstants.Settings.LengthLevel4, "16"),
             // Subscription Pricing (admin-editable, read by Plans page)
-            (BusinessConstants.Settings.SubPriceProMonthly, "149"),
-            (BusinessConstants.Settings.SubPriceProAnnual, "1490"),
-            (BusinessConstants.Settings.SubPriceEnterpriseMonthly, "499"),
-            (BusinessConstants.Settings.SubPriceEnterpriseAnnual, "4990"),
+            (BusinessConstants.Settings.SubPriceProMonthly, "50"),
+            (BusinessConstants.Settings.SubPriceProAnnual, "528"),
+            (BusinessConstants.Settings.SubPriceUltraMonthly, "100"),
+            (BusinessConstants.Settings.SubPriceUltraAnnual, "1056"),
+            (BusinessConstants.Settings.SubPriceEnterpriseMonthly, "130"),
+            (BusinessConstants.Settings.SubPriceEnterpriseAnnual, "1380"),
             (BusinessConstants.Settings.SubDescriptionFree, "Perfect for getting started and exploring SessionFlow."),
             (BusinessConstants.Settings.SubDescriptionPro, "For professional engineers who need power and scale."),
+            (BusinessConstants.Settings.SubDescriptionUltra, "Maximum power for high-volume educators."),
             (BusinessConstants.Settings.SubDescriptionEnterprise, "White-glove service for large educational institutions."),
-            (BusinessConstants.Settings.SubFeaturesFreePlan, "[\"Up to 2 Active Groups\",\"Basic Session Scheduling\",\"Standard Chat Access\",\"Community Support\"]"),
-            (BusinessConstants.Settings.SubFeaturesProPlan, "[\"Unlimited Active Groups\",\"Advanced Analytics & Insights\",\"Premium Badges & Themes\",\"Priority Email Support\",\"Data Export (CSV/PDF)\"]"),
-            (BusinessConstants.Settings.SubFeaturesEnterprisePlan, "[\"Everything in Pro\",\"Admin Portal Access\",\"Custom Feature Development\",\"Dedicated Account Manager\",\"White-labeled Reports\"]")
+            (BusinessConstants.Settings.SubFeaturesFreePlan, "[\"Up to 10 Groups\",\"15 Daily Messages\",\"1 Daily Image\",\"Basic Attendance\",\"Community Support\"]"),
+            (BusinessConstants.Settings.SubFeaturesProPlan, "[\"15 Groups\",\"Unlimited Messages\",\"4 Daily Images\",\"Voice Calls\",\"Priority Support\",\"Data Export\"]"),
+            (BusinessConstants.Settings.SubFeaturesUltraPlan, "[\"30 Groups\",\"12 Daily Images\",\"5 Daily Videos\",\"10 Daily Files\",\"AI Summaries\",\"Advanced Analytics\"]"),
+            (BusinessConstants.Settings.SubFeaturesEnterprisePlan, "[\"Everything in Ultra\",\"Admin Portal Access\",\"Custom Features\",\"Dedicated Account Manager\",\"White-labeled Reports\"]")
         };
 
         var allKeys = itemsToSeed.Select(i => i.Key).ToList();

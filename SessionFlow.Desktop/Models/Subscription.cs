@@ -16,8 +16,8 @@ public enum SubscriptionTier
 {
     Free = 0,
     Pro = 1,
-    Enterprise = 2,
-    Ultra = 3
+    Ultra = 2,
+    Enterprise = 3
 }
 
 public class Subscription
@@ -29,7 +29,10 @@ public class Subscription
     [BsonRepresentation(BsonType.String)]
     public Guid UserId { get; set; }
 
+    [BsonRepresentation(BsonType.String)]
     public SubscriptionTier Tier { get; set; } = SubscriptionTier.Free;
+    
+    [BsonRepresentation(BsonType.String)]
     public SubscriptionStatus Status { get; set; } = SubscriptionStatus.Active;
     
     public string BillingCycle { get; set; } = "monthly"; // "monthly" or "annual"

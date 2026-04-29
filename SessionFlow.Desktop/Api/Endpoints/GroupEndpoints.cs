@@ -695,7 +695,7 @@ public static class GroupEndpoints
         });
 
         // POST /api/groups/{id}/students — add student to group
-        group.MapPost("/{id:guid}/students", async (Guid id, AddStudentRequest req, MongoService db) =>
+        group.MapPost("/{id:guid}/students", async (Guid id, AddStudentRequest req, MongoService db, HttpContext ctx) =>
         {
             var g = await db.Groups.Find(x => x.Id == id).FirstOrDefaultAsync();
             if (g == null) return Results.NotFound(new { error = "Group not found." });
@@ -704,10 +704,29 @@ public static class GroupEndpoints
                 return Results.BadRequest(new { error = "Student name is required." });
 
             var activeStudents = (int)await db.Students.CountDocumentsAsync(s => s.GroupId == id && !s.IsDeleted);
-            var maxStudents = CurriculumConstants.GetMaxStudents(g.Level);
+            var maxStudentsCurriculum = CurriculumConstants.GetMaxStudents(g.Level);
 
-            if (activeStudents >= maxStudents)
-                return Results.BadRequest(new { error = $"Security Restriction: Group is full. Maximum {maxStudents} students for Level {g.Level}." });
+            if (activeStudents >= maxStudentsCurriculum)
+                return Results.BadRequest(new { error = $"Security Restriction: Group is full. Maximum {maxStudentsCurriculum} students for Level {g.Level}." });
+
+            // ─── SUBSCRIPTION TIER ENFORCEMENT ──────────────────────
+            var engineer = await db.Users.Find(u => u.Id == g.EngineerId).FirstOrDefaultAsync();
+            if (engineer != null)
+            {
+                var maxStudentsTier = PlanLimit.GetMaxStudentsPerGroup(engineer.SubscriptionTier);
+                if (activeStudents >= maxStudentsTier)
+                {
+                    return Results.Json(new
+                    {
+                        error = $"Student limit reached ({maxStudentsTier} per group on your {engineer.SubscriptionTier} plan). Upgrade to add more students.",
+                        code = "STUDENT_LIMIT_REACHED",
+                        limit = maxStudentsTier,
+                        current = activeStudents,
+                        tier = engineer.SubscriptionTier.ToString()
+                    }, statusCode: 403);
+                }
+            }
+            // ──────────────────────────────────────────────────────────
 
             var student = new Student
             {

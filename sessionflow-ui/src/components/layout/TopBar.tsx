@@ -268,18 +268,18 @@ const TopBar: React.FC = () => {
             <p className="text-[10px] font-bold text-white uppercase tracking-widest leading-none group-hover:text-[var(--ui-accent)] transition-colors">{user?.name}</p>
             <div className="flex items-center justify-end gap-1.5 mt-1.5">
               <p className="text-[8px] font-bold text-[var(--ui-accent)] uppercase tracking-widest opacity-80">{user?.role} NODE</p>
-              {getTierBadge(user?.subscriptionTier) && (
-                <span className={cn(
+              <span className={cn(
                   "text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
                   user?.subscriptionTier?.toLowerCase() === "ultra"
                     ? "bg-purple-500/20 text-purple-300 border border-purple-500/30 animate-pulse"
                     : user?.subscriptionTier?.toLowerCase() === "pro"
                     ? "bg-violet-500/20 text-violet-300 border border-violet-500/30"
-                    : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                    : user?.subscriptionTier?.toLowerCase() === "enterprise"
+                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                    : "bg-slate-500/10 text-slate-500 border border-white/10"
                 )}>
                   {getTierBadge(user?.subscriptionTier)?.label}
                 </span>
-              )}
             </div>
           </div>
           <div className="relative">

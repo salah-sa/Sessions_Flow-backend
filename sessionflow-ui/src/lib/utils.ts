@@ -83,9 +83,9 @@ export function getTierBorderClass(tier?: string): string {
 }
 
 /**
- * Returns badge label + CSS class for subscription tier pill, or null for Free.
+ * Returns badge label + CSS class for subscription tier pill.
  */
-export function getTierBadge(tier?: string): { label: string; className: string } | null {
+export function getTierBadge(tier?: string): { label: string; className: string } {
   switch (tier?.toLowerCase()) {
     case "pro":
       return { label: "💎 PRO", className: "tier-badge-pro" };
@@ -94,6 +94,6 @@ export function getTierBadge(tier?: string): { label: string; className: string 
     case "enterprise":
       return { label: "🏢 ENT", className: "tier-badge-enterprise" };
     default:
-      return null;
+      return { label: "FREE", className: "text-slate-500" };
   }
 }

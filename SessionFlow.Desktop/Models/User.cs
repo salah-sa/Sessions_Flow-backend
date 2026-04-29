@@ -48,6 +48,7 @@ public class User
     public string? EngineerCode { get; set; } // The engineer code used during student registration
 
     // Premium System fields
+    [BsonRepresentation(BsonType.String)]
     public SubscriptionTier SubscriptionTier { get; set; } = SubscriptionTier.Free;
     
     [BsonIgnoreIfNull]

@@ -7,7 +7,7 @@ public static class PlanLimit
         SubscriptionTier.Free => 10,
         SubscriptionTier.Pro => 15,
         SubscriptionTier.Ultra => 30,
-        SubscriptionTier.Enterprise => int.MaxValue,
+        SubscriptionTier.Enterprise => 30,
         _ => 0
     };
 
@@ -41,17 +41,17 @@ public static class PlanLimit
 
     public static long GetPriceMonthlyPiasters(SubscriptionTier tier) => tier switch
     {
-        SubscriptionTier.Pro => 149_00,        // 149 EGP
-        SubscriptionTier.Ultra => 249_00,      // 249 EGP
-        SubscriptionTier.Enterprise => 499_00, // 499 EGP
+        SubscriptionTier.Pro => 50_00,          // 50 EGP
+        SubscriptionTier.Ultra => 100_00,       // 100 EGP
+        SubscriptionTier.Enterprise => 130_00,  // 130 EGP
         _ => 0
     };
 
     public static long GetPriceAnnualPiasters(SubscriptionTier tier) => tier switch
     {
-        SubscriptionTier.Pro => 1490_00,        // ~2 months free
-        SubscriptionTier.Ultra => 2490_00,      // ~2 months free
-        SubscriptionTier.Enterprise => 4990_00, // ~2 months free
+        SubscriptionTier.Pro => 528_00,          // 528 EGP (~12% savings)
+        SubscriptionTier.Ultra => 1056_00,       // 1056 EGP (~12% savings)
+        SubscriptionTier.Enterprise => 1380_00,  // 1380 EGP (~11.5% savings)
         _ => 0
     };
 
@@ -84,7 +84,7 @@ public static class PlanLimit
     {
         SubscriptionTier.Free => 0,
         SubscriptionTier.Pro => 1,
-        SubscriptionTier.Ultra => 7,
+        SubscriptionTier.Ultra => 5,
         SubscriptionTier.Enterprise => int.MaxValue,
         _ => 0
     };

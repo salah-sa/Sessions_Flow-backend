@@ -22,7 +22,9 @@ export default function PricingPage() {
   const handleUpgrade = async (tier: SubscriptionTier) => {
     if (tier === currentTier) return;
     
-    if (currentTier === "Enterprise" || (currentTier === "Pro" && tier === "Free")) {
+    // Hierarchy: Free < Pro < Ultra < Enterprise
+    const tierOrder: Record<string, number> = { Free: 0, Pro: 1, Ultra: 2, Enterprise: 3 };
+    if ((tierOrder[currentTier] ?? 0) >= (tierOrder[tier] ?? 0)) {
         toast.error("You cannot downgrade from this screen.");
         return;
     }
@@ -53,7 +55,7 @@ export default function PricingPage() {
       description: "Perfect for getting started and exploring SessionFlow.",
       priceMonthly: "EGP 0",
       priceAnnual: "EGP 0",
-      features: ["Up to 2 Active Groups", "Basic Session Scheduling", "Standard Chat Access", "Community Support"],
+      features: ["Up to 10 Groups", "15 Daily Messages", "1 Daily Image", "Basic Attendance", "Community Support"],
       color: "from-slate-400 to-slate-600",
       bgClass: "bg-white/[0.02] hover:bg-white/[0.05]",
       borderClass: "border-white/10",
@@ -64,23 +66,36 @@ export default function PricingPage() {
       tier: "Pro" as SubscriptionTier,
       icon: Zap,
       description: "For professional engineers who need power and scale.",
-      priceMonthly: "EGP 299",
-      priceAnnual: "EGP 2,990",
+      priceMonthly: "EGP 50",
+      priceAnnual: "EGP 528",
       popular: true,
-      features: ["Unlimited Active Groups", "Advanced Analytics & Insights", "Premium Badges & Themes", "Priority Email Support", "Data Export (CSV/PDF)"],
+      features: ["15 Groups", "Unlimited Messages", "4 Daily Images", "Voice Calls", "Priority Support", "Data Export"],
       color: "from-[var(--ui-accent)] to-purple-500",
       bgClass: "bg-[var(--ui-accent)]/5 hover:bg-[var(--ui-accent)]/10",
       borderClass: "border-[var(--ui-accent)]/30",
       buttonText: "Upgrade to Pro",
     },
     {
+      name: "Ultra",
+      tier: "Ultra" as SubscriptionTier,
+      icon: Sparkles,
+      description: "Maximum power for high-volume educators.",
+      priceMonthly: "EGP 100",
+      priceAnnual: "EGP 1,056",
+      features: ["30 Groups", "12 Daily Images", "5 Daily Videos", "10 Daily Files", "AI Summaries", "Advanced Analytics"],
+      color: "from-purple-500 to-pink-500",
+      bgClass: "bg-purple-500/5 hover:bg-purple-500/10",
+      borderClass: "border-purple-500/30",
+      buttonText: "Upgrade to Ultra",
+    },
+    {
       name: "Enterprise",
       tier: "Enterprise" as SubscriptionTier,
       icon: Crown,
       description: "White-glove service for large educational institutions.",
-      priceMonthly: "EGP 999",
-      priceAnnual: "EGP 9,990",
-      features: ["Everything in Pro", "Admin Portal Access", "Custom Feature Development", "Dedicated Account Manager", "White-labeled Reports"],
+      priceMonthly: "EGP 130",
+      priceAnnual: "EGP 1,380",
+      features: ["Everything in Ultra", "Admin Portal Access", "Custom Features", "Dedicated Account Manager", "White-labeled Reports"],
       color: "from-amber-400 to-orange-500",
       bgClass: "bg-amber-500/5 hover:bg-amber-500/10",
       borderClass: "border-amber-500/30",
@@ -93,8 +108,8 @@ export default function PricingPage() {
   if (loadingStatus || loadingPlans) {
     return (
       <div className="h-full flex flex-col items-center justify-center bg-[var(--ui-bg)] p-8">
-        <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[1,2,3].map(i => <Skeleton key={i} className="h-[500px] rounded-3xl" />)}
+        <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-4 gap-6">
+            {[1,2,3,4].map(i => <Skeleton key={i} className="h-[500px] rounded-3xl" />)}
         </div>
       </div>
     );
@@ -134,16 +149,17 @@ export default function PricingPage() {
             </button>
             <div className="flex items-center gap-2 md:gap-3">
               <span className={cn("text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-colors", isAnnual ? "text-[var(--ui-accent)]" : "text-slate-500")}>Annually</span>
-              <span className="px-1.5 md:px-2 py-0.5 rounded-md text-[7px] md:text-[8px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-glow shadow-emerald-500/5">Save 20%</span>
+              <span className="px-1.5 md:px-2 py-0.5 rounded-md text-[7px] md:text-[8px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-glow shadow-emerald-500/5">Save 12%</span>
             </div>
           </div>
         </div>
 
         {/* Pricing Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6">
           {plans.map((plan: any, i: number) => {
             const isCurrent = currentTier === plan.tier;
-            const Icon = i === 0 ? Star : i === 1 ? Zap : Crown;
+            const tierIcons = [Star, Zap, Sparkles, Crown];
+            const Icon = plan.icon || tierIcons[i] || Star;
             
             return (
               <motion.div
