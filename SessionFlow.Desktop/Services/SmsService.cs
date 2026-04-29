@@ -127,7 +127,7 @@ public class SmsService
             {
                 name = templateName,
                 language = new { code = "en_US" },
-                components = new[]
+                components = new object[]
                 {
                     new
                     {
