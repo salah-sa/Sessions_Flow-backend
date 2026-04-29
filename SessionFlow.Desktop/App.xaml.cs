@@ -39,7 +39,7 @@ public partial class App : Application
             try
             {
                 // 1. Build and start the in-process ASP.NET Core WebApplication
-                _webApp = ApiHost.BuildAndConfigure(e.Args);
+                _webApp = await ApiHost.BuildAndConfigureAsync(e.Args);
                 _cts = new CancellationTokenSource();
 
                 // Start Kestrel

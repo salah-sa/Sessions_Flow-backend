@@ -145,6 +145,10 @@ public static class ApiHost
         builder.Services.AddScoped<GoogleAuthService>();
         builder.Services.AddScoped<ReportingService>();
         builder.Services.AddScoped<PaymobService>();
+        
+        // Wallet System
+        builder.Services.AddSingleton<WalletValidationService>();
+        builder.Services.AddScoped<WalletService>();
 
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<SessionFlow.Desktop.Services.MultiTenancy.ITenantProvider, SessionFlow.Desktop.Services.MultiTenancy.TenantProvider>();
@@ -153,6 +157,7 @@ public static class ApiHost
         builder.Services.AddHostedService<SessionMaintenanceService>();
         builder.Services.AddHostedService<TenantDataMigrationService>();
         builder.Services.AddHostedService<Services.EventBus.EventDispatcher>();
+        builder.Services.AddHostedService<WalletBackgroundService>();
         
         var signalRBuilder = builder.Services.AddSignalR();
         if (redisConnection != null)

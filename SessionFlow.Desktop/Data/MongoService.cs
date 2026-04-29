@@ -194,6 +194,31 @@ public class MongoService
 
         await Invoices.Indexes.CreateOneAsync(new CreateIndexModel<Invoice>(
             Builders<Invoice>.IndexKeys.Ascending(i => i.UserId)));
+
+        // Wallet System Indexes
+        await Wallets.Indexes.CreateOneAsync(new CreateIndexModel<Wallet>(
+            Builders<Wallet>.IndexKeys.Ascending(w => w.PhoneNumber),
+            new CreateIndexOptions { Unique = true }));
+
+        await Wallets.Indexes.CreateOneAsync(new CreateIndexModel<Wallet>(
+            Builders<Wallet>.IndexKeys.Ascending(w => w.UserId),
+            new CreateIndexOptions { Unique = true }));
+
+        await Wallets.Indexes.CreateOneAsync(new CreateIndexModel<Wallet>(
+            Builders<Wallet>.IndexKeys.Ascending(w => w.IsActive)));
+
+        await Transactions.Indexes.CreateOneAsync(new CreateIndexModel<Transaction>(
+            Builders<Transaction>.IndexKeys.Ascending(t => t.ReferenceCode),
+            new CreateIndexOptions { Unique = true }));
+
+        await Transactions.Indexes.CreateOneAsync(new CreateIndexModel<Transaction>(
+            Builders<Transaction>.IndexKeys.Ascending(t => t.FromWalletId).Descending(t => t.CreatedAt)));
+
+        await Transactions.Indexes.CreateOneAsync(new CreateIndexModel<Transaction>(
+            Builders<Transaction>.IndexKeys.Ascending(t => t.ToWalletId).Descending(t => t.CreatedAt)));
+
+        await Transactions.Indexes.CreateOneAsync(new CreateIndexModel<Transaction>(
+            Builders<Transaction>.IndexKeys.Descending(t => t.CreatedAt)));
     }
 
     public IMongoCollection<User> Users => _database.GetCollection<User>("Users");
@@ -223,6 +248,10 @@ public class MongoService
 
     public IMongoCollection<ResourceAccessRequest> ResourceAccessRequests => _database.GetCollection<ResourceAccessRequest>("ResourceAccessRequests");
     public IMongoCollection<AccessGrant> AccessGrants => _database.GetCollection<AccessGrant>("AccessGrants");
+
+    // Wallet System
+    public IMongoCollection<Wallet> Wallets => _database.GetCollection<Wallet>("Wallets");
+    public IMongoCollection<Transaction> Transactions => _database.GetCollection<Transaction>("Transactions");
 
     public IMongoDatabase Database => _database;
     public IMongoClient Client => _database.Client;
