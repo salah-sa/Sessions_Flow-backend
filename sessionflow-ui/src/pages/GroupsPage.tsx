@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Download, Filter, Terminal } from "lucide-react";
+import { Plus, Download, Filter, Terminal, Lock, Zap, ArrowUpRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Button } from "../components/ui";
+import { useNavigate } from "react-router-dom";
+import { Button, Badge } from "../components/ui";
 import { ConfirmDeleteModal } from "../components/ui/ConfirmDeleteModal";
 import { toast } from "sonner";
 import { 
@@ -17,9 +18,13 @@ import { GroupList } from "./groups/GroupList";
 import { GroupWizard } from "./groups/GroupWizard";
 import { GroupEnrollModal } from "./groups/GroupEnrollModal";
 import { GroupFormValues } from "./groups/GroupConstants";
+import { useAuthStore } from "../store/stores";
+import { getTierLimits } from "../lib/limits";
+import { cn } from "../lib/utils";
 
 const GroupsPage: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [dayFilter, setDayFilter] = useState<number | null>(null);
@@ -33,6 +38,11 @@ const GroupsPage: React.FC = () => {
   
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useGroupQueries();
   const groups = data?.pages.flatMap(page => page.items) || [];
+  const totalGroupCount = data?.pages[0]?.totalCount ?? groups.length;
+
+  const user = useAuthStore(s => s.user);
+  const limits = getTierLimits(user?.subscriptionTier);
+  const groupLimitReached = totalGroupCount >= limits.maxGroups;
 
   const createGroup = useCreateGroup();
   const updateGroup = useUpdateGroup();
@@ -47,6 +57,16 @@ const GroupsPage: React.FC = () => {
   });
 
   const handleOpenCreate = () => {
+    if (groupLimitReached) {
+      toast.error(`Group limit reached (${limits.maxGroups}). Upgrade your plan for more.`, {
+        icon: <Lock className="w-4 h-4 text-rose-500" />,
+        action: {
+          label: "Upgrade",
+          onClick: () => navigate("/pricing"),
+        },
+      });
+      return;
+    }
     setModalMode("create");
     setSelectedGroup(null);
     setIsModalOpen(true);
@@ -128,23 +148,59 @@ const GroupsPage: React.FC = () => {
               {t("groups.system_active")}
             </div>
             <div className="h-px w-6 sm:w-8 bg-white/10" />
-            <span className="text-[10px] sm:text-xs font-semibold text-slate-600 uppercase tabular-nums">{data?.pages[0]?.totalCount ?? groups.length} {t("groups.card.groups_registered")}</span>
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-600 uppercase tabular-nums">{totalGroupCount} {t("groups.card.groups_registered")}</span>
           </div>
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-semibold text-white tracking-tighter uppercase leading-[0.85]">
             {t("groups.title")}
           </h1>
         </div>
 
-        <div className="flex w-full sm:w-auto gap-3 sm:gap-4 animate-in fade-in slide-in-from-right-8 duration-1000">
-          <Button variant="secondary" size="lg" className="flex-1 sm:flex-none !h-11 !px-4 sm:!h-14 sm:!px-8 group">
-             <Download className="w-5 h-5 sm:me-2 text-slate-500 group-hover:text-white transition-colors" />
-             <span className="hidden sm:inline">{t("common.export")}</span>
-             <span className="sm:hidden">{t("common.export").split(' ')[0]}</span>
-          </Button>
-          <Button onClick={handleOpenCreate} variant="primary" size="lg" className="flex-1 sm:flex-none !h-11 !px-4 sm:!h-14 sm:!px-8 !shadow-glow !shadow-ui-accent/20">
-             <Plus className="w-5 h-5 sm:w-6 sm:h-6 sm:me-2" />
-             <span className="truncate">{t("groups.action_create")}</span>
-          </Button>
+        <div className="flex flex-col w-full sm:w-auto gap-3 animate-in fade-in slide-in-from-right-8 duration-1000">
+          {/* Group Quota Indicator */}
+          {user?.role === "Engineer" && (
+            <div className={cn(
+              "flex items-center gap-2.5 px-4 py-2 rounded-xl border text-sm font-medium self-end",
+              groupLimitReached 
+                ? "bg-rose-500/5 border-rose-500/30 text-rose-400" 
+                : "bg-white/[0.03] border-white/10 text-slate-300"
+            )}>
+              <Zap className={cn("w-4 h-4", groupLimitReached ? "text-rose-500" : "text-amber-500")} />
+              <span>
+                Groups: <span className={cn("font-bold tabular-nums", groupLimitReached ? "text-rose-400" : "text-white")}>{totalGroupCount}</span> / {limits.maxGroups}
+              </span>
+              {groupLimitReached && (
+                <button 
+                  onClick={() => navigate("/pricing")} 
+                  className="flex items-center gap-1 text-[10px] font-bold text-ui-accent uppercase tracking-widest hover:underline ms-2"
+                >
+                  Upgrade <ArrowUpRight className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          )}
+
+          <div className="flex w-full sm:w-auto gap-3 sm:gap-4">
+            <Button variant="secondary" size="lg" className="flex-1 sm:flex-none !h-11 !px-4 sm:!h-14 sm:!px-8 group">
+               <Download className="w-5 h-5 sm:me-2 text-slate-500 group-hover:text-white transition-colors" />
+               <span className="hidden sm:inline">{t("common.export")}</span>
+               <span className="sm:hidden">{t("common.export").split(' ')[0]}</span>
+            </Button>
+            <Button 
+              onClick={handleOpenCreate} 
+              variant="primary" 
+              size="lg" 
+              disabled={groupLimitReached}
+              className={cn(
+                "flex-1 sm:flex-none !h-11 !px-4 sm:!h-14 sm:!px-8",
+                groupLimitReached 
+                  ? "!opacity-50 !cursor-not-allowed !shadow-none" 
+                  : "!shadow-glow !shadow-ui-accent/20"
+              )}
+            >
+               {groupLimitReached ? <Lock className="w-5 h-5 sm:me-2" /> : <Plus className="w-5 h-5 sm:w-6 sm:h-6 sm:me-2" />}
+               <span className="truncate">{groupLimitReached ? "Limit Reached" : t("groups.action_create")}</span>
+            </Button>
+          </div>
         </div>
       </div>
 

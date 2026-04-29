@@ -97,3 +97,20 @@ export function getTierBadge(tier?: string): { label: string; className: string 
       return { label: "FREE", className: "text-slate-500" };
   }
 }
+
+/**
+ * Generates a deterministic border style for a student based on their ID.
+ * Uses a simple hash to produce a stable hue (0-360) per student.
+ */
+export function getStudentBorderStyle(studentId: string): Record<string, string> {
+  let hash = 0;
+  for (let i = 0; i < studentId.length; i++) {
+    hash = studentId.charCodeAt(i) + ((hash << 5) - hash);
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  const hue = Math.abs(hash % 360);
+  return {
+    background: `linear-gradient(135deg, hsl(${hue}, 70%, 55%), hsl(${(hue + 40) % 360}, 60%, 45%))`,
+    padding: '1.5px',
+  };
+}

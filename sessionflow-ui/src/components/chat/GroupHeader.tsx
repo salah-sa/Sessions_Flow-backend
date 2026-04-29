@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { Users, Volume2, VolumeX, ChevronDown, Shield, Pencil, ChevronLeft, Zap, Activity, Info, Phone, PhoneOff } from "lucide-react";
-import { cn, getTierBorderClass } from "../../lib/utils";
+import { cn, getTierBorderClass, getStudentBorderStyle } from "../../lib/utils";
 import { Group, User } from "../../types";
 import { usePresenceStore } from "../../store/presenceStore";
 import { useAuthStore, useChatStore } from "../../store/stores";
@@ -54,13 +54,17 @@ const PresenceDot: React.FC<{ userId: string; size?: "sm" | "md" }> = ({ userId,
 const MemberAvatar: React.FC<{
   name: string;
   userId: string;
+  studentId?: string;
   avatarUrl?: string | null;
   isEngineer?: boolean;
   subscriptionTier?: string;
-}> = ({ name, userId, avatarUrl, isEngineer, subscriptionTier }) => {
+}> = ({ name, userId, studentId, avatarUrl, isEngineer, subscriptionTier }) => {
   return (
     <div className="relative group/avatar" title={name}>
-      <div className={cn("rounded-full", getTierBorderClass(isEngineer ? subscriptionTier : undefined))}>
+      <div
+        className={cn("rounded-full", isEngineer ? getTierBorderClass(subscriptionTier) : "")}
+        style={!isEngineer && studentId ? getStudentBorderStyle(studentId) : undefined}
+      >
         <div className={cn(
           "w-8 h-8 rounded-full flex items-center justify-center text-[9px] font-bold uppercase overflow-hidden transition-all duration-300 hover:scale-110 hover:z-20 relative z-10",
           isEngineer ? "bg-[var(--ui-accent)]/10 text-white" : "bg-[var(--ui-sidebar-bg)] text-slate-500"
@@ -107,7 +111,7 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
       });
 
       Array.from(uniqueStudentsMap.values()).forEach(s => {
-        result.push({ id: s.id, userId: s.userId || s.id, name: s.name, isEngineer: false });
+        result.push({ id: s.id, userId: s.userId || s.id, name: s.name, isEngineer: false, studentId: s.id });
       });
     }
     return result;
@@ -173,7 +177,7 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
         <div className="hidden md:flex items-center">
           <div className="flex -space-x-3">
             {(window.innerWidth < 1024 ? members.slice(0, 3) : visibleAvatars).map((m) => (
-              <MemberAvatar key={m.id} name={m.name} userId={m.userId} isEngineer={m.isEngineer} subscriptionTier={user?.subscriptionTier} />
+              <MemberAvatar key={m.id} name={m.name} userId={m.userId} studentId={m.studentId} isEngineer={m.isEngineer} subscriptionTier={user?.subscriptionTier} />
             ))}
             {(overflow > 0 || (window.innerWidth < 1024 && members.length > 3)) && (
               <div className="w-8 h-8 rounded-full bg-[var(--ui-sidebar-bg)] border border-white/10 flex items-center justify-center text-[8px] font-bold text-slate-500 relative z-10">

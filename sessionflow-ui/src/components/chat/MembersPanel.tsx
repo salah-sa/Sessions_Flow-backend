@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { X, Shield, User as UserIcon, Crown, Wifi, WifiOff, Phone, Activity, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn, getTierBorderClass } from "../../lib/utils";
+import { cn, getTierBorderClass, getStudentBorderStyle } from "../../lib/utils";
 import { Group, Student } from "../../types";
 import { toast } from "sonner";
 import { usePresenceStore, PresenceStatus } from "../../store/presenceStore";
@@ -96,7 +96,10 @@ const MemberRow: React.FC<{ member: MemberEntry }> = ({ member }) => {
       )}
     >
       <div className="relative shrink-0">
-        <div className={cn("rounded-full", getTierBorderClass(member.role === "Engineer" ? member.subscriptionTier : undefined))}>
+        <div
+          className={cn("rounded-full", member.role === "Engineer" ? getTierBorderClass(member.subscriptionTier) : "")}
+          style={member.role !== "Engineer" ? getStudentBorderStyle(member.id) : undefined}
+        >
           <div className={cn(
             "w-9 h-9 xs:w-10 xs:h-10 rounded-full flex items-center justify-center text-[10px] xs:text-xs font-bold uppercase overflow-hidden relative z-10",
             member.role === "Engineer" ? "bg-[var(--ui-accent)]/10 text-white shadow-glow shadow-[var(--ui-accent)]/10" : "bg-[var(--ui-sidebar-bg)] text-slate-500"

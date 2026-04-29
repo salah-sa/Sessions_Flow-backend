@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Send, User as UserIcon, Smile, Paperclip, X, MessageSquare, Loader2, Clock, Check, CheckCheck, Lock, ChevronDown, Zap, Target, Copy, Sparkles, Info, MoreVertical, Eye, Image as ImageIcon, Video, FileText } from "lucide-react";
+import { Send, User as UserIcon, Smile, Paperclip, X, MessageSquare, Loader2, Clock, Check, CheckCheck, Lock, ChevronDown, Zap, Target, Copy, Sparkles, Info, MoreVertical, Eye, Image as ImageIcon, Video, FileText, ArrowUpRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn, getTierBorderClass } from "../../lib/utils";
 import { Card, Button, Input, EmptyState, Skeleton, Badge } from "../ui";
@@ -8,6 +8,7 @@ import { useAuthStore, useChatStore } from "../../store/stores";
 import { useShallow } from "zustand/shallow";
 import { useSignalR } from "../../providers/SignalRProvider";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import { AudioPlayer } from "./AudioPlayer";
 import { ImageViewer } from "./ImageViewer";
 import { format, isToday, isYesterday } from "date-fns";
@@ -234,6 +235,7 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
 });
 
 export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean; onSendMessage: (text: string, file?: File, mentions?: MessageMention[], blocks?: any[]) => void; activeGroupId: string | null; currentGroup: Group | null; fetchNextPage?: () => void; hasNextPage?: boolean; isFetchingNextPage?: boolean; usage?: { remaining: number; limit: number; imagesRemaining?: number; videosRemaining?: number; filesRemaining?: number; } | null; }> = ({ messages, isLoading, onSendMessage, activeGroupId, currentGroup, fetchNextPage, hasNextPage, isFetchingNextPage, usage }) => {
+  const navigate = useNavigate();
   const [text, setText] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedFileUrl, setSelectedFileUrl] = useState<string | null>(null);
@@ -525,6 +527,27 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
               </span>
             </div>
           </div>
+        )}
+
+        {/* Upgrade Banner — shown when limit is reached */}
+        {isLimitReached && (
+          <motion.div 
+            initial={{ opacity: 0, y: 8 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-rose-500/10 via-purple-500/10 to-amber-500/10 border border-rose-500/20 mb-3"
+          >
+            <Lock className="w-5 h-5 text-rose-500 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-bold text-white uppercase tracking-wide">Daily message limit reached</p>
+              <p className="text-[9px] text-slate-400 font-medium">Upgrade to Pro or Ultra for unlimited messages</p>
+            </div>
+            <button 
+              onClick={() => navigate("/pricing")} 
+              className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl bg-ui-accent text-white text-[10px] font-bold uppercase tracking-widest hover:bg-ui-accent/80 transition-colors shadow-glow shadow-ui-accent/20"
+            >
+              Upgrade <ArrowUpRight className="w-3 h-3" />
+            </button>
+          </motion.div>
         )}
 
         <div className="flex items-center gap-3 bg-white/[0.03] rounded-[24px] border border-white/10 px-4 md:px-6 h-16 md:h-20 shadow-2xl transition-all focus-within:border-ui-accent/40 focus-within:bg-white/[0.05]">

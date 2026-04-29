@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
-import { Calendar, CheckCircle, Clock, Users, Zap, Search, ExternalLink, SkipForward, Loader2, X } from "lucide-react";
+import { Calendar, CheckCircle, Clock, Users, Zap, Search, ExternalLink, SkipForward, Loader2, X, Lock, ArrowUpRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useInfiniteSessions, useSessionMutations } from "../queries/useSessionQueries";
 import { Session } from "../types";
 import { Card, Button, Badge } from "../components/ui";
@@ -13,6 +14,7 @@ import { getTierLimits } from "../lib/limits";
 
 const AttendancePage: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
   const [wizardSession, setWizardSession] = useState<Session | null>(null);
@@ -44,6 +46,7 @@ const AttendancePage: React.FC = () => {
   
   const sessions = data?.pages.flatMap(p => p.items) || [];
   const completedToday = sessions.filter(s => s.status === "Ended" && !s.isSkipped).length;
+  const quotaReached = limits.maxDailyAttendance !== Infinity && completedToday >= limits.maxDailyAttendance;
   
   const filteredSessions = sessions.filter(s => {
     if (searchQuery && !s.groupName?.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -88,12 +91,20 @@ const AttendancePage: React.FC = () => {
           {user?.role === "Engineer" && (
             <div className={cn(
               "flex items-center gap-2 px-4 py-2 bg-white/[0.03] border rounded-xl",
-              completedToday >= limits.maxDailyAttendance ? "border-rose-500/30 bg-rose-500/5" : "border-white/10"
+              quotaReached ? "border-rose-500/30 bg-rose-500/5" : "border-white/10"
             )}>
-              <Zap className={cn("w-4 h-4", completedToday >= limits.maxDailyAttendance ? "text-rose-500" : "text-amber-500")} />
+              <Zap className={cn("w-4 h-4", quotaReached ? "text-rose-500" : "text-amber-500")} />
               <span className="text-sm font-medium text-white">
-                Quota: <span className={cn(completedToday >= limits.maxDailyAttendance ? "text-rose-400" : "text-amber-400")}>{completedToday}</span> / {limits.maxDailyAttendance}
+                Quota: <span className={cn(quotaReached ? "text-rose-400" : "text-amber-400")}>{completedToday}</span> / {limits.maxDailyAttendance === Infinity ? "∞" : limits.maxDailyAttendance}
               </span>
+              {quotaReached && (
+                <button 
+                  onClick={() => navigate("/pricing")} 
+                  className="flex items-center gap-1 text-[10px] font-bold text-ui-accent uppercase tracking-widest hover:underline ms-2"
+                >
+                  Upgrade <ArrowUpRight className="w-3 h-3" />
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -135,15 +146,31 @@ const AttendancePage: React.FC = () => {
               const studentCount = session.totalStudents || 0;
               const isAttendable = session.status !== "Ended"; 
               const isScheduled = session.status === "Scheduled";
+              const isActive = session.status === "Active";
+              // Lock non-started sessions when quota is hit (allow already-active sessions)
+              const isLockedByQuota = quotaReached && isScheduled;
 
               return (
                 <Card key={session.id} className={cn(
                   "p-5 sm:p-6 border border-white/5 bg-[var(--ui-sidebar-bg)]/40 backdrop-blur-3xl hover:bg-white/[0.04] transition-all group flex flex-col relative overflow-hidden",
-                  !isAttendable && "opacity-75"
+                  !isAttendable && "opacity-75",
+                  isLockedByQuota && "opacity-40 blur-[0.5px] pointer-events-none select-none"
                 )}>
-                  {isScheduled && (
+                  {isScheduled && !isLockedByQuota && (
                     <div className="absolute top-0 right-0 px-3 py-1 bg-amber-500/10 text-amber-500 text-[8px] font-black uppercase tracking-[0.2em] rounded-bl-xl border-b border-l border-amber-500/20">
                       Ready
+                    </div>
+                  )}
+                  {isLockedByQuota && (
+                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm rounded-[inherit]">
+                      <Lock className="w-8 h-8 text-rose-500/80 mb-3" />
+                      <p className="text-[10px] font-bold text-rose-400 uppercase tracking-widest mb-2">Daily Limit Reached</p>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); navigate("/pricing"); }}
+                        className="pointer-events-auto px-4 py-1.5 rounded-lg bg-ui-accent text-white text-[10px] font-bold uppercase tracking-widest hover:bg-ui-accent/80 transition-colors flex items-center gap-1.5"
+                      >
+                        Upgrade Plan <ArrowUpRight className="w-3 h-3" />
+                      </button>
                     </div>
                   )}
                   <div className="flex justify-between items-start mb-6">
@@ -164,18 +191,22 @@ const AttendancePage: React.FC = () => {
                       variant={isScheduled ? "outline" : "primary"}
                       className={cn(
                         "w-full h-11 text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-all duration-300",
-                        isAttendable ? "opacity-100 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]" : "opacity-50 pointer-events-none"
+                        isAttendable && !isLockedByQuota ? "opacity-100 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]" : "opacity-50 pointer-events-none"
                       )}
                       onClick={() => {
                         if (completedToday >= limits.maxDailyAttendance && session.status !== "Active") {
                           toast.error(`Daily attendance limit reached (${limits.maxDailyAttendance}/day). Upgrade for more.`, {
-                            icon: <Zap className="w-4 h-4 text-rose-500" />
+                            icon: <Zap className="w-4 h-4 text-rose-500" />,
+                            action: {
+                              label: "Upgrade",
+                              onClick: () => navigate("/pricing"),
+                            },
                           });
                           return;
                         }
                         handleMakeAttendance(session);
                       }}
-                      disabled={!isAttendable}
+                      disabled={!isAttendable || isLockedByQuota}
                     >
                       {!isAttendable ? (
                         <>
