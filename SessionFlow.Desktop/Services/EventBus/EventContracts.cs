@@ -88,4 +88,6 @@ public static class Events
     // ═══════════════════════════════════════════════
     public const string WalletBalanceUpdated = "wallet:balance-updated";
     public const string WalletTransactionReceived = "wallet:transaction-received";
+    public const string WalletDepositApproved = "wallet:deposit-approved";
+    public const string WalletDepositRejected = "wallet:deposit-rejected";
 }

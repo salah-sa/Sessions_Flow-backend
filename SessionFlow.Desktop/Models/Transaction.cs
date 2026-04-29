@@ -8,7 +8,9 @@ public enum WalletTransactionType
     Transfer,
     AdminTopUp,
     AdminDeduct,
-    Reversed
+    Reversed,
+    Fee,
+    Deposit
 }
 
 public enum WalletTransactionStatus
@@ -67,6 +69,10 @@ public class Transaction
 
     [BsonIgnoreIfNull]
     public string? FailureReason { get; set; }
+
+    /// <summary>The 1% platform fee deducted from the sender (in piasters). Null for non-transfer types.</summary>
+    [BsonIgnoreIfNull]
+    public long? FeePiasters { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 

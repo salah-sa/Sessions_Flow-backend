@@ -20,6 +20,12 @@ public class Wallet
     
     public bool IsActive { get; set; } = true;
     
+    /// <summary>True once the user has confirmed their phone via OTP.</summary>
+    public bool IsPhoneVerified { get; set; } = false;
+    
+    [BsonIgnoreIfNull]
+    public DateTimeOffset? PhoneVerifiedAt { get; set; }
+    
     public long DailyTransferLimitPiasters { get; set; } = 500000; // Default 5000 EGP
     
     public long DailyTransferredPiasters { get; set; } = 0;

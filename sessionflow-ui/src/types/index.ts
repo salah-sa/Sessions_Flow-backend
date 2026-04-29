@@ -452,6 +452,7 @@ export interface Wallet {
   dailyLimitEGP: number;
   dailyUsedEGP: number;
   isActive: boolean;
+  isPhoneVerified: boolean;
 }
 
 export interface WalletTransaction {
@@ -459,10 +460,24 @@ export interface WalletTransaction {
   type: string;
   direction: "Sent" | "Received";
   amountEGP: number;
+  feeEGP?: number;
   counterpartyPhone: string;
   note?: string;
   status: string;
   createdAt: string;
+}
+
+export interface DepositRequest {
+  id: string;
+  amountEGP: number;
+  paymentMethod: "WePay" | "VodafoneCash";
+  targetPaymentPhone: string;
+  status: "Pending" | "Approved" | "Rejected";
+  isFirstDeposit: boolean;
+  bonusEGP: number;
+  adminNote?: string;
+  createdAt: string;
+  reviewedAt?: string;
 }
 
 export interface CreateWalletRequest {
@@ -472,7 +487,7 @@ export interface CreateWalletRequest {
 
 export interface TransferRequest {
   toPhone: string;
-  amountEgp: number;
+  amountEGP: number;
   pin: string;
   note?: string;
   idempotencyKey: string;
@@ -480,6 +495,37 @@ export interface TransferRequest {
 
 export interface AdminTopUpRequest {
   targetPhone: string;
-  amountEgp: number;
+  amountEGP: number;
   note?: string;
+}
+
+export interface SendOtpRequest {
+  phone: string;
+  purpose: "verify_phone" | "reset_pin";
+}
+
+export interface VerifyPhoneRequest {
+  phone: string;
+  code: string;
+}
+
+export interface ForgotPinResetRequest {
+  phone: string;
+  code: string;
+  newPin: string;
+}
+
+export interface CreateDepositRequest {
+  amountEGP: number;
+  paymentMethod: string;
+}
+
+export interface AdminApproveDepositRequest {
+  depositRequestId: string;
+  adminNote?: string;
+}
+
+export interface AdminRejectDepositRequest {
+  depositRequestId: string;
+  adminNote: string;
 }

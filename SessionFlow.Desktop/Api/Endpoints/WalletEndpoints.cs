@@ -1,9 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using MongoDB.Driver;
+using Microsoft.AspNetCore.Routing;
 using SessionFlow.Desktop.Models;
 using SessionFlow.Desktop.Services;
 using SessionFlow.Desktop.Services.EventBus;
@@ -16,252 +14,314 @@ public static class WalletEndpoints
     {
         var group = app.MapGroup("/api/wallet").RequireAuthorization();
 
-        // ═══════════════════════════════════════════════
-        // POST /api/wallet/create
-        // ═══════════════════════════════════════════════
-        group.MapPost("/create", async (
-            [FromBody] CreateWalletRequest req,
-            ClaimsPrincipal user,
-            WalletService walletService,
-            ILogger<WalletService> logger) =>
+        // ─── OTP / Phone Verification ────────────────────────────────────────
+
+        // POST /api/wallet/send-otp   (send OTP to verify phone before wallet creation)
+        group.MapPost("/send-otp", async (
+            SendOtpRequest req,
+            OtpService otpService,
+            HttpContext ctx) =>
         {
-            var userIdStr = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
-                return Results.Unauthorized();
+            if (string.IsNullOrWhiteSpace(req.Phone) || req.Phone.Length < 11)
+                return Results.BadRequest(new { error = "Invalid phone number." });
 
-            var (wallet, error) = await walletService.CreateWalletAsync(userId, req.PhoneNumber, req.Pin);
-            
-            if (error != null)
-                return Results.BadRequest(new { error });
+            var purpose = req.Purpose is "verify_phone" or "forgot_pin" ? req.Purpose : "verify_phone";
+            var (code, error) = await otpService.GenerateOtpAsync(req.Phone, purpose);
+            if (error != null) return Results.BadRequest(new { error });
 
-            return Results.Created($"/api/wallet/me", new {
-                walletId = wallet!.Id.ToString(),
-                phoneNumber = wallet.PhoneNumber,
-                balance = 0.00m,
-                createdAt = wallet.CreatedAt
-            });
+            // Return code in dev (null in production after SMS provider hooked up)
+            return Results.Ok(new { message = "OTP sent.", devCode = code });
         });
 
-        // ═══════════════════════════════════════════════
+        // POST /api/wallet/verify-phone
+        group.MapPost("/verify-phone", async (
+            VerifyPhoneRequest req,
+            OtpService otpService,
+            WalletService walletService,
+            HttpContext ctx) =>
+        {
+            var (valid, error) = await otpService.ValidateOtpAsync(req.Phone, "verify_phone", req.Code);
+            if (!valid) return Results.BadRequest(new { error });
+
+            // Mark existing wallet verified (if wallet created before verification)
+            await walletService.MarkPhoneVerifiedAsync(req.Phone);
+            return Results.Ok(new { message = "Phone verified successfully." });
+        });
+
+        // ─── Wallet CRUD ─────────────────────────────────────────────────────
+
         // GET /api/wallet/me
-        // ═══════════════════════════════════════════════
         group.MapGet("/me", async (
             ClaimsPrincipal user,
-            WalletService walletService) =>
+            WalletService walletService,
+            HttpContext ctx) =>
         {
-            var userIdStr = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+            if (!Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
                 return Results.Unauthorized();
 
             var wallet = await walletService.GetWalletByUserIdAsync(userId);
-            if (wallet == null)
-                return Results.NotFound(new { error = "Wallet not found." });
+            if (wallet == null) return Results.NotFound(new { error = "No wallet found." });
 
-            var response = new WalletResponse(
-                wallet.Id.ToString(),
-                wallet.PhoneNumber,
+            return Results.Ok(new WalletResponse(
+                wallet.Id.ToString(), wallet.PhoneNumber,
                 wallet.BalancePiasters / 100m,
                 wallet.DailyTransferLimitPiasters / 100m,
                 wallet.DailyTransferredPiasters / 100m,
-                wallet.IsActive
-            );
-
-            return Results.Ok(response);
+                wallet.IsActive,
+                wallet.IsPhoneVerified
+            ));
         });
 
-        // ═══════════════════════════════════════════════
+        // POST /api/wallet/create
+        group.MapPost("/create", async (
+            CreateWalletRequest req,
+            ClaimsPrincipal user,
+            OtpService otpService,
+            WalletService walletService) =>
+        {
+            if (!Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+                return Results.Unauthorized();
+
+            var (wallet, error) = await walletService.CreateWalletAsync(userId, req.PhoneNumber, req.Pin, isPhoneVerified: false);
+            if (error != null) return Results.BadRequest(new { error });
+
+            return Results.Ok(new { message = "Wallet created. Please verify your phone to activate transfers.", walletId = wallet!.Id });
+        });
+
         // POST /api/wallet/verify-pin
-        // ═══════════════════════════════════════════════
         group.MapPost("/verify-pin", async (
-            [FromBody] VerifyPinRequest req,
+            VerifyPinRequest req,
             ClaimsPrincipal user,
             WalletService walletService) =>
         {
-            var userIdStr = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+            if (!Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
                 return Results.Unauthorized();
 
             var wallet = await walletService.GetWalletByUserIdAsync(userId);
-            if (wallet == null)
-                return Results.NotFound(new { error = "Wallet not found." });
+            if (wallet == null) return Results.NotFound(new { error = "Wallet not found." });
 
-            var (isValid, error, attemptsRemaining, unlockAt) = await walletService.VerifyPinAsync(wallet.PhoneNumber, req.Pin);
-
-            if (unlockAt.HasValue)
-            {
-                return Results.Json(new { locked = true, unlockAt = unlockAt.Value }, statusCode: 429);
-            }
-
-            if (!isValid)
-            {
-                return Results.Json(new { valid = false, attemptsRemaining = attemptsRemaining ?? 0 }, statusCode: 401);
-            }
+            var (valid, error, remaining, unlockAt) = await walletService.VerifyPinAsync(wallet.PhoneNumber, req.Pin);
+            if (!valid) return Results.BadRequest(new { error, attemptsRemaining = remaining, lockedUntil = unlockAt });
 
             return Results.Ok(new { valid = true });
         });
 
-        // ═══════════════════════════════════════════════
-        // POST /api/wallet/transfer
-        // ═══════════════════════════════════════════════
-        group.MapPost("/transfer", async (
-            [FromBody] TransferRequest req,
+        // ─── Forgot PIN ───────────────────────────────────────────────────────
+
+        // POST /api/wallet/forgot-pin/send-otp
+        group.MapPost("/forgot-pin/send-otp", async (
             ClaimsPrincipal user,
             WalletService walletService,
-            IEventBus eventBus,
-            HttpContext context) =>
+            OtpService otpService) =>
         {
-            var userIdStr = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
-                return Results.Unauthorized();
-
-            var fromWallet = await walletService.GetWalletByUserIdAsync(userId);
-            if (fromWallet == null)
-                return Results.BadRequest(new { error = "You do not have a wallet." });
-
-            var ipAddress = context.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
-
-            var (transaction, error) = await walletService.TransferAsync(
-                fromWallet.PhoneNumber, req.ToPhone, req.AmountEGP, req.Pin, req.Note, req.IdempotencyKey, userId, ipAddress);
-
-            if (error != null)
-                return Results.BadRequest(new { error });
-
-            // Notify Sender via real-time
-            await eventBus.PublishAsync(Events.WalletBalanceUpdated, EventTargetType.User, userId.ToString(), new {
-                balanceEgp = transaction!.BalanceAfterSenderPiasters / 100m,
-                transactionRef = transaction.ReferenceCode
-            });
-
-            // Notify Receiver via real-time
-            if (transaction.ToWalletId.HasValue)
-            {
-                var receiverWallet = await walletService.GetWalletByPhoneAsync(req.ToPhone);
-                if (receiverWallet != null)
-                {
-                    await eventBus.PublishAsync(Events.WalletBalanceUpdated, EventTargetType.User, receiverWallet.UserId.ToString(), new {
-                        balanceEgp = transaction.BalanceAfterReceiverPiasters / 100m,
-                        transactionRef = transaction.ReferenceCode
-                    });
-
-                    await eventBus.PublishAsync(Events.WalletTransactionReceived, EventTargetType.User, receiverWallet.UserId.ToString(), new {
-                        amountEgp = req.AmountEGP,
-                        fromPhone = fromWallet.PhoneNumber,
-                        note = req.Note,
-                        referenceCode = transaction.ReferenceCode
-                    });
-                }
-            }
-
-            var response = new TransferResponse(
-                transaction!.ReferenceCode,
-                req.AmountEGP,
-                req.ToPhone,
-                transaction.BalanceAfterSenderPiasters / 100m,
-                transaction.CompletedAt ?? DateTimeOffset.UtcNow
-            );
-
-            return Results.Ok(response);
-        });
-
-        // ═══════════════════════════════════════════════
-        // GET /api/wallet/transactions?page=1&pageSize=20
-        // ═══════════════════════════════════════════════
-        group.MapGet("/transactions", async (
-            int page,
-            int pageSize,
-            ClaimsPrincipal user,
-            WalletService walletService) =>
-        {
-            var userIdStr = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+            if (!Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
                 return Results.Unauthorized();
 
             var wallet = await walletService.GetWalletByUserIdAsync(userId);
-            if (wallet == null)
-                return Results.Ok(new { items = Array.Empty<TransactionDto>(), totalCount = 0L, page, pageSize });
+            if (wallet == null) return Results.NotFound(new { error = "Wallet not found." });
 
-            // Clamp pageSize to prevent abuse
-            pageSize = Math.Clamp(pageSize, 1, 100);
+            var (code, error) = await otpService.GenerateOtpAsync(wallet.PhoneNumber, "reset_pin");
+            if (error != null) return Results.BadRequest(new { error });
 
-            var (items, totalCount) = await walletService.GetTransactionsAsync(wallet.Id, page, pageSize);
-
-            return Results.Ok(new { items, totalCount, page, pageSize });
+            var maskedPhone = wallet.PhoneNumber[..3] + "••••••" + wallet.PhoneNumber[^2..];
+            return Results.Ok(new { message = $"OTP sent to {maskedPhone}.", devCode = code });
         });
 
-        // ═══════════════════════════════════════════════
-        // ADMIN ENDPOINTS
-        // ═══════════════════════════════════════════════
-        var adminGroup = app.MapGroup("/api/wallet/admin").RequireAuthorization("AdminOnly");
+        // POST /api/wallet/forgot-pin/reset
+        group.MapPost("/forgot-pin/reset", async (
+            ForgotPinResetRequest req,
+            ClaimsPrincipal user,
+            WalletService walletService,
+            OtpService otpService) =>
+        {
+            if (!Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+                return Results.Unauthorized();
 
-        // POST /api/wallet/admin/topup
-        adminGroup.MapPost("/topup", async (
-            [FromBody] AdminTopUpRequest req,
+            var wallet = await walletService.GetWalletByUserIdAsync(userId);
+            if (wallet == null) return Results.NotFound(new { error = "Wallet not found." });
+
+            var (valid, otpError) = await otpService.ValidateOtpAsync(wallet.PhoneNumber, "reset_pin", req.Code);
+            if (!valid) return Results.BadRequest(new { error = otpError });
+
+            var (success, pinError) = await walletService.UpdatePinAsync(wallet.PhoneNumber, req.NewPin);
+            if (!success) return Results.BadRequest(new { error = pinError });
+
+            return Results.Ok(new { message = "PIN reset successfully. Please log in with your new PIN." });
+        });
+
+        // ─── Transfer ─────────────────────────────────────────────────────────
+
+        // POST /api/wallet/transfer
+        group.MapPost("/transfer", async (
+            TransferRequest req,
             ClaimsPrincipal user,
             WalletService walletService,
             IEventBus eventBus,
-            HttpContext context) =>
+            HttpContext ctx) =>
         {
-            var adminIdStr = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(adminIdStr) || !Guid.TryParse(adminIdStr, out var adminId))
+            if (!Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
                 return Results.Unauthorized();
 
-            var ipAddress = context.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+            var fromWallet = await walletService.GetWalletByUserIdAsync(userId);
+            if (fromWallet == null) return Results.NotFound(new { error = "Your wallet was not found." });
+            if (!fromWallet.IsPhoneVerified)
+                return Results.BadRequest(new { error = "Verify your phone number before making transfers." });
 
-            var (transaction, error) = await walletService.AdminTopUpAsync(
-                req.TargetPhone, req.AmountEGP, req.Note, adminId, ipAddress);
+            var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            var (tx, feePiasters, error) = await walletService.TransferAsync(
+                fromWallet.PhoneNumber, req.ToPhone, req.AmountEGP,
+                req.Pin, req.Note, req.IdempotencyKey, userId, ip);
 
-            if (error != null)
-                return Results.BadRequest(new { error });
+            if (error != null) return Results.BadRequest(new { error });
 
-            // Notify Receiver via real-time
-            if (transaction!.ToWalletId.HasValue)
+            await eventBus.PublishAsync(Events.WalletBalanceUpdated, new { userId = userId.ToString() });
+            await eventBus.PublishAsync(Events.WalletTransactionReceived, new { reference = tx!.ReferenceCode });
+
+            return Results.Ok(new TransferResponse(
+                tx!.ReferenceCode, req.AmountEGP, feePiasters / 100m,
+                req.ToPhone,
+                tx.BalanceAfterSenderPiasters / 100m,
+                tx.CompletedAt ?? DateTimeOffset.UtcNow
+            ));
+        });
+
+        // GET /api/wallet/transactions?page=1&pageSize=20
+        group.MapGet("/transactions", async (
+            ClaimsPrincipal user,
+            WalletService walletService,
+            int page = 1, int pageSize = 20) =>
+        {
+            if (!Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+                return Results.Unauthorized();
+
+            var wallet = await walletService.GetWalletByUserIdAsync(userId);
+            if (wallet == null) return Results.NotFound(new { error = "Wallet not found." });
+
+            var (items, total) = await walletService.GetTransactionsAsync(wallet.Id, page, pageSize);
+            return Results.Ok(new { items, total, page, pageSize });
+        });
+
+        // ─── Deposit / Charge Wallet ──────────────────────────────────────────
+
+        // POST /api/wallet/deposit/request
+        group.MapPost("/deposit/request", async (
+            CreateDepositRequest req,
+            ClaimsPrincipal user,
+            WalletService walletService) =>
+        {
+            if (!Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+                return Results.Unauthorized();
+
+            var (deposit, error) = await walletService.CreateDepositRequestAsync(userId, req.AmountEGP, req.PaymentMethod);
+            if (error != null) return Results.BadRequest(new { error });
+
+            return Results.Ok(new { message = "Deposit request submitted. Please contact admin for confirmation.", depositId = deposit!.Id });
+        });
+
+        // GET /api/wallet/deposit/my-requests
+        group.MapGet("/deposit/my-requests", async (
+            ClaimsPrincipal user,
+            WalletService walletService) =>
+        {
+            if (!Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+                return Results.Unauthorized();
+
+            var list = await walletService.GetUserDepositRequestsAsync(userId);
+            return Results.Ok(list.Select(d => new DepositRequestDto(
+                d.Id.ToString(), d.AmountEGP, d.PaymentMethod.ToString(),
+                d.TargetPaymentPhone, d.Status.ToString(),
+                d.IsFirstDeposit, d.BonusPiasters / 100m,
+                d.AdminNote, d.CreatedAt, d.ReviewedAt
+            )));
+        });
+
+        // ─── Admin Endpoints ──────────────────────────────────────────────────
+
+        var adminGroup = app.MapGroup("/api/wallet/admin").RequireAuthorization("AdminOnly");
+
+        // GET /api/wallet/admin/deposit/pending
+        adminGroup.MapGet("/deposit/pending", async (WalletService walletService) =>
+        {
+            var list = await walletService.GetPendingDepositRequestsAsync();
+            return Results.Ok(list.Select(d => new DepositRequestDto(
+                d.Id.ToString(), d.AmountEGP, d.PaymentMethod.ToString(),
+                d.TargetPaymentPhone, d.Status.ToString(),
+                d.IsFirstDeposit, d.BonusPiasters / 100m,
+                d.AdminNote, d.CreatedAt, d.ReviewedAt
+            )));
+        });
+
+        // POST /api/wallet/admin/deposit/approve
+        adminGroup.MapPost("/deposit/approve", async (
+            AdminApproveDepositRequest req,
+            ClaimsPrincipal user,
+            WalletService walletService,
+            IEventBus eventBus,
+            HttpContext ctx) =>
+        {
+            if (!Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var adminId))
+                return Results.Unauthorized();
+
+            var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            var (tx, error) = await walletService.ApproveDepositAsync(req.DepositRequestId, adminId, req.AdminNote, ip);
+            if (error != null) return Results.BadRequest(new { error });
+
+            await eventBus.PublishAsync(Events.WalletDepositApproved, new { depositId = req.DepositRequestId });
+            await eventBus.PublishAsync(Events.WalletBalanceUpdated, new { });
+
+            return Results.Ok(new { message = "Deposit approved and wallet credited.", reference = tx!.ReferenceCode });
+        });
+
+        // POST /api/wallet/admin/deposit/reject
+        adminGroup.MapPost("/deposit/reject", async (
+            AdminRejectDepositRequest req,
+            ClaimsPrincipal user,
+            WalletService walletService,
+            IEventBus eventBus) =>
+        {
+            if (!Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var adminId))
+                return Results.Unauthorized();
+
+            var error = await walletService.RejectDepositAsync(req.DepositRequestId, adminId, req.AdminNote);
+            if (error != null) return Results.BadRequest(new { error });
+
+            await eventBus.PublishAsync(Events.WalletDepositRejected, new { depositId = req.DepositRequestId });
+            return Results.Ok(new { message = "Deposit request rejected." });
+        });
+
+        // GET /api/wallet/admin/all?page=1&pageSize=20
+        adminGroup.MapGet("/all", async (WalletService walletService, int page = 1, int pageSize = 20) =>
+        {
+            var (items, total) = await walletService.GetAllWalletsAsync(page, pageSize);
+            return Results.Ok(new
             {
-                var receiverWallet = await walletService.GetWalletByPhoneAsync(req.TargetPhone);
-                if (receiverWallet != null)
+                total, page, pageSize,
+                items = items.Select(w => new
                 {
-                    await eventBus.PublishAsync(Events.WalletBalanceUpdated, EventTargetType.User, receiverWallet.UserId.ToString(), new {
-                        balanceEgp = transaction.BalanceAfterReceiverPiasters / 100m,
-                        transactionRef = transaction.ReferenceCode
-                    });
-
-                    await eventBus.PublishAsync(Events.WalletTransactionReceived, EventTargetType.User, receiverWallet.UserId.ToString(), new {
-                        amountEgp = req.AmountEGP,
-                        fromPhone = "Admin Top-Up",
-                        note = req.Note,
-                        referenceCode = transaction.ReferenceCode
-                    });
-                }
-            }
-
-            return Results.Ok(new {
-                message = "Top-up successful.",
-                referenceCode = transaction.ReferenceCode,
-                newBalanceEgp = transaction.BalanceAfterReceiverPiasters / 100m
+                    walletId = w.Id.ToString(), w.PhoneNumber,
+                    balanceEGP = w.BalancePiasters / 100m,
+                    w.IsActive, w.IsPhoneVerified, w.CreatedAt
+                })
             });
         });
 
-        // GET /api/wallet/admin/all?page=1&pageSize=50
-        adminGroup.MapGet("/all", async (
-            int page,
-            int pageSize,
-            WalletService walletService) =>
+        // POST /api/wallet/admin/topup
+        adminGroup.MapPost("/topup", async (
+            AdminTopUpRequest req,
+            ClaimsPrincipal user,
+            WalletService walletService,
+            IEventBus eventBus,
+            HttpContext ctx) =>
         {
-            pageSize = Math.Clamp(pageSize, 1, 100);
+            if (!Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var adminId))
+                return Results.Unauthorized();
 
-            var (wallets, totalCount) = await walletService.GetAllWalletsAsync(page, pageSize);
+            var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            var (tx, error) = await walletService.AdminTopUpAsync(req.TargetPhone, req.AmountEGP, req.Note, adminId, ip);
+            if (error != null) return Results.BadRequest(new { error });
 
-            var items = wallets.Select(w => new {
-                walletId = w.Id.ToString(),
-                userId = w.UserId.ToString(),
-                phoneNumber = w.PhoneNumber,
-                balanceEgp = w.BalancePiasters / 100m,
-                dailyLimitEgp = w.DailyTransferLimitPiasters / 100m,
-                dailyUsedEgp = w.DailyTransferredPiasters / 100m,
-                isActive = w.IsActive,
-                createdAt = w.CreatedAt
-            });
-
-            return Results.Ok(new { items, totalCount, page, pageSize });
+            await eventBus.PublishAsync(Events.WalletBalanceUpdated, new { });
+            return Results.Ok(new { message = "Wallet topped up.", reference = tx!.ReferenceCode });
         });
     }
 }

@@ -63,6 +63,10 @@ public partial class App : Application
                     await auth.EnsureEngineerCodesAsync();
 
                     await SeedDefaultSettingsAsync(db);
+
+                    // Ensure system platform wallet exists (collects 1% fees)
+                    var walletService = scope.ServiceProvider.GetRequiredService<SessionFlow.Desktop.Services.WalletService>();
+                    await walletService.EnsurePlatformWalletAsync();
                     
                     // Backfill UniqueStudentCode for existing students
                     var studentsWithoutCode = await db.Students

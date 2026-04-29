@@ -219,6 +219,13 @@ public class MongoService
 
         await Transactions.Indexes.CreateOneAsync(new CreateIndexModel<Transaction>(
             Builders<Transaction>.IndexKeys.Descending(t => t.CreatedAt)));
+
+        // Deposit Requests
+        await DepositRequests.Indexes.CreateOneAsync(new CreateIndexModel<DepositRequest>(
+            Builders<DepositRequest>.IndexKeys.Ascending(d => d.UserId).Descending(d => d.CreatedAt)));
+
+        await DepositRequests.Indexes.CreateOneAsync(new CreateIndexModel<DepositRequest>(
+            Builders<DepositRequest>.IndexKeys.Ascending(d => d.Status).Descending(d => d.CreatedAt)));
     }
 
     public IMongoCollection<User> Users => _database.GetCollection<User>("Users");
@@ -252,6 +259,7 @@ public class MongoService
     // Wallet System
     public IMongoCollection<Wallet> Wallets => _database.GetCollection<Wallet>("Wallets");
     public IMongoCollection<Transaction> Transactions => _database.GetCollection<Transaction>("Transactions");
+    public IMongoCollection<DepositRequest> DepositRequests => _database.GetCollection<DepositRequest>("DepositRequests");
 
     public IMongoDatabase Database => _database;
     public IMongoClient Client => _database.Client;

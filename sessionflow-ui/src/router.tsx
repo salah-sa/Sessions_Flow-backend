@@ -25,6 +25,7 @@ const PricingPage = lazy(() => import("./pages/PricingPage"));
 const UsersPage = lazy(() => import("./pages/UsersPage"));
 const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
 const WalletPage = lazy(() => import("./pages/WalletPage").then(module => ({ default: module.WalletPage })));
+const ChargeWalletPage = lazy(() => import("./pages/ChargeWalletPage"));
 
 const PageLoader = () => (
   <div className="h-full w-full flex items-center justify-center bg-slate-950/50 backdrop-blur-md animate-fade-in">
@@ -246,6 +247,16 @@ export const router = createBrowserRouter([
           <RoleGuard allowedRoles={["Admin", "Engineer", "Student"]}>
             <Suspense fallback={<PageLoader />}>
               <WalletPage />
+            </Suspense>
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "wallet/charge",
+        element: (
+          <RoleGuard allowedRoles={["Admin", "Engineer", "Student"]}>
+            <Suspense fallback={<PageLoader />}>
+              <ChargeWalletPage />
             </Suspense>
           </RoleGuard>
         ),

@@ -148,6 +148,7 @@ public static class ApiHost
         
         // Wallet System
         builder.Services.AddSingleton<WalletValidationService>();
+        builder.Services.AddSingleton<OtpService>();
         builder.Services.AddScoped<WalletService>();
 
         builder.Services.AddHttpContextAccessor();

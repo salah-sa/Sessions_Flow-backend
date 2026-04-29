@@ -27,6 +27,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { usePendingEngineers } from "../../queries/useAdminQueries";
 import { usePendingStudentRequests } from "../../queries/useEngineerQueries";
+import { useQuery } from "@tanstack/react-query";
+import { walletApi } from "../../api/walletApi";
 
 const LanguageBridge: React.FC = () => {
   const { i18n } = useTranslation();
@@ -58,7 +60,7 @@ const LanguageBridge: React.FC = () => {
   );
 };
 
-const NavItem = ({ to, icon: Icon, label, badge, locked, premiumLocked, pageBlocked }: { to: string; icon: any; label: string; badge?: number; locked?: boolean; premiumLocked?: boolean; pageBlocked?: boolean }) => {
+const NavItem = ({ to, icon: Icon, label, badge, locked, premiumLocked, pageBlocked, walletVerified }: { to: string; icon: any; label: string; badge?: number; locked?: boolean; premiumLocked?: boolean; pageBlocked?: boolean; walletVerified?: boolean | null }) => {
   const user = useAuthStore((s) => s.user);
   
   const handleClick = (e: React.MouseEvent) => {
@@ -93,10 +95,18 @@ const NavItem = ({ to, icon: Icon, label, badge, locked, premiumLocked, pageBloc
               className="absolute start-0 w-1 h-6 bg-[var(--ui-accent)] rounded-e-full shadow-glow shadow-[var(--ui-accent)]/40"
             />
           )}
-          <Icon className={cn("w-5 h-5 transition-all duration-300", 
-            isActive && !locked ? "text-[var(--ui-accent)]" : "group-hover:text-[var(--ui-accent)]",
-            locked && "text-rose-500 group-hover:text-rose-500"
-          )} />
+          <div className="relative">
+            <Icon className={cn("w-5 h-5 transition-all duration-300", 
+              isActive && !locked ? "text-[var(--ui-accent)]" : "group-hover:text-[var(--ui-accent)]",
+              locked && "text-rose-500 group-hover:text-rose-500"
+            )} />
+            {walletVerified !== undefined && walletVerified !== null && (
+              <span className={cn(
+                "absolute -top-0.5 -end-0.5 w-2 h-2 rounded-full border border-[var(--ui-sidebar-bg)]",
+                walletVerified ? "bg-emerald-500" : "bg-amber-500 animate-pulse"
+              )} />
+            )}
+          </div>
           <span className="text-[11px] font-bold uppercase tracking-[0.2em] flex-1">{label}</span>
           
           {locked || pageBlocked ? (
@@ -171,9 +181,12 @@ const Sidebar: React.FC = () => {
   const blockedPages = user?.blockedPages ?? [];
   const isBlocked = (routePath: string) => {
     let key = routePath.replace("/", "");
-    if (key === "plans") key = "pricing"; // Handle route vs key mismatch
+    if (key === "plans") key = "pricing";
     return blockedPages.includes(key);
   };
+
+  const walletQuery = useQuery({ queryKey: ["wallet-me"], queryFn: walletApi.getMe, retry: 1, staleTime: 60_000 });
+  const walletVerified = walletQuery.data ? walletQuery.data.isPhoneVerified : (walletQuery.isError ? false : null);
 
   return (
     <aside className="h-full w-[280px] bg-[var(--ui-sidebar-bg)] border-e border-white/5 flex flex-col z-[50]">
@@ -213,7 +226,7 @@ const Sidebar: React.FC = () => {
         <NavItem to="/timetable" icon={Calendar} label={t("nav.timetable")} pageBlocked={isBlocked("/timetable")} />
         <NavItem to="/attendance" icon={CheckCircle} label={t("nav.attendance") || "Attendance"} locked={isStudent} premiumLocked={isAdmin && !isPremium} pageBlocked={isBlocked("/attendance")} />
         <NavItem to="/chat" icon={MessageSquare} label={t("nav.chat")} badge={chatBadgeCount} pageBlocked={isBlocked("/chat")} />
-        <NavItem to="/wallet" icon={Wallet} label="Wallet" pageBlocked={isBlocked("/wallet")} />
+        <NavItem to="/wallet" icon={Wallet} label="Wallet" pageBlocked={isBlocked("/wallet")} walletVerified={walletVerified} />
         <NavItem to="/history" icon={Clock} label={t("nav.history") || "History"} pageBlocked={isBlocked("/history")} />
         
         <div className="py-3 px-6">
