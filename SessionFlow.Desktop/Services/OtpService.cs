@@ -18,7 +18,7 @@ public class OtpService
     private readonly IHostEnvironment _env;
 
     private const int OtpTtlMinutes = 5;
-    private const int MaxSendsPerHour = 3;
+    private const int MaxSendsPerHour = 50; // [DIAGNOSTIC MODE] Increased from 3
     private const int MaxVerifyAttempts = 5;
 
     public OtpService(IConnectionMultiplexer redis, ILogger<OtpService> logger, SmsService sms, IHostEnvironment env)
