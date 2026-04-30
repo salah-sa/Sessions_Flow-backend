@@ -27,7 +27,9 @@ export const walletApi = {
   // ── OTP / Phone Verification ─────────────────────────────────────────────
   sendOtp: (data: SendOtpRequest) =>
     fetchWithAuth<{ message: string }>("/wallet/send-otp", {
-      method: "POST", body: JSON.stringify(data),
+      method: "POST",
+      body: JSON.stringify(data),
+      signal: AbortSignal.timeout(20000), // 20s max — email send can be slow
     }),
 
   verifyPhone: (data: VerifyPhoneRequest) =>
@@ -38,7 +40,9 @@ export const walletApi = {
   // ── Forgot PIN ───────────────────────────────────────────────────────────
   forgotPinSendOtp: () =>
     fetchWithAuth<{ message: string }>("/wallet/forgot-pin/send-otp", {
-      method: "POST", body: JSON.stringify({}),
+      method: "POST",
+      body: JSON.stringify({}),
+      signal: AbortSignal.timeout(20000), // 20s max
     }),
 
   forgotPinReset: (data: ForgotPinResetRequest) =>

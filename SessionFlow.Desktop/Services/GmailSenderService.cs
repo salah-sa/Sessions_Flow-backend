@@ -218,7 +218,7 @@ public class GmailSenderService
 
             // Use a tight timeout — if Railway blocks the port it hangs forever
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(15));
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(4)); // Fail fast — Railway blocks SMTP
 
             using var client = new SmtpClient();
 

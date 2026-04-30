@@ -139,7 +139,20 @@ public class OtpService
 </div>";
 
         _logger.LogInformation("[OTP] Sending code to {Email} for phone {Phone} ({Purpose})", emailTo, phone, purpose);
-        var (ok, err) = await _gmail.SendEmailAsync(emailTo, subject, htmlBody);
+
+        // Hard cap: entire email delivery must complete within 12 seconds
+        using var sendCts = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+        bool ok; string? err;
+        try
+        {
+            (ok, err) = await _gmail.SendEmailAsync(emailTo, subject, htmlBody, sendCts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("[OTP] ⏱ Email send timed out for {Email}", emailTo);
+            await DeleteKeyAsync(otpKey);
+            return (null, "Email delivery timed out. Please try again.");
+        }
 
         if (!ok)
         {

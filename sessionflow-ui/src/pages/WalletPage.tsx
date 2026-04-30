@@ -54,7 +54,12 @@ const VerifyPhoneGate = ({ phone, onVerified }: { phone: string; onVerified: () 
       toast.success(`Verification code sent to ${email}`);
     },
     onError: (e: any) => {
-      toast.error(e?.message || "Failed to send code. Please try again.");
+      const msg: string = e?.message ?? "";
+      if (msg.includes("timed out") || e?.name === "TimeoutError") {
+        toast.error("Connection timed out. Please try again.", { duration: 5000 });
+      } else {
+        toast.error(msg || "Failed to send code. Please try again.");
+      }
     },
   });
 
@@ -293,7 +298,12 @@ const CreateWalletForm = () => {
       toast.success(`Verification code sent to ${email}`);
     },
     onError: (e: any) => {
-      toast.error(e?.message || "Failed to send code. Please try again.");
+      const msg: string = e?.message ?? "";
+      if (msg.includes("timed out") || e?.name === "TimeoutError") {
+        toast.error("Connection timed out. Please try again.", { duration: 5000 });
+      } else {
+        toast.error(msg || "Failed to send code. Please try again.");
+      }
     },
   });
 
