@@ -141,7 +141,6 @@ public static class ApiHost
         builder.Services.AddScoped<EmailService>();
         builder.Services.AddHttpClient<WhatsAppService>();
         builder.Services.AddHostedService<EmailReminderService>();
-        builder.Services.AddScoped<OtpService>();
 
         // Firebase Admin SDK
         if (FirebaseApp.DefaultInstance == null)
@@ -174,7 +173,8 @@ public static class ApiHost
         
         // Wallet System
         builder.Services.AddSingleton<WalletValidationService>();
-        builder.Services.AddSingleton<OtpService>();
+        builder.Services.AddSingleton<ResendEmailService>();
+        builder.Services.AddScoped<OtpService>();
         builder.Services.AddScoped<WalletService>();
 
         builder.Services.AddHttpContextAccessor();

@@ -26,7 +26,7 @@ export const walletApi = {
 
   // ── OTP / Phone Verification ─────────────────────────────────────────────
   sendOtp: (data: SendOtpRequest) =>
-    fetchWithAuth<{ message: string; devCode?: string }>("/wallet/send-otp", {
+    fetchWithAuth<{ message: string }>("/wallet/send-otp", {
       method: "POST", body: JSON.stringify(data),
     }),
 
@@ -37,7 +37,7 @@ export const walletApi = {
 
   // ── Forgot PIN ───────────────────────────────────────────────────────────
   forgotPinSendOtp: () =>
-    fetchWithAuth<{ message: string; devCode?: string }>("/wallet/forgot-pin/send-otp", {
+    fetchWithAuth<{ message: string }>("/wallet/forgot-pin/send-otp", {
       method: "POST", body: JSON.stringify({}),
     }),
 

@@ -138,8 +138,7 @@ public static class WalletEndpoints
             var (code, error) = await otpService.GenerateOtpAsync(wallet.PhoneNumber, currentUser.Email, "reset_pin");
             if (error != null) return Results.BadRequest(new { error });
 
-            var maskedPhone = wallet.PhoneNumber[..3] + "••••••" + wallet.PhoneNumber[^2..];
-            return Results.Ok(new { message = $"OTP sent to {maskedPhone}.", devCode = code });
+            return Results.Ok(new { message = "Verification code sent to your email." });
         });
 
         // POST /api/wallet/forgot-pin/reset  (OTP code verification)
