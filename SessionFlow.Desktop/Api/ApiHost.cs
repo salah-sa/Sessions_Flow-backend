@@ -173,14 +173,14 @@ public static class ApiHost
         
         // Wallet System
         builder.Services.AddSingleton<WalletValidationService>();
-        builder.Services.AddSingleton<ResendEmailService>(); // kept for EmailService / GmailSenderService fallback
+        builder.Services.AddSingleton<ResendEmailService>();
         builder.Services.AddScoped<OtpService>(sp =>
         {
-            // OtpService now uses GmailSenderService (SMTP cascade) instead of Resend directly.
-            // Delivery order: Gmail SMTP → Resend API → Gmail OAuth
+            // OtpService uses Resend for OTP delivery.
+            // In Sandbox mode, Resend only delivers to the registered email address.
             var logger = sp.GetRequiredService<ILogger<OtpService>>();
-            var gmail = sp.GetRequiredService<GmailSenderService>();
-            return new OtpService(redisConnection, logger, gmail);
+            var resend = sp.GetRequiredService<ResendEmailService>();
+            return new OtpService(redisConnection, logger, resend);
         });
         builder.Services.AddScoped<WalletService>();
 

@@ -6,8 +6,7 @@ using System.Security.Cryptography;
 namespace SessionFlow.Desktop.Services;
 
 /// <summary>
-/// Redis-backed OTP service using GmailSenderService for email delivery.
-/// Delivery cascade: Gmail SMTP → Resend API → Gmail OAuth.
+/// Redis-backed OTP service using Resend.com for email delivery.
 /// Falls back to in-memory store if Redis is unavailable.
 /// Codes are 6 digits, stored with 5-minute TTL.
 /// Rate limit: max 50 sends per phone per hour.
@@ -16,7 +15,7 @@ public class OtpService
 {
     private readonly IConnectionMultiplexer? _redis;
     private readonly ILogger<OtpService> _logger;
-    private readonly GmailSenderService _gmail;
+    private readonly ResendEmailService _resend;
 
     // In-memory fallback when Redis is unavailable
     private static readonly ConcurrentDictionary<string, (string code, DateTime expiry)> _memStore = new();
@@ -26,11 +25,11 @@ public class OtpService
     private const int MaxSendsPerHour = 50;
     private const int MaxVerifyAttempts = 5;
 
-    public OtpService(IConnectionMultiplexer? redis, ILogger<OtpService> logger, GmailSenderService gmail)
+    public OtpService(IConnectionMultiplexer? redis, ILogger<OtpService> logger, ResendEmailService resend)
     {
         _redis = redis;
         _logger = logger;
-        _gmail = gmail;
+        _resend = resend;
     }
 
     // ─── Key Helpers ─────────────────────────────────────────────────────────
@@ -135,11 +134,11 @@ public class OtpService
 </div>";
 
         _logger.LogInformation("[OTP] Sending code to {Email} for phone {Phone} ({Purpose})", emailTo, phone, purpose);
-        var (ok, err) = await _gmail.SendEmailAsync(emailTo, subject, htmlBody);
+        var (ok, err) = await _resend.SendAsync(emailTo, subject, htmlBody);
 
         if (!ok)
         {
-            _logger.LogError("[OTP] ❌ Email delivery failed for {Email}: {Err}", emailTo, err);
+            _logger.LogError("[OTP] ❌ Resend failed for {Email}: {Err}", emailTo, err);
             await DeleteKeyAsync(otpKey);
             return (null, err ?? "Failed to send verification code. Please try again.");
         }
