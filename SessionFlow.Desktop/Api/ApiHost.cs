@@ -146,8 +146,22 @@ public static class ApiHost
         // Firebase Admin SDK
         if (FirebaseApp.DefaultInstance == null)
         {
-            FirebaseApp.Create(new AppOptions { Credential = GoogleCredential.GetApplicationDefault() });
-            Log.Information("[Bootstrap] Firebase Admin SDK initialized.");
+            GoogleCredential credential;
+            var firebaseJson = Environment.GetEnvironmentVariable("FIREBASE_SERVICE_ACCOUNT_JSON");
+            if (!string.IsNullOrEmpty(firebaseJson))
+            {
+                credential = GoogleCredential.FromJson(firebaseJson);
+                Log.Information("[Bootstrap] Firebase Admin SDK initialized from env var.");
+            }
+            else
+            {
+                var filePath = Path.Combine(AppContext.BaseDirectory, "firebase-service-account.json");
+                if (!File.Exists(filePath))
+                    filePath = Path.Combine(Directory.GetCurrentDirectory(), "firebase-service-account.json");
+                credential = GoogleCredential.FromFile(filePath);
+                Log.Information("[Bootstrap] Firebase Admin SDK initialized from file: {Path}", filePath);
+            }
+            FirebaseApp.Create(new AppOptions { Credential = credential });
         }
         builder.Services.AddScoped<SchedulingService>();
         builder.Services.AddScoped<AuditService>();
