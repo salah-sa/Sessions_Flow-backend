@@ -10,15 +10,64 @@ import {
 } from "lucide-react";
 import { cn } from "../lib/utils";
 
-// ─── Payment Method Card ─────────────────────────────────────────────────────
+// ─── Brand SVG Logos ──────────────────────────────────────────────────────────
+
+const WePayLogo = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+    <rect width="80" height="80" rx="16" fill="url(#wePay_grad)"/>
+    {/* Bottom stripe */}
+    <rect x="0" y="54" width="80" height="26" rx="0" fill="#0050C8" opacity="0.4"/>
+    {/* "WE" bold text */}
+    <text x="7" y="49" fontFamily="Arial Black, Arial" fontWeight="900" fontSize="36" fill="white" letterSpacing="-1">WE</text>
+    {/* "Pay" text */}
+    <text x="9" y="71" fontFamily="Arial, sans-serif" fontWeight="700" fontSize="17" fill="#7EC8FF" letterSpacing="1.5">Pay</text>
+    {/* Signal dots */}
+    <circle cx="66" cy="16" r="3.5" fill="#7EC8FF" opacity="0.9"/>
+    <circle cx="56" cy="16" r="3.5" fill="#7EC8FF" opacity="0.55"/>
+    <circle cx="46" cy="16" r="3.5" fill="#7EC8FF" opacity="0.25"/>
+    <defs>
+      <linearGradient id="wePay_grad" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#0055D4"/>
+        <stop offset="100%" stopColor="#001A6E"/>
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
+const VodafoneCashLogo = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+    <rect width="80" height="80" rx="16" fill="url(#vf_grad)"/>
+    {/* Vodafone speech-bubble outline */}
+    <path
+      d="M40 10C26.2 10 15 21.2 15 35c0 8.1 3.9 15.3 10 19.8V68l12-7c.95.1 1.95.15 3 .15C54.8 61.15 65 49.95 65 35S54.8 10 40 10z"
+      fill="white" opacity="0.12"
+    />
+    <path
+      d="M40 15C29 15 20 24 20 35c0 6.6 3.2 12.4 8.2 16V60l9.5-5.5c.75.08 1.5.12 2.3.12C51 54.62 60 45.6 60 35S51 15 40 15z"
+      fill="white" opacity="0.88"
+    />
+    {/* Inner red circle (Vodafone mark) */}
+    <circle cx="40" cy="35" r="11" fill="#E60000"/>
+    {/* "CASH" label */}
+    <text x="40" y="74" fontFamily="Arial, sans-serif" fontWeight="800" fontSize="13" fill="white" textAnchor="middle" letterSpacing="1">CASH</text>
+    <defs>
+      <linearGradient id="vf_grad" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#FF1A1A"/>
+        <stop offset="100%" stopColor="#8B0000"/>
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
+// ─── Payment Method Card ──────────────────────────────────────────────────────
 
 const PaymentCard = ({
-  id, label, phone, isSelected, onSelect,
-  gradient, textColor, bgAccent, logo
+  label, phone, isSelected, onSelect,
+  gradient, textColor, bgAccent, LogoComponent, ringColor
 }: {
-  id: string; label: string; phone: string; isSelected: boolean;
+  label: string; phone: string; isSelected: boolean;
   onSelect: () => void; gradient: string; textColor: string;
-  bgAccent: string; logo: string;
+  bgAccent: string; LogoComponent: React.FC; ringColor: string;
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -32,34 +81,52 @@ const PaymentCard = ({
 
   return (
     <motion.div
-      whileHover={{ scale: 1.02 }}
+      whileHover={{ scale: 1.02, y: -2 }}
       whileTap={{ scale: 0.98 }}
       onClick={onSelect}
       className={cn(
-        "relative cursor-pointer rounded-2xl p-5 border-2 transition-all duration-300 overflow-hidden",
-        isSelected ? `border-transparent ring-2 ring-offset-2 ring-offset-[#0a0a0f] ${bgAccent}` : "border-white/10"
+        "relative cursor-pointer rounded-2xl border-2 transition-all duration-300 overflow-hidden",
+        isSelected
+          ? `border-transparent ring-2 ring-offset-2 ring-offset-[#0a0a0f] ${ringColor}`
+          : "border-white/10 hover:border-white/20"
       )}
     >
-      <div className={cn("absolute inset-0 opacity-80", gradient)} />
-      <div className="relative z-10">
-        <div className="flex items-center gap-3 mb-3">
-          <img src={logo} alt={label} className="w-12 h-12 rounded-xl shadow-lg" />
-          <div>
-            <p className={cn("font-bold text-sm tracking-wide", textColor)}>{label}</p>
-            <p className="text-white/60 text-xs">Egyptian Mobile Wallet</p>
+      <div className={cn("absolute inset-0", gradient)} />
+      {isSelected && (
+        <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
+      )}
+      <div className="relative z-10 p-6">
+        {/* Logo + Name */}
+        <div className="flex items-center gap-4 mb-5">
+          <div className="w-20 h-20 rounded-2xl shadow-2xl overflow-hidden flex-shrink-0 ring-2 ring-white/10">
+            <LogoComponent />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className={cn("font-black text-xl tracking-wide leading-tight", textColor)}>{label}</p>
+            <p className="text-white/50 text-xs mt-1">Egyptian Mobile Wallet</p>
+            <div className={cn("inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider", bgAccent)}>
+              <div className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+              Active
+            </div>
           </div>
           {isSelected && (
-            <CheckCircle className={cn("w-5 h-5 ms-auto", textColor)} />
+            <div className={cn("w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0", bgAccent)}>
+              <CheckCircle className={cn("w-5 h-5", textColor)} />
+            </div>
           )}
         </div>
-        <div className="bg-black/30 rounded-xl p-3 flex items-center justify-between">
-          <div>
-            <p className="text-white/50 text-[10px] uppercase tracking-wider mb-0.5">Send money to</p>
-            <p className="text-white font-mono font-bold text-base tracking-widest">{phone}</p>
+        {/* Phone number */}
+        <div className="bg-black/40 rounded-xl p-4 flex items-center justify-between gap-3 border border-white/5">
+          <div className="min-w-0">
+            <p className="text-white/40 text-[10px] uppercase tracking-widest mb-1 font-bold">Send money to</p>
+            <p className="text-white font-mono font-black text-lg tracking-[0.15em]">{phone}</p>
           </div>
           <button
             onClick={handleCopy}
-            className={cn("w-8 h-8 rounded-lg flex items-center justify-center transition-all", bgAccent, "hover:scale-110")}
+            className={cn(
+              "w-10 h-10 rounded-xl flex items-center justify-center transition-all flex-shrink-0",
+              bgAccent, "hover:scale-110 hover:brightness-125"
+            )}
           >
             {copied ? <CheckCircle className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4 text-white" />}
           </button>
@@ -174,26 +241,26 @@ export default function ChargeWalletPage() {
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <PaymentCard
-              id="WePay"
               label="WE Pay"
               phone="01558647376"
               isSelected={selectedMethod === "WePay"}
               onSelect={() => setSelectedMethod("WePay")}
-              gradient="bg-gradient-to-br from-blue-900/80 to-[#001f5b]/80"
+              gradient="bg-gradient-to-br from-blue-900/60 to-[#001f5b]/90"
               textColor="text-blue-300"
-              bgAccent="bg-blue-600/20"
-              logo="/wepay.png"
+              bgAccent="bg-blue-600/20 text-blue-300"
+              ringColor="ring-blue-500"
+              LogoComponent={WePayLogo}
             />
             <PaymentCard
-              id="VodafoneCash"
               label="Vodafone Cash"
               phone="01020933560"
               isSelected={selectedMethod === "VodafoneCash"}
               onSelect={() => setSelectedMethod("VodafoneCash")}
-              gradient="bg-gradient-to-br from-red-900/80 to-[#5a0000]/80"
+              gradient="bg-gradient-to-br from-red-900/60 to-[#5a0000]/90"
               textColor="text-red-300"
-              bgAccent="bg-red-600/20"
-              logo="/vodafone_cash.png"
+              bgAccent="bg-red-600/20 text-red-300"
+              ringColor="ring-red-500"
+              LogoComponent={VodafoneCashLogo}
             />
           </div>
         </div>
