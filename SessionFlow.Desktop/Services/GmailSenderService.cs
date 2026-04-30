@@ -10,7 +10,10 @@ using Google.Apis.Gmail.v1;
 using Google.Apis.Gmail.v1.Data;
 using Google.Apis.Services;
 using Google.Apis.Util.Store;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using MailKit.Net.Smtp;
+using MailKit.Security;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
@@ -25,13 +28,15 @@ public class GmailSenderService
     private readonly MongoService _db;
     private readonly GoogleAuthService _auth;
     private readonly ILogger<GmailSenderService> _logger;
+    private readonly IConfiguration _config;
     private readonly string[] Scopes = { GmailService.Scope.GmailSend, GmailService.Scope.GmailReadonly };
 
-    public GmailSenderService(MongoService db, GoogleAuthService auth, ILogger<GmailSenderService> logger)
+    public GmailSenderService(MongoService db, GoogleAuthService auth, ILogger<GmailSenderService> logger, IConfiguration config)
     {
         _db = db;
         _auth = auth;
         _logger = logger;
+        _config = config;
     }
 
     private async Task<GmailService?> GetGmailServiceAsync()
@@ -65,7 +70,8 @@ public class GmailSenderService
             var service = await GetGmailServiceAsync();
             if (service == null)
             {
-                return (false, "Gmail OAuth is not authorized. Please visit Settings -> External Bridge to link your Google account.");
+                // OAuth not available — fall back to SMTP (Railway / production)
+                return await SendViaSmtpAsync(to, subject, body, ct);
             }
 
             var message = new MimeMessage();
@@ -95,6 +101,46 @@ public class GmailSenderService
             _logger.LogError(ex, "Failed to send email via Gmail to {To}", to);
             try { await LogEmailAsync(to, subject, $"failed: {ex.Message}", ct); } catch { }
             return (false, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// SMTP fallback — used when Gmail OAuth is not configured (e.g. Railway).
+    /// Requires GMAIL_SMTP_USER and GMAIL_SMTP_APP_PASSWORD env vars.
+    /// </summary>
+    private async Task<(bool success, string? error)> SendViaSmtpAsync(string to, string subject, string body, CancellationToken ct = default)
+    {
+        var smtpUser = _config["Gmail:SmtpUser"] ?? Environment.GetEnvironmentVariable("GMAIL_SMTP_USER");
+        var smtpPass = _config["Gmail:SmtpAppPassword"] ?? Environment.GetEnvironmentVariable("GMAIL_SMTP_APP_PASSWORD");
+
+        if (string.IsNullOrWhiteSpace(smtpUser) || string.IsNullOrWhiteSpace(smtpPass))
+        {
+            _logger.LogWarning("SMTP fallback not configured. Set GMAIL_SMTP_USER and GMAIL_SMTP_APP_PASSWORD.");
+            return (false, "Email service is not configured. Please contact support.");
+        }
+
+        try
+        {
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress("SessionFlow", smtpUser));
+            message.To.Add(new MailboxAddress("", to));
+            message.Subject = subject;
+            message.Body = new TextPart("html") { Text = body };
+
+            using var client = new SmtpClient();
+            await client.ConnectAsync("smtp.gmail.com", 587, SecureSocketOptions.StartTls, ct);
+            await client.AuthenticateAsync(smtpUser, smtpPass, ct);
+            await client.SendAsync(message, ct);
+            await client.DisconnectAsync(true, ct);
+
+            await LogEmailAsync(to, subject, "sent via SMTP", ct);
+            _logger.LogInformation("Email sent via SMTP to {To}: {Subject}", to, subject);
+            return (true, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "SMTP fallback failed to send email to {To}", to);
+            return (false, "Failed to send email. Please try again later.");
         }
     }
 
