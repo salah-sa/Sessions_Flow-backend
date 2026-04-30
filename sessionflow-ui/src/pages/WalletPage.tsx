@@ -54,13 +54,13 @@ const VerifyPhoneGate = ({ phone, onVerified }: { phone: string; onVerified: () 
       toast.success(`Verification code sent to ${email}`);
     },
     onError: (e: any) => {
-      const msg = e?.message ?? "";
-      if (msg.includes("Sandbox") || msg.includes("sandbox") || msg.includes("unauthorized_email_address")) {
-        toast.error("📧 Email Delivery Restricted", {
-          description: "The code was generated but email delivery is restricted. Contact your engineer or admin for the code.",
-          duration: 10000
+      const msg: string = e?.message ?? "";
+      if (msg.startsWith("SANDBOX:") || msg.includes("Sandbox") || msg.includes("sandbox") || msg.includes("unauthorized_email_address")) {
+        toast.warning("📬 Code Ready — Check With Admin", {
+          description: "Email delivery is restricted (sandbox mode). Your admin has been notified and has the 6-digit code. Ask them for it and enter it below.",
+          duration: 12000
         });
-        setStep("verify"); // still allow code entry
+        setStep("verify"); // advance so student can enter the code admin relays
       } else {
         toast.error(msg || "Failed to send code");
       }
@@ -302,16 +302,15 @@ const CreateWalletForm = () => {
       toast.success(`Verification code sent to ${email}`);
     },
     onError: (e: any) => {
-      const msg = e?.message ?? "";
-      if (msg.includes("Sandbox") || msg.includes("sandbox") || msg.includes("unauthorized_email_address")) {
-        toast.error("📧 Email Delivery Restricted", {
-          description: `Resend is in test mode. The code was generated — ask your administrator to send it to you manually, or contact support.`,
-          duration: 10000
+      const msg: string = e?.message ?? "";
+      if (msg.startsWith("SANDBOX:") || msg.includes("Sandbox") || msg.includes("sandbox") || msg.includes("unauthorized_email_address")) {
+        toast.warning("📬 Code Ready — Check With Admin", {
+          description: "Email delivery is restricted. Your admin has been notified with the 6-digit code. Ask them for it and enter it below.",
+          duration: 12000
         });
-        // Still advance to OTP step so admin can give the code manually
-        setStep("otp");
+        setStep("otp"); // still advance to OTP entry
       } else {
-        toast.error(e?.message ?? "Failed to send code");
+        toast.error(msg || "Failed to send code");
       }
     },
   });

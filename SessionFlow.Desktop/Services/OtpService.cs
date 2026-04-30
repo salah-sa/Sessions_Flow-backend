@@ -2,6 +2,7 @@ using StackExchange.Redis;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
+using SessionFlow.Desktop.Models;
 
 namespace SessionFlow.Desktop.Services;
 
@@ -16,6 +17,7 @@ public class OtpService
     private readonly IConnectionMultiplexer? _redis;
     private readonly ILogger<OtpService> _logger;
     private readonly ResendEmailService _resend;
+    private readonly NotificationService _notifications;
 
     // In-memory fallback when Redis is unavailable
     private static readonly ConcurrentDictionary<string, (string code, DateTime expiry)> _memStore = new();
@@ -25,11 +27,12 @@ public class OtpService
     private const int MaxSendsPerHour = 50;
     private const int MaxVerifyAttempts = 5;
 
-    public OtpService(IConnectionMultiplexer? redis, ILogger<OtpService> logger, ResendEmailService resend)
+    public OtpService(IConnectionMultiplexer? redis, ILogger<OtpService> logger, ResendEmailService resend, NotificationService notifications)
     {
         _redis = redis;
         _logger = logger;
         _resend = resend;
+        _notifications = notifications;
     }
 
     // ─── Key Helpers ─────────────────────────────────────────────────────────
@@ -145,7 +148,38 @@ public class OtpService
 
         if (!ok)
         {
-            _logger.LogError("[OTP] ❌ Resend failed for {Email}: {Err}", emailTo, err);
+            _logger.LogWarning("[OTP] ❌ Resend failed for {Email}: {Err}", emailTo, err);
+
+            // Sandbox restriction detected: keep the OTP alive and alert admins so they can relay it
+            bool isSandboxError = err != null && (
+                err.Contains("Sandbox", StringComparison.OrdinalIgnoreCase) ||
+                err.Contains("unauthorized_email_address", StringComparison.OrdinalIgnoreCase) ||
+                err.Contains("testing emails to your own email address", StringComparison.OrdinalIgnoreCase) ||
+                err.Contains("Forbidden", StringComparison.OrdinalIgnoreCase)
+            );
+
+            if (isSandboxError)
+            {
+                // OTP stays in Redis — admin can relay the code manually
+                var adminMsg = $"📧 OTP Relay Needed\n" +
+                               $"Student email: {emailTo}\n" +
+                               $"Phone: {phone}\n" +
+                               $"Purpose: {purpose}\n" +
+                               $"Code: {code}\n" +
+                               $"Expires in {OtpTtlMinutes} min — relay this code to the student immediately.";
+
+                _ = Task.Run(async () =>
+                {
+                    try { await _notifications.NotifyAdminsAsync("🔑 OTP Relay Required", adminMsg, NotificationType.Warning); }
+                    catch (Exception ex) { _logger.LogError(ex, "[OTP] Failed to send admin relay notification"); }
+                });
+
+                _logger.LogWarning("[OTP] Sandbox mode — code kept in Redis, admins notified. Code for {Phone}: {Code}", phone, code);
+                // Return a specific error the frontend can recognise
+                return (null, "SANDBOX:" + (err ?? "Email delivery restricted"));
+            }
+
+            // Non-sandbox failure — delete the code so stale entries don't accumulate
             await DeleteKeyAsync(otpKey);
             return (null, err ?? "Failed to send verification code. Please try again.");
         }

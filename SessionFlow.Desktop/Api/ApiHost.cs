@@ -178,9 +178,11 @@ public static class ApiHost
         {
             // OtpService uses Resend for OTP delivery.
             // In Sandbox mode, Resend only delivers to the registered email address.
+            // When blocked, OTP stays in Redis and admins are notified to relay the code.
             var logger = sp.GetRequiredService<ILogger<OtpService>>();
             var resend = sp.GetRequiredService<ResendEmailService>();
-            return new OtpService(redisConnection, logger, resend);
+            var notifications = sp.GetRequiredService<NotificationService>();
+            return new OtpService(redisConnection, logger, resend, notifications);
         });
         builder.Services.AddScoped<WalletService>();
 
