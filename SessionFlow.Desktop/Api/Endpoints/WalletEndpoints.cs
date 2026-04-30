@@ -37,8 +37,8 @@ public static class WalletEndpoints
             var (code, error) = await otpService.GenerateOtpAsync(req.Phone, currentUser.Email, purpose);
             if (error != null) return Results.BadRequest(new { error });
 
-            // Return code in dev (null in production after SMS provider hooked up)
-            return Results.Ok(new { message = "OTP sent.", devCode = code });
+            // OTP code is sent via email (Resend) — never returned to client
+            return Results.Ok(new { message = "Verification code sent to your email." });
         });
 
         // POST /api/wallet/verify-phone  (OTP code from email/WhatsApp)

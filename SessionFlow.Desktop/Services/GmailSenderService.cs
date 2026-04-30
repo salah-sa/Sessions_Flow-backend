@@ -79,47 +79,46 @@ public class GmailSenderService
 
     public async Task<(bool success, string? error)> SendEmailAsync(string to, string subject, string body, CancellationToken ct = default)
     {
+        // ── Priority 1: Resend API (fastest, works on Railway) ──
+        var resendResult = await SendViaResendAsync(to, subject, body, ct);
+        if (resendResult.success) return resendResult;
+
+        _logger.LogWarning("[EMAIL] Resend failed: {Err}. Trying Gmail OAuth...", resendResult.error);
+
+        // ── Priority 2: Gmail OAuth (local dev only, times out on Railway) ──
         try
         {
             var service = await GetGmailServiceAsync();
-            if (service == null)
+            if (service != null)
             {
-                // OAuth not available — try Resend API first, then SMTP
-                var resendResult = await SendViaResendAsync(to, subject, body, ct);
-                if (resendResult.success) return resendResult;
-                
-                _logger.LogWarning("Resend failed: {Err}. Trying SMTP...", resendResult.error);
-                return await SendViaSmtpAsync(to, subject, body, ct);
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress("SessionFlow", "me")); 
+                message.To.Add(new MailboxAddress("", to));
+                message.Subject = subject;
+                message.Body = new TextPart("html") { Text = body };
+
+                using var memoryStream = new MemoryStream();
+                await message.WriteToAsync(memoryStream);
+                var resultRaw = Convert.ToBase64String(memoryStream.ToArray())
+                    .Replace('+', '-')
+                    .Replace('/', '_')
+                    .Replace("=", "");
+
+                var msg = new Message { Raw = resultRaw };
+                await service.Users.Messages.Send(msg, "me").ExecuteAsync(ct);
+
+                await LogEmailAsync(to, subject, "sent via Gmail API", ct);
+                _logger.LogInformation("Email sent via Gmail to {To}: {Subject}", to, subject);
+                return (true, null);
             }
-
-            var message = new MimeMessage();
-            // In Gmail API, the "from" address is automatically the authenticated user, but we can set the display name
-            message.From.Add(new MailboxAddress("SessionFlow", "me")); 
-            message.To.Add(new MailboxAddress("", to));
-            message.Subject = subject;
-            message.Body = new TextPart("html") { Text = body };
-
-            using var memoryStream = new MemoryStream();
-            await message.WriteToAsync(memoryStream);
-            var resultRaw = Convert.ToBase64String(memoryStream.ToArray())
-                .Replace('+', '-')
-                .Replace('/', '_')
-                .Replace("=", "");
-
-            var msg = new Message { Raw = resultRaw };
-            await service.Users.Messages.Send(msg, "me").ExecuteAsync(ct);
-
-            await LogEmailAsync(to, subject, "sent via Gmail API", ct);
-            _logger.LogInformation("Email sent via Gmail to {To}: {Subject}", to, subject);
-            
-            return (true, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send email via Gmail to {To}", to);
-            try { await LogEmailAsync(to, subject, $"failed: {ex.Message}", ct); } catch { }
-            return (false, ex.Message);
+            _logger.LogWarning(ex, "[EMAIL] Gmail OAuth failed. Trying SMTP...");
         }
+
+        // ── Priority 3: SMTP last resort ──
+        return await SendViaSmtpAsync(to, subject, body, ct);
     }
 
     /// <summary>

@@ -56,47 +56,28 @@ public class OtpService
         await db.StringIncrementAsync(rKey);
         await db.KeyExpireAsync(rKey, TimeSpan.FromHours(1));
 
-        // ── Fire-and-forget: send OTP in background (don't block the response) ──
-        _ = Task.Run(async () =>
+        // ── Send OTP via Email (Resend API — fast HTTPS, ~1-2 seconds) ──
+        string subject = purpose == "reset_pin" ? "SessionFlow Wallet PIN Reset" : "SessionFlow Wallet Verification";
+        string htmlBody = $@"
+            <div style='font-family:sans-serif;max-width:400px;margin:auto;padding:24px;background:#0f0f1a;border-radius:16px;border:1px solid rgba(255,255,255,0.1);'>
+                <h2 style='color:white;margin:0 0 8px;'>SessionFlow Wallet</h2>
+                <p style='color:#94a3b8;font-size:14px;'>Your verification code for phone <b style='color:white;'>{phone}</b>:</p>
+                <h1 style='color:#6366f1;font-size:36px;letter-spacing:6px;text-align:center;margin:20px 0;'>{code}</h1>
+                <p style='color:#64748b;font-size:12px;'>Expires in {OtpTtlMinutes} minutes. If you didn't request this, ignore it.</p>
+            </div>";
+
+        var (emailOk, emailErr) = await _gmail.SendEmailAsync(emailTo, subject, htmlBody);
+
+        if (!emailOk)
         {
-            try
-            {
-                string subject = purpose == "reset_pin" ? "SessionFlow Wallet PIN Reset" : "SessionFlow Wallet Verification";
-                string htmlBody = $@"
-                    <div style='font-family:sans-serif;max-width:400px;margin:auto;padding:24px;background:#0f0f1a;border-radius:16px;border:1px solid rgba(255,255,255,0.1);'>
-                        <h2 style='color:white;margin:0 0 8px;'>SessionFlow Wallet</h2>
-                        <p style='color:#94a3b8;font-size:14px;'>Your verification code for phone <b style='color:white;'>{phone}</b>:</p>
-                        <h1 style='color:#6366f1;font-size:36px;letter-spacing:6px;text-align:center;margin:20px 0;'>{code}</h1>
-                        <p style='color:#64748b;font-size:12px;'>Expires in {OtpTtlMinutes} minutes. If you didn't request this, ignore it.</p>
-                    </div>";
+            _logger.LogError("[OTP] All email delivery failed for {Phone}: {Err}", phone, emailErr);
+            return (null, "Failed to send verification code. Please try again.");
+        }
 
-                var (emailOk, emailErr) = await _gmail.SendEmailAsync(emailTo, subject, htmlBody);
-
-                if (!emailOk)
-                {
-                    _logger.LogWarning("[OTP] Email failed: {Err}. Trying WhatsApp...", emailErr);
-
-                    // WhatsApp backup with 5s timeout
-                    var waTask = _wa.SendOtpAsync(phone, code);
-                    if (await Task.WhenAny(waTask, Task.Delay(5000)) == waTask)
-                    {
-                        var (waOk, waErr) = await waTask;
-                        if (!waOk) _logger.LogWarning("[OTP-WA] WhatsApp failed: {Err}", waErr);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("[OTP-WA] WhatsApp timed out. All delivery failed.");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[OTP] Background delivery failed for {Phone}", phone);
-            }
-        });
-
-        // Return immediately — code is already saved in Redis
-        return (code, null);
+        _logger.LogInformation("[OTP] Code sent to {Email} for {Phone} ({Purpose})", emailTo, phone, purpose);
+        
+        // NEVER return the code to the client — user must get it from their email
+        return (null, null);
     }
 
     public async Task<(bool isValid, string? error)> ValidateOtpAsync(string phone, string purpose, string code)
