@@ -7,8 +7,8 @@ using SessionFlow.Desktop.Models;
 namespace SessionFlow.Desktop.Services;
 
 /// <summary>
-/// Redis-backed OTP service using Resend.com for email delivery.
-/// Falls back to in-memory store if Redis is unavailable.
+/// Redis-backed OTP service using GmailSenderService for email delivery.
+/// Delivery chain: SMTP (Gmail App Password) → Resend API → Gmail OAuth.
 /// Codes are 6 digits, stored with 5-minute TTL.
 /// Rate limit: max 50 sends per phone per hour.
 /// </summary>
@@ -16,7 +16,7 @@ public class OtpService
 {
     private readonly IConnectionMultiplexer? _redis;
     private readonly ILogger<OtpService> _logger;
-    private readonly ResendEmailService _resend;
+    private readonly GmailSenderService _gmail;
     private readonly NotificationService _notifications;
 
     // In-memory fallback when Redis is unavailable
@@ -27,11 +27,11 @@ public class OtpService
     private const int MaxSendsPerHour = 50;
     private const int MaxVerifyAttempts = 5;
 
-    public OtpService(IConnectionMultiplexer? redis, ILogger<OtpService> logger, ResendEmailService resend, NotificationService notifications)
+    public OtpService(IConnectionMultiplexer? redis, ILogger<OtpService> logger, GmailSenderService gmail, NotificationService notifications)
     {
         _redis = redis;
         _logger = logger;
-        _resend = resend;
+        _gmail = gmail;
         _notifications = notifications;
     }
 
@@ -94,11 +94,6 @@ public class OtpService
 
     public async Task<(string? code, string? error)> GenerateOtpAsync(string phone, string emailTo, string purpose)
     {
-        if (!_resend.IsConfigured)
-        {
-            _logger.LogError("[OTP] RESEND_API_KEY is not configured. Cannot send OTP.");
-            return (null, "Email service not configured. Contact support.");
-        }
 
         if (!await CanSendOtpAsync(phone))
             return (null, "Too many OTP requests. Please try again later.");
@@ -144,42 +139,12 @@ public class OtpService
 </div>";
 
         _logger.LogInformation("[OTP] Sending code to {Email} for phone {Phone} ({Purpose})", emailTo, phone, purpose);
-        var (ok, err) = await _resend.SendAsync(emailTo, subject, htmlBody);
+        var (ok, err) = await _gmail.SendEmailAsync(emailTo, subject, htmlBody);
 
         if (!ok)
         {
-            _logger.LogWarning("[OTP] ❌ Resend failed for {Email}: {Err}", emailTo, err);
-
-            // Sandbox restriction detected: keep the OTP alive and alert admins so they can relay it
-            bool isSandboxError = err != null && (
-                err.Contains("Sandbox", StringComparison.OrdinalIgnoreCase) ||
-                err.Contains("unauthorized_email_address", StringComparison.OrdinalIgnoreCase) ||
-                err.Contains("testing emails to your own email address", StringComparison.OrdinalIgnoreCase) ||
-                err.Contains("Forbidden", StringComparison.OrdinalIgnoreCase)
-            );
-
-            if (isSandboxError)
-            {
-                // OTP stays in Redis — admin can relay the code manually
-                var adminMsg = $"📧 OTP Relay Needed\n" +
-                               $"Student email: {emailTo}\n" +
-                               $"Phone: {phone}\n" +
-                               $"Purpose: {purpose}\n" +
-                               $"Code: {code}\n" +
-                               $"Expires in {OtpTtlMinutes} min — relay this code to the student immediately.";
-
-                _ = Task.Run(async () =>
-                {
-                    try { await _notifications.NotifyAdminsAsync("🔑 OTP Relay Required", adminMsg, NotificationType.Warning); }
-                    catch (Exception ex) { _logger.LogError(ex, "[OTP] Failed to send admin relay notification"); }
-                });
-
-                _logger.LogWarning("[OTP] Sandbox mode — code kept in Redis, admins notified. Code for {Phone}: {Code}", phone, code);
-                // Return a specific error the frontend can recognise
-                return (null, "SANDBOX:" + (err ?? "Email delivery restricted"));
-            }
-
-            // Non-sandbox failure — delete the code so stale entries don't accumulate
+            _logger.LogWarning("[OTP] ❌ Email delivery failed for {Email}: {Err}", emailTo, err);
+            // Delete the OTP so stale entries don't accumulate
             await DeleteKeyAsync(otpKey);
             return (null, err ?? "Failed to send verification code. Please try again.");
         }

@@ -173,16 +173,18 @@ public static class ApiHost
         
         // Wallet System
         builder.Services.AddSingleton<WalletValidationService>();
-        builder.Services.AddSingleton<ResendEmailService>();
+        builder.Services.AddSingleton<ResendEmailService>(); // Still used by EmailService
         builder.Services.AddScoped<OtpService>(sp =>
         {
-            // OtpService uses Resend for OTP delivery.
-            // In Sandbox mode, Resend only delivers to the registered email address.
-            // When blocked, OTP stays in Redis and admins are notified to relay the code.
+            // OtpService now uses GmailSenderService for OTP delivery.
+            // GmailSenderService has a multi-provider fallback chain:
+            //   Railway: SMTP (Gmail App Password) → Resend API
+            //   Local:   Resend API → Gmail OAuth → SMTP
+            // This bypasses Resend sandbox restrictions for any student email.
             var logger = sp.GetRequiredService<ILogger<OtpService>>();
-            var resend = sp.GetRequiredService<ResendEmailService>();
+            var gmail = sp.GetRequiredService<GmailSenderService>();
             var notifications = sp.GetRequiredService<NotificationService>();
-            return new OtpService(redisConnection, logger, resend, notifications);
+            return new OtpService(redisConnection, logger, gmail, notifications);
         });
         builder.Services.AddScoped<WalletService>();
 
