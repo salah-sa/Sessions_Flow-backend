@@ -216,21 +216,45 @@ public class GmailSenderService
             message.Subject = subject;
             message.Body = new TextPart("html") { Text = body };
 
+            // Use a tight timeout — if Railway blocks the port it hangs forever
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(15));
+
             using var client = new SmtpClient();
-            await client.ConnectAsync("smtp.gmail.com", 587, SecureSocketOptions.StartTls, ct);
-            await client.AuthenticateAsync(smtpUser, smtpPass, ct);
-            await client.SendAsync(message, ct);
-            await client.DisconnectAsync(true, ct);
+
+            // Try port 587 (STARTTLS) first, fall back to port 465 (SSL)
+            try
+            {
+                await client.ConnectAsync("smtp.gmail.com", 587, SecureSocketOptions.StartTls, timeoutCts.Token);
+                _logger.LogInformation("[SMTP] Connected via port 587 (STARTTLS)");
+            }
+            catch (Exception ex587)
+            {
+                _logger.LogWarning("[SMTP] Port 587 failed ({Err}), trying port 465 (SSL)...", ex587.Message);
+                if (client.IsConnected) await client.DisconnectAsync(true, CancellationToken.None);
+                await client.ConnectAsync("smtp.gmail.com", 465, SecureSocketOptions.SslOnConnect, timeoutCts.Token);
+                _logger.LogInformation("[SMTP] Connected via port 465 (SSL)");
+            }
+
+            await client.AuthenticateAsync(smtpUser, smtpPass, timeoutCts.Token);
+            await client.SendAsync(message, timeoutCts.Token);
+            await client.DisconnectAsync(true, CancellationToken.None);
 
             await LogEmailAsync(to, subject, "sent via SMTP", ct);
-            _logger.LogInformation("Email sent via SMTP to {To}: {Subject}", to, subject);
+            _logger.LogInformation("[SMTP] ✅ Email sent to {To}: {Subject}", to, subject);
             return (true, null);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogError("[SMTP] ⏱ Timeout — both port 587 and 465 are unreachable on this host. Railway may block outbound SMTP.");
+            return (false, "SMTP timeout: Railway may be blocking outbound SMTP ports. Contact support.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "SMTP fallback failed to send email to {To}", to);
-            return (false, "Failed to send email. Please try again later.");
+            _logger.LogError(ex, "[SMTP] ❌ Failed to send email to {To}: {Err}", to, ex.Message);
+            return (false, $"SMTP error: {ex.Message}");
         }
+
     }
 
     public async Task<(bool success, string? error)> SendTestEmailAsync(string to)
