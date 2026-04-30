@@ -85,7 +85,8 @@ public class SmsService
         {
             var (ok, err) = await SendViaWhatsAppAsync(toPhone, otpCode, waToken, waPhoneId, waTemplate, ct);
             if (ok) return (true, null);
-            _logger.LogWarning("[SMS] WhatsApp failed ({Err}), trying Vonage.", err);
+            _logger.LogWarning("[SMS] WhatsApp failed ({Err}), aborting fallback for diagnostics.", err);
+            return (false, err); // [DIAGNOSTIC MODE] Return WhatsApp error directly instead of falling back
         }
 
         // 2️⃣ Vonage
