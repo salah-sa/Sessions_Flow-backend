@@ -226,33 +226,20 @@ const CreateWalletForm = () => {
   const qc = useQueryClient();
   const [phone, setPhone] = useState(""); const [pin, setPin] = useState(""); const [confirm, setConfirm] = useState("");
   const [otpStep, setOtpStep] = useState(false); const [code, setCode] = useState("");
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
-
-  useEffect(() => {
-    if (!(window as any).recaptchaVerifierCreate) {
-      (window as any).recaptchaVerifierCreate = new RecaptchaVerifier(auth, 'recaptcha-container-create', {
-        'size': 'invisible',
-      });
-    }
-  }, []);
 
   const sendMutation = useMutation({
-    mutationFn: async () => {
-      const formattedPhone = phone.startsWith("0") ? `+20${phone.substring(1)}` : phone;
-      const appVerifier = (window as any).recaptchaVerifierCreate;
-      const result = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
-      setConfirmationResult(result);
+    mutationFn: () => walletApi.sendOtp({ phone, purpose: "verify_phone" }),
+    onSuccess: (res) => { 
+      setOtpStep(true); 
+      toast.success(res.message || "Verification email sent!"); 
+      if (res.devCode) console.log("OTP Code:", res.devCode);
     },
-    onSuccess: () => { setOtpStep(true); toast.success("OTP sent!"); },
     onError: (e: any) => toast.error(e?.message ?? "Failed to send OTP"),
   });
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      if (!confirmationResult) throw new Error("No confirmation result");
-      const result = await confirmationResult.confirm(code);
-      const token = await result.user.getIdToken();
-      await walletApi.verifyPhone({ phone, code: token });
+      await walletApi.verifyPhone({ phone, code });
       return walletApi.create({ phoneNumber: phone, pin });
     },
     onSuccess: () => { toast.success("Wallet created and verified!"); qc.invalidateQueries({ queryKey: ["wallet-me"] }); },
@@ -261,7 +248,6 @@ const CreateWalletForm = () => {
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
-      <div id="recaptcha-container-create"></div>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         className="bg-white/[0.02] border border-white/10 rounded-3xl p-8 w-full max-w-sm space-y-5">
         <div className="text-center">
@@ -286,7 +272,7 @@ const CreateWalletForm = () => {
           </>
         ) : (
           <>
-            <p className="text-slate-400 text-sm text-center">Enter the 6-digit code sent to 🇪🇬 {phone}</p>
+            <p className="text-slate-400 text-sm text-center">Enter the 6-digit code sent to your email</p>
             <OtpInput value={code} onChange={setCode} />
             <button onClick={() => createMutation.mutate()} disabled={code.length < 6 || createMutation.isPending}
               className="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm disabled:opacity-40">
