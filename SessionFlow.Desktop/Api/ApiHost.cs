@@ -20,6 +20,8 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http;
 using System.Linq;
 using SessionFlow.Desktop.Helpers;
+using FirebaseAdmin;
+using Google.Apis.Auth.OAuth2;
 
 namespace SessionFlow.Desktop.Api;
 
@@ -140,6 +142,13 @@ public static class ApiHost
         builder.Services.AddHttpClient<WhatsAppService>();
         builder.Services.AddHostedService<EmailReminderService>();
         builder.Services.AddScoped<OtpService>();
+
+        // Firebase Admin SDK
+        if (FirebaseApp.DefaultInstance == null)
+        {
+            FirebaseApp.Create(new AppOptions { Credential = GoogleCredential.GetApplicationDefault() });
+            Log.Information("[Bootstrap] Firebase Admin SDK initialized.");
+        }
         builder.Services.AddScoped<SchedulingService>();
         builder.Services.AddScoped<AuditService>();
         builder.Services.AddScoped<NotificationService>();
