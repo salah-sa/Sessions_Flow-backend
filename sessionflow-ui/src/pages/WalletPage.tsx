@@ -13,7 +13,10 @@ import {
   Eye, EyeOff, X, RefreshCw, Plus, AlertTriangle, Check, Mail
 } from "lucide-react";
 
-const emailLinkSettings = () => ({ url: window.location.href, handleCodeInApp: true });
+const emailLinkSettings = () => ({
+  url: `${window.location.origin}${window.location.pathname}`,
+  handleCodeInApp: true,
+});
 
 // ─── OTP Input ───────────────────────────────────────────────────────────────
 const OtpInput = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
