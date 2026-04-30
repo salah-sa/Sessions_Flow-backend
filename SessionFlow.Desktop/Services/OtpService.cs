@@ -75,7 +75,7 @@ public class OtpService
             if (_env.IsDevelopment())
                 return (code, null);
             // In production, fail loudly so the user knows to retry
-            return (null, "Failed to send SMS. Please try again in a moment.");
+            return (null, $"Failed to send SMS: {smsError}");
         }
 
         _logger.LogInformation("[OTP-SMS] SMS sent to {Phone} for purpose={Purpose}", phone, purpose);
