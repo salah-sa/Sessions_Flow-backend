@@ -148,8 +148,30 @@ public class AuthService
         var updateStudent = Builders<Student>.Update.Set(s => s.UserId, user.Id).Set(s => s.UpdatedAt, DateTimeOffset.UtcNow);
         await _db.Students.UpdateOneAsync(s => s.Id == studentRecord.Id, updateStudent);
 
-        // Send Welcome Email in background
-        _ = Task.Run(async () => await TriggerWelcomeEmailAsync(user));
+        // Send Welcome Email with retry + admin fallback
+        _ = Task.Run(async () =>
+        {
+            const int maxRetries = 3;
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
+            {
+                try
+                {
+                    var (emailSuccess, emailError) = await TriggerWelcomeEmailAsync(user);
+                    if (emailSuccess) break;
+                    if (attempt == maxRetries)
+                        Serilog.Log.Warning("[EMAIL] Student welcome email failed after {MaxRetries} retries for {Email}: {Err}", maxRetries, user.Email, emailError);
+                    else
+                        await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+                }
+                catch (Exception ex)
+                {
+                    if (attempt == maxRetries)
+                        Serilog.Log.Error(ex, "[EMAIL] Student welcome email exception after {MaxRetries} retries for {Email}", maxRetries, user.Email);
+                    else
+                        await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+                }
+            }
+        });
 
         return (user, null);
     }
@@ -362,8 +384,38 @@ public class AuthService
             .Set(p => p.UpdatedAt, DateTimeOffset.UtcNow);
         await _db.PendingStudentRequests.UpdateOneAsync(p => p.Id == pendingId, updatePending);
 
-        // Send Welcome Email in background
-        _ = Task.Run(async () => await TriggerWelcomeEmailAsync(user));
+        // Send Welcome Email with retry + admin fallback (matches engineer approval robustness)
+        _ = Task.Run(async () =>
+        {
+            const int maxRetries = 3;
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
+            {
+                try
+                {
+                    var (emailSuccess, emailError) = await TriggerWelcomeEmailAsync(user);
+                    if (emailSuccess) break;
+
+                    if (attempt == maxRetries)
+                    {
+                        using var scope = _scopeFactory.CreateScope();
+                        var notifService = scope.ServiceProvider.GetRequiredService<NotificationService>();
+                        await notifService.NotifyAdminsAsync(
+                            "Student Email Delivery Failed",
+                            $"Could not send welcome email to student {user.Email}: {emailError}. Student ID: {user.StudentId}, Engineer Code: {user.EngineerCode}. Please notify them manually.",
+                            NotificationType.Warning
+                        );
+                    }
+                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+                }
+                catch (Exception ex)
+                {
+                    if (attempt == maxRetries)
+                        Serilog.Log.Error(ex, "[EMAIL] Student welcome email failed after {MaxRetries} retries for {Email}", maxRetries, user.Email);
+                    else
+                        await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+                }
+            }
+        });
 
         // Publish Event for real-time frontend update (including credentials for instant UI feedback)
         await _eventBus.PublishAsync(Events.RequestAccepted, EventTargetType.All, "", new { 

@@ -91,8 +91,15 @@ public class OtpService
 
     public async Task<(string? code, string? error)> GenerateOtpAsync(string phone, string emailTo, string purpose)
     {
+        if (!_resend.IsConfigured)
+        {
+            _logger.LogError("[OTP] RESEND_API_KEY is not configured. Cannot send OTP.");
+            return (null, "Email service not configured. Contact support.");
+        }
+
         if (!await CanSendOtpAsync(phone))
             return (null, "Too many OTP requests. Please try again later.");
+
 
         var code = GenerateCode();
         var otpKey = OtpKey(phone, purpose);

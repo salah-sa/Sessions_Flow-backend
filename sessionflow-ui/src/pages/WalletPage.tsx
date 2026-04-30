@@ -54,13 +54,15 @@ const VerifyPhoneGate = ({ phone, onVerified }: { phone: string; onVerified: () 
       toast.success(`Verification code sent to ${email}`);
     },
     onError: (e: any) => {
-      if (e?.message?.includes("Sandbox")) {
-        toast.error("Email Restriction", {
-          description: "Resend is in Sandbox mode. You can only send to your own registered email address until you verify a domain.",
-          duration: 8000
+      const msg = e?.message ?? "";
+      if (msg.includes("Sandbox") || msg.includes("sandbox") || msg.includes("unauthorized_email_address")) {
+        toast.error("📧 Email Delivery Restricted", {
+          description: "The code was generated but email delivery is restricted. Contact your engineer or admin for the code.",
+          duration: 10000
         });
+        setStep("verify"); // still allow code entry
       } else {
-        toast.error(e?.message ?? "Failed to send code");
+        toast.error(msg || "Failed to send code");
       }
     },
   });
@@ -269,41 +271,70 @@ const TransferModal = ({ onClose, balance, phone }: { onClose: () => void; balan
 // ─── Create Wallet ────────────────────────────────────────────────────────────
 const CreateWalletForm = () => {
   const qc = useQueryClient();
+  const user = useAuthStore(s => s.user);
+  const email = user?.email ?? "";
   const [phone, setPhone] = useState(""); const [pin, setPin] = useState(""); const [confirm, setConfirm] = useState("");
   const [step, setStep] = useState<"form" | "otp">("form");
   const [otp, setOtp] = useState("");
+  const [walletCreated, setWalletCreated] = useState(false);
+
+  const createMutation = useMutation({
+    mutationFn: () => walletApi.create({ phoneNumber: phone, pin }),
+    onSuccess: () => {
+      setWalletCreated(true);
+      sendOtpMutation.mutate();
+    },
+    onError: (e: any) => {
+      // Wallet may already exist from a previous attempt — still send OTP
+      if (e?.message?.toLowerCase().includes("already")) {
+        setWalletCreated(true);
+        sendOtpMutation.mutate();
+      } else {
+        toast.error(e?.message ?? "Failed to create wallet");
+      }
+    },
+  });
 
   const sendOtpMutation = useMutation({
     mutationFn: () => walletApi.sendOtp({ phone, purpose: "verify_phone" }),
     onSuccess: () => {
       setStep("otp");
-      toast.success("Verification code sent to your email!");
+      toast.success(`Verification code sent to ${email}`);
     },
     onError: (e: any) => {
-      if (e?.message?.includes("Sandbox")) {
-        toast.error("Email Restriction", {
-          description: "Resend is in Sandbox mode. Use your registered email address for testing.",
-          duration: 8000
+      const msg = e?.message ?? "";
+      if (msg.includes("Sandbox") || msg.includes("sandbox") || msg.includes("unauthorized_email_address")) {
+        toast.error("📧 Email Delivery Restricted", {
+          description: `Resend is in test mode. The code was generated — ask your administrator to send it to you manually, or contact support.`,
+          duration: 10000
         });
+        // Still advance to OTP step so admin can give the code manually
+        setStep("otp");
       } else {
         toast.error(e?.message ?? "Failed to send code");
       }
     },
   });
 
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      // First create the wallet
-      await walletApi.create({ phoneNumber: phone, pin });
-      // Then verify with OTP
-      await walletApi.verifyPhone({ phone, code: otp });
-    },
+  const verifyMutation = useMutation({
+    mutationFn: () => walletApi.verifyPhone({ phone, code: otp }),
     onSuccess: () => {
-      toast.success("Wallet created and verified!");
+      toast.success("Wallet created and verified! 🎉");
       qc.invalidateQueries({ queryKey: ["wallet-me"] });
     },
-    onError: (e: any) => { toast.error(e?.message ?? "Failed"); setOtp(""); },
+    onError: (e: any) => { toast.error(e?.message ?? "Verification failed"); setOtp(""); },
   });
+
+  const handleSubmit = () => {
+    if (pin !== confirm) { toast.error("PINs don't match"); return; }
+    if (walletCreated) {
+      sendOtpMutation.mutate();
+    } else {
+      createMutation.mutate();
+    }
+  };
+
+  const isPending = createMutation.isPending || sendOtpMutation.isPending;
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
@@ -324,20 +355,20 @@ const CreateWalletForm = () => {
                 <input key={ph} type={type} placeholder={ph} value={val} onChange={e => set(e.target.value)}
                   className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-[var(--ui-accent)]/50 text-sm" />
               ))}
-            <button onClick={() => { if (pin !== confirm) { toast.error("PINs don't match"); return; } sendOtpMutation.mutate(); }}
-              disabled={!phone || !pin || pin !== confirm || sendOtpMutation.isPending}
+            <button onClick={handleSubmit}
+              disabled={!phone || !pin || pin !== confirm || isPending}
               className="w-full py-3 rounded-xl bg-[var(--ui-accent)] text-white font-bold text-sm disabled:opacity-40">
-              {sendOtpMutation.isPending ? "Sending Code…" : "Send Verification Code"}
+              {isPending ? "Sending Code…" : "Send Verification Code"}
             </button>
           </>
         ) : (
           <div className="space-y-4">
             <p className="text-slate-400 text-sm text-center">Enter the 6-digit code sent to your email</p>
             <OtpInput value={otp} onChange={setOtp} />
-            <button onClick={() => createMutation.mutate()}
-              disabled={otp.length !== 6 || createMutation.isPending}
+            <button onClick={() => verifyMutation.mutate()}
+              disabled={otp.length !== 6 || verifyMutation.isPending}
               className="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm disabled:opacity-40">
-              {createMutation.isPending ? "Creating Wallet…" : "Verify & Create Wallet"}
+              {verifyMutation.isPending ? "Creating Wallet…" : "Verify & Create Wallet"}
             </button>
             <button onClick={() => { sendOtpMutation.mutate(); setOtp(""); }} disabled={sendOtpMutation.isPending}
               className="text-[var(--ui-accent)] text-xs font-bold hover:underline w-full text-center">Resend Code</button>
