@@ -56,48 +56,46 @@ public class OtpService
         await db.StringIncrementAsync(rKey);
         await db.KeyExpireAsync(rKey, TimeSpan.FromHours(1));
 
-        // ── Send OTP via Email first (Resend API — fast and reliable) ──
-        string subject = purpose == "reset_pin" ? "SessionFlow Wallet PIN Reset" : "SessionFlow Wallet Verification";
-        string htmlBody = $@"
-            <div style='font-family:sans-serif;max-width:400px;margin:auto;padding:24px;background:#0f0f1a;border-radius:16px;border:1px solid rgba(255,255,255,0.1);'>
-                <h2 style='color:white;margin:0 0 8px;'>SessionFlow Wallet</h2>
-                <p style='color:#94a3b8;font-size:14px;'>Your verification code for phone <b style='color:white;'>{phone}</b>:</p>
-                <h1 style='color:#6366f1;font-size:36px;letter-spacing:6px;text-align:center;margin:20px 0;'>{code}</h1>
-                <p style='color:#64748b;font-size:12px;'>Expires in {OtpTtlMinutes} minutes. If you didn't request this, ignore it.</p>
-            </div>";
-
-        var (emailSuccess, emailError) = await _gmail.SendEmailAsync(emailTo, subject, htmlBody);
-        bool delivered = emailSuccess;
-
-        if (!emailSuccess)
+        // ── Fire-and-forget: send OTP in background (don't block the response) ──
+        _ = Task.Run(async () =>
         {
-            _logger.LogWarning("[OTP] Email delivery failed: {Err}. Trying WhatsApp with timeout...", emailError);
-
-            // Try WhatsApp as backup with 5-second timeout (it often hangs)
             try
             {
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                var waTask = _wa.SendOtpAsync(phone, code);
-                var completedTask = await Task.WhenAny(waTask, Task.Delay(5000, cts.Token));
+                string subject = purpose == "reset_pin" ? "SessionFlow Wallet PIN Reset" : "SessionFlow Wallet Verification";
+                string htmlBody = $@"
+                    <div style='font-family:sans-serif;max-width:400px;margin:auto;padding:24px;background:#0f0f1a;border-radius:16px;border:1px solid rgba(255,255,255,0.1);'>
+                        <h2 style='color:white;margin:0 0 8px;'>SessionFlow Wallet</h2>
+                        <p style='color:#94a3b8;font-size:14px;'>Your verification code for phone <b style='color:white;'>{phone}</b>:</p>
+                        <h1 style='color:#6366f1;font-size:36px;letter-spacing:6px;text-align:center;margin:20px 0;'>{code}</h1>
+                        <p style='color:#64748b;font-size:12px;'>Expires in {OtpTtlMinutes} minutes. If you didn't request this, ignore it.</p>
+                    </div>";
 
-                if (completedTask == waTask)
+                var (emailOk, emailErr) = await _gmail.SendEmailAsync(emailTo, subject, htmlBody);
+
+                if (!emailOk)
                 {
-                    var (waOk, waErr) = await waTask;
-                    delivered = waOk;
-                    if (!waOk) _logger.LogWarning("[OTP-WA] WhatsApp failed: {Err}", waErr);
-                }
-                else
-                {
-                    _logger.LogWarning("[OTP-WA] WhatsApp timed out after 5s. Skipping.");
+                    _logger.LogWarning("[OTP] Email failed: {Err}. Trying WhatsApp...", emailErr);
+
+                    // WhatsApp backup with 5s timeout
+                    var waTask = _wa.SendOtpAsync(phone, code);
+                    if (await Task.WhenAny(waTask, Task.Delay(5000)) == waTask)
+                    {
+                        var (waOk, waErr) = await waTask;
+                        if (!waOk) _logger.LogWarning("[OTP-WA] WhatsApp failed: {Err}", waErr);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("[OTP-WA] WhatsApp timed out. All delivery failed.");
+                    }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[OTP-WA] WhatsApp exception. Skipping.");
+                _logger.LogError(ex, "[OTP] Background delivery failed for {Phone}", phone);
             }
-        }
+        });
 
-        // Always return the code — if delivery failed, frontend shows it inline
+        // Return immediately — code is already saved in Redis
         return (code, null);
     }
 
