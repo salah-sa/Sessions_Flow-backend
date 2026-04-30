@@ -146,7 +146,7 @@ public class OtpService
         {
             _logger.LogError("[OTP] ❌ Resend failed for {Email}: {Err}", emailTo, err);
             await DeleteKeyAsync(otpKey);
-            return (null, "Failed to send verification code. Please try again.");
+            return (null, err ?? "Failed to send verification code. Please try again.");
         }
 
         _logger.LogInformation("[OTP] ✅ Code delivered to {Email}", emailTo);
