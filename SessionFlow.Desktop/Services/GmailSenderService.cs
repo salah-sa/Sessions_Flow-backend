@@ -79,11 +79,31 @@ public class GmailSenderService
 
     public async Task<(bool success, string? error)> SendEmailAsync(string to, string subject, string body, CancellationToken ct = default)
     {
-        // ── Priority 1: Resend API (fastest, works on Railway) ──
-        var resendResult = await SendViaResendAsync(to, subject, body, ct);
-        if (resendResult.success) return resendResult;
+        var isContainer = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
 
-        _logger.LogWarning("[EMAIL] Resend failed: {Err}. Trying Gmail OAuth...", resendResult.error);
+        // ── On Railway: SMTP first (fastest working path) ──────────────────
+        // Resend is in Sandbox → always fails for non-registered addresses.
+        // Gmail OAuth times out after 3s on headless servers.
+        // Gmail SMTP with App Password works reliably in containers.
+        if (isContainer)
+        {
+            var smtpResult = await SendViaSmtpAsync(to, subject, body, ct);
+            if (smtpResult.success) return smtpResult;
+
+            _logger.LogWarning("[EMAIL] SMTP failed: {Err}. Trying Resend fallback...", smtpResult.error);
+
+            var resendResult = await SendViaResendAsync(to, subject, body, ct);
+            if (resendResult.success) return resendResult;
+
+            _logger.LogWarning("[EMAIL] All delivery methods failed for {To}", to);
+            return (false, "All email delivery methods failed. Please try again later.");
+        }
+
+        // ── Local dev: Resend first (fastest for verified domains) ──────────
+        var resendResultLocal = await SendViaResendAsync(to, subject, body, ct);
+        if (resendResultLocal.success) return resendResultLocal;
+
+        _logger.LogWarning("[EMAIL] Resend failed: {Err}. Trying Gmail OAuth...", resendResultLocal.error);
 
         // ── Priority 2: Gmail OAuth (local dev only, times out on Railway) ──
         try
@@ -117,7 +137,7 @@ public class GmailSenderService
             _logger.LogWarning(ex, "[EMAIL] Gmail OAuth failed. Trying SMTP...");
         }
 
-        // ── Priority 3: SMTP last resort ──
+        // ── Priority 3: SMTP last resort for local dev ──────────────────────
         return await SendViaSmtpAsync(to, subject, body, ct);
     }
 
