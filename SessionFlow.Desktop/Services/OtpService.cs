@@ -79,7 +79,7 @@ public class OtpService
             if (!success)
             {
                 _logger.LogError("[OTP-EMAIL] Failed to send OTP to {Email}: {Err}", emailTo, sendError);
-                return (null, sendError ?? "Failed to send verification email. Please contact support.");
+                return (null, $"WA: {waError} | Email: {sendError ?? "Failed"}");
             }
         }
 

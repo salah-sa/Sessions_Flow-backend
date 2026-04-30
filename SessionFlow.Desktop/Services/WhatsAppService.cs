@@ -97,7 +97,7 @@ public class WhatsAppService
             else
             {
                 _logger.LogError("WhatsApp API error: {Status} - {Response}", response.StatusCode, responseStr);
-                return (false, "Failed to send WhatsApp verification.");
+                return (false, $"WhatsApp API error: {responseStr}");
             }
         }
         catch (Exception ex)
