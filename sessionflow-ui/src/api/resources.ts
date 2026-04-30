@@ -90,6 +90,10 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify({ provider, id }),
     }),
+  resendWelcome: (userId: string) =>
+    fetchWithAuth<{ message: string }>(`/auth/users/${userId}/resend-welcome`, {
+      method: "POST"
+    }),
 };
 
 // Groups Module

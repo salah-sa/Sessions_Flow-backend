@@ -140,6 +140,18 @@ public static class AuthEndpoints
             });
         }).AllowAnonymous();
 
+        group.MapPost("/users/{userId:guid}/resend-welcome", async (Guid userId, AuthService auth, ClaimsPrincipal user) =>
+        {
+            // Only Admin or Engineer can resend credentials
+            var role = user.FindFirstValue(ClaimTypes.Role);
+            if (role != "Admin" && role != "Engineer") return Results.Forbid();
+
+            var (success, error) = await auth.ResendWelcomeEmailAsync(userId);
+            if (!success) return Results.BadRequest(new { error });
+
+            return Results.Ok(new { message = "Welcome email with credentials has been sent." });
+        });
+
         group.MapPost("/forgot-password", async (ForgotPasswordRequest req, AuthService auth) =>
         {
             if (string.IsNullOrWhiteSpace(req.Email))

@@ -148,6 +148,9 @@ public class AuthService
         var updateStudent = Builders<Student>.Update.Set(s => s.UserId, user.Id).Set(s => s.UpdatedAt, DateTimeOffset.UtcNow);
         await _db.Students.UpdateOneAsync(s => s.Id == studentRecord.Id, updateStudent);
 
+        // Send Welcome Email in background
+        _ = Task.Run(async () => await TriggerWelcomeEmailAsync(user));
+
         return (user, null);
     }
 
@@ -359,79 +362,13 @@ public class AuthService
             .Set(p => p.UpdatedAt, DateTimeOffset.UtcNow);
         await _db.PendingStudentRequests.UpdateOneAsync(p => p.Id == pendingId, updatePending);
 
-        // Send activation email (scoped background task with error logging)
-        _ = Task.Run(async () =>
-        {
-            const int maxRetries = 3;
-            for (int attempt = 1; attempt <= maxRetries; attempt++)
-            {
-                try
-                {
-                    using var scope = _scopeFactory.CreateScope();
-                    var mail = scope.ServiceProvider.GetRequiredService<EmailService>();
-                    var (emailSuccess, emailError) = await mail.SendEmailAsync(
-                        user.Email,
-                        "SessionFlow: Student Activation Completed",
-                        $@"<div style='font-family: sans-serif; background: #020617; color: white; padding: 40px; border-radius: 20px;'>
-                            <h2 style='color: #22c55e;'>Access Granted</h2>
-                            <p>Welcome, <strong>{user.Name}</strong>. Your request to join <strong>{pending.GroupName}</strong> has been approved.</p>
-                            <div style='background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;'>
-                                <p style='font-size: 12px; color: #64748b; margin: 0;'>Your Generated Student ID:</p>
-                                <p style='font-size: 20px; font-weight: bold; color: #3b82f6; margin: 5px 0;'>{studentCode}</p>
-                                <br/>
-                                <p style='font-size: 12px; color: #64748b; margin: 0;'>Engineer Clearance Code:</p>
-                                <p style='font-size: 20px; font-weight: bold; color: #10b981; margin: 5px 0;'>{engineer.EngineerCode}</p>
-                            </div>
-                            <p>You can now log in using your Username and Password.</p>
-                        </div>"
-                    );
+        // Send Welcome Email in background
+        _ = Task.Run(async () => await TriggerWelcomeEmailAsync(user));
 
-                    if (emailSuccess) break; // Success â€” exit retry loop
+        return (user, null);
+    }
+    
 
-                    if (attempt == maxRetries && !emailSuccess)
-                    {
-                        // Final attempt failed â€” notify engineer
-                        var notifService = scope.ServiceProvider.GetRequiredService<NotificationService>();
-                        await notifService.CreateNotificationAsync(
-                            pending.EngineerId,
-                            "Email Delivery Failed",
-                            $"Could not send activation email to {user.Email}: {emailError}. Please notify the student manually with their Student ID {studentCode}.",
-                            NotificationType.Warning
-                        );
-                    }
-
-                    // Wait before retry (exponential backoff: 2s, 4s, 8s)
-                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
-                }
-                catch (Exception ex)
-                {
-                    if (attempt == maxRetries)
-                    {
-                        Serilog.Log.Error(ex, "[EMAIL] Failed after {MaxRetries} retries for {Email}", maxRetries, user.Email);
-                    }
-                    else
-                    {
-                        await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
-                    }
-                }
-            }
-        });
-
-        // Create an internal notification for the student immediately as a fallback to email
-        _ = Task.Run(async () => {
-            try {
-                using var scope = _scopeFactory.CreateScope();
-                var notifService = scope.ServiceProvider.GetRequiredService<NotificationService>();
-                await notifService.CreateNotificationAsync(
-                    user.Id,
-                    "Registration Approved",
-                    $"Welcome! Your request for {pending.GroupName} has been approved.\nStudent ID: {studentCode}\nEngineer Code: {engineer.EngineerCode}",
-                    NotificationType.Success
-                );
-            } catch (Exception ex) {
-                Serilog.Log.Error(ex, "[NOTIF] Failed to create approval notification for student {UserId}", user.Id);
-            }
-        });
 
         // Publish Event for real-time frontend update (including credentials for instant UI feedback)
         await _eventBus.PublishAsync(Events.RequestAccepted, EventTargetType.All, "", new { 
@@ -1371,6 +1308,67 @@ public class AuthService
 
         var token = GenerateJwtToken(user);
         return (user, token, null);
+    }
+
+    public async Task<(bool success, string? error)> ResendWelcomeEmailAsync(Guid userId, CancellationToken ct = default)
+    {
+        var user = await _db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync(ct);
+        if (user == null) return (false, "User not found.");
+        if (user.Role != UserRole.Student) return (false, "This feature is only available for students.");
+
+        return await TriggerWelcomeEmailAsync(user);
+    }
+
+    private async Task<(bool success, string? error)> TriggerWelcomeEmailAsync(User user)
+    {
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var mail = scope.ServiceProvider.GetRequiredService<EmailService>();
+            
+            // Premium template consistent with SessionFlow branding
+            var html = $@"
+<div style='font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:480px;margin:auto;padding:40px;background:#0f172a;border-radius:24px;color:#f8fafc;border:1px solid rgba(255,255,255,0.05);'>
+    <div style='text-align:center;margin-bottom:32px;'>
+        <div style='display:inline-block;background:rgba(99,102,241,0.1);padding:16px;border-radius:20px;'>
+            <span style='font-size:32px;'>🎓</span>
+        </div>
+    </div>
+    
+    <h2 style='text-align:center;font-size:24px;margin:0 0 8px;color:#fff;'>Welcome to SessionFlow</h2>
+    <p style='text-align:center;color:#94a3b8;font-size:14px;margin-bottom:32px;'>Your student account is active and ready.</p>
+    
+    <div style='background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:20px;padding:24px;margin-bottom:32px;'>
+        <div style='margin-bottom:20px;'>
+            <p style='font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin:0 0 4px;'>Your Student ID</p>
+            <p style='font-size:20px;font-weight:700;color:#818cf8;margin:0;letter-spacing:1px;'>{user.StudentId}</p>
+        </div>
+        <div>
+            <p style='font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin:0 0 4px;'>Engineer Clearance Code</p>
+            <p style='font-size:20px;font-weight:700;color:#2dd4bf;margin:0;letter-spacing:1px;'>{user.EngineerCode}</p>
+        </div>
+    </div>
+    
+    <p style='font-size:13px;color:#64748b;text-align:center;margin:0;'>
+        Use these credentials to access your portal and attendance tracking.
+    </p>
+</div>";
+
+            var (ok, err) = await mail.SendEmailAsync(user.Email, "SessionFlow: Your Student Credentials", html);
+            if (!ok) 
+            {
+                Log.Warning("[AUTH] Failed to send welcome email to {Email}: {Err}", user.Email, err);
+                return (false, err);
+            }
+
+            Log.Information("[AUTH] Welcome email sent to {Email}", user.Email);
+            return (true, null);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to trigger welcome email");
+            return (false, ex.Message);
+        }
     }
 
     private string GenerateResetCode()

@@ -187,3 +187,15 @@ export async function resendCredentials(email: string): Promise<{ success: boole
     return { success: false, error: err.message || "Failed to resend credentials" };
   }
 }
+
+/**
+ * Resend Welcome Email — Manually trigger the activation email for a specific user (Admin only)
+ */
+export async function resendWelcomeEmail(userId: string): Promise<AuthResult> {
+  try {
+    await authApi.resendWelcome(userId);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to resend welcome email" };
+  }
+}

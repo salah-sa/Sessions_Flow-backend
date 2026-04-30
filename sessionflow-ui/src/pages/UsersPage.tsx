@@ -120,6 +120,24 @@ const UsersPage: React.FC = () => {
     }
   };
 
+  const [isResending, setIsResending] = useState(false);
+  const handleResendWelcome = async (userId: string) => {
+    try {
+      setIsResending(true);
+      const { resendWelcomeEmail } = await import("../api/authService");
+      const res = await resendWelcomeEmail(userId);
+      if (res.success) {
+        toast.success("Welcome email resent successfully.");
+      } else {
+        toast.error(res.error || "Failed to resend welcome email.");
+      }
+    } catch {
+      toast.error("An error occurred while resending email.");
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   const openBlockedPages = (user: UserItem) => {
     setSelectedUser(user);
     setPendingBlockedPages(user.blockedPages || []);
@@ -443,6 +461,27 @@ const UsersPage: React.FC = () => {
                           </button>
                         )}
                       </div>
+                    </div>
+
+                    {/* Quick Support Actions */}
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold text-slate-500 uppercase flex items-center gap-2">
+                        <Mail className="w-3.5 h-3.5" /> Support Actions
+                      </p>
+                      
+                      <button
+                        onClick={() => handleResendWelcome(selectedUser.id)}
+                        disabled={isResending}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl bg-purple-500/5 border border-purple-500/10 hover:border-purple-500/30 hover:bg-purple-500/10 transition-all text-start group disabled:opacity-50"
+                      >
+                        <div className="p-2 rounded-lg bg-purple-500/10">
+                          <RotateCcw className={cn("w-4 h-4 text-purple-400", isResending && "animate-spin")} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-white group-hover:text-purple-300 transition-colors">Resend Welcome Email</p>
+                          <p className="text-[10px] text-slate-500">Triggers credentials email delivery via Resend</p>
+                        </div>
+                      </button>
                     </div>
 
                     {/* Divider */}
