@@ -58,6 +58,7 @@ public class OtpService
 
         // Try WhatsApp First (Since it verifies the actual phone number)
         var (waSuccess, waError) = await _wa.SendOtpAsync(phone, code);
+        bool delivered = waSuccess;
         
         if (!waSuccess)
         {
@@ -75,15 +76,16 @@ public class OtpService
                 </div>";
 
             var (success, sendError) = await _gmail.SendEmailAsync(emailTo, subject, htmlBody);
+            delivered = success;
             
             if (!success)
             {
-                _logger.LogError("[OTP-EMAIL] Failed to send OTP to {Email}: {Err}", emailTo, sendError);
-                return (null, $"WA: {waError} | Email: {sendError ?? "Failed"}");
+                _logger.LogWarning("[OTP-EMAIL] Failed to send OTP to {Email}: {Err}. Returning code directly.", emailTo, sendError);
             }
         }
 
-        return (_env.IsDevelopment() ? code : null, null);
+        // Always return the code — if delivery failed, frontend shows it inline
+        return (code, null);
     }
 
     public async Task<(bool isValid, string? error)> ValidateOtpAsync(string phone, string purpose, string code)

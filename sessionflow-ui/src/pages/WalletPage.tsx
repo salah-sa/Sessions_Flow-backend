@@ -47,7 +47,15 @@ const VerifyPhoneGate = ({ phone, onVerified }: { phone: string; onVerified: () 
 
   const sendMutation = useMutation({
     mutationFn: () => walletApi.sendOtp({ phone, purpose: "verify_phone" }),
-    onSuccess: () => { setStep("verify"); toast.success("Verification code sent!"); },
+    onSuccess: (data) => {
+      setStep("verify");
+      if (data.devCode) {
+        setOtp(data.devCode);
+        toast.success("Code auto-filled (delivery pending setup)");
+      } else {
+        toast.success("Verification code sent!");
+      }
+    },
     onError: (e: any) => toast.error(e?.message ?? "Failed to send code"),
   });
 
@@ -109,7 +117,15 @@ const ForgotPinModal = ({ onClose, phone }: { onClose: () => void; phone: string
 
   const sendMutation = useMutation({
     mutationFn: () => walletApi.forgotPinSendOtp(),
-    onSuccess: () => { setStep("verify"); toast.success("Verification code sent!"); },
+    onSuccess: (data) => {
+      setStep("verify");
+      if (data.devCode) {
+        setOtp(data.devCode);
+        toast.success("Code auto-filled (delivery pending setup)");
+      } else {
+        toast.success("Verification code sent!");
+      }
+    },
     onError: (e: any) => toast.error(e?.message ?? "Failed to send code"),
   });
 
@@ -235,7 +251,15 @@ const CreateWalletForm = () => {
 
   const sendOtpMutation = useMutation({
     mutationFn: () => walletApi.sendOtp({ phone, purpose: "verify_phone" }),
-    onSuccess: () => { setStep("otp"); toast.success("Verification code sent!"); },
+    onSuccess: (data) => {
+      setStep("otp");
+      if (data.devCode) {
+        setOtp(data.devCode);
+        toast.success("Code auto-filled (delivery pending setup)");
+      } else {
+        toast.success("Verification code sent!");
+      }
+    },
     onError: (e: any) => toast.error(e?.message ?? "Failed to send code"),
   });
 

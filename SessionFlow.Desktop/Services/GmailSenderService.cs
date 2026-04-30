@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -70,7 +73,11 @@ public class GmailSenderService
             var service = await GetGmailServiceAsync();
             if (service == null)
             {
-                // OAuth not available — fall back to SMTP (Railway / production)
+                // OAuth not available — try Resend API first, then SMTP
+                var resendResult = await SendViaResendAsync(to, subject, body, ct);
+                if (resendResult.success) return resendResult;
+                
+                _logger.LogWarning("Resend failed: {Err}. Trying SMTP...", resendResult.error);
                 return await SendViaSmtpAsync(to, subject, body, ct);
             }
 
@@ -105,7 +112,59 @@ public class GmailSenderService
     }
 
     /// <summary>
-    /// SMTP fallback — used when Gmail OAuth is not configured (e.g. Railway).
+    /// Resend API fallback — uses HTTPS (works on Railway, unlike SMTP).
+    /// Requires RESEND_API_KEY env var. Free tier: 100 emails/day.
+    /// </summary>
+    private async Task<(bool success, string? error)> SendViaResendAsync(string to, string subject, string body, CancellationToken ct = default)
+    {
+        var apiKey = _config["Resend:ApiKey"] ?? Environment.GetEnvironmentVariable("RESEND_API_KEY");
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            _logger.LogWarning("Resend API not configured. Set RESEND_API_KEY.");
+            return (false, "Resend API not configured.");
+        }
+
+        try
+        {
+            var fromAddress = _config["Resend:From"] ?? Environment.GetEnvironmentVariable("RESEND_FROM") ?? "SessionFlow <onboarding@resend.dev>";
+
+            using var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+            httpClient.Timeout = TimeSpan.FromSeconds(15);
+
+            var payload = new
+            {
+                from = fromAddress,
+                to = new[] { to },
+                subject = subject,
+                html = body
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await httpClient.PostAsync("https://api.resend.com/emails", content, ct);
+            var responseBody = await response.Content.ReadAsStringAsync(ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("[RESEND] Failed ({Status}): {Body}", response.StatusCode, responseBody);
+                return (false, $"Resend API error: {response.StatusCode}");
+            }
+
+            await LogEmailAsync(to, subject, "sent via Resend API", ct);
+            _logger.LogInformation("Email sent via Resend API to {To}: {Subject}", to, subject);
+            return (true, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[RESEND] Exception sending email to {To}", to);
+            return (false, $"Resend error: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// SMTP fallback — used when Gmail OAuth and Resend are not available.
     /// Requires GMAIL_SMTP_USER and GMAIL_SMTP_APP_PASSWORD env vars.
     /// </summary>
     private async Task<(bool success, string? error)> SendViaSmtpAsync(string to, string subject, string body, CancellationToken ct = default)
