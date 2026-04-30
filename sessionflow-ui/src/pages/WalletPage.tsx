@@ -39,8 +39,10 @@ const OtpInput = ({ value, onChange }: { value: string; onChange: (v: string) =>
   );
 };
 
-// ─── Verify Phone Gate (Email/WhatsApp OTP) ──────────────────────────────────
+// ─── Verify Phone Gate (Email OTP) ───────────────────────────────────────────
 const VerifyPhoneGate = ({ phone, onVerified }: { phone: string; onVerified: () => void }) => {
+  const user = useAuthStore(s => s.user);
+  const email = user?.email ?? "";
   const [step, setStep] = useState<"send" | "verify">("send");
   const [otp, setOtp] = useState("");
   const qc = useQueryClient();
@@ -53,7 +55,7 @@ const VerifyPhoneGate = ({ phone, onVerified }: { phone: string; onVerified: () 
         setOtp(data.devCode);
         toast.success("Code auto-filled (delivery pending setup)");
       } else {
-        toast.success("Verification code sent!");
+        toast.success(`Verification code sent to ${email}`);
       }
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed to send code"),
@@ -79,17 +81,31 @@ const VerifyPhoneGate = ({ phone, onVerified }: { phone: string; onVerified: () 
         <div>
           <h2 className="text-white font-bold text-xl">Verify Your Phone</h2>
           <p className="text-slate-500 text-sm mt-1">📱 {phone}</p>
-          <p className="text-slate-600 text-xs mt-2">Required to activate wallet transfers</p>
+          <p className="text-slate-600 text-xs mt-2">A code will be sent to your email to verify ownership</p>
         </div>
 
         {step === "send" ? (
-          <button onClick={() => sendMutation.mutate()} disabled={sendMutation.isPending}
-            className="w-full py-3 rounded-xl bg-[var(--ui-accent)] text-white font-bold text-sm disabled:opacity-50">
-            {sendMutation.isPending ? "Sending…" : "Send Verification Code"}
-          </button>
+          <div className="space-y-3">
+            <div className="bg-white/[0.03] border border-white/5 rounded-xl p-3 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[var(--ui-accent)]/10 flex items-center justify-center shrink-0">
+                <Mail className="w-4 h-4 text-[var(--ui-accent)]" />
+              </div>
+              <div className="text-left min-w-0">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wider">Code will be sent to</p>
+                <p className="text-white text-sm font-bold truncate">{email}</p>
+              </div>
+            </div>
+            <button onClick={() => sendMutation.mutate()} disabled={sendMutation.isPending}
+              className="w-full py-3 rounded-xl bg-[var(--ui-accent)] text-white font-bold text-sm disabled:opacity-50">
+              {sendMutation.isPending ? "Sending…" : "Send Verification Code"}
+            </button>
+          </div>
         ) : (
           <div className="space-y-4">
-            <p className="text-slate-400 text-sm">Enter the 6-digit code sent to your email</p>
+            <div className="w-12 h-12 mx-auto rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+              <Mail className="w-6 h-6 text-emerald-400" />
+            </div>
+            <p className="text-slate-400 text-sm">Enter the 6-digit code sent to<br/><span className="text-white font-bold">{email}</span></p>
             <OtpInput value={otp} onChange={setOtp} />
             <button onClick={() => verifyMutation.mutate()}
               disabled={otp.length !== 6 || verifyMutation.isPending}

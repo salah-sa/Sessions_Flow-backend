@@ -56,31 +56,44 @@ public class OtpService
         await db.StringIncrementAsync(rKey);
         await db.KeyExpireAsync(rKey, TimeSpan.FromHours(1));
 
-        // Try WhatsApp First (Since it verifies the actual phone number)
-        var (waSuccess, waError) = await _wa.SendOtpAsync(phone, code);
-        bool delivered = waSuccess;
-        
-        if (!waSuccess)
-        {
-            _logger.LogWarning("[OTP-WA] WhatsApp OTP failed: {Err}. Falling back to Email.", waError);
-            
-            // Fallback to Email
-            string subject = purpose == "reset_pin" ? "SessionFlow Wallet PIN Reset" : "SessionFlow Wallet Verification";
-            string htmlBody = $@"
-                <div style='font-family:sans-serif;max-width:400px;margin:auto;'>
-                    <h2>SessionFlow Wallet</h2>
-                    <p>Your verification code for phone number <b>{phone}</b> is:</p>
-                    <h1 style='color:#6366f1;font-size:32px;letter-spacing:4px;'>{code}</h1>
-                    <p>This code will expire in {OtpTtlMinutes} minutes.</p>
-                    <p><small>If you did not request this, please ignore this email.</small></p>
-                </div>";
+        // ── Send OTP via Email first (Resend API — fast and reliable) ──
+        string subject = purpose == "reset_pin" ? "SessionFlow Wallet PIN Reset" : "SessionFlow Wallet Verification";
+        string htmlBody = $@"
+            <div style='font-family:sans-serif;max-width:400px;margin:auto;padding:24px;background:#0f0f1a;border-radius:16px;border:1px solid rgba(255,255,255,0.1);'>
+                <h2 style='color:white;margin:0 0 8px;'>SessionFlow Wallet</h2>
+                <p style='color:#94a3b8;font-size:14px;'>Your verification code for phone <b style='color:white;'>{phone}</b>:</p>
+                <h1 style='color:#6366f1;font-size:36px;letter-spacing:6px;text-align:center;margin:20px 0;'>{code}</h1>
+                <p style='color:#64748b;font-size:12px;'>Expires in {OtpTtlMinutes} minutes. If you didn't request this, ignore it.</p>
+            </div>";
 
-            var (success, sendError) = await _gmail.SendEmailAsync(emailTo, subject, htmlBody);
-            delivered = success;
-            
-            if (!success)
+        var (emailSuccess, emailError) = await _gmail.SendEmailAsync(emailTo, subject, htmlBody);
+        bool delivered = emailSuccess;
+
+        if (!emailSuccess)
+        {
+            _logger.LogWarning("[OTP] Email delivery failed: {Err}. Trying WhatsApp with timeout...", emailError);
+
+            // Try WhatsApp as backup with 5-second timeout (it often hangs)
+            try
             {
-                _logger.LogWarning("[OTP-EMAIL] Failed to send OTP to {Email}: {Err}. Returning code directly.", emailTo, sendError);
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                var waTask = _wa.SendOtpAsync(phone, code);
+                var completedTask = await Task.WhenAny(waTask, Task.Delay(5000, cts.Token));
+
+                if (completedTask == waTask)
+                {
+                    var (waOk, waErr) = await waTask;
+                    delivered = waOk;
+                    if (!waOk) _logger.LogWarning("[OTP-WA] WhatsApp failed: {Err}", waErr);
+                }
+                else
+                {
+                    _logger.LogWarning("[OTP-WA] WhatsApp timed out after 5s. Skipping.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[OTP-WA] WhatsApp exception. Skipping.");
             }
         }
 
