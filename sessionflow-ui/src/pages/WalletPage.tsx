@@ -7,11 +7,13 @@ import { useAuthStore } from "../store/stores";
 import { toast } from "sonner";
 import { cn } from "../lib/utils";
 import { auth } from "../lib/firebase";
-import { signInWithPhoneNumber, RecaptchaVerifier, ConfirmationResult } from "firebase/auth";
+import { sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth";
 import {
   Wallet, ArrowUpRight, ArrowDownLeft, ShieldCheck, Zap,
-  Eye, EyeOff, X, RefreshCw, Plus, AlertTriangle, Check
+  Eye, EyeOff, X, RefreshCw, Plus, AlertTriangle, Check, Mail
 } from "lucide-react";
+
+const emailLinkSettings = () => ({ url: window.location.href, handleCodeInApp: true });
 
 // ─── OTP Input ───────────────────────────────────────────────────────────────
 const OtpInput = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
@@ -41,76 +43,77 @@ const OtpInput = ({ value, onChange }: { value: string; onChange: (v: string) =>
   );
 };
 
-// ─── Verify Phone Gate ────────────────────────────────────────────────────────
+// ─── Verify Email Gate ────────────────────────────────────────────────────────
 const VerifyPhoneGate = ({ phone, onVerified }: { phone: string; onVerified: () => void }) => {
-  const [code, setCode] = useState("");
+  const user = useAuthStore(s => s.user);
+  const email = user?.email ?? "";
   const [sent, setSent] = useState(false);
-  const [countdown, setCountdown] = useState(0);
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [completing, setCompleting] = useState(false);
   const qc = useQueryClient();
 
   useEffect(() => {
-    if (countdown > 0) { const t = setTimeout(() => setCountdown(c => c - 1), 1000); return () => clearTimeout(t); }
-  }, [countdown]);
-
-  useEffect(() => {
-    if (!(window as any).recaptchaVerifierGate) {
-      (window as any).recaptchaVerifierGate = new RecaptchaVerifier(auth, 'recaptcha-container-gate', { size: 'invisible' });
-    }
+    if (!isSignInWithEmailLink(auth, window.location.href)) return;
+    if (localStorage.getItem("walletAuthPurpose") !== "verify_phone") return;
+    setCompleting(true);
+    const savedEmail = localStorage.getItem("emailForWallet") ?? email;
+    signInWithEmailLink(auth, savedEmail, window.location.href)
+      .then(async r => {
+        const token = await r.user.getIdToken();
+        await walletApi.verifyPhone({ phone, code: token });
+        ["emailForWallet","walletAuthPurpose"].forEach(k => localStorage.removeItem(k));
+        window.history.replaceState(null, "", window.location.pathname);
+        toast.success("Email verified! Wallet is now active.");
+        qc.invalidateQueries({ queryKey: ["wallet-me"] });
+        onVerified();
+      })
+      .catch(e => { toast.error(e?.message ?? "Verification failed"); setCompleting(false); });
   }, []);
 
   const sendMutation = useMutation({
     mutationFn: async () => {
-      const formatted = phone.startsWith("0") ? `+20${phone.substring(1)}` : phone;
-      const appVerifier = (window as any).recaptchaVerifierGate;
-      const result = await signInWithPhoneNumber(auth, formatted, appVerifier);
-      setConfirmationResult(result);
+      localStorage.setItem("emailForWallet", email);
+      localStorage.setItem("walletAuthPurpose", "verify_phone");
+      await sendSignInLinkToEmail(auth, email, emailLinkSettings());
     },
-    onSuccess: () => { setSent(true); setCountdown(300); toast.success("SMS code sent!"); },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to send code"),
+    onSuccess: () => { setSent(true); toast.success("Verification link sent to Gmail!"); },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to send link"),
   });
 
-  const verifyMutation = useMutation({
-    mutationFn: async () => {
-      if (!confirmationResult) throw new Error("No confirmation result");
-      const result = await confirmationResult.confirm(code);
-      const token = await result.user.getIdToken();
-      await walletApi.verifyPhone({ phone, code: token });
-    },
-    onSuccess: () => { toast.success("Phone verified!"); qc.invalidateQueries({ queryKey: ["wallet-me"] }); onVerified(); },
-    onError: (e: any) => toast.error(e?.message ?? "Invalid code"),
-  });
+  if (completing) return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="text-center space-y-4">
+        <div className="w-10 h-10 border-4 border-[var(--ui-accent)]/20 border-t-[var(--ui-accent)] rounded-full animate-spin mx-auto" />
+        <p className="text-slate-400 text-sm">Completing email verification…</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
-      <div id="recaptcha-container-gate"></div>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         className="bg-white/[0.02] border border-white/10 rounded-3xl p-8 w-full max-w-sm text-center space-y-6">
         <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
           <ShieldCheck className="w-8 h-8 text-amber-400" />
         </div>
         <div>
-          <h2 className="text-white font-bold text-xl">Verify Your Phone</h2>
-          <p className="text-slate-500 text-sm mt-1">🇪🇬 {phone}</p>
+          <h2 className="text-white font-bold text-xl">Verify Your Email</h2>
+          <p className="text-slate-500 text-sm mt-1">📧 {email}</p>
           <p className="text-slate-600 text-xs mt-2">Required to activate wallet transfers</p>
         </div>
         {!sent ? (
           <button onClick={() => sendMutation.mutate()} disabled={sendMutation.isPending}
             className="w-full py-3 rounded-xl bg-[var(--ui-accent)] text-white font-bold text-sm disabled:opacity-50">
-            {sendMutation.isPending ? "Sending…" : "Send Verification Code"}
+            {sendMutation.isPending ? "Sending…" : "Send Verification Link"}
           </button>
         ) : (
           <div className="space-y-4">
-            <OtpInput value={code} onChange={setCode} />
-            {countdown > 0 && <p className="text-slate-500 text-xs">{Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, "0")} remaining</p>}
-            <button onClick={() => verifyMutation.mutate()} disabled={code.length < 6 || verifyMutation.isPending}
-              className="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm disabled:opacity-40">
-              {verifyMutation.isPending ? "Verifying…" : "Verify Code"}
-            </button>
-            {countdown === 0 && (
-              <button onClick={() => sendMutation.mutate()} disabled={sendMutation.isPending}
-                className="text-[var(--ui-accent)] text-xs font-bold hover:underline">Resend Code</button>
-            )}
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+              <Mail className="w-7 h-7 text-emerald-400" />
+            </div>
+            <p className="text-slate-300 text-sm">Check Gmail at <span className="text-white font-bold">{email}</span> and click the link.</p>
+            <p className="text-slate-600 text-xs">You'll return here automatically.</p>
+            <button onClick={() => sendMutation.mutate()} disabled={sendMutation.isPending}
+              className="text-[var(--ui-accent)] text-xs font-bold hover:underline">Resend Link</button>
           </div>
         )}
       </motion.div>
@@ -120,35 +123,43 @@ const VerifyPhoneGate = ({ phone, onVerified }: { phone: string; onVerified: () 
 
 // ─── Forgot PIN Modal ────────────────────────────────────────────────────────
 const ForgotPinModal = ({ onClose, phone }: { onClose: () => void; phone: string }) => {
-  const [step, setStep] = useState<"send" | "verify" | "done">("send");
-  const [code, setCode] = useState(""); const [newPin, setNewPin] = useState(""); const [confirm, setConfirm] = useState("");
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const user = useAuthStore(s => s.user);
+  const email = user?.email ?? "";
+  const [step, setStep] = useState<"send" | "sent" | "pinEntry" | "done">("send");
+  const [newPin, setNewPin] = useState(""); const [confirm, setConfirm] = useState("");
+  const [pendingToken, setPendingToken] = useState<string | null>(null);
   const qc = useQueryClient();
 
   useEffect(() => {
-    if (!(window as any).recaptchaVerifierForgot) {
-      (window as any).recaptchaVerifierForgot = new RecaptchaVerifier(auth, 'recaptcha-container-forgot', { size: 'invisible' });
-    }
+    if (!isSignInWithEmailLink(auth, window.location.href)) return;
+    if (localStorage.getItem("walletAuthPurpose") !== "forgot_pin") return;
+    const savedEmail = localStorage.getItem("emailForWallet") ?? email;
+    signInWithEmailLink(auth, savedEmail, window.location.href)
+      .then(async r => {
+        const token = await r.user.getIdToken();
+        setPendingToken(token);
+        ["emailForWallet","walletAuthPurpose"].forEach(k => localStorage.removeItem(k));
+        window.history.replaceState(null, "", window.location.pathname);
+        setStep("pinEntry");
+        toast.success("Email verified! Set your new PIN.");
+      })
+      .catch(e => toast.error(e?.message ?? "Verification failed"));
   }, []);
 
   const sendMutation = useMutation({
     mutationFn: async () => {
-      const formatted = phone.startsWith("0") ? `+20${phone.substring(1)}` : phone;
-      const appVerifier = (window as any).recaptchaVerifierForgot;
-      const result = await signInWithPhoneNumber(auth, formatted, appVerifier);
-      setConfirmationResult(result);
+      localStorage.setItem("emailForWallet", email);
+      localStorage.setItem("walletAuthPurpose", "forgot_pin");
+      await sendSignInLinkToEmail(auth, email, emailLinkSettings());
     },
-    onSuccess: () => { setStep("verify"); toast.success("SMS code sent!"); },
+    onSuccess: () => { setStep("sent"); toast.success("Verification link sent to Gmail!"); },
     onError: (e: any) => toast.error(e?.message ?? "Failed"),
   });
 
   const resetMutation = useMutation({
     mutationFn: async () => {
-      if (!confirmationResult) throw new Error("No confirmation");
-      const result = await confirmationResult.confirm(code);
-      const token = await result.user.getIdToken();
-      // Use backend OTP reset with Firebase token as code
-      return walletApi.forgotPinReset({ phone, code: token, newPin });
+      if (!pendingToken) throw new Error("No token");
+      return walletApi.forgotPinReset({ phone, code: pendingToken, newPin });
     },
     onSuccess: () => { setStep("done"); qc.invalidateQueries({ queryKey: ["wallet-me"] }); },
     onError: (e: any) => toast.error(e?.message ?? "Failed to reset PIN"),
@@ -156,7 +167,6 @@ const ForgotPinModal = ({ onClose, phone }: { onClose: () => void; phone: string
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div id="recaptcha-container-forgot"></div>
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
         className="bg-[#0f0f1a] border border-white/10 rounded-3xl p-6 w-full max-w-sm space-y-5">
         <div className="flex items-center justify-between">
@@ -165,23 +175,28 @@ const ForgotPinModal = ({ onClose, phone }: { onClose: () => void; phone: string
         </div>
         {step === "send" && (
           <>
-            <p className="text-slate-400 text-sm">We'll send an SMS verification code to your wallet's registered phone number.</p>
+            <p className="text-slate-400 text-sm">We'll send a verification link to your Gmail at <span className="text-white">{email}</span>.</p>
             <button onClick={() => sendMutation.mutate()} disabled={sendMutation.isPending}
               className="w-full py-3 rounded-xl bg-[var(--ui-accent)] text-white font-bold text-sm disabled:opacity-50">
-              {sendMutation.isPending ? "Sending…" : "Send Code"}
+              {sendMutation.isPending ? "Sending…" : "Send Verification Link"}
             </button>
           </>
         )}
-        {step === "verify" && (
+        {step === "sent" && (
+          <div className="text-center space-y-3">
+            <Mail className="w-10 h-10 text-emerald-400 mx-auto" />
+            <p className="text-slate-300 text-sm">Check Gmail at <span className="text-white font-bold">{email}</span> and click the link. You'll return here automatically.</p>
+          </div>
+        )}
+        {step === "pinEntry" && (
           <div className="space-y-4">
-            <p className="text-slate-400 text-sm text-center">Enter the 6-digit SMS code sent to 🇪🇬 {phone}</p>
-            <OtpInput value={code} onChange={setCode} />
+            <p className="text-slate-400 text-sm text-center">Set your new PIN</p>
             <input type="password" placeholder="New PIN (4 or 6 digits)" value={newPin} onChange={e => setNewPin(e.target.value)} maxLength={6}
               className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-[var(--ui-accent)]/50" />
             <input type="password" placeholder="Confirm New PIN" value={confirm} onChange={e => setConfirm(e.target.value)} maxLength={6}
               className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-[var(--ui-accent)]/50" />
             <button onClick={() => { if (newPin !== confirm) { toast.error("PINs don't match"); return; } resetMutation.mutate(); }}
-              disabled={code.length < 6 || !newPin || newPin !== confirm || resetMutation.isPending}
+              disabled={!newPin || newPin !== confirm || resetMutation.isPending}
               className="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm disabled:opacity-40">
               {resetMutation.isPending ? "Resetting…" : "Reset PIN"}
             </button>
@@ -254,43 +269,56 @@ const TransferModal = ({ onClose, balance, phone }: { onClose: () => void; balan
 
 // ─── Create Wallet ────────────────────────────────────────────────────────────
 const CreateWalletForm = () => {
+  const { user } = useAuthStore() as any;
+  const email = user?.email ?? "";
   const qc = useQueryClient();
   const [phone, setPhone] = useState(""); const [pin, setPin] = useState(""); const [confirm, setConfirm] = useState("");
-  const [otpStep, setOtpStep] = useState(false); const [code, setCode] = useState("");
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [sent, setSent] = useState(false);
+  const [completing, setCompleting] = useState(false);
 
   useEffect(() => {
-    if (!(window as any).recaptchaVerifierCreate) {
-      (window as any).recaptchaVerifierCreate = new RecaptchaVerifier(auth, 'recaptcha-container-create', { size: 'invisible' });
-    }
+    if (!isSignInWithEmailLink(auth, window.location.href)) return;
+    if (localStorage.getItem("walletAuthPurpose") !== "create_wallet") return;
+    setCompleting(true);
+    const savedEmail = localStorage.getItem("emailForWallet") ?? email;
+    const savedPhone = localStorage.getItem("walletAuthPhone") ?? "";
+    const savedPin = localStorage.getItem("walletAuthPin") ?? "";
+    signInWithEmailLink(auth, savedEmail, window.location.href)
+      .then(async r => {
+        const token = await r.user.getIdToken();
+        await walletApi.verifyPhone({ phone: savedPhone, code: token });
+        await walletApi.create({ phoneNumber: savedPhone, pin: savedPin });
+        ["emailForWallet","walletAuthPurpose","walletAuthPhone","walletAuthPin"].forEach(k => localStorage.removeItem(k));
+        window.history.replaceState(null, "", window.location.pathname);
+        toast.success("Wallet created and verified!");
+        qc.invalidateQueries({ queryKey: ["wallet-me"] });
+      })
+      .catch(e => { toast.error(e?.message ?? "Failed"); setCompleting(false); });
   }, []);
 
   const sendMutation = useMutation({
     mutationFn: async () => {
-      const formatted = phone.startsWith("0") ? `+20${phone.substring(1)}` : phone;
-      const appVerifier = (window as any).recaptchaVerifierCreate;
-      const result = await signInWithPhoneNumber(auth, formatted, appVerifier);
-      setConfirmationResult(result);
+      localStorage.setItem("emailForWallet", email);
+      localStorage.setItem("walletAuthPurpose", "create_wallet");
+      localStorage.setItem("walletAuthPhone", phone);
+      localStorage.setItem("walletAuthPin", pin);
+      await sendSignInLinkToEmail(auth, email, emailLinkSettings());
     },
-    onSuccess: () => { setOtpStep(true); toast.success("SMS code sent!"); },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to send OTP"),
+    onSuccess: () => { setSent(true); toast.success("Verification link sent to Gmail!"); },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to send link"),
   });
 
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      if (!confirmationResult) throw new Error("No confirmation result");
-      const result = await confirmationResult.confirm(code);
-      const token = await result.user.getIdToken();
-      await walletApi.verifyPhone({ phone, code: token });
-      return walletApi.create({ phoneNumber: phone, pin });
-    },
-    onSuccess: () => { toast.success("Wallet created and verified!"); qc.invalidateQueries({ queryKey: ["wallet-me"] }); },
-    onError: (e: any) => toast.error(e?.message ?? "Failed"),
-  });
+  if (completing) return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="text-center space-y-4">
+        <div className="w-10 h-10 border-4 border-[var(--ui-accent)]/20 border-t-[var(--ui-accent)] rounded-full animate-spin mx-auto" />
+        <p className="text-slate-400 text-sm">Creating your wallet…</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
-      <div id="recaptcha-container-create"></div>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         className="bg-white/[0.02] border border-white/10 rounded-3xl p-8 w-full max-w-sm space-y-5">
         <div className="text-center">
@@ -300,7 +328,7 @@ const CreateWalletForm = () => {
           <h2 className="text-white font-bold text-xl">Create Your Wallet</h2>
           <p className="text-slate-500 text-sm mt-1">Secure Egyptian mobile wallet</p>
         </div>
-        {!otpStep ? (
+        {!sent ? (
           <>
             {[{ ph: "Phone (01XXXXXXXXX)", val: phone, set: setPhone, type: "tel" }, { ph: "PIN (4 or 6 digits)", val: pin, set: setPin, type: "password" }, { ph: "Confirm PIN", val: confirm, set: setConfirm, type: "password" }]
               .map(({ ph, val, set, type }) => (
@@ -310,18 +338,17 @@ const CreateWalletForm = () => {
             <button onClick={() => { if (pin !== confirm) { toast.error("PINs don't match"); return; } sendMutation.mutate(); }}
               disabled={!phone || !pin || pin !== confirm || sendMutation.isPending}
               className="w-full py-3 rounded-xl bg-[var(--ui-accent)] text-white font-bold text-sm disabled:opacity-40">
-              {sendMutation.isPending ? "Sending OTP…" : "Send Verification Code"}
+              {sendMutation.isPending ? "Sending Link…" : "Send Verification Link"}
             </button>
           </>
         ) : (
-          <>
-            <p className="text-slate-400 text-sm text-center">Enter the 6-digit SMS code sent to 🇪🇬 {phone}</p>
-            <OtpInput value={code} onChange={setCode} />
-            <button onClick={() => createMutation.mutate()} disabled={code.length < 6 || createMutation.isPending}
-              className="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm disabled:opacity-40">
-              {createMutation.isPending ? "Creating…" : "Verify & Create Wallet"}
-            </button>
-          </>
+          <div className="text-center space-y-4">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+              <Mail className="w-7 h-7 text-emerald-400" />
+            </div>
+            <p className="text-slate-300 text-sm">Check Gmail at <span className="text-white font-bold">{email}</span> and click the link to create your wallet.</p>
+            <p className="text-slate-600 text-xs">You'll return here automatically.</p>
+          </div>
         )}
       </motion.div>
     </div>
