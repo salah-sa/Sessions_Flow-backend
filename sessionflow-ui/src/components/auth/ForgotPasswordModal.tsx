@@ -83,7 +83,14 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
       setStep('verify');
       setResendTimer(60);
     } else {
-      toast.error(res.error || t('common.error'));
+      if (res.error?.includes("Sandbox")) {
+        toast.error("Email Restriction", {
+          description: "Resend is in Sandbox mode. You can only send to your own registered email address until you verify a domain.",
+          duration: 8000
+        });
+      } else {
+        toast.error(res.error || t('common.error'));
+      }
     }
   };
 
@@ -99,7 +106,14 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
       setTokenId(res.tokenId);
       setStep('reset');
     } else {
-      toast.error(res.error || t('auth.forgot_password.invalid_code'));
+      if (res.error?.includes("Sandbox")) {
+        toast.error("Email Restriction", {
+          description: "Resend is in Sandbox mode. You can only send to your own registered email address until you verify a domain.",
+          duration: 8000
+        });
+      } else {
+        toast.error(res.error || t('auth.forgot_password.invalid_code'));
+      }
       // Clear code on error for security
       setCode(['', '', '', '', '', '']);
       codeRefs.current[0]?.focus();

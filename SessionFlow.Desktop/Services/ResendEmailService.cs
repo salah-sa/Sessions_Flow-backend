@@ -62,6 +62,14 @@ public class ResendEmailService
                 return (true, null);
             }
 
+            // Detect Sandbox restriction (Forbidden 403 or Validation Error 422)
+            if (body.Contains("testing emails to your own email address") || body.Contains("unauthorized_email_address") || body.Contains("Forbidden"))
+            {
+                 var sandboxMsg = "Resend Sandbox Mode: Verification failed. You can only send emails to your own registered address until you verify a domain at resend.com.";
+                 _logger.LogWarning("[RESEND] ⚠️ {Msg}", sandboxMsg);
+                 return (false, sandboxMsg);
+            }
+
             _logger.LogError("[RESEND] ❌ {Status}: {Body}", response.StatusCode, body);
             return (false, $"Resend error ({response.StatusCode}): {body}");
         }

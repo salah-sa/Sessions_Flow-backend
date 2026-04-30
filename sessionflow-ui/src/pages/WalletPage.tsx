@@ -53,7 +53,16 @@ const VerifyPhoneGate = ({ phone, onVerified }: { phone: string; onVerified: () 
       setStep("verify");
       toast.success(`Verification code sent to ${email}`);
     },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to send code"),
+    onError: (e: any) => {
+      if (e?.message?.includes("Sandbox")) {
+        toast.error("Email Restriction", {
+          description: "Resend is in Sandbox mode. You can only send to your own registered email address until you verify a domain.",
+          duration: 8000
+        });
+      } else {
+        toast.error(e?.message ?? "Failed to send code");
+      }
+    },
   });
 
   const verifyMutation = useMutation({
@@ -132,7 +141,16 @@ const ForgotPinModal = ({ onClose, phone }: { onClose: () => void; phone: string
       setStep("verify");
       toast.success("Verification code sent to your email!");
     },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to send code"),
+    onError: (e: any) => {
+      if (e?.message?.includes("Sandbox")) {
+        toast.error("Email Restriction", {
+          description: "Resend is in Sandbox mode. Please verify your domain or use your signup email for testing.",
+          duration: 8000
+        });
+      } else {
+        toast.error(e?.message ?? "Failed to send code");
+      }
+    },
   });
 
   const verifyMutation = useMutation({
@@ -261,7 +279,16 @@ const CreateWalletForm = () => {
       setStep("otp");
       toast.success("Verification code sent to your email!");
     },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to send code"),
+    onError: (e: any) => {
+      if (e?.message?.includes("Sandbox")) {
+        toast.error("Email Restriction", {
+          description: "Resend is in Sandbox mode. Use your registered email address for testing.",
+          duration: 8000
+        });
+      } else {
+        toast.error(e?.message ?? "Failed to send code");
+      }
+    },
   });
 
   const createMutation = useMutation({

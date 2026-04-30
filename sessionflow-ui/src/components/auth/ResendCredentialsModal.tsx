@@ -57,7 +57,14 @@ export const ResendCredentialsModal: React.FC<ResendCredentialsModalProps> = ({
       setRemaining(res.remaining ?? null);
       toast.success(res.message || "Credentials sent!");
     } else {
-      toast.error(res.error || "Failed to resend credentials.");
+      if (res.error?.includes("Sandbox")) {
+        toast.error("Email Restriction", {
+          description: "Resend is in Sandbox mode. You can only send to your own registered email address until you verify a domain.",
+          duration: 8000
+        });
+      } else {
+        toast.error(res.error || "Failed to resend credentials.");
+      }
     }
   };
 
