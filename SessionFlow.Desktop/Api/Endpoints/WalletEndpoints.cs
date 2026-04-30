@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using SessionFlow.Desktop.Models;
 using SessionFlow.Desktop.Services;
 using SessionFlow.Desktop.Services.EventBus;
+using MongoDB.Driver;
 
 namespace SessionFlow.Desktop.Api.Endpoints;
 
@@ -16,17 +17,24 @@ public static class WalletEndpoints
 
         // ─── OTP / Phone Verification ────────────────────────────────────────
 
-        // POST /api/wallet/send-otp   (send OTP to verify phone before wallet creation)
         group.MapPost("/send-otp", async (
             SendOtpRequest req,
+            ClaimsPrincipal user,
+            SessionFlow.Desktop.Data.MongoService db,
             OtpService otpService,
             HttpContext ctx) =>
         {
             if (string.IsNullOrWhiteSpace(req.Phone) || req.Phone.Length < 11)
                 return Results.BadRequest(new { error = "Invalid phone number." });
 
+            if (!Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+                return Results.Unauthorized();
+
+            var currentUser = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
+            if (currentUser == null) return Results.Unauthorized();
+
             var purpose = req.Purpose is "verify_phone" or "forgot_pin" ? req.Purpose : "verify_phone";
-            var (code, error) = await otpService.GenerateOtpAsync(req.Phone, purpose);
+            var (code, error) = await otpService.GenerateOtpAsync(req.Phone, currentUser.Email, purpose);
             if (error != null) return Results.BadRequest(new { error });
 
             // Return code in dev (null in production after SMS provider hooked up)
@@ -111,16 +119,20 @@ public static class WalletEndpoints
         // POST /api/wallet/forgot-pin/send-otp
         group.MapPost("/forgot-pin/send-otp", async (
             ClaimsPrincipal user,
+            SessionFlow.Desktop.Data.MongoService db,
             WalletService walletService,
             OtpService otpService) =>
         {
             if (!Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
                 return Results.Unauthorized();
 
+            var currentUser = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
+            if (currentUser == null) return Results.Unauthorized();
+
             var wallet = await walletService.GetWalletByUserIdAsync(userId);
             if (wallet == null) return Results.NotFound(new { error = "Wallet not found." });
 
-            var (code, error) = await otpService.GenerateOtpAsync(wallet.PhoneNumber, "reset_pin");
+            var (code, error) = await otpService.GenerateOtpAsync(wallet.PhoneNumber, currentUser.Email, "reset_pin");
             if (error != null) return Results.BadRequest(new { error });
 
             var maskedPhone = wallet.PhoneNumber[..3] + "••••••" + wallet.PhoneNumber[^2..];
