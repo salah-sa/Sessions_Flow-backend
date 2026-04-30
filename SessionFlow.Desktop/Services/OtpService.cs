@@ -37,86 +37,56 @@ public class OtpService
 
     // ─── Public API ───────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Generates and stores a new OTP for the given phone + purpose.
-    /// Returns (code, error). Error is non-null if rate limited.
-    /// In production: replace the logger.LogWarning line with a real SMS send.
-    /// </summary>
     public async Task<(string? code, string? error)> GenerateOtpAsync(string phone, string purpose)
     {
-        var db = _redis.GetDatabase();
-        var rateKey = RateKey(phone);
-
-        // Rate limit check
-        var sends = await db.StringGetAsync(rateKey);
-        int sendCount = sends.HasValue ? int.Parse(sends!) : 0;
-        if (sendCount >= MaxSendsPerHour)
-            return (null, "Too many OTP requests. Please wait before requesting another code.");
-
-        // Generate secure 6-digit code
-        var code = GenerateCode();
-
-        // Store OTP with TTL
-        await db.StringSetAsync(OtpKey(phone, purpose), code, TimeSpan.FromMinutes(OtpTtlMinutes));
-
-        // Reset verify attempts counter
-        await db.KeyDeleteAsync(AttemptsKey(phone, purpose));
-
-        // Increment rate counter (1-hour window)
-        await db.StringIncrementAsync(rateKey);
-        await db.KeyExpireAsync(rateKey, TimeSpan.FromHours(1));
-
-        // Send real SMS via Brevo
-        var (smsSent, smsError) = await _sms.SendOtpAsync(phone, code, purpose);
-        if (!smsSent)
-        {
-            _logger.LogWarning("[OTP-SMS] SMS delivery failed for {Phone}: {Error}", phone, smsError);
-            // Still return the code in development so devs can test without SMS credits
-            if (_env.IsDevelopment())
-                return (code, null);
-            // In production, fail loudly so the user knows to retry
-            return (null, $"Failed to send SMS: {smsError}");
-        }
-
-        _logger.LogInformation("[OTP-SMS] SMS sent to {Phone} for purpose={Purpose}", phone, purpose);
-
-        // Only expose devCode in Development (never in production)
-        var devCode = _env.IsDevelopment() ? code : null;
-        return (devCode, null);
+        // Generation is now handled entirely by Firebase Auth UI on the frontend.
+        // We just return success.
+        return (null, null);
     }
 
     /// <summary>
-    /// Validates the OTP. Deletes it on success to prevent reuse.
+    /// Validates the Firebase ID token for the given phone number.
     /// Returns (isValid, error).
     /// </summary>
-    public async Task<(bool isValid, string? error)> ValidateOtpAsync(string phone, string purpose, string code)
+    public async Task<(bool isValid, string? error)> ValidateOtpAsync(string phone, string purpose, string token)
     {
-        var db = _redis.GetDatabase();
-        var attKey = AttemptsKey(phone, purpose);
-
-        // Attempt rate limit
-        var attemptsStr = await db.StringGetAsync(attKey);
-        int attempts = attemptsStr.HasValue ? int.Parse(attemptsStr!) : 0;
-        if (attempts >= MaxVerifyAttempts)
-            return (false, "Too many incorrect attempts. Please request a new code.");
-
-        var storedCode = await db.StringGetAsync(OtpKey(phone, purpose));
-        if (!storedCode.HasValue)
-            return (false, "OTP expired or not found. Please request a new code.");
-
-        if (storedCode != code)
+        try
         {
-            await db.StringIncrementAsync(attKey);
-            await db.KeyExpireAsync(attKey, TimeSpan.FromMinutes(OtpTtlMinutes));
-            int remaining = MaxVerifyAttempts - (attempts + 1);
-            return (false, $"Invalid code. {remaining} attempts remaining.");
+            var decodedToken = await FirebaseAdmin.Auth.FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(token);
+            
+            if (!decodedToken.Claims.TryGetValue("phone_number", out var phoneClaim) || phoneClaim == null)
+            {
+                return (false, "Phone number not found in verification token.");
+            }
+            
+            var tokenPhone = phoneClaim.ToString();
+            string expectedPhone = phone.StartsWith("0") ? $"+20{phone.Substring(1)}" : phone;
+            
+            if (tokenPhone != expectedPhone)
+            {
+                _logger.LogWarning("[OTP-FIREBASE] Phone mismatch. Expected: {Expected}, Got: {Got}", expectedPhone, tokenPhone);
+                return (false, "Verified phone number does not match.");
+            }
+
+            // Check if the token was issued recently (e.g., within the last 10 minutes)
+            // auth_time is a Unix timestamp
+            if (decodedToken.Claims.TryGetValue("auth_time", out var authTimeClaim) && authTimeClaim != null)
+            {
+                long authTime = Convert.ToInt64(authTimeClaim);
+                long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                if (now - authTime > 600) // 10 minutes
+                {
+                    return (false, "Verification session expired. Please verify again.");
+                }
+            }
+
+            return (true, null);
         }
-
-        // Success — delete OTP and clear attempt counter
-        await db.KeyDeleteAsync(OtpKey(phone, purpose));
-        await db.KeyDeleteAsync(attKey);
-
-        return (true, null);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[OTP-FIREBASE] Failed to verify Firebase token for {Phone}", phone);
+            return (false, "Invalid verification token. Please try again.");
+        }
     }
 
     /// <summary>Checks if the phone can still receive OTP (not rate-limited).</summary>

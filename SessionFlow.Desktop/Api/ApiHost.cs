@@ -147,6 +147,11 @@ public static class ApiHost
         builder.Services.AddScoped<PaymobService>();
         
         // Wallet System
+        try
+        {
+            FirebaseAdmin.FirebaseApp.Create(new FirebaseAdmin.AppOptions { ProjectId = "sessionflow-a55b2" });
+        }
+        catch (Exception) { /* Already created */ }
         builder.Services.AddSingleton<WalletValidationService>();
         builder.Services.AddSingleton<SmsService>();       // uses IHttpClientFactory injected below
         builder.Services.AddSingleton<OtpService>();

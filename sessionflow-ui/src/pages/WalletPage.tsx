@@ -10,6 +10,8 @@ import {
   Wallet, ArrowUpRight, ArrowDownLeft, ShieldCheck, Zap,
   Eye, EyeOff, X, RefreshCw, Plus, AlertTriangle, Check
 } from "lucide-react";
+import { auth } from "../lib/firebase";
+import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
 
 // ─── OTP Input ───────────────────────────────────────────────────────────────
 const OtpInput = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
@@ -45,29 +47,48 @@ const VerifyPhoneGate = ({ phone, onVerified }: { phone: string; onVerified: () 
   const [sent, setSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const qc = useQueryClient();
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   useEffect(() => {
     if (countdown > 0) { const t = setTimeout(() => setCountdown(c => c - 1), 1000); return () => clearTimeout(t); }
   }, [countdown]);
 
+  useEffect(() => {
+    if (!(window as any).recaptchaVerifier) {
+      (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+      });
+    }
+  }, []);
+
   const sendMutation = useMutation({
-    mutationFn: () => walletApi.sendOtp({ phone, purpose: "verify_phone" }),
-    onSuccess: (data) => {
+    mutationFn: async () => {
+      const formattedPhone = phone.startsWith("0") ? `+20${phone.substring(1)}` : phone;
+      const appVerifier = (window as any).recaptchaVerifier;
+      const result = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
+      setConfirmationResult(result);
+    },
+    onSuccess: () => {
       setSent(true); setCountdown(300);
       toast.success("OTP sent!");
-      if (data.devCode) toast.info(`[Dev] Code: ${data.devCode}`, { duration: 30000 });
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed to send OTP"),
   });
 
   const verifyMutation = useMutation({
-    mutationFn: () => walletApi.verifyPhone({ phone, code }),
+    mutationFn: async () => {
+      if (!confirmationResult) throw new Error("No confirmation result");
+      const result = await confirmationResult.confirm(code);
+      const token = await result.user.getIdToken();
+      return walletApi.verifyPhone({ phone, code: token });
+    },
     onSuccess: () => { toast.success("Phone verified!"); qc.invalidateQueries({ queryKey: ["wallet-me"] }); onVerified(); },
     onError: (e: any) => toast.error(e?.message ?? "Invalid code"),
   });
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
+      <div id="recaptcha-container"></div>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         className="bg-white/[0.02] border border-white/10 rounded-3xl p-8 w-full max-w-sm text-center space-y-6">
         <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
@@ -103,25 +124,45 @@ const VerifyPhoneGate = ({ phone, onVerified }: { phone: string; onVerified: () 
 };
 
 // ─── Forgot PIN Modal ────────────────────────────────────────────────────────
-const ForgotPinModal = ({ onClose }: { onClose: () => void }) => {
+const ForgotPinModal = ({ onClose, phone }: { onClose: () => void; phone: string }) => {
   const [step, setStep] = useState<"send" | "verify" | "done">("send");
   const [code, setCode] = useState(""); const [newPin, setNewPin] = useState(""); const [confirm, setConfirm] = useState("");
   const qc = useQueryClient();
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+
+  useEffect(() => {
+    if (!(window as any).recaptchaVerifierForgotPin) {
+      (window as any).recaptchaVerifierForgotPin = new RecaptchaVerifier(auth, 'recaptcha-container-forgot-pin', {
+        'size': 'invisible',
+      });
+    }
+  }, []);
 
   const sendMutation = useMutation({
-    mutationFn: walletApi.forgotPinSendOtp,
-    onSuccess: (d) => { setStep("verify"); if (d.devCode) toast.info(`[Dev] Code: ${d.devCode}`, { duration: 30000 }); },
+    mutationFn: async () => {
+      const formattedPhone = phone.startsWith("0") ? `+20${phone.substring(1)}` : phone;
+      const appVerifier = (window as any).recaptchaVerifierForgotPin;
+      const result = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
+      setConfirmationResult(result);
+    },
+    onSuccess: () => { setStep("verify"); toast.success("OTP sent!"); },
     onError: (e: any) => toast.error(e?.message ?? "Failed"),
   });
 
   const resetMutation = useMutation({
-    mutationFn: () => walletApi.forgotPinReset({ phone: "", code, newPin }),
+    mutationFn: async () => {
+      if (!confirmationResult) throw new Error("No confirmation result");
+      const result = await confirmationResult.confirm(code);
+      const token = await result.user.getIdToken();
+      return walletApi.forgotPinReset({ phone: "", code: token, newPin });
+    },
     onSuccess: () => { setStep("done"); qc.invalidateQueries({ queryKey: ["wallet-me"] }); },
     onError: (e: any) => toast.error(e?.message ?? "Failed to reset PIN"),
   });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div id="recaptcha-container-forgot-pin"></div>
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
         className="bg-[#0f0f1a] border border-white/10 rounded-3xl p-6 w-full max-w-sm space-y-5">
         <div className="flex items-center justify-between">
@@ -167,7 +208,7 @@ const ForgotPinModal = ({ onClose }: { onClose: () => void }) => {
 };
 
 // ─── Transfer Modal ───────────────────────────────────────────────────────────
-const TransferModal = ({ onClose, balance }: { onClose: () => void; balance: number }) => {
+const TransferModal = ({ onClose, balance, phone }: { onClose: () => void; balance: number; phone: string }) => {
   const qc = useQueryClient();
   const [toPhone, setToPhone] = useState(""); const [amount, setAmount] = useState(""); const [pin, setPin] = useState(""); const [note, setNote] = useState(""); const [showForgotPin, setShowForgotPin] = useState(false);
   const fee = Math.ceil((parseFloat(amount) || 0) * 100) / 100 * 0.01;
@@ -179,7 +220,7 @@ const TransferModal = ({ onClose, balance }: { onClose: () => void; balance: num
     onError: (e: any) => toast.error(e?.message ?? "Transfer failed"),
   });
 
-  if (showForgotPin) return <ForgotPinModal onClose={() => setShowForgotPin(false)} />;
+  if (showForgotPin) return <ForgotPinModal onClose={() => setShowForgotPin(false)} phone={phone} />;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -222,16 +263,33 @@ const CreateWalletForm = () => {
   const qc = useQueryClient();
   const [phone, setPhone] = useState(""); const [pin, setPin] = useState(""); const [confirm, setConfirm] = useState("");
   const [otpStep, setOtpStep] = useState(false); const [code, setCode] = useState("");
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+
+  useEffect(() => {
+    if (!(window as any).recaptchaVerifierCreate) {
+      (window as any).recaptchaVerifierCreate = new RecaptchaVerifier(auth, 'recaptcha-container-create', {
+        'size': 'invisible',
+      });
+    }
+  }, []);
 
   const sendMutation = useMutation({
-    mutationFn: () => walletApi.sendOtp({ phone, purpose: "verify_phone" }),
-    onSuccess: (d) => { setOtpStep(true); if (d.devCode) toast.info(`[Dev] Code: ${d.devCode}`, { duration: 30000 }); toast.success("OTP sent!"); },
-    onError: (e: any) => toast.error(e?.message ?? "Failed"),
+    mutationFn: async () => {
+      const formattedPhone = phone.startsWith("0") ? `+20${phone.substring(1)}` : phone;
+      const appVerifier = (window as any).recaptchaVerifierCreate;
+      const result = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
+      setConfirmationResult(result);
+    },
+    onSuccess: () => { setOtpStep(true); toast.success("OTP sent!"); },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to send OTP"),
   });
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      await walletApi.verifyPhone({ phone, code });
+      if (!confirmationResult) throw new Error("No confirmation result");
+      const result = await confirmationResult.confirm(code);
+      const token = await result.user.getIdToken();
+      await walletApi.verifyPhone({ phone, code: token });
       return walletApi.create({ phoneNumber: phone, pin });
     },
     onSuccess: () => { toast.success("Wallet created and verified!"); qc.invalidateQueries({ queryKey: ["wallet-me"] }); },
@@ -240,6 +298,7 @@ const CreateWalletForm = () => {
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
+      <div id="recaptcha-container-create"></div>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         className="bg-white/[0.02] border border-white/10 rounded-3xl p-8 w-full max-w-sm space-y-5">
         <div className="text-center">
@@ -305,7 +364,7 @@ export function WalletPage() {
 
   return (
     <div className="h-full overflow-y-auto p-6 space-y-6">
-      {showTransfer && <TransferModal onClose={() => setShowTransfer(false)} balance={wallet.balanceEGP} />}
+      {showTransfer && <TransferModal onClose={() => setShowTransfer(false)} balance={wallet.balanceEGP} phone={wallet.phoneNumber} />}
 
       {/* Balance Card */}
       <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
