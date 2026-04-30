@@ -15,25 +15,26 @@ using SessionFlow.Desktop.Helpers;
 namespace SessionFlow.Desktop.Services;
 
 /// <summary>
-/// Modern email service wrapping GmailSenderService to completely bypass Brevo.
+/// Unified email service using Resend.com as the sole transport.
+/// Replaces GmailSenderService for all transactional email needs.
 /// </summary>
 public class EmailService
 {
-    private readonly GmailSenderService _gmailSender;
+    private readonly ResendEmailService _resend;
 
-    public EmailService(GmailSenderService gmailSender)
+    public EmailService(ResendEmailService resend)
     {
-        _gmailSender = gmailSender;
+        _resend = resend;
     }
 
     public async Task<(bool success, string? error)> SendEmailAsync(string to, string subject, string htmlBody, CancellationToken ct = default)
     {
-        return await _gmailSender.SendEmailAsync(to, subject, htmlBody, ct);
+        return await _resend.SendAsync(to, subject, htmlBody);
     }
 
     public async Task<(bool success, string? error)> SendTestEmailAsync(string to)
     {
-        return await _gmailSender.SendTestEmailAsync(to);
+        return await _resend.SendAsync(to, "SessionFlow — Test Email", "<h2>✅ Email delivery is working!</h2><p>This is a test from SessionFlow via Resend.</p>");
     }
 }
 

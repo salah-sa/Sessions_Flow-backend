@@ -174,7 +174,13 @@ public static class ApiHost
         // Wallet System
         builder.Services.AddSingleton<WalletValidationService>();
         builder.Services.AddSingleton<ResendEmailService>();
-        builder.Services.AddScoped<OtpService>();
+        builder.Services.AddScoped<OtpService>(sp =>
+        {
+            // Pass redisConnection which may be null if Redis is unavailable (OtpService has in-memory fallback)
+            var logger = sp.GetRequiredService<ILogger<OtpService>>();
+            var resend = sp.GetRequiredService<ResendEmailService>();
+            return new OtpService(redisConnection, logger, resend);
+        });
         builder.Services.AddScoped<WalletService>();
 
         builder.Services.AddHttpContextAccessor();
