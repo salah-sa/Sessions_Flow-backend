@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -6,17 +6,10 @@ import { walletApi } from "../api/walletApi";
 import { useAuthStore } from "../store/stores";
 import { toast } from "sonner";
 import { cn } from "../lib/utils";
-import { auth } from "../lib/firebase";
-import { sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth";
 import {
   Wallet, ArrowUpRight, ArrowDownLeft, ShieldCheck, Zap,
   Eye, EyeOff, X, RefreshCw, Plus, AlertTriangle, Check, Mail
 } from "lucide-react";
-
-const emailLinkSettings = () => ({
-  url: `${window.location.origin}${window.location.pathname}`,
-  handleCodeInApp: true,
-});
 
 // ─── OTP Input ───────────────────────────────────────────────────────────────
 const OtpInput = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
@@ -46,50 +39,27 @@ const OtpInput = ({ value, onChange }: { value: string; onChange: (v: string) =>
   );
 };
 
-// ─── Verify Email Gate ────────────────────────────────────────────────────────
+// ─── Verify Phone Gate (Email/WhatsApp OTP) ──────────────────────────────────
 const VerifyPhoneGate = ({ phone, onVerified }: { phone: string; onVerified: () => void }) => {
-  const user = useAuthStore(s => s.user);
-  const email = user?.email ?? "";
-  const [sent, setSent] = useState(false);
-  const [completing, setCompleting] = useState(false);
+  const [step, setStep] = useState<"send" | "verify">("send");
+  const [otp, setOtp] = useState("");
   const qc = useQueryClient();
 
-  useEffect(() => {
-    if (!isSignInWithEmailLink(auth, window.location.href)) return;
-    if (localStorage.getItem("walletAuthPurpose") !== "verify_phone") return;
-    setCompleting(true);
-    const savedEmail = localStorage.getItem("emailForWallet") ?? email;
-    signInWithEmailLink(auth, savedEmail, window.location.href)
-      .then(async r => {
-        const token = await r.user.getIdToken();
-        await walletApi.verifyPhone({ phone, code: token });
-        ["emailForWallet","walletAuthPurpose"].forEach(k => localStorage.removeItem(k));
-        window.history.replaceState(null, "", window.location.pathname);
-        toast.success("Email verified! Wallet is now active.");
-        qc.invalidateQueries({ queryKey: ["wallet-me"] });
-        onVerified();
-      })
-      .catch(e => { toast.error(e?.message ?? "Verification failed"); setCompleting(false); });
-  }, []);
-
   const sendMutation = useMutation({
-    mutationFn: async () => {
-      localStorage.setItem("emailForWallet", email);
-      localStorage.setItem("walletAuthPurpose", "verify_phone");
-      await sendSignInLinkToEmail(auth, email, emailLinkSettings());
-    },
-    onSuccess: () => { setSent(true); toast.success("Verification link sent to Gmail!"); },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to send link"),
+    mutationFn: () => walletApi.sendOtp({ phone, purpose: "verify_phone" }),
+    onSuccess: () => { setStep("verify"); toast.success("Verification code sent!"); },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to send code"),
   });
 
-  if (completing) return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="text-center space-y-4">
-        <div className="w-10 h-10 border-4 border-[var(--ui-accent)]/20 border-t-[var(--ui-accent)] rounded-full animate-spin mx-auto" />
-        <p className="text-slate-400 text-sm">Completing email verification…</p>
-      </div>
-    </div>
-  );
+  const verifyMutation = useMutation({
+    mutationFn: () => walletApi.verifyPhone({ phone, code: otp }),
+    onSuccess: () => {
+      toast.success("Phone verified! Wallet is now active.");
+      qc.invalidateQueries({ queryKey: ["wallet-me"] });
+      onVerified();
+    },
+    onError: (e: any) => { toast.error(e?.message ?? "Verification failed"); setOtp(""); },
+  });
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
@@ -99,24 +69,30 @@ const VerifyPhoneGate = ({ phone, onVerified }: { phone: string; onVerified: () 
           <ShieldCheck className="w-8 h-8 text-amber-400" />
         </div>
         <div>
-          <h2 className="text-white font-bold text-xl">Verify Your Email</h2>
-          <p className="text-slate-500 text-sm mt-1">📧 {email}</p>
+          <h2 className="text-white font-bold text-xl">Verify Your Phone</h2>
+          <p className="text-slate-500 text-sm mt-1">📱 {phone}</p>
           <p className="text-slate-600 text-xs mt-2">Required to activate wallet transfers</p>
         </div>
-        {!sent ? (
+
+        {step === "send" ? (
           <button onClick={() => sendMutation.mutate()} disabled={sendMutation.isPending}
             className="w-full py-3 rounded-xl bg-[var(--ui-accent)] text-white font-bold text-sm disabled:opacity-50">
-            {sendMutation.isPending ? "Sending…" : "Send Verification Link"}
+            {sendMutation.isPending ? "Sending…" : "Send Verification Code"}
           </button>
         ) : (
           <div className="space-y-4">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-              <Mail className="w-7 h-7 text-emerald-400" />
-            </div>
-            <p className="text-slate-300 text-sm">Check Gmail at <span className="text-white font-bold">{email}</span> and click the link.</p>
-            <p className="text-slate-600 text-xs">You'll return here automatically.</p>
-            <button onClick={() => sendMutation.mutate()} disabled={sendMutation.isPending}
-              className="text-[var(--ui-accent)] text-xs font-bold hover:underline">Resend Link</button>
+            <p className="text-slate-400 text-sm">Enter the 6-digit code sent to your email</p>
+            <OtpInput value={otp} onChange={setOtp} />
+            <button onClick={() => verifyMutation.mutate()}
+              disabled={otp.length !== 6 || verifyMutation.isPending}
+              className="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm disabled:opacity-40">
+              {verifyMutation.isPending ? "Verifying…" : "Verify Code"}
+            </button>
+            <button onClick={() => { sendMutation.mutate(); setOtp(""); }}
+              disabled={sendMutation.isPending}
+              className="text-[var(--ui-accent)] text-xs font-bold hover:underline">
+              Resend Code
+            </button>
           </div>
         )}
       </motion.div>
@@ -126,45 +102,24 @@ const VerifyPhoneGate = ({ phone, onVerified }: { phone: string; onVerified: () 
 
 // ─── Forgot PIN Modal ────────────────────────────────────────────────────────
 const ForgotPinModal = ({ onClose, phone }: { onClose: () => void; phone: string }) => {
-  const user = useAuthStore(s => s.user);
-  const email = user?.email ?? "";
-  const [step, setStep] = useState<"send" | "sent" | "pinEntry" | "done">("send");
+  const [step, setStep] = useState<"send" | "verify" | "pinEntry" | "done">("send");
+  const [otp, setOtp] = useState("");
   const [newPin, setNewPin] = useState(""); const [confirm, setConfirm] = useState("");
-  const [pendingToken, setPendingToken] = useState<string | null>(null);
   const qc = useQueryClient();
 
-  useEffect(() => {
-    if (!isSignInWithEmailLink(auth, window.location.href)) return;
-    if (localStorage.getItem("walletAuthPurpose") !== "forgot_pin") return;
-    const savedEmail = localStorage.getItem("emailForWallet") ?? email;
-    signInWithEmailLink(auth, savedEmail, window.location.href)
-      .then(async r => {
-        const token = await r.user.getIdToken();
-        setPendingToken(token);
-        ["emailForWallet","walletAuthPurpose"].forEach(k => localStorage.removeItem(k));
-        window.history.replaceState(null, "", window.location.pathname);
-        setStep("pinEntry");
-        toast.success("Email verified! Set your new PIN.");
-      })
-      .catch(e => toast.error(e?.message ?? "Verification failed"));
-  }, []);
-
   const sendMutation = useMutation({
-    mutationFn: async () => {
-      localStorage.setItem("emailForWallet", email);
-      localStorage.setItem("walletAuthPurpose", "forgot_pin");
-      await sendSignInLinkToEmail(auth, email, emailLinkSettings());
-    },
-    onSuccess: () => { setStep("sent"); toast.success("Verification link sent to Gmail!"); },
-    onError: (e: any) => toast.error(e?.message ?? "Failed"),
+    mutationFn: () => walletApi.forgotPinSendOtp(),
+    onSuccess: () => { setStep("verify"); toast.success("Verification code sent!"); },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to send code"),
   });
 
-  const resetMutation = useMutation({
-    mutationFn: async () => {
-      if (!pendingToken) throw new Error("No token");
-      return walletApi.forgotPinReset({ phone, code: pendingToken, newPin });
+  const verifyMutation = useMutation({
+    mutationFn: () => walletApi.forgotPinReset({ phone, code: otp, newPin }),
+    onSuccess: () => {
+      setStep("done");
+      qc.invalidateQueries({ queryKey: ["wallet-me"] });
+      toast.success("PIN reset successfully!");
     },
-    onSuccess: () => { setStep("done"); qc.invalidateQueries({ queryKey: ["wallet-me"] }); },
     onError: (e: any) => toast.error(e?.message ?? "Failed to reset PIN"),
   });
 
@@ -176,35 +131,36 @@ const ForgotPinModal = ({ onClose, phone }: { onClose: () => void; phone: string
           <h3 className="text-white font-bold">Reset PIN</h3>
           <button onClick={onClose} className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center"><X className="w-4 h-4 text-slate-400" /></button>
         </div>
+
         {step === "send" && (
           <>
-            <p className="text-slate-400 text-sm">We'll send a verification link to your Gmail at <span className="text-white">{email}</span>.</p>
+            <p className="text-slate-400 text-sm">We'll send a verification code to your email to verify your identity.</p>
             <button onClick={() => sendMutation.mutate()} disabled={sendMutation.isPending}
               className="w-full py-3 rounded-xl bg-[var(--ui-accent)] text-white font-bold text-sm disabled:opacity-50">
-              {sendMutation.isPending ? "Sending…" : "Send Verification Link"}
+              {sendMutation.isPending ? "Sending…" : "Send Verification Code"}
             </button>
           </>
         )}
-        {step === "sent" && (
-          <div className="text-center space-y-3">
-            <Mail className="w-10 h-10 text-emerald-400 mx-auto" />
-            <p className="text-slate-300 text-sm">Check Gmail at <span className="text-white font-bold">{email}</span> and click the link. You'll return here automatically.</p>
-          </div>
-        )}
-        {step === "pinEntry" && (
+
+        {step === "verify" && (
           <div className="space-y-4">
+            <p className="text-slate-400 text-sm text-center">Enter the 6-digit code sent to your email</p>
+            <OtpInput value={otp} onChange={setOtp} />
             <p className="text-slate-400 text-sm text-center">Set your new PIN</p>
             <input type="password" placeholder="New PIN (4 or 6 digits)" value={newPin} onChange={e => setNewPin(e.target.value)} maxLength={6}
               className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-[var(--ui-accent)]/50" />
             <input type="password" placeholder="Confirm New PIN" value={confirm} onChange={e => setConfirm(e.target.value)} maxLength={6}
               className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-[var(--ui-accent)]/50" />
-            <button onClick={() => { if (newPin !== confirm) { toast.error("PINs don't match"); return; } resetMutation.mutate(); }}
-              disabled={!newPin || newPin !== confirm || resetMutation.isPending}
+            <button onClick={() => { if (newPin !== confirm) { toast.error("PINs don't match"); return; } verifyMutation.mutate(); }}
+              disabled={otp.length !== 6 || !newPin || newPin !== confirm || verifyMutation.isPending}
               className="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm disabled:opacity-40">
-              {resetMutation.isPending ? "Resetting…" : "Reset PIN"}
+              {verifyMutation.isPending ? "Resetting…" : "Reset PIN"}
             </button>
+            <button onClick={() => { sendMutation.mutate(); setOtp(""); }} disabled={sendMutation.isPending}
+              className="text-[var(--ui-accent)] text-xs font-bold hover:underline w-full text-center">Resend Code</button>
           </div>
         )}
+
         {step === "done" && (
           <div className="text-center space-y-4">
             <div className="w-12 h-12 mx-auto rounded-full bg-emerald-500/20 flex items-center justify-center">
@@ -272,53 +228,30 @@ const TransferModal = ({ onClose, balance, phone }: { onClose: () => void; balan
 
 // ─── Create Wallet ────────────────────────────────────────────────────────────
 const CreateWalletForm = () => {
-  const { user } = useAuthStore() as any;
-  const email = user?.email ?? "";
   const qc = useQueryClient();
   const [phone, setPhone] = useState(""); const [pin, setPin] = useState(""); const [confirm, setConfirm] = useState("");
-  const [sent, setSent] = useState(false);
-  const [completing, setCompleting] = useState(false);
+  const [step, setStep] = useState<"form" | "otp">("form");
+  const [otp, setOtp] = useState("");
 
-  useEffect(() => {
-    if (!isSignInWithEmailLink(auth, window.location.href)) return;
-    if (localStorage.getItem("walletAuthPurpose") !== "create_wallet") return;
-    setCompleting(true);
-    const savedEmail = localStorage.getItem("emailForWallet") ?? email;
-    const savedPhone = localStorage.getItem("walletAuthPhone") ?? "";
-    const savedPin = localStorage.getItem("walletAuthPin") ?? "";
-    signInWithEmailLink(auth, savedEmail, window.location.href)
-      .then(async r => {
-        const token = await r.user.getIdToken();
-        await walletApi.verifyPhone({ phone: savedPhone, code: token });
-        await walletApi.create({ phoneNumber: savedPhone, pin: savedPin });
-        ["emailForWallet","walletAuthPurpose","walletAuthPhone","walletAuthPin"].forEach(k => localStorage.removeItem(k));
-        window.history.replaceState(null, "", window.location.pathname);
-        toast.success("Wallet created and verified!");
-        qc.invalidateQueries({ queryKey: ["wallet-me"] });
-      })
-      .catch(e => { toast.error(e?.message ?? "Failed"); setCompleting(false); });
-  }, []);
-
-  const sendMutation = useMutation({
-    mutationFn: async () => {
-      localStorage.setItem("emailForWallet", email);
-      localStorage.setItem("walletAuthPurpose", "create_wallet");
-      localStorage.setItem("walletAuthPhone", phone);
-      localStorage.setItem("walletAuthPin", pin);
-      await sendSignInLinkToEmail(auth, email, emailLinkSettings());
-    },
-    onSuccess: () => { setSent(true); toast.success("Verification link sent to Gmail!"); },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to send link"),
+  const sendOtpMutation = useMutation({
+    mutationFn: () => walletApi.sendOtp({ phone, purpose: "verify_phone" }),
+    onSuccess: () => { setStep("otp"); toast.success("Verification code sent!"); },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to send code"),
   });
 
-  if (completing) return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="text-center space-y-4">
-        <div className="w-10 h-10 border-4 border-[var(--ui-accent)]/20 border-t-[var(--ui-accent)] rounded-full animate-spin mx-auto" />
-        <p className="text-slate-400 text-sm">Creating your wallet…</p>
-      </div>
-    </div>
-  );
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      // First create the wallet
+      await walletApi.create({ phoneNumber: phone, pin });
+      // Then verify with OTP
+      await walletApi.verifyPhone({ phone, code: otp });
+    },
+    onSuccess: () => {
+      toast.success("Wallet created and verified!");
+      qc.invalidateQueries({ queryKey: ["wallet-me"] });
+    },
+    onError: (e: any) => { toast.error(e?.message ?? "Failed"); setOtp(""); },
+  });
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
@@ -331,26 +264,31 @@ const CreateWalletForm = () => {
           <h2 className="text-white font-bold text-xl">Create Your Wallet</h2>
           <p className="text-slate-500 text-sm mt-1">Secure Egyptian mobile wallet</p>
         </div>
-        {!sent ? (
+
+        {step === "form" ? (
           <>
             {[{ ph: "Phone (01XXXXXXXXX)", val: phone, set: setPhone, type: "tel" }, { ph: "PIN (4 or 6 digits)", val: pin, set: setPin, type: "password" }, { ph: "Confirm PIN", val: confirm, set: setConfirm, type: "password" }]
               .map(({ ph, val, set, type }) => (
                 <input key={ph} type={type} placeholder={ph} value={val} onChange={e => set(e.target.value)}
                   className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-[var(--ui-accent)]/50 text-sm" />
               ))}
-            <button onClick={() => { if (pin !== confirm) { toast.error("PINs don't match"); return; } sendMutation.mutate(); }}
-              disabled={!phone || !pin || pin !== confirm || sendMutation.isPending}
+            <button onClick={() => { if (pin !== confirm) { toast.error("PINs don't match"); return; } sendOtpMutation.mutate(); }}
+              disabled={!phone || !pin || pin !== confirm || sendOtpMutation.isPending}
               className="w-full py-3 rounded-xl bg-[var(--ui-accent)] text-white font-bold text-sm disabled:opacity-40">
-              {sendMutation.isPending ? "Sending Link…" : "Send Verification Link"}
+              {sendOtpMutation.isPending ? "Sending Code…" : "Send Verification Code"}
             </button>
           </>
         ) : (
-          <div className="text-center space-y-4">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-              <Mail className="w-7 h-7 text-emerald-400" />
-            </div>
-            <p className="text-slate-300 text-sm">Check Gmail at <span className="text-white font-bold">{email}</span> and click the link to create your wallet.</p>
-            <p className="text-slate-600 text-xs">You'll return here automatically.</p>
+          <div className="space-y-4">
+            <p className="text-slate-400 text-sm text-center">Enter the 6-digit code sent to your email</p>
+            <OtpInput value={otp} onChange={setOtp} />
+            <button onClick={() => createMutation.mutate()}
+              disabled={otp.length !== 6 || createMutation.isPending}
+              className="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm disabled:opacity-40">
+              {createMutation.isPending ? "Creating Wallet…" : "Verify & Create Wallet"}
+            </button>
+            <button onClick={() => { sendOtpMutation.mutate(); setOtp(""); }} disabled={sendOtpMutation.isPending}
+              className="text-[var(--ui-accent)] text-xs font-bold hover:underline w-full text-center">Resend Code</button>
           </div>
         )}
       </motion.div>

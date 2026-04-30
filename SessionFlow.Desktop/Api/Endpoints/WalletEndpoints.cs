@@ -6,7 +6,6 @@ using SessionFlow.Desktop.Models;
 using SessionFlow.Desktop.Services;
 using SessionFlow.Desktop.Services.EventBus;
 using MongoDB.Driver;
-using FirebaseAdmin.Auth;
 
 namespace SessionFlow.Desktop.Api.Endpoints;
 
@@ -42,31 +41,22 @@ public static class WalletEndpoints
             return Results.Ok(new { message = "OTP sent.", devCode = code });
         });
 
-        // POST /api/wallet/verify-phone  (Firebase ID token)
+        // POST /api/wallet/verify-phone  (OTP code from email/WhatsApp)
         group.MapPost("/verify-phone", async (
             VerifyPhoneRequest req,
             WalletService walletService,
+            OtpService otpService,
             HttpContext ctx) =>
         {
-            try
-            {
-                // req.Code is actually the Firebase ID token from the frontend
-                var decodedToken = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(req.Code);
-                var firebasePhone = decodedToken.Claims.ContainsKey("phone_number")
-                    ? decodedToken.Claims["phone_number"].ToString()
-                    : null;
+            if (string.IsNullOrWhiteSpace(req.Phone) || string.IsNullOrWhiteSpace(req.Code))
+                return Results.BadRequest(new { error = "Phone and verification code are required." });
 
-                if (string.IsNullOrEmpty(firebasePhone))
-                    return Results.BadRequest(new { error = "No phone number found in Firebase token." });
+            var (isValid, error) = await otpService.ValidateOtpAsync(req.Phone, "verify_phone", req.Code);
+            if (!isValid)
+                return Results.BadRequest(new { error = error ?? "Invalid verification code." });
 
-                // Mark existing wallet verified
-                await walletService.MarkPhoneVerifiedAsync(req.Phone);
-                return Results.Ok(new { message = "Phone verified successfully." });
-            }
-            catch (FirebaseAuthException ex)
-            {
-                return Results.BadRequest(new { error = $"Firebase verification failed: {ex.Message}" });
-            }
+            await walletService.MarkPhoneVerifiedAsync(req.Phone);
+            return Results.Ok(new { message = "Phone verified successfully." });
         });
 
         // ─── Wallet CRUD ─────────────────────────────────────────────────────
@@ -152,11 +142,12 @@ public static class WalletEndpoints
             return Results.Ok(new { message = $"OTP sent to {maskedPhone}.", devCode = code });
         });
 
-        // POST /api/wallet/forgot-pin/reset  (Firebase ID token)
+        // POST /api/wallet/forgot-pin/reset  (OTP code verification)
         group.MapPost("/forgot-pin/reset", async (
             ForgotPinResetRequest req,
             ClaimsPrincipal user,
-            WalletService walletService) =>
+            WalletService walletService,
+            OtpService otpService) =>
         {
             if (!Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
                 return Results.Unauthorized();
@@ -164,21 +155,12 @@ public static class WalletEndpoints
             var wallet = await walletService.GetWalletByUserIdAsync(userId);
             if (wallet == null) return Results.NotFound(new { error = "Wallet not found." });
 
-            try
-            {
-                // req.Code is the Firebase ID token
-                var decodedToken = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(req.Code);
-                var firebasePhone = decodedToken.Claims.ContainsKey("phone_number")
-                    ? decodedToken.Claims["phone_number"].ToString()
-                    : null;
+            if (string.IsNullOrWhiteSpace(req.Code))
+                return Results.BadRequest(new { error = "Verification code is required." });
 
-                if (string.IsNullOrEmpty(firebasePhone))
-                    return Results.BadRequest(new { error = "No phone number in Firebase token." });
-            }
-            catch (FirebaseAuthException ex)
-            {
-                return Results.BadRequest(new { error = $"Firebase verification failed: {ex.Message}" });
-            }
+            var (isValid, otpError) = await otpService.ValidateOtpAsync(wallet.PhoneNumber, "reset_pin", req.Code);
+            if (!isValid)
+                return Results.BadRequest(new { error = otpError ?? "Invalid verification code." });
 
             var (success, pinError) = await walletService.UpdatePinAsync(wallet.PhoneNumber, req.NewPin);
             if (!success) return Results.BadRequest(new { error = pinError });
