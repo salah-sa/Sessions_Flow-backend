@@ -15,17 +15,19 @@ public class OtpService
     private readonly IConnectionMultiplexer _redis;
     private readonly ILogger<OtpService> _logger;
     private readonly GmailSenderService _gmail;
+    private readonly WhatsAppService _wa;
     private readonly IHostEnvironment _env;
 
     private const int OtpTtlMinutes = 5;
     private const int MaxSendsPerHour = 50;
     private const int MaxVerifyAttempts = 5;
 
-    public OtpService(IConnectionMultiplexer redis, ILogger<OtpService> logger, GmailSenderService gmail, IHostEnvironment env)
+    public OtpService(IConnectionMultiplexer redis, ILogger<OtpService> logger, GmailSenderService gmail, WhatsAppService wa, IHostEnvironment env)
     {
         _redis = redis;
         _logger = logger;
         _gmail = gmail;
+        _wa = wa;
         _env = env;
     }
 
@@ -54,23 +56,31 @@ public class OtpService
         await db.StringIncrementAsync(rKey);
         await db.KeyExpireAsync(rKey, TimeSpan.FromHours(1));
 
-        // Send Email
-        string subject = purpose == "reset_pin" ? "SessionFlow Wallet PIN Reset" : "SessionFlow Wallet Verification";
-        string htmlBody = $@"
-            <div style='font-family:sans-serif;max-width:400px;margin:auto;'>
-                <h2>SessionFlow Wallet</h2>
-                <p>Your verification code for phone number <b>{phone}</b> is:</p>
-                <h1 style='color:#6366f1;font-size:32px;letter-spacing:4px;'>{code}</h1>
-                <p>This code will expire in {OtpTtlMinutes} minutes.</p>
-                <p><small>If you did not request this, please ignore this email.</small></p>
-            </div>";
-
-        var (success, sendError) = await _gmail.SendEmailAsync(emailTo, subject, htmlBody);
+        // Try WhatsApp First (Since it verifies the actual phone number)
+        var (waSuccess, waError) = await _wa.SendOtpAsync(phone, code);
         
-        if (!success)
+        if (!waSuccess)
         {
-            _logger.LogError("[OTP-EMAIL] Failed to send OTP to {Email}: {Err}", emailTo, sendError);
-            return (null, sendError ?? "Failed to send verification email. Please contact support.");
+            _logger.LogWarning("[OTP-WA] WhatsApp OTP failed: {Err}. Falling back to Email.", waError);
+            
+            // Fallback to Email
+            string subject = purpose == "reset_pin" ? "SessionFlow Wallet PIN Reset" : "SessionFlow Wallet Verification";
+            string htmlBody = $@"
+                <div style='font-family:sans-serif;max-width:400px;margin:auto;'>
+                    <h2>SessionFlow Wallet</h2>
+                    <p>Your verification code for phone number <b>{phone}</b> is:</p>
+                    <h1 style='color:#6366f1;font-size:32px;letter-spacing:4px;'>{code}</h1>
+                    <p>This code will expire in {OtpTtlMinutes} minutes.</p>
+                    <p><small>If you did not request this, please ignore this email.</small></p>
+                </div>";
+
+            var (success, sendError) = await _gmail.SendEmailAsync(emailTo, subject, htmlBody);
+            
+            if (!success)
+            {
+                _logger.LogError("[OTP-EMAIL] Failed to send OTP to {Email}: {Err}", emailTo, sendError);
+                return (null, sendError ?? "Failed to send verification email. Please contact support.");
+            }
         }
 
         return (_env.IsDevelopment() ? code : null, null);
