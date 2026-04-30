@@ -46,7 +46,18 @@ public class GmailSenderService
     {
         try
         {
-            var credential = await _auth.GetUserCredentialAsync();
+            // Timeout after 3s — on Railway (headless), OAuth will hang forever
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            var credTask = _auth.GetUserCredentialAsync();
+            var completed = await Task.WhenAny(credTask, Task.Delay(3000, cts.Token));
+
+            if (completed != credTask)
+            {
+                _logger.LogWarning("Gmail OAuth timed out (headless server). Falling back to Resend/SMTP.");
+                return null;
+            }
+
+            var credential = await credTask;
             if (credential == null)
             {
                 _logger.LogWarning("Gmail API not authorized. No valid tokens found in identity matrix.");
