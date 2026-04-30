@@ -365,11 +365,6 @@ public class AuthService
         // Send Welcome Email in background
         _ = Task.Run(async () => await TriggerWelcomeEmailAsync(user));
 
-        return (user, null);
-    }
-    
-
-
         // Publish Event for real-time frontend update (including credentials for instant UI feedback)
         await _eventBus.PublishAsync(Events.RequestAccepted, EventTargetType.All, "", new { 
             PendingId = pendingId, 
@@ -1358,15 +1353,33 @@ public class AuthService
             if (!ok) 
             {
                 Log.Warning("[AUTH] Failed to send welcome email to {Email}: {Err}", user.Email, err);
-                return (false, err);
+                // We continue to send the internal notification anyway
+            }
+            else
+            {
+                Log.Information("[AUTH] Welcome email sent to {Email}", user.Email);
             }
 
-            Log.Information("[AUTH] Welcome email sent to {Email}", user.Email);
-            return (true, null);
+            // Also create an internal notification as a fallback/redundancy
+            try
+            {
+                await _notificationService.CreateNotificationAsync(
+                    user.Id,
+                    "Welcome to SessionFlow",
+                    $"Your student account is active.\nStudent ID: {user.StudentId}\nEngineer Code: {user.EngineerCode}",
+                    NotificationType.Success
+                );
+            }
+            catch (Exception nex)
+            {
+                Log.Error(nex, "[AUTH] Failed to create internal welcome notification for {UserId}", user.Id);
+            }
+
+            return (ok, ok ? null : err);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to trigger welcome email");
+            Log.Error(ex, "Failed to trigger welcome email onboarding");
             return (false, ex.Message);
         }
     }
