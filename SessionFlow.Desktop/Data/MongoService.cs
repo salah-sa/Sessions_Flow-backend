@@ -143,7 +143,7 @@ public class MongoService
             (BusinessConstants.Settings.SubDescriptionEnterprise, "White-glove service for large educational institutions."),
             (BusinessConstants.Settings.SubFeaturesFreePlan, "[\"Up to 10 Groups\",\"15 Daily Messages\",\"1 Daily Image\",\"Basic Attendance\",\"Community Support\"]"),
             (BusinessConstants.Settings.SubFeaturesProPlan, "[\"15 Groups\",\"Unlimited Messages\",\"4 Daily Images\",\"Voice Calls\",\"Priority Support\",\"Data Export\"]"),
-            (BusinessConstants.Settings.SubFeaturesUltraPlan, "[\"100 Groups\",\"12 Daily Images\",\"5 Daily Videos\",\"10 Daily Files\",\"AI Summaries\",\"Advanced Analytics\"]"),
+            (BusinessConstants.Settings.SubFeaturesUltraPlan, "[\"35 Groups\",\"12 Daily Images\",\"5 Daily Videos\",\"10 Daily Files\",\"AI Summaries\",\"Advanced Analytics\"]"),
             (BusinessConstants.Settings.SubFeaturesEnterprisePlan, "[\"Unlimited Groups\",\"Admin Portal Access\",\"Custom Features\",\"Dedicated Account Manager\",\"White-labeled Reports\"]")
         };
 

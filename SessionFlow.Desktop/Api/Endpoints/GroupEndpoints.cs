@@ -256,7 +256,8 @@ public static class GroupEndpoints
 
                 // ─── B.2: GROUP COUNT LIMIT ENFORCEMENT ──────────────────────
                 var engineer = await db.Users.Find(u => u.Id == engineerId).FirstOrDefaultAsync();
-                if (engineer != null)
+                var requestorRole = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
+                if (engineer != null && requestorRole != "Admin")
                 {
                     var currentGroupCount = (int)await db.Groups.CountDocumentsAsync(g => g.EngineerId == engineerId && !g.IsDeleted);
                     var maxGroups = PlanLimit.GetMaxGroups(engineer.SubscriptionTier);

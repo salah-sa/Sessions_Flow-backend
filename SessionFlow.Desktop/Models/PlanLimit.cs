@@ -6,7 +6,7 @@ public static class PlanLimit
     {
         SubscriptionTier.Free => 10,
         SubscriptionTier.Pro => 15,
-        SubscriptionTier.Ultra => 100,
+        SubscriptionTier.Ultra => 35,
         SubscriptionTier.Enterprise => int.MaxValue,
         _ => 0
     };
