@@ -41,8 +41,8 @@ const GroupsPage: React.FC = () => {
   const totalGroupCount = data?.pages[0]?.totalCount ?? groups.length;
 
   const user = useAuthStore(s => s.user);
-  const limits = getTierLimits(user?.subscriptionTier);
-  const groupLimitReached = totalGroupCount >= limits.maxGroups;
+  const limits = getTierLimits(user?.subscriptionTier, user?.role);
+  const groupLimitReached = user?.role === "Admin" ? false : totalGroupCount >= limits.maxGroups;
 
   const createGroup = useCreateGroup();
   const updateGroup = useUpdateGroup();

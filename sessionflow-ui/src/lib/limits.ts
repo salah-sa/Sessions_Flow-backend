@@ -20,7 +20,7 @@ export const PLAN_LIMITS = {
     maxDailyAttendance: 2,
   },
   Ultra: {
-    maxGroups: 30,
+    maxGroups: 35,
     maxStudentsPerGroup: 40,
     maxDailyMessages: Infinity,
     maxDailyImages: 12,
@@ -29,7 +29,7 @@ export const PLAN_LIMITS = {
     maxDailyAttendance: 4,
   },
   Enterprise: {
-    maxGroups: 30,
+    maxGroups: Infinity,
     maxStudentsPerGroup: 50,
     maxDailyMessages: Infinity,
     maxDailyImages: Infinity,
