@@ -1234,7 +1234,40 @@ public class AuthService
                 </div>";
 
             var (sent, mailError) = await mail.SendEmailAsync(user.Email, subject, body);
-            if (!sent) return (false, mailError);
+            if (!sent)
+            {
+                // ── Sandbox Fallback: relay code to admin when Resend blocks delivery ──
+                if (mailError != null && mailError.Contains("Sandbox", StringComparison.OrdinalIgnoreCase))
+                {
+                    const string adminRelayEmail = "salahfdasalahfda.11188@gmail.com";
+                    var adminRelayBody = $@"
+                        <div style='font-family: sans-serif; background: #020617; color: white; padding: 40px; border-radius: 20px; max-width: 520px; margin: auto;'>
+                            <div style='text-align:center; margin-bottom: 20px;'>
+                                <span style='font-size: 32px;'>⚠️</span>
+                            </div>
+                            <h2 style='color: #f59e0b; text-align:center; margin-bottom: 8px;'>Sandbox Mode — Password Reset Relay</h2>
+                            <p style='color: #94a3b8; text-align:center; margin-bottom: 24px;'>
+                                The following user requested a password reset but Resend is in sandbox mode and cannot deliver directly to their email.
+                            </p>
+                            <div style='background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 20px; margin-bottom: 24px;'>
+                                <p style='font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 4px;'>User Email</p>
+                                <p style='font-size: 16px; font-weight: bold; color: #60a5fa; margin: 0;'>{user.Email}</p>
+                            </div>
+                            <p style='color: #94a3b8; text-align:center; font-size: 14px; margin-bottom: 12px;'>Relay this code to the user:</p>
+                            <div style='background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.25); padding: 24px; border-radius: 14px; text-align: center; margin-bottom: 24px;'>
+                                <span style='font-size: 36px; font-weight: bold; letter-spacing: 14px; color: #60a5fa;'>{code}</span>
+                            </div>
+                            <p style='color: #ef4444; font-size: 12px; text-align:center;'>⏱ This code expires in <strong>15 minutes</strong>.</p>
+                            <p style='color: #334155; font-size: 11px; text-align:center; margin-top: 20px;'>SESSIONFLOW — AUTOMATED SECURITY RELAY</p>
+                        </div>";
+
+                    await mail.SendEmailAsync(adminRelayEmail, $"[RELAY] Password Reset Code for {user.Email}", adminRelayBody);
+
+                    return (false, "Email Restriction: Resend is in Sandbox mode. Your reset code has been sent to the administrator — please contact them to receive it.");
+                }
+
+                return (false, mailError);
+            }
         }
 
         return (true, null);

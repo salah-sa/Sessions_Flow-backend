@@ -83,11 +83,15 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
       setStep('verify');
       setResendTimer(60);
     } else {
-      if (res.error?.includes("Sandbox")) {
-        toast.error("Email Restriction", {
-          description: "Resend is in Sandbox mode. You can only send to your own registered email address until you verify a domain.",
-          duration: 8000
+      if (res.error?.includes("Sandbox") || res.error?.includes("administrator")) {
+        // Sandbox relay: code was sent to admin — let user proceed to verify step
+        toast.warning("Code Sent to Administrator", {
+          description: "Resend is in Sandbox mode. Your reset code has been forwarded to the admin — contact them to get your code, then enter it below.",
+          duration: 12000,
+          icon: <AlertCircle className="w-4 h-4 text-amber-400" />,
         });
+        setStep('verify');
+        setResendTimer(60);
       } else {
         toast.error(res.error || t('common.error'));
       }
