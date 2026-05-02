@@ -30,6 +30,8 @@ const ChargeWalletPage = lazy(() => import("./pages/ChargeWalletPage"));
 const AICenterPage = lazy(() => import("./pages/AICenterPage"));
 const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
 const FeatureFlagsPage = lazy(() => import("./pages/FeatureFlagsPage"));
+const BroadcastPage = lazy(() => import("./pages/BroadcastPage"));
+const SessionTimelinePage = lazy(() => import("./pages/SessionTimelinePage"));
 
 const PageLoader = () => (
   <div className="h-full w-full flex items-center justify-center bg-slate-950/50 backdrop-blur-md animate-fade-in">
@@ -301,6 +303,26 @@ export const router = createBrowserRouter([
           <RoleGuard allowedRoles={["Admin"]}>
             <Suspense fallback={<PageLoader />}>
               <FeatureFlagsPage />
+            </Suspense>
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "broadcast",
+        element: (
+          <RoleGuard allowedRoles={["Admin"]}>
+            <Suspense fallback={<PageLoader />}>
+              <BroadcastPage />
+            </Suspense>
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "session-timeline",
+        element: (
+          <RoleGuard allowedRoles={["Admin", "Engineer"]}>
+            <Suspense fallback={<PageLoader />}>
+              <SessionTimelinePage />
             </Suspense>
           </RoleGuard>
         ),

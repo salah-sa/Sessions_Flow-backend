@@ -423,9 +423,11 @@ public static class ApiHost
         AIEndpoints.Map(app);
         AnalyticsEndpoints.Map(app);
         FeatureFlagEndpoints.Map(app);
+        SessionTimelineEndpoints.Map(app);
 
         // 6. Map Real-time Hubs
         app.MapHub<SessionHub>("/hub");
+        app.MapHub<NotificationHub>("/hub/notifications");
         
         app.MapHealthChecks("/api/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
         {

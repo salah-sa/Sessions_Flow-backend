@@ -280,11 +280,13 @@ const Sidebar: React.FC = () => {
             </div>
             <NavItem to="/ai-center" icon={Brain} label="AI Center" />
             <NavItem to="/analytics" icon={TrendingUp} label="Analytics" />
+            <NavItem to="/session-timeline" icon={Clock} label="Session Timeline" />
             <NavItem to="/feature-flags" icon={Flag} label="Feature Flags" />
+            <NavItem to="/broadcast" icon={MessageSquare} label="Broadcast" />
           </>
         )}
 
-        {/* Engineers get AI Center too */}
+        {/* Engineers get AI Center + Timeline */}
         {user?.role === "Engineer" && (
           <>
             <div className="py-3 px-6">
@@ -292,6 +294,7 @@ const Sidebar: React.FC = () => {
               <div className="h-px bg-white/5" />
             </div>
             <NavItem to="/ai-center" icon={Brain} label="AI Center" />
+            <NavItem to="/session-timeline" icon={Clock} label="Session Timeline" />
           </>
         )}
 

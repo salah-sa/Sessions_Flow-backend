@@ -17,6 +17,7 @@ import { useRealtimeNotifications } from "../../hooks/realtime";
 import { useHeartbeat } from "../../hooks/useHeartbeat";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import { useAnalytics } from "../../hooks/useAnalytics";
+import { useNotificationHub } from "../../queries/useNotificationHub";
 import { useUIStore, useAuthStore } from "../../store/stores";
 import { UIStyleManager, UIStyleConfig } from "../../styles/UIStyleManager";
 import { cn } from "../../lib/utils";
@@ -69,6 +70,9 @@ const Shell: React.FC = () => {
 
   // Platform-wide analytics tracking (page views auto-tracked)
   useAnalytics();
+
+  // Real-time push notification hub (live alerts + broadcast)
+  useNotificationHub();
 
   const isMinimized = useUIStore((s) => s.isMinimized);
   const setMinimized = useUIStore((s) => s.setMinimized);
