@@ -22,7 +22,8 @@ export default function PricingPage() {
   const checkoutMutation = useCheckoutMutation();
   const user = useAuthStore((s) => s.user);
 
-  const currentTier = statusData?.data?.tier || user?.subscriptionTier || "Free";
+  const rawTier = statusData?.data?.tier || user?.subscriptionTier || "Free";
+  const currentTier = user?.role === "Admin" ? "Enterprise" : rawTier;
 
   const handleUpgrade = async (tier: SubscriptionTier) => {
     if (tier === currentTier) return;
