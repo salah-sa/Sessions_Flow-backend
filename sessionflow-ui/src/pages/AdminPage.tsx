@@ -759,6 +759,7 @@ const SystemSettingsSection: React.FC = () => {
 };
 
 const BroadcastSection: React.FC = () => {
+  const [subject, setSubject] = React.useState("");
   const [message, setMessage] = React.useState("");
   const [channel, setChannel] = React.useState<"InApp" | "Email" | "Both">("InApp");
   const [historyPage, setHistoryPage] = React.useState(1);
@@ -771,9 +772,10 @@ const BroadcastSection: React.FC = () => {
   });
 
   const broadcastMutation = useMutation({
-    mutationFn: () => sendBroadcast(message.trim(), channel),
+    mutationFn: () => sendBroadcast(subject.trim(), message.trim(), channel),
     onSuccess: (data: { recipientCount: number; channel: string; broadcastId: string }) => {
       toast.success(`📢 Broadcast sent to ${data.recipientCount} users via ${data.channel}`);
+      setSubject("");
       setMessage("");
       queryClient.invalidateQueries({ queryKey: ["broadcast-history"] });
     },
@@ -783,7 +785,7 @@ const BroadcastSection: React.FC = () => {
   });
 
   const charCount = message.length;
-  const maxChars = 500;
+  const maxChars = 2000;
   const charPct = (charCount / maxChars) * 100;
 
   return (

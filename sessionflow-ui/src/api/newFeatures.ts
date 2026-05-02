@@ -129,12 +129,13 @@ export interface BroadcastResult {
 }
 
 export async function sendBroadcast(
+  subject: string,
   message: string,
   channel: "InApp" | "Email" | "Both"
 ): Promise<BroadcastResult> {
   return fetchWithAuth<BroadcastResult>("/admin/broadcast/", {
     method: "POST",
-    body: JSON.stringify({ message, channel }),
+    body: JSON.stringify({ subject, message, channel }),
   });
 }
 

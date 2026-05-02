@@ -5,13 +5,17 @@ import { cn } from "../lib/utils";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
 import { Card, Badge, Button, Input, Skeleton, ConfirmDialog } from "../components/ui";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { sendBroadcast, getBroadcastHistory } from "../api/newFeatures";
 import {
   Users, Search, Shield, ShieldAlert, ShieldOff, ShieldCheck,
   Filter, ChevronDown, X, Lock, Unlock, Eye, EyeOff, Clock,
   Ban, RotateCcw, UserCircle2, Mail, Crown, Calendar, FileWarning,
-  BarChart3, Target, User, CheckCircle, MessageSquare, Settings, Map
+  BarChart3, Target, User, CheckCircle, MessageSquare, Settings, Map,
+  Megaphone, Send, Radio, Loader2, ChevronRight, AlertTriangle,
+  CheckCircle2, History, Globe, Bell
 } from "lucide-react";
 
 // Available platform pages for blocking
@@ -150,6 +154,8 @@ const UsersPage: React.FC = () => {
     );
   };
 
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+
   return (
     <div className="h-full flex flex-col bg-[var(--ui-bg)] animate-fade-in overflow-hidden">
       {/* ── HEADER ── */}
@@ -187,6 +193,42 @@ const UsersPage: React.FC = () => {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* ── BROADCAST COMMUNICATION MODULE ── */}
+      <div className="px-6 md:px-8 py-4 border-b border-white/5 shrink-0">
+        <button
+          onClick={() => setBroadcastOpen(v => !v)}
+          className="w-full flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-violet-500/5 via-indigo-500/5 to-purple-500/5 border border-violet-500/20 hover:border-violet-500/40 hover:from-violet-500/10 transition-all group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-violet-500/10 border border-violet-500/20">
+              <Megaphone className="w-4 h-4 text-violet-400" />
+            </div>
+            <div className="text-start">
+              <p className="text-sm font-bold text-white">Admin Broadcast</p>
+              <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest">Compose &amp; send formal messages to all users</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-1 rounded-md bg-violet-500/10 text-[9px] font-black text-violet-400 uppercase tracking-widest">Email + In-App</span>
+            <ChevronDown className={cn("w-4 h-4 text-slate-500 transition-transform duration-300", broadcastOpen && "rotate-180")} />
+          </div>
+        </button>
+
+        <AnimatePresence>
+          {broadcastOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              className="overflow-hidden"
+            >
+              <BroadcastComposer />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* ── SEARCH & FILTERS ── */}
@@ -573,6 +615,364 @@ const UsersPage: React.FC = () => {
           if (confirmAction) handleRestrict(confirmAction.user.id, confirmAction.days ?? 7);
         }}
       />
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BroadcastComposer — Full Admin Email Broadcast Module
+// ─────────────────────────────────────────────────────────────────────────────
+
+type BroadcastStep = "compose" | "preview" | "confirm" | "sent";
+
+const CHANNEL_OPTIONS = [
+  { id: "Both",  label: "Email + In-App",  icon: Globe,  desc: "Reaches all users via email and in-app notification",  color: "violet" },
+  { id: "Email", label: "Email Only",      icon: Mail,   desc: "Formal email delivery only (ideal for announcements)", color: "blue" },
+  { id: "InApp", label: "In-App Only",     icon: Bell,   desc: "Silent push to in-app notification center",            color: "emerald" },
+] as const;
+
+const BroadcastComposer: React.FC = () => {
+  const queryClient = useQueryClient();
+  const [step, setStep] = useState<BroadcastStep>("compose");
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [channel, setChannel] = useState<"InApp" | "Email" | "Both">("Both");
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+
+  const { data: history, isLoading: historyLoading } = useQuery({
+    queryKey: ["broadcast-history-users", historyPage],
+    queryFn: () => getBroadcastHistory(historyPage, 5),
+    staleTime: 60_000,
+    enabled: showHistory,
+  });
+
+  const mutation = useMutation({
+    mutationFn: () => sendBroadcast(subject.trim(), body.trim(), channel),
+    onSuccess: (data) => {
+      toast.success(`📢 Broadcast delivered to ${data.recipientCount} users`);
+      setStep("sent");
+      queryClient.invalidateQueries({ queryKey: ["broadcast-history-users"] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message ?? "Broadcast failed. Please try again.");
+      setStep("compose");
+    },
+  });
+
+  const canProceed = subject.trim().length >= 3 && body.trim().length >= 10;
+  const bodyChars  = body.length;
+  const bodyMax    = 2000;
+  const bodyPct    = (bodyChars / bodyMax) * 100;
+
+  const reset = () => {
+    setStep("compose"); setSubject(""); setBody(""); setChannel("Both");
+  };
+
+  const selectedChannel = CHANNEL_OPTIONS.find(c => c.id === channel)!;
+
+  return (
+    <div className="mt-4 space-y-4">
+
+      {/* Step indicator */}
+      <div className="flex items-center gap-2 px-1">
+        {(["compose","preview","confirm"] as BroadcastStep[]).map((s, i) => (
+          <React.Fragment key={s}>
+            <div className={cn(
+              "flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all",
+              step === s
+                ? "bg-violet-500/20 border-violet-500/40 text-violet-300"
+                : (["compose","preview","confirm"].indexOf(step) > i)
+                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                  : "border-white/10 text-slate-600"
+            )}>
+              {(["compose","preview","confirm"].indexOf(step) > i)
+                ? <CheckCircle2 className="w-2.5 h-2.5" />
+                : <span>{i + 1}</span>}
+              {s}
+            </div>
+            {i < 2 && <div className="flex-1 h-px bg-white/5" />}
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* ─── COMPOSE ─── */}
+      {step === "compose" && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          className="space-y-4 p-5 rounded-2xl bg-black/20 border border-white/5"
+        >
+          {/* Subject */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Subject Line</label>
+            <input
+              value={subject}
+              onChange={e => setSubject(e.target.value.slice(0, 120))}
+              placeholder="e.g. Important Platform Update — Action Required"
+              className="w-full h-11 px-4 bg-[var(--ui-surface)] border border-white/10 rounded-xl text-sm text-white placeholder:text-slate-600 focus:border-violet-500/50 focus:outline-none transition-all"
+            />
+            <div className="flex justify-between">
+              <p className="text-[9px] text-slate-600">Clear, formal subject for email delivery</p>
+              <span className="text-[9px] text-slate-600 font-mono">{subject.length}/120</span>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Message Body</label>
+            <div className="relative">
+              <textarea
+                value={body}
+                onChange={e => setBody(e.target.value.slice(0, bodyMax))}
+                placeholder={"Dear valued user,\n\nWe are writing to inform you of an important update...\n\nBest regards,\nSessionFlow Team"}
+                rows={7}
+                className="w-full bg-[var(--ui-surface)] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 resize-none focus:outline-none focus:border-violet-500/40 transition-all leading-relaxed"
+              />
+              <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                <span className={cn("text-[9px] font-bold tabular-nums", bodyPct >= 90 ? "text-red-400" : bodyPct >= 75 ? "text-amber-400" : "text-slate-600")}>
+                  {bodyChars}/{bodyMax}
+                </span>
+                {bodyPct > 0 && (
+                  <div className="w-14 h-1 bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className={cn("h-full rounded-full transition-all", bodyPct >= 90 ? "bg-red-500" : bodyPct >= 75 ? "bg-amber-500" : "bg-violet-500")}
+                      style={{ width: `${Math.min(bodyPct, 100)}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Channel selector */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Delivery Channel</label>
+            <div className="grid grid-cols-3 gap-2">
+              {CHANNEL_OPTIONS.map(ch => {
+                const Icon = ch.icon;
+                const active = channel === ch.id;
+                return (
+                  <button
+                    key={ch.id}
+                    onClick={() => setChannel(ch.id as any)}
+                    className={cn(
+                      "p-3 rounded-xl border text-start transition-all",
+                      active
+                        ? `bg-${ch.color}-500/10 border-${ch.color}-500/40`
+                        : "bg-[var(--ui-surface)] border-white/10 hover:border-white/20"
+                    )}
+                  >
+                    <Icon className={cn("w-3.5 h-3.5 mb-1.5", active ? `text-${ch.color}-400` : "text-slate-500")} />
+                    <p className={cn("text-[10px] font-bold uppercase tracking-wide", active ? `text-${ch.color}-300` : "text-slate-400")}>{ch.label}</p>
+                    <p className="text-[9px] text-slate-600 mt-0.5 leading-tight">{ch.desc}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <button
+            disabled={!canProceed}
+            onClick={() => setStep("preview")}
+            className="w-full h-11 rounded-xl bg-violet-500/20 border border-violet-500/30 text-violet-300 text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-violet-500/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            Preview Message <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </motion.div>
+      )}
+
+      {/* ─── PREVIEW ─── */}
+      {step === "preview" && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          className="space-y-4 p-5 rounded-2xl bg-black/20 border border-white/5"
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <Eye className="w-4 h-4 text-violet-400" />
+            <p className="text-xs font-bold text-white uppercase tracking-widest">Email Preview</p>
+          </div>
+
+          {/* Email mock */}
+          <div className="rounded-2xl overflow-hidden border border-white/10">
+            <div className="bg-slate-900 px-5 py-4 border-b border-white/5 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-slate-500 font-semibold w-14 shrink-0">FROM</span>
+                <span className="text-[11px] text-slate-300">SessionFlow Admin &lt;noreply@sessionflow.app&gt;</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-slate-500 font-semibold w-14 shrink-0">TO</span>
+                <span className="text-[11px] text-slate-300">All Active Users</span>
+                <span className="px-1.5 py-0.5 rounded text-[8px] bg-violet-500/10 text-violet-400 font-bold border border-violet-500/20">BULK</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-slate-500 font-semibold w-14 shrink-0">VIA</span>
+                <span className={cn(
+                  "text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded",
+                  channel === "Both" ? "bg-violet-500/10 text-violet-400" : channel === "Email" ? "bg-blue-500/10 text-blue-400" : "bg-emerald-500/10 text-emerald-400"
+                )}>{selectedChannel.label}</span>
+              </div>
+              <div className="flex items-center gap-2 pt-1 border-t border-white/5 mt-2">
+                <span className="text-[10px] text-slate-500 font-semibold w-14 shrink-0">SUBJECT</span>
+                <span className="text-sm font-semibold text-white">{subject}</span>
+              </div>
+            </div>
+            <div className="bg-[#0d0d12] px-5 py-5 min-h-[120px]">
+              <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{body}</p>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setStep("compose")}
+              className="flex-1 h-11 rounded-xl border border-white/10 text-slate-400 text-[10px] font-black uppercase tracking-widest hover:border-white/20 hover:text-white transition-all"
+            >
+              ← Edit
+            </button>
+            <button
+              onClick={() => setStep("confirm")}
+              className="flex-1 h-11 rounded-xl bg-violet-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-violet-500 transition-all flex items-center justify-center gap-2"
+            >
+              <Send className="w-3.5 h-3.5" /> Confirm & Send
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ─── CONFIRM ─── */}
+      {step === "confirm" && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
+          className="p-6 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-5"
+        >
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 shrink-0">
+              <AlertTriangle className="w-5 h-5 text-amber-400" />
+            </div>
+            <div className="text-start">
+              <p className="text-sm font-bold text-white">Confirm Broadcast</p>
+              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                You are about to send <span className="text-amber-400 font-bold">"{subject}"</span> to <span className="text-amber-400 font-bold">all active users</span> via <span className="text-amber-400 font-bold">{selectedChannel.label}</span>. This action cannot be undone.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setStep("preview")}
+              disabled={mutation.isPending}
+              className="flex-1 h-11 rounded-xl border border-white/10 text-slate-400 text-[10px] font-black uppercase tracking-widest hover:border-white/20 transition-all disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => mutation.mutate()}
+              disabled={mutation.isPending}
+              className="flex-1 h-11 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
+            >
+              {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-3.5 h-3.5" /> Send Now</>}
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ─── SENT ─── */}
+      {step === "sent" && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+          className="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 flex flex-col items-center gap-4 text-center"
+        >
+          <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+            <CheckCircle2 className="w-7 h-7 text-emerald-400" />
+          </div>
+          <div>
+            <p className="text-base font-bold text-white">Broadcast Sent Successfully</p>
+            <p className="text-xs text-slate-400 mt-1">
+              Your message <span className="text-emerald-400 font-semibold">"{subject}"</span> has been queued for delivery to all active users.
+            </p>
+          </div>
+          <div className="flex gap-3 w-full">
+            <button
+              onClick={reset}
+              className="flex-1 h-10 rounded-xl border border-white/10 text-slate-400 text-[10px] font-black uppercase tracking-widest hover:text-white transition-all"
+            >
+              New Broadcast
+            </button>
+            <button
+              onClick={() => { setShowHistory(true); }}
+              className="flex-1 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 hover:bg-emerald-500/20 transition-all"
+            >
+              <History className="w-3.5 h-3.5" /> View History
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ─── HISTORY LOG ─── */}
+      <div>
+        <button
+          onClick={() => setShowHistory(v => !v)}
+          className="flex items-center gap-2 text-[10px] text-slate-500 font-black uppercase tracking-widest hover:text-slate-300 transition-colors"
+        >
+          <History className="w-3.5 h-3.5" />
+          Broadcast History
+          <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", showHistory && "rotate-180")} />
+        </button>
+
+        <AnimatePresence>
+          {showHistory && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="overflow-hidden mt-3"
+            >
+              {historyLoading ? (
+                <div className="space-y-2">
+                  {[1,2,3].map(i => <div key={i} className="h-14 bg-slate-800/40 rounded-xl animate-pulse" />)}
+                </div>
+              ) : !history?.items?.length ? (
+                <p className="text-xs text-slate-600 font-medium py-4 text-center">No broadcasts sent yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {history.items.map((b: any) => (
+                    <div key={b.id} className="flex items-center gap-3 p-3 rounded-xl bg-black/20 border border-white/5">
+                      <div className="p-2 rounded-lg bg-violet-500/10 shrink-0">
+                        <Megaphone className="w-3 h-3 text-violet-400" />
+                      </div>
+                      <div className="flex-1 min-w-0 text-start">
+                        <p className="text-xs font-semibold text-white truncate">{b.subject || "Broadcast"}</p>
+                        <p className="text-[10px] text-slate-500 truncate">{b.message}</p>
+                      </div>
+                      <div className="text-end shrink-0 space-y-0.5">
+                        <p className="text-[9px] font-bold text-slate-500 uppercase">{b.channel} · {b.recipientCount} users</p>
+                        <p className="text-[9px] text-slate-700 font-mono">{format(new Date(b.createdAt), "dd MMM HH:mm")}</p>
+                        {b.emailCompleted && <span className="inline-block px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 text-[8px] font-bold rounded uppercase">Delivered</span>}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Pagination */}
+                  {history.totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-3 pt-2">
+                      <button
+                        disabled={historyPage <= 1}
+                        onClick={() => setHistoryPage(p => p - 1)}
+                        className="h-7 px-3 rounded-lg border border-white/10 text-[10px] text-slate-400 hover:text-white disabled:opacity-30 transition-all"
+                      >← Prev</button>
+                      <span className="text-[10px] text-slate-500">{historyPage} / {history.totalPages}</span>
+                      <button
+                        disabled={historyPage >= history.totalPages}
+                        onClick={() => setHistoryPage(p => p + 1)}
+                        className="h-7 px-3 rounded-lg border border-white/10 text-[10px] text-slate-400 hover:text-white disabled:opacity-30 transition-all"
+                      >Next →</button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 };

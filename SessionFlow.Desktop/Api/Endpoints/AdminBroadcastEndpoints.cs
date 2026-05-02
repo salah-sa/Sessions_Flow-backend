@@ -31,8 +31,11 @@ public static class AdminBroadcastEndpoints
             if (!Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var adminId))
                 return Results.Unauthorized();
 
-            if (string.IsNullOrWhiteSpace(req.Message) || req.Message.Length > 500)
-                return Results.BadRequest(new { error = "Message must be between 1 and 500 characters." });
+            if (string.IsNullOrWhiteSpace(req.Subject) || req.Subject.Length > 120)
+                return Results.BadRequest(new { error = "Subject must be between 1 and 120 characters." });
+
+            if (string.IsNullOrWhiteSpace(req.Message) || req.Message.Length > 2000)
+                return Results.BadRequest(new { error = "Message must be between 1 and 2000 characters." });
 
             var channel = req.Channel?.ToUpperInvariant() switch
             {
@@ -49,9 +52,12 @@ public static class AdminBroadcastEndpoints
                 .Project(u => new { u.Id, u.Email, u.Name })
                 .ToListAsync(ct);
 
+            var sanitizedSubject = req.Subject.Trim();
+
             var broadcast = new SystemBroadcast
             {
                 IsCustomMessage    = true,
+                CustomSubject      = sanitizedSubject,
                 CustomMessage      = sanitizedMessage,
                 Channel            = channel,
                 RecipientCount     = users.Count,
@@ -86,7 +92,7 @@ public static class AdminBroadcastEndpoints
                         try
                         {
                             await emailService.SendBroadcastEmailAsync(
-                                u.Email, u.Name, sanitizedMessage);
+                                u.Email, u.Name, sanitizedMessage, sanitizedSubject);
                             sent++;
                         }
                         catch (Exception ex)
@@ -140,6 +146,7 @@ public static class AdminBroadcastEndpoints
                 {
                     id              = b.Id,
                     isCustomMessage = b.IsCustomMessage,
+                    subject         = b.CustomSubject ?? "System Announcement",
                     message         = b.IsCustomMessage ? b.CustomMessage : string.Join("; ", b.Notes),
                     channel         = b.Channel,
                     recipientCount  = b.RecipientCount,
@@ -154,5 +161,5 @@ public static class AdminBroadcastEndpoints
         });
     }
 
-    private record BroadcastRequest(string Message, string? Channel);
+    private record BroadcastRequest(string Subject, string Message, string? Channel);
 }
