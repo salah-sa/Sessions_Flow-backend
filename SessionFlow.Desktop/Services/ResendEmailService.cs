@@ -25,7 +25,7 @@ public class ResendEmailService
     {
         _logger = logger;
         _apiKey = config["Resend:ApiKey"] ?? Environment.GetEnvironmentVariable("RESEND_API_KEY");
-        _fromAddress = config["Resend:From"] ?? Environment.GetEnvironmentVariable("RESEND_FROM") ?? "SessionFlow <onboarding@resend.dev>";
+        _fromAddress = config["Resend:From"] ?? Environment.GetEnvironmentVariable("RESEND_FROM") ?? "SessionFlow <noreply@sessionflow.uk>";
     }
 
     public bool IsConfigured => !string.IsNullOrWhiteSpace(_apiKey);

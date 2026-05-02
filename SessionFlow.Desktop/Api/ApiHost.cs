@@ -176,15 +176,12 @@ public static class ApiHost
         builder.Services.AddSingleton<ResendEmailService>(); // Still used by EmailService
         builder.Services.AddScoped<OtpService>(sp =>
         {
-            // OtpService now uses GmailSenderService for OTP delivery.
-            // GmailSenderService has a multi-provider fallback chain:
-            //   Railway: SMTP (Gmail App Password) → Resend API
-            //   Local:   Resend API → Gmail OAuth → SMTP
-            // This bypasses Resend sandbox restrictions for any student email.
+            // OtpService uses EmailService → ResendEmailService (sessionflow.uk verified domain)
+            // Sends OTP to any email address without sandbox restrictions.
             var logger = sp.GetRequiredService<ILogger<OtpService>>();
-            var gmail = sp.GetRequiredService<GmailSenderService>();
+            var email = sp.GetRequiredService<EmailService>();
             var notifications = sp.GetRequiredService<NotificationService>();
-            return new OtpService(redisConnection, logger, gmail, notifications);
+            return new OtpService(redisConnection, logger, email, notifications);
         });
         builder.Services.AddScoped<WalletService>();
         builder.Services.AddScoped<WalletSubscriptionService>();

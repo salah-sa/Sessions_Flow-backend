@@ -7,8 +7,8 @@ using SessionFlow.Desktop.Models;
 namespace SessionFlow.Desktop.Services;
 
 /// <summary>
-/// Redis-backed OTP service using GmailSenderService for email delivery.
-/// Delivery chain: SMTP (Gmail App Password) → Resend API → Gmail OAuth.
+/// Redis-backed OTP service using Resend API (via EmailService) for email delivery.
+/// Verified domain: sessionflow.uk — sends to any address.
 /// Codes are 6 digits, stored with 5-minute TTL.
 /// Rate limit: max 50 sends per phone per hour.
 /// </summary>
@@ -16,7 +16,7 @@ public class OtpService
 {
     private readonly IConnectionMultiplexer? _redis;
     private readonly ILogger<OtpService> _logger;
-    private readonly GmailSenderService _gmail;
+    private readonly EmailService _email;
     private readonly NotificationService _notifications;
 
     // In-memory fallback when Redis is unavailable
@@ -27,11 +27,11 @@ public class OtpService
     private const int MaxSendsPerHour = 50;
     private const int MaxVerifyAttempts = 5;
 
-    public OtpService(IConnectionMultiplexer? redis, ILogger<OtpService> logger, GmailSenderService gmail, NotificationService notifications)
+    public OtpService(IConnectionMultiplexer? redis, ILogger<OtpService> logger, EmailService email, NotificationService notifications)
     {
         _redis = redis;
         _logger = logger;
-        _gmail = gmail;
+        _email = email;
         _notifications = notifications;
     }
 
@@ -114,7 +114,7 @@ public class OtpService
             await db.KeyExpireAsync(rKey, TimeSpan.FromHours(1));
         }
 
-        // Send via Resend (HTTPS, ~1-2 seconds, never hangs)
+        // Send via Resend (HTTPS, ~1-2 seconds, verified domain — works for any address)
         string subject = purpose == "reset_pin"
             ? "SessionFlow — PIN Reset Code"
             : "SessionFlow — Verification Code";
@@ -145,7 +145,7 @@ public class OtpService
         bool ok; string? err;
         try
         {
-            (ok, err) = await _gmail.SendEmailAsync(emailTo, subject, htmlBody, sendCts.Token);
+            (ok, err) = await _email.SendEmailAsync(emailTo, subject, htmlBody, sendCts.Token);
         }
         catch (OperationCanceledException)
         {
