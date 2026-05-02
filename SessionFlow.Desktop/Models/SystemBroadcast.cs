@@ -20,7 +20,7 @@ namespace SessionFlow.Desktop.Models
         /// <summary>True = custom message blast; False = version update.</summary>
         public bool IsCustomMessage { get; set; } = false;
 
-        /// <summary>Admin-authored subject line (max 120 chars).</summary>
+        /// <summary>Admin-authored subject line (max 5000 chars).</summary>
         [BsonIgnoreIfNull]
         public string? CustomSubject { get; set; }
 

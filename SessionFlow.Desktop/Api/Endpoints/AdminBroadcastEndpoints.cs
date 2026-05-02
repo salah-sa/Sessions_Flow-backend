@@ -31,8 +31,8 @@ public static class AdminBroadcastEndpoints
             if (!Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var adminId))
                 return Results.Unauthorized();
 
-            if (string.IsNullOrWhiteSpace(req.Subject) || req.Subject.Length > 120)
-                return Results.BadRequest(new { error = "Subject must be between 1 and 120 characters." });
+            if (string.IsNullOrWhiteSpace(req.Subject) || req.Subject.Length > 5000)
+                return Results.BadRequest(new { error = "Subject must be between 1 and 5000 characters." });
 
             if (string.IsNullOrWhiteSpace(req.Message) || req.Message.Length > 2000)
                 return Results.BadRequest(new { error = "Message must be between 1 and 2000 characters." });
