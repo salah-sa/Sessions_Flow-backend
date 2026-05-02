@@ -354,3 +354,75 @@ export const useAppStore = create<AppState>((set) => ({
     set((state) => (state.isSyncing === isSyncing ? state : { isSyncing })),
   dismissOfflineModal: () => set({ userDismissedOffline: true }),
 }));
+
+// ─── AI Agent Store ───────────────────────────────────────────────────────────
+export interface AIMessage {
+  id: string;
+  role: 'user' | 'agent';
+  content: string;
+  timestamp: string;
+  status: 'sending' | 'sent' | 'error';
+}
+
+export interface AIAgentState {
+  // Panel visibility
+  isOpen: boolean;
+  isMinimizedPanel: boolean;
+  // Draggable FAB position (persisted)
+  fabPosition: { x: number; y: number } | null;
+  // Sidebar mode
+  sidebarMode: 'docked' | 'floating';
+  // Chat session (NOT persisted)
+  sessionId: string;
+  messages: AIMessage[];
+  isThinking: boolean;
+  // Actions
+  togglePanel: () => void;
+  openPanel: () => void;
+  closePanel: () => void;
+  minimizePanel: (v: boolean) => void;
+  setFabPosition: (pos: { x: number; y: number }) => void;
+  setSidebarMode: (mode: 'docked' | 'floating') => void;
+  addMessage: (msg: AIMessage) => void;
+  updateMessageStatus: (id: string, status: AIMessage['status'], content?: string) => void;
+  setThinking: (v: boolean) => void;
+  clearSession: () => void;
+}
+
+export const useAIAgentStore = create<AIAgentState>()(
+  persist(
+    (set) => ({
+      isOpen: false,
+      isMinimizedPanel: false,
+      fabPosition: null,
+      sidebarMode: 'docked',
+      sessionId: crypto.randomUUID(),
+      messages: [],
+      isThinking: false,
+      togglePanel: () => set((s) => ({ isOpen: !s.isOpen, isMinimizedPanel: false })),
+      openPanel: () => set({ isOpen: true, isMinimizedPanel: false }),
+      closePanel: () => set({ isOpen: false, isMinimizedPanel: false }),
+      minimizePanel: (v) => set({ isMinimizedPanel: v }),
+      setFabPosition: (fabPosition) => set({ fabPosition }),
+      setSidebarMode: (sidebarMode) => set({ sidebarMode }),
+      addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
+      updateMessageStatus: (id, status, content) =>
+        set((s) => ({
+          messages: s.messages.map((m) =>
+            m.id === id ? { ...m, status, ...(content !== undefined ? { content } : {}) } : m
+          ),
+        })),
+      setThinking: (isThinking) => set({ isThinking }),
+      clearSession: () => set({ messages: [], sessionId: crypto.randomUUID(), isThinking: false }),
+    }),
+    {
+      name: 'sf-ai-agent-storage',
+      partialize: (s) => ({
+        fabPosition: s.fabPosition,
+        sidebarMode: s.sidebarMode,
+        isOpen: s.isOpen,
+      }),
+    }
+  )
+);
+

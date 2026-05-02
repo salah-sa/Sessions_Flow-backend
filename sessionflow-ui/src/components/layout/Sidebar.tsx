@@ -18,10 +18,12 @@ import {
   Crown,
   ShieldBan,
   Wallet,
-  ClipboardList
+  ClipboardList,
+  PanelLeftClose,
+  PanelLeftOpen
 } from "lucide-react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
-import { useAuthStore, useSectionBadgeStore, useChatStore, selectEffectiveTier } from "../../store/stores";
+import { useAuthStore, useSectionBadgeStore, useChatStore, selectEffectiveTier, useAIAgentStore, useUIStore } from "../../store/stores";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -190,7 +192,12 @@ const Sidebar: React.FC = () => {
   const walletQuery = useQuery({ queryKey: ["wallet-me"], queryFn: walletApi.getMe, retry: 1, staleTime: 60_000 });
   const walletVerified = walletQuery.data ? walletQuery.data.isPhoneVerified : (walletQuery.isError ? false : null);
 
-  return (
+  const sidebarMode = useAIAgentStore((s) => s.sidebarMode);
+  const setSidebarMode = useAIAgentStore((s) => s.setSidebarMode);
+  const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+  const isFloating = sidebarMode === 'floating';
+
+  const SidebarContent = (
     <aside className="h-full w-[280px] bg-[var(--ui-sidebar-bg)] border-e border-white/5 flex flex-col z-[50]">
       <div className="px-6 py-4 mb-1 relative">
          <div className="flex items-center gap-4">
@@ -198,10 +205,21 @@ const Sidebar: React.FC = () => {
                <Zap className="w-6 h-6 text-white relative z-10" />
                <div className="absolute inset-0 bg-white/20 blur-xl scale-150 animate-pulse" />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <h2 className="text-xl font-bold text-white tracking-widest uppercase">SessionFlow</h2>
               <p className="text-[8px] font-bold text-[var(--ui-accent)] tracking-[0.4em] uppercase opacity-60">Neural Engine</p>
             </div>
+            {/* Dock / Float toggle */}
+            <button
+              onClick={() => setSidebarMode(isFloating ? 'docked' : 'floating')}
+              title={isFloating ? 'Dock sidebar' : 'Float sidebar'}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 transition-all flex-shrink-0"
+              id="sidebar-mode-toggle"
+            >
+              {isFloating
+                ? <PanelLeftClose className="w-4 h-4" />
+                : <PanelLeftOpen className="w-4 h-4" />}
+            </button>
          </div>
          {/* Tier Badge */}
          {userTier !== "Free" && (
@@ -261,6 +279,33 @@ const Sidebar: React.FC = () => {
 
     </aside>
   );
+
+  if (isFloating) {
+    return (
+      <AnimatePresence>
+        <motion.div
+          key="floating-sidebar-backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[9990] bg-black/50 backdrop-blur-sm"
+          onClick={() => { setSidebarMode('docked'); }}
+        />
+        <motion.div
+          key="floating-sidebar"
+          initial={{ x: -300, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: -300, opacity: 0 }}
+          transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+          className="fixed left-0 top-0 h-full z-[9991] shadow-[8px_0_40px_rgba(0,0,0,0.6)]"
+        >
+          {SidebarContent}
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
+  return SidebarContent;
 };
 
 export default Sidebar;
