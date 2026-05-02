@@ -4,8 +4,7 @@ import {
   Megaphone, Send, History, Users, Mail, Bell,
   CheckCircle2, Clock, Loader2, Zap, AlertTriangle, RefreshCw, ChevronRight
 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchWithAuth } from "../api/client";
+import { useBroadcastHistory, useSendBroadcast } from "../queries/useBroadcastQueries";
 import { cn } from "../lib/utils";
 import { toast } from "sonner";
 
@@ -52,12 +51,7 @@ const HistoryItem: React.FC<{ item: any }> = ({ item }) => {
   );
 };
 
-interface BroadcastHistoryResponse {
-  items: any[];
-  total: number;
-  page: number;
-  totalPages: number;
-}
+
 
 const BroadcastPage: React.FC = () => {
   const [tab, setTab] = useState<"compose" | "history">("compose");
@@ -66,27 +60,23 @@ const BroadcastPage: React.FC = () => {
   const [channel, setChannel] = useState("InApp");
   const [page, setPage] = useState(1);
   const [showTemplates, setShowTemplates] = useState(false);
-  const qc = useQueryClient();
 
-  const historyQ = useQuery<BroadcastHistoryResponse>({
-    queryKey: ["broadcast-history", page],
-    queryFn: () => fetchWithAuth(`/api/admin/broadcast/history?page=${page}&pageSize=20`),
-    enabled: tab === "history",
-  });
+  const historyQ = useBroadcastHistory(page, tab === "history");
 
-  const sendMutation = useMutation({
-    mutationFn: () => fetchWithAuth("/api/admin/broadcast", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
-      body: JSON.stringify({ subject, message, channel }),
-    }),
-    onSuccess: (data: any) => {
-      toast.success(`Broadcast sent to ${data.recipientCount} users!`);
-      setSubject(""); setMessage(""); setTab("history");
-      qc.invalidateQueries({ queryKey: ["broadcast-history"] });
-    },
-    onError: () => toast.error("Failed to send broadcast."),
-  });
+  const sendMutation = useSendBroadcast();
+  // Wrap onSuccess/onError inline so the page retains its UI feedback
+  const handleSend = () => {
+    sendMutation.mutate(
+      { subject, message, channel },
+      {
+        onSuccess: (data: any) => {
+          toast.success(`Broadcast sent to ${data.recipientCount} users!`);
+          setSubject(""); setMessage(""); setTab("history");
+        },
+        onError: () => toast.error("Failed to send broadcast."),
+      }
+    );
+  };
 
   const isValid = subject.trim().length > 0 && message.trim().length >= 10;
 
@@ -178,7 +168,7 @@ const BroadcastPage: React.FC = () => {
                 </div>
               )}
 
-              <button onClick={() => sendMutation.mutate()} disabled={!isValid || sendMutation.isPending}
+              <button onClick={handleSend} disabled={!isValid || sendMutation.isPending}
                 className="w-full py-3.5 rounded-2xl bg-[var(--ui-accent)] text-white font-bold text-sm flex items-center justify-center gap-3 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity shadow-lg shadow-[var(--ui-accent)]/20">
                 {sendMutation.isPending ? <><Loader2 className="w-5 h-5 animate-spin" /> Sending...</> : <><Megaphone className="w-5 h-5" /> Send Broadcast</>}
               </button>
@@ -187,7 +177,7 @@ const BroadcastPage: React.FC = () => {
             <motion.div key="history" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-3">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Broadcast History {historyQ.data ? `(${historyQ.data.total})` : ""}</p>
-                <button onClick={() => qc.invalidateQueries({ queryKey: ["broadcast-history"] })} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/5 transition-all">
+                <button onClick={() => historyQ.refetch()} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/5 transition-all">
                   <RefreshCw className="w-3.5 h-3.5" />
                 </button>
               </div>

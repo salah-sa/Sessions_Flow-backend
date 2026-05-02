@@ -74,4 +74,12 @@ export const queryKeys = {
     all: ["flags"] as const,
     list: ["flags", "list"] as const,
   },
+  broadcast: {
+    all: ["broadcast"] as const,
+    history: (page: number) => ["broadcast", "history", page] as const,
+  },
+  sessionTimeline: {
+    all: ["session-timeline"] as const,
+    byDays: (days: number) => ["session-timeline", days] as const,
+  },
 };

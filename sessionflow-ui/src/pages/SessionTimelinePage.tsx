@@ -5,8 +5,7 @@ import {
   CalendarDays, Loader2, ChevronRight, Activity,
   TrendingUp, BarChart3
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { fetchWithAuth } from "../api/client";
+import { useSessionTimeline } from "../queries/useSessionTimelineQueries";
 import { cn } from "../lib/utils";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -125,11 +124,7 @@ const TimelineEntry: React.FC<{ session: SessionEvent; index: number }> = ({ ses
 const SessionTimelinePage: React.FC = () => {
   const [days, setDays] = useState(7);
 
-  const timelineQ = useQuery<TimelineResponse>({
-    queryKey: ["session-timeline", days],
-    queryFn: () => fetchWithAuth(`/api/admin/session-timeline?days=${days}`),
-    staleTime: 60_000,
-  });
+  const timelineQ = useSessionTimeline(days);
 
   const data = timelineQ.data;
 

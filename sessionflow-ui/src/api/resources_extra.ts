@@ -223,6 +223,39 @@ export const studentLocationApi = {
     }),
 };
 
+// Broadcast Module (Admin Only)
+export const broadcastApi = {
+  getHistory: (page: number, pageSize = 20) =>
+    fetchWithAuth<{ items: any[]; total: number; page: number; totalPages: number }>(
+      `/api/admin/broadcast/history?page=${page}&pageSize=${pageSize}`
+    ),
+  send: (payload: { subject: string; message: string; channel: string }) =>
+    fetchWithAuth<{ recipientCount: number }>("/api/admin/broadcast", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+      body: JSON.stringify(payload),
+    }),
+};
+
+// Session Timeline Module (Admin Only)
+export const sessionTimelineApi = {
+  getTimeline: (days: number) =>
+    fetchWithAuth<{
+      sessions: {
+        sessionId: string;
+        groupName: string;
+        engineerName: string;
+        scheduledAt: string;
+        status: "Pending" | "Active" | "Completed" | "Cancelled";
+        attendanceCount: number;
+        totalStudents: number;
+      }[];
+      totalSessions: number;
+      avgAttendanceRate: number;
+      peakDay: string;
+    }>(`/api/admin/session-timeline?days=${days}`),
+};
+
 // Admin Users Governance Module
 export const adminUsersApi = {
   getAll: (params?: { search?: string; role?: string; page?: number; pageSize?: number }) => {
