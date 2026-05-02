@@ -56,4 +56,22 @@ export const queryKeys = {
   system: {
     all: ["system"] as const,
   },
+  ai: {
+    all: ["ai"] as const,
+    presets: ["ai", "presets"] as const,
+    logs: (page: number) => ["ai", "logs", page] as const,
+    usage: ["ai", "usage"] as const,
+  },
+  analytics: {
+    all: ["analytics"] as const,
+    overview: ["analytics", "overview"] as const,
+    dau: (days: number) => ["analytics", "dau", days] as const,
+    featureUsage: (days: number) => ["analytics", "feature-usage", days] as const,
+    sessions: ["analytics", "sessions"] as const,
+    roles: ["analytics", "roles"] as const,
+  },
+  flags: {
+    all: ["flags"] as const,
+    list: ["flags", "list"] as const,
+  },
 };

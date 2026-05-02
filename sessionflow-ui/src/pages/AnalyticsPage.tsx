@@ -6,27 +6,12 @@ import {
   Eye, MousePointer, Clock, Zap
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchWithAuth } from "../api/client";
+import { useAnalyticsOverview, useAnalyticsDau, useAnalyticsFeatureUsage, useAnalyticsSessions, useAnalyticsRoles } from "../queries/useAnalyticsQueries";
 import { cn } from "../lib/utils";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell
 } from "recharts";
-
-// ── API layer ───────────────────────────────────────────────────────────────
-interface OverviewData { totalUsers: number; activeUsersToday: number; newUsersThisMonth: number; sessionsToday: number; sessionsThisWeek: number; attendanceRateThisWeek: number }
-interface DauPoint { date: string; count: number }
-interface FeaturePoint { route: string; visits: number }
-interface SessionData { totalThisWeek: number; peakHours: { hour: number; count: number }[] }
-interface RolePoint { role: string; count: number }
-
-const analyticsApi = {
-  overview: () => fetchWithAuth<OverviewData>("/analytics/admin/overview"),
-  dau: (days = 30) => fetchWithAuth<DauPoint[]>(`/analytics/admin/dau?days=${days}`),
-  featureUsage: (days = 30) => fetchWithAuth<FeaturePoint[]>(`/analytics/admin/feature-usage?days=${days}`),
-  sessions: () => fetchWithAuth<SessionData>("/analytics/admin/sessions"),
-  roles: () => fetchWithAuth<RolePoint[]>("/analytics/admin/roles"),
-};
 
 // ── KPI Card ────────────────────────────────────────────────────────────────
 const KpiCard: React.FC<{
@@ -92,11 +77,11 @@ const TimeRangeBtn: React.FC<{ label: string; active: boolean; onClick: () => vo
 const AnalyticsPage: React.FC = () => {
   const [dauDays, setDauDays] = useState(30);
 
-  const overviewQ = useQuery({ queryKey: ["analytics-overview"], queryFn: analyticsApi.overview, staleTime: 60_000 });
-  const dauQ = useQuery({ queryKey: ["analytics-dau", dauDays], queryFn: () => analyticsApi.dau(dauDays), staleTime: 60_000 });
-  const featureQ = useQuery({ queryKey: ["analytics-features", dauDays], queryFn: () => analyticsApi.featureUsage(dauDays), staleTime: 60_000 });
-  const sessionsQ = useQuery({ queryKey: ["analytics-sessions"], queryFn: analyticsApi.sessions, staleTime: 60_000 });
-  const rolesQ = useQuery({ queryKey: ["analytics-roles"], queryFn: analyticsApi.roles, staleTime: 60_000 });
+  const overviewQ = useAnalyticsOverview();
+  const dauQ = useAnalyticsDau(dauDays);
+  const featureQ = useAnalyticsFeatureUsage(dauDays);
+  const sessionsQ = useAnalyticsSessions();
+  const rolesQ = useAnalyticsRoles();
 
   const ov = overviewQ.data;
 

@@ -5,7 +5,6 @@
  */
 import { useEffect, useRef, useCallback } from "react";
 import { useLocation } from "react-router-dom";
-import { fetchWithAuth } from "../api/client";
 
 interface AnalyticsEvent {
   eventType: string;
@@ -17,17 +16,12 @@ interface AnalyticsEvent {
 // Single browser session ID for this tab
 const BROWSER_SESSION_ID = crypto.randomUUID();
 
-// Flush queue to backend
-async function flushQueue(queue: AnalyticsEvent[]) {
+// Flush queue using sendBeacon (fire-and-forget; no auth header needed for analytics)
+function flushQueue(queue: AnalyticsEvent[]): void {
   if (queue.length === 0) return;
-  try {
-    await fetchWithAuth("/analytics/events/batch", {
-      method: "POST",
-      body: JSON.stringify({ events: queue })
-    });
-  } catch {
-    // Silently fail — analytics should never break UX
-  }
+  // sendBeacon is reliable across page transitions and doesn't block
+  const blob = new Blob([JSON.stringify({ events: queue })], { type: "application/json" });
+  navigator.sendBeacon("/api/analytics/events/batch", blob);
 }
 
 let globalQueue: AnalyticsEvent[] = [];

@@ -4,20 +4,9 @@ import {
   Flag, ToggleLeft, ToggleRight, Plus, Trash2,
   Shield, Crown, Zap, ChevronDown, Loader2, AlertTriangle
 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchWithAuth } from "../api/client";
+import { useFeatureFlags, useFlagMutations, type FlagRecord } from "../queries/useFlagQueries";
 import { cn } from "../lib/utils";
 import { toast } from "sonner";
-
-// ── API ─────────────────────────────────────────────────────────────────────
-interface FlagRecord { id: string; key: string; name: string; description: string; enabled: boolean; allowedTiers: string[]; overrideUserIds: string[]; updatedBy: string; updatedAt: string }
-
-const flagsApi = {
-  getAll: () => fetchWithAuth<FlagRecord[]>("/admin/flags"),
-  create: (data: unknown) => fetchWithAuth<FlagRecord>("/admin/flags", { method: "POST", body: JSON.stringify(data) }),
-  update: (key: string, data: unknown) => fetchWithAuth<{ message: string }>(`/admin/flags/${key}`, { method: "PATCH", body: JSON.stringify(data) }),
-  delete: (key: string) => fetchWithAuth<{ message: string }>(`/admin/flags/${key}`, { method: "DELETE" }),
-};
 
 const TIERS = ["Free", "Pro", "Ultra", "Enterprise"];
 const TIER_COLORS: Record<string, string> = {
@@ -30,26 +19,39 @@ const TIER_COLORS: Record<string, string> = {
 const DANGER_KEYS = ["payment", "auth", "admin", "wallet"];
 
 // ── Flag Card ───────────────────────────────────────────────────────────────
-const FlagCard: React.FC<{ flag: any }> = ({ flag }) => {
-  const qc = useQueryClient();
+const FlagCard: React.FC<{ flag: FlagRecord }> = ({ flag }) => {
   const [expanded, setExpanded] = useState(false);
   const isDanger = DANGER_KEYS.some(k => flag.key.includes(k));
+  const { update, remove } = useFlagMutations();
 
-  const toggleMut = useMutation({
-    mutationFn: () => flagsApi.update(flag.key, {
-      enabled: !flag.enabled,
-      allowedTiers: flag.allowedTiers,
-      overrideUserIds: flag.overrideUserIds || []
-    }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["feature-flags"] }); toast.success(`Flag "${flag.key}" ${!flag.enabled ? "enabled" : "disabled"}`); },
-    onError: () => toast.error("Failed to update flag")
-  });
+  const handleToggle = () => {
+    update.mutate(
+      { key: flag.key, data: { enabled: !flag.enabled, allowedTiers: flag.allowedTiers, overrideUserIds: flag.overrideUserIds || [] } },
+      {
+        onSuccess: () => toast.success(`Flag "${flag.key}" ${!flag.enabled ? "enabled" : "disabled"}`),
+        onError: () => toast.error("Failed to update flag"),
+      }
+    );
+  };
 
-  const deleteMut = useMutation({
-    mutationFn: () => flagsApi.delete(flag.key),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["feature-flags"] }); toast.success("Flag deleted"); },
-    onError: () => toast.error("Failed to delete flag")
-  });
+  const handleDelete = () => {
+    if (confirm(`Delete flag "${flag.key}"?`)) {
+      remove.mutate(flag.key, {
+        onSuccess: () => toast.success("Flag deleted"),
+        onError: () => toast.error("Failed to delete flag"),
+      });
+    }
+  };
+
+  const handleTierToggle = (t: string) => {
+    const tiers = flag.allowedTiers.includes(t)
+      ? flag.allowedTiers.filter(x => x !== t)
+      : [...flag.allowedTiers, t];
+    update.mutate(
+      { key: flag.key, data: { enabled: flag.enabled, allowedTiers: tiers, overrideUserIds: flag.overrideUserIds || [] } },
+      { onError: () => toast.error("Failed to update tiers") }
+    );
+  };
 
   return (
     <motion.div
@@ -62,11 +64,11 @@ const FlagCard: React.FC<{ flag: any }> = ({ flag }) => {
       <div className="p-4 flex items-start gap-4">
         {/* Toggle */}
         <button
-          onClick={() => toggleMut.mutate()}
-          disabled={toggleMut.isPending}
+          onClick={handleToggle}
+          disabled={update.isPending}
           className="flex-shrink-0 mt-0.5"
         >
-          {toggleMut.isPending ? (
+          {update.isPending ? (
             <Loader2 className="w-6 h-6 text-[var(--ui-accent)] animate-spin" />
           ) : flag.enabled ? (
             <ToggleRight className="w-7 h-7 text-emerald-400 hover:opacity-80 transition-opacity" />
@@ -105,7 +107,7 @@ const FlagCard: React.FC<{ flag: any }> = ({ flag }) => {
             <ChevronDown className={cn("w-4 h-4 transition-transform", expanded && "rotate-180")} />
           </button>
           <button
-            onClick={() => { if (confirm(`Delete flag "${flag.key}"?`)) deleteMut.mutate(); }}
+            onClick={handleDelete}
             className="p-1.5 rounded-lg hover:bg-rose-500/10 text-slate-600 hover:text-rose-400 transition-all"
           >
             <Trash2 className="w-4 h-4" />
@@ -126,13 +128,7 @@ const FlagCard: React.FC<{ flag: any }> = ({ flag }) => {
                 {TIERS.map(t => {
                   const active = flag.allowedTiers.includes(t);
                   return (
-                    <button key={t} onClick={() => {
-                      const tiers = active
-                        ? flag.allowedTiers.filter((x: string) => x !== t)
-                        : [...flag.allowedTiers, t];
-                      flagsApi.update(flag.key, { enabled: flag.enabled, allowedTiers: tiers, overrideUserIds: flag.overrideUserIds || [] })
-                        .then(() => qc.invalidateQueries({ queryKey: ["feature-flags"] }));
-                    }} className={cn(
+                    <button key={t} onClick={() => handleTierToggle(t)} className={cn(
                       "text-[10px] px-3 py-1.5 rounded-lg border font-bold uppercase tracking-wider transition-all",
                       active ? TIER_COLORS[t] + " opacity-100" : "border-white/5 text-slate-600 hover:text-slate-400"
                     )}>
@@ -154,18 +150,22 @@ const FlagCard: React.FC<{ flag: any }> = ({ flag }) => {
 
 // ── Create Flag Modal ────────────────────────────────────────────────────────
 const CreateFlagModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const qc = useQueryClient();
   const [key, setKey] = useState("");
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [tiers, setTiers] = useState<string[]>(["Enterprise"]);
   const [enabled, setEnabled] = useState(true);
+  const { create } = useFlagMutations();
 
-  const mut = useMutation({
-    mutationFn: () => flagsApi.create({ key, name, description: desc, enabled, allowedTiers: tiers }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["feature-flags"] }); toast.success("Flag created!"); onClose(); },
-    onError: (e: any) => toast.error(e?.response?.data?.error || "Failed to create flag")
-  });
+  const handleCreate = () => {
+    create.mutate(
+      { key, name, description: desc, enabled, allowedTiers: tiers } as Partial<FlagRecord>,
+      {
+        onSuccess: () => { toast.success("Flag created!"); onClose(); },
+        onError: (e: any) => toast.error(e?.message || "Failed to create flag"),
+      }
+    );
+  };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -216,9 +216,9 @@ const CreateFlagModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-white/10 text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all font-semibold">
             Cancel
           </button>
-          <button onClick={() => mut.mutate()} disabled={!key.trim() || !name.trim() || mut.isPending}
+          <button onClick={handleCreate} disabled={!key.trim() || !name.trim() || create.isPending}
             className="flex-1 py-2.5 rounded-xl bg-[var(--ui-accent)] text-white text-sm font-bold hover:opacity-90 disabled:opacity-40 transition-opacity">
-            {mut.isPending ? "Creating..." : "Create Flag"}
+            {create.isPending ? "Creating..." : "Create Flag"}
           </button>
         </div>
       </motion.div>
@@ -231,17 +231,13 @@ const FeatureFlagsPage: React.FC = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [filter, setFilter] = useState<"all" | "enabled" | "disabled">("all");
 
-  const { data: flags = [], isLoading } = useQuery({
-    queryKey: ["feature-flags"],
-    queryFn: flagsApi.getAll,
-    staleTime: 30_000
-  });
+  const { data: flags = [], isLoading } = useFeatureFlags();
 
-  const filtered = flags.filter((f: any) =>
+  const filtered = flags.filter((f) =>
     filter === "all" ? true : filter === "enabled" ? f.enabled : !f.enabled
   );
 
-  const enabledCount = flags.filter((f: any) => f.enabled).length;
+  const enabledCount = flags.filter((f) => f.enabled).length;
 
   return (
     <div className="h-full overflow-y-auto custom-scrollbar">
@@ -270,7 +266,7 @@ const FeatureFlagsPage: React.FC = () => {
         {/* Stats Bar */}
         <div className="grid grid-cols-4 gap-3">
           {TIERS.map(t => {
-            const count = flags.filter((f: any) => f.allowedTiers.includes(t) && f.enabled).length;
+            const count = flags.filter((f) => f.allowedTiers.includes(t) && f.enabled).length;
             const Icon = t === "Enterprise" ? Crown : t === "Ultra" ? Zap : Shield;
             return (
               <div key={t} className="bg-white/[0.02] border border-white/5 rounded-xl p-3 text-center">
@@ -303,7 +299,7 @@ const FeatureFlagsPage: React.FC = () => {
         ) : (
           <div className="space-y-3">
             <AnimatePresence>
-              {filtered.map((flag: any) => <FlagCard key={flag.id} flag={flag} />)}
+              {filtered.map((flag) => <FlagCard key={flag.id} flag={flag} />)}
             </AnimatePresence>
           </div>
         )}

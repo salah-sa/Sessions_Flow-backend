@@ -7,19 +7,9 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "../store/stores";
 import { cn } from "../lib/utils";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchWithAuth } from "../api/client";
+import { streamAIChat } from "../api/newFeatures";
+import { useAIPresets, useAIUsage, useAILogs, useAIPresetMutations, type AIPreset } from "../queries/useAIQueries";
 import { toast } from "sonner";
-
-// ── API layer ───────────────────────────────────────────────────────────────
-const aiApi = {
-  getPresets: () => fetchWithAuth<Preset[]>("/ai/presets"),
-  savePreset: (data: { title: string; prompt: string; icon: string; category: string }) =>
-    fetchWithAuth<Preset>("/ai/presets", { method: "POST", body: JSON.stringify(data) }),
-  deletePreset: (id: string) => fetchWithAuth<void>(`/ai/presets/${id}`, { method: "DELETE" }),
-  getLogs: (page = 1) => fetchWithAuth<unknown[]>(`/ai/logs?page=${page}`),
-  getUsage: () => fetchWithAuth<{ used: number; limit: number; tier: string }>("/ai/usage"),
-};
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Message { role: "user" | "assistant"; content: string; ts: Date }
@@ -39,7 +29,7 @@ const ICON_MAP: Record<string, React.ComponentType<any>> = {
 
 // ── AI Usage Bar ───────────────────────────────────────────────────────────
 const UsageBar: React.FC = () => {
-  const { data } = useQuery({ queryKey: ["ai-usage"], queryFn: aiApi.getUsage, staleTime: 30_000 });
+  const { data } = useAIUsage();
   if (!data) return null;
   const pct = Math.min((data.used / data.limit) * 100, 100);
   return (
@@ -142,38 +132,13 @@ const ChatTab: React.FC = () => {
     setMessages(prev => [...prev, aiMsg]);
 
     try {
-      const token = localStorage.getItem("sf_token");
-      const resp = await fetch("/api/ai/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-          "X-Requested-With": "XMLHttpRequest"
-        },
-        body: JSON.stringify({ sessionId, message: userMsg.content, history })
-      });
-
-      const reader = resp.body!.getReader();
-      const decoder = new TextDecoder();
       let accumulated = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const text = decoder.decode(value);
-        const lines = text.split("\n");
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const data = line.slice(6);
-            if (data === "[DONE]") break;
-            const chunk = data.replace(/\\n/g, "\n");
-            accumulated += chunk;
-            setMessages(prev => prev.map((m, i) =>
-              i === prev.length - 1 ? { ...m, content: accumulated } : m
-            ));
-          }
-        }
-      }
+      await streamAIChat(sessionId, userMsg.content, history, (chunk) => {
+        accumulated += chunk;
+        setMessages(prev => prev.map((m, i) =>
+          i === prev.length - 1 ? { ...m, content: accumulated } : m
+        ));
+      });
     } catch {
       setMessages(prev => prev.map((m, i) =>
         i === prev.length - 1 ? { ...m, content: "❌ Connection error. Please try again." } : m
@@ -231,23 +196,22 @@ const ChatTab: React.FC = () => {
 
 // ── Presets Tab ─────────────────────────────────────────────────────────────
 const PresetsTab: React.FC<{ onUsePreset: (prompt: string, tab: string) => void }> = ({ onUsePreset }) => {
-  const qc = useQueryClient();
   const [showNew, setShowNew] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newPrompt, setNewPrompt] = useState("");
 
-  const { data: userPresets = [] } = useQuery({ queryKey: ["ai-presets"], queryFn: aiApi.getPresets });
+  const { data: userPresets = [] } = useAIPresets();
+  const { save: saveMutation, remove: deleteMutation } = useAIPresetMutations();
 
-  const saveMutation = useMutation({
-    mutationFn: () => aiApi.savePreset({ title: newTitle, prompt: newPrompt, icon: "Sparkles", category: "custom" }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["ai-presets"] }); setShowNew(false); setNewTitle(""); setNewPrompt(""); toast.success("Preset saved!"); },
-    onError: () => toast.error("Failed to save preset")
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => aiApi.deletePreset(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["ai-presets"] }); toast.success("Preset deleted"); }
-  });
+  const handleSave = () => {
+    saveMutation.mutate(
+      { title: newTitle, prompt: newPrompt, icon: "Sparkles", category: "custom" },
+      {
+        onSuccess: () => { setShowNew(false); setNewTitle(""); setNewPrompt(""); toast.success("Preset saved!"); },
+        onError: () => toast.error("Failed to save preset")
+      }
+    );
+  };
 
   const PresetCard: React.FC<{ preset: any; isSystem?: boolean }> = ({ preset, isSystem }) => {
     const Icon = ICON_MAP[preset.icon] || Sparkles;
@@ -302,7 +266,7 @@ const PresetsTab: React.FC<{ onUsePreset: (prompt: string, tab: string) => void 
                 className="w-full bg-transparent text-sm text-white border-b border-white/10 pb-1 outline-none placeholder:text-slate-600" />
               <textarea value={newPrompt} onChange={e => setNewPrompt(e.target.value)} placeholder="Prompt text..." rows={3}
                 className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-600 resize-none" />
-              <button onClick={() => saveMutation.mutate()}
+              <button onClick={handleSave}
                 disabled={!newTitle.trim() || !newPrompt.trim() || saveMutation.isPending}
                 className="w-full py-2 rounded-xl bg-[var(--ui-accent)] text-white text-xs font-bold hover:opacity-90 disabled:opacity-40 transition-opacity">
                 {saveMutation.isPending ? "Saving..." : "Save Preset"}
@@ -324,11 +288,7 @@ const PresetsTab: React.FC<{ onUsePreset: (prompt: string, tab: string) => void 
 const LogsTab: React.FC = () => {
   const user = useAuthStore(s => s.user);
   const isAdmin = user?.role === "Admin";
-  const { data: logs = [], isLoading } = useQuery({
-    queryKey: ["ai-logs"],
-    queryFn: () => aiApi.getLogs(),
-    enabled: isAdmin
-  });
+  const { data: logs = [], isLoading } = useAILogs(1);
 
   if (!isAdmin) return (
     <div className="flex flex-col items-center justify-center h-full text-center gap-3">
