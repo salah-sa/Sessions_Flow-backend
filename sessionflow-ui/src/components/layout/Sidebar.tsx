@@ -17,10 +17,11 @@ import {
   CheckCircle,
   Crown,
   ShieldBan,
-  Wallet
+  Wallet,
+  ClipboardList
 } from "lucide-react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
-import { useAuthStore, useSectionBadgeStore, useChatStore } from "../../store/stores";
+import { useAuthStore, useSectionBadgeStore, useChatStore, selectEffectiveTier } from "../../store/stores";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -176,7 +177,8 @@ const Sidebar: React.FC = () => {
     }
   }, [location.pathname, isAdmin, isEngineer, pendingEngineerIds.join(","), pendingStudentIds.join(","), markSectionSeen]);
 
-  const userTier = isAdmin ? "Ultra" : user?.subscriptionTier || "Free";
+  // Step 6: Use selectEffectiveTier so Admin always shows Enterprise, not Free
+  const userTier = useAuthStore(selectEffectiveTier);
   const isPremium = isAdmin || userTier === "Pro" || userTier === "Enterprise" || userTier === "Ultra";
   const blockedPages = user?.blockedPages ?? [];
   const isBlocked = (routePath: string) => {
@@ -225,6 +227,10 @@ const Sidebar: React.FC = () => {
         <NavItem to="/students" icon={User} label={t("nav.students")} locked={isStudent} premiumLocked={isAdmin && !isPremium} pageBlocked={isBlocked("/students")} />
         <NavItem to="/timetable" icon={Calendar} label={t("nav.timetable")} pageBlocked={isBlocked("/timetable")} />
         <NavItem to="/attendance" icon={CheckCircle} label={t("nav.attendance") || "Attendance"} locked={isStudent} premiumLocked={isAdmin && !isPremium} pageBlocked={isBlocked("/attendance")} />
+        {/* Step 8: My Attendance History — visible only for Students */}
+        {isStudent && (
+          <NavItem to="/attendance/history" icon={ClipboardList} label="My Attendance" />
+        )}
         <NavItem to="/chat" icon={MessageSquare} label={t("nav.chat")} badge={chatBadgeCount} pageBlocked={isBlocked("/chat")} />
         <NavItem to="/wallet" icon={Wallet} label="Wallet" pageBlocked={isBlocked("/wallet")} walletVerified={walletVerified} />
         <NavItem to="/history" icon={Clock} label={t("nav.history") || "History"} pageBlocked={isBlocked("/history")} />

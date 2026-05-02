@@ -139,7 +139,7 @@ export async function sendBroadcast(
 }
 
 export async function getBroadcastHistory(page = 1, pageSize = 20) {
-  return fetchWithAuth<{ items: any[]; total: number; totalPages: number }>(
+  return fetchWithAuth<{ items: any[]; totalCount: number; totalPages: number }>(
     `/admin/broadcast/history?page=${page}&pageSize=${pageSize}`
   );
 }

@@ -2,32 +2,35 @@ namespace SessionFlow.Desktop.Models;
 
 public static class PlanLimit
 {
-    public static int GetMaxGroups(SubscriptionTier tier) => tier switch
-    {
-        SubscriptionTier.Free => 10,
-        SubscriptionTier.Pro => 15,
-        SubscriptionTier.Ultra => 35,
-        SubscriptionTier.Enterprise => int.MaxValue,
-        _ => 0
-    };
+    public static int GetMaxGroups(SubscriptionTier tier, string? role = null) =>
+        IsAdminBypass(role) ? int.MaxValue : tier switch
+        {
+            SubscriptionTier.Free => 10,
+            SubscriptionTier.Pro => 15,
+            SubscriptionTier.Ultra => 35,
+            SubscriptionTier.Enterprise => int.MaxValue,
+            _ => 0
+        };
 
-    public static int GetMaxStudentsPerGroup(SubscriptionTier tier) => tier switch
-    {
-        SubscriptionTier.Free => 8,
-        SubscriptionTier.Pro => 25,
-        SubscriptionTier.Ultra => 40,
-        SubscriptionTier.Enterprise => 50,
-        _ => 0
-    };
+    public static int GetMaxStudentsPerGroup(SubscriptionTier tier, string? role = null) =>
+        IsAdminBypass(role) ? int.MaxValue : tier switch
+        {
+            SubscriptionTier.Free => 8,
+            SubscriptionTier.Pro => 25,
+            SubscriptionTier.Ultra => 40,
+            SubscriptionTier.Enterprise => 50,
+            _ => 0
+        };
 
-    public static int GetMaxSessionsPerGroup(SubscriptionTier tier) => tier switch
-    {
-        SubscriptionTier.Free => 13,
-        SubscriptionTier.Pro => int.MaxValue,
-        SubscriptionTier.Ultra => int.MaxValue,
-        SubscriptionTier.Enterprise => int.MaxValue,
-        _ => 0
-    };
+    public static int GetMaxSessionsPerGroup(SubscriptionTier tier, string? role = null) =>
+        IsAdminBypass(role) ? int.MaxValue : tier switch
+        {
+            SubscriptionTier.Free => 13,
+            SubscriptionTier.Pro => int.MaxValue,
+            SubscriptionTier.Ultra => int.MaxValue,
+            SubscriptionTier.Enterprise => int.MaxValue,
+            _ => 0
+        };
 
     public static bool HasFeature(SubscriptionTier tier, string feature) => (tier, feature) switch
     {
@@ -62,66 +65,72 @@ public static class PlanLimit
     // Chat & Media Limits
     // ═══════════════════════════════════════
 
-    public static int GetMaxDailyMessages(SubscriptionTier tier) => tier switch
-    {
-        SubscriptionTier.Free => 15,
-        SubscriptionTier.Pro => int.MaxValue,
-        SubscriptionTier.Ultra => int.MaxValue,
-        SubscriptionTier.Enterprise => int.MaxValue,
-        _ => 0
-    };
+    public static int GetMaxDailyMessages(SubscriptionTier tier, string? role = null) =>
+        IsAdminBypass(role) ? int.MaxValue : tier switch
+        {
+            SubscriptionTier.Free => 15,
+            SubscriptionTier.Pro => int.MaxValue,
+            SubscriptionTier.Ultra => int.MaxValue,
+            SubscriptionTier.Enterprise => int.MaxValue,
+            _ => 0
+        };
 
-    public static int GetMaxDailyImages(SubscriptionTier tier) => tier switch
-    {
-        SubscriptionTier.Free => 1,
-        SubscriptionTier.Pro => 4,
-        SubscriptionTier.Ultra => 12,
-        SubscriptionTier.Enterprise => int.MaxValue,
-        _ => 0
-    };
+    public static int GetMaxDailyImages(SubscriptionTier tier, string? role = null) =>
+        IsAdminBypass(role) ? int.MaxValue : tier switch
+        {
+            SubscriptionTier.Free => 1,
+            SubscriptionTier.Pro => 4,
+            SubscriptionTier.Ultra => 12,
+            SubscriptionTier.Enterprise => int.MaxValue,
+            _ => 0
+        };
 
-    public static int GetMaxDailyVideos(SubscriptionTier tier) => tier switch
-    {
-        SubscriptionTier.Free => 0,
-        SubscriptionTier.Pro => 1,
-        SubscriptionTier.Ultra => 5,
-        SubscriptionTier.Enterprise => int.MaxValue,
-        _ => 0
-    };
+    public static int GetMaxDailyVideos(SubscriptionTier tier, string? role = null) =>
+        IsAdminBypass(role) ? int.MaxValue : tier switch
+        {
+            SubscriptionTier.Free => 0,
+            SubscriptionTier.Pro => 1,
+            SubscriptionTier.Ultra => 5,
+            SubscriptionTier.Enterprise => int.MaxValue,
+            _ => 0
+        };
 
-    public static int GetMaxDailyFiles(SubscriptionTier tier) => tier switch
-    {
-        SubscriptionTier.Free => 0,
-        SubscriptionTier.Pro => 1,
-        SubscriptionTier.Ultra => 10,
-        SubscriptionTier.Enterprise => int.MaxValue,
-        _ => 0
-    };
+    public static int GetMaxDailyFiles(SubscriptionTier tier, string? role = null) =>
+        IsAdminBypass(role) ? int.MaxValue : tier switch
+        {
+            SubscriptionTier.Free => 0,
+            SubscriptionTier.Pro => 1,
+            SubscriptionTier.Ultra => 10,
+            SubscriptionTier.Enterprise => int.MaxValue,
+            _ => 0
+        };
 
     // ═══════════════════════════════════════
     // Attendance Limits
     // ═══════════════════════════════════════
 
-    public static int GetMaxDailyAttendance(SubscriptionTier tier) => tier switch
-    {
-        SubscriptionTier.Free => 1,
-        SubscriptionTier.Pro => 2,
-        SubscriptionTier.Ultra => 4,
-        SubscriptionTier.Enterprise => int.MaxValue,
-        _ => 0
-    };
+    public static int GetMaxDailyAttendance(SubscriptionTier tier, string? role = null) =>
+        IsAdminBypass(role) ? int.MaxValue : tier switch
+        {
+            SubscriptionTier.Free => 1,
+            SubscriptionTier.Pro => 2,
+            SubscriptionTier.Ultra => 4,
+            SubscriptionTier.Enterprise => int.MaxValue,
+            _ => 0
+        };
 
     // ═══════════════════════════════════════
     // Feature Gates
     // ═══════════════════════════════════════
 
-    public static bool CallsEnabled(SubscriptionTier tier) => tier switch
-    {
-        SubscriptionTier.Pro => true,
-        SubscriptionTier.Ultra => true,
-        SubscriptionTier.Enterprise => true,
-        _ => false
-    };
+    public static bool CallsEnabled(SubscriptionTier tier, string? role = null) =>
+        IsAdminBypass(role) || tier switch
+        {
+            SubscriptionTier.Pro => true,
+            SubscriptionTier.Ultra => true,
+            SubscriptionTier.Enterprise => true,
+            _ => false
+        };
 
     // ═══════════════════════════════════════
     // AI Feature Gate
@@ -146,4 +155,3 @@ public static class PlanLimit
     /// </summary>
     public static bool IsAdminBypass(string? role) => role is "Admin";
 }
-

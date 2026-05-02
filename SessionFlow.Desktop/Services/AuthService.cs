@@ -1082,6 +1082,7 @@ public class AuthService
         {
             var migrateUpdate = Builders<User>.Update
                 .Set(u => u.Email, newAdminEmail)
+                .Set(u => u.SubscriptionTier, SubscriptionTier.Enterprise)
                 .Set(u => u.UpdatedAt, DateTimeOffset.UtcNow);
             await _db.Users.UpdateOneAsync(u => u.Id == legacyAdmin.Id, migrateUpdate);
             return;
@@ -1091,6 +1092,15 @@ public class AuthService
         if (existingAdmin != null)
         {
             // PROD FIX: Only seed if missing. Do NOT overwrite existing password on restart.
+            // TIER FIX: Always ensure admin has Enterprise tier in DB (idempotent patch)
+            if (existingAdmin.SubscriptionTier != SubscriptionTier.Enterprise)
+            {
+                await _db.Users.UpdateOneAsync(
+                    u => u.Id == existingAdmin.Id,
+                    Builders<User>.Update
+                        .Set(u => u.SubscriptionTier, SubscriptionTier.Enterprise)
+                        .Set(u => u.UpdatedAt, DateTimeOffset.UtcNow));
+            }
             return;
         }
 
@@ -1101,7 +1111,8 @@ public class AuthService
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(_generatedAdminPassword),
             Role = UserRole.Admin,
             EngineerCode = "Eng1",
-            IsApproved = true
+            IsApproved = true,
+            SubscriptionTier = SubscriptionTier.Enterprise
         };
 
         await _db.Users.InsertOneAsync(admin);

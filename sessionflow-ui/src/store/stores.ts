@@ -32,6 +32,17 @@ export interface AuthState {
   setHasAcknowledgedFreeModal: (val: boolean) => void;
 }
 
+/**
+ * Computed selector — always returns the correct effective subscription tier.
+ * Admin accounts are always treated as "Enterprise" regardless of DB value,
+ * eliminating the race condition between login response and /status endpoint.
+ */
+export const selectEffectiveTier = (state: AuthState): import("../types").SubscriptionTier => {
+  if (!state.user) return "Free";
+  if (state.user.role === "Admin") return "Enterprise";
+  return state.user.subscriptionTier ?? "Free";
+};
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({

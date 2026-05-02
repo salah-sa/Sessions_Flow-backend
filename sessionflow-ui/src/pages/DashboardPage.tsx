@@ -16,6 +16,7 @@ import { useAuthStore } from "../store/stores";
 import { StudentDashboard } from "./StudentDashboard";
 import { useIPGeolocation } from "../queries/useGeoQueries";
 import { useUpdateStudentLocation } from "../queries/useStudentLocationQueries";
+import { UsageBarsWidget } from "../components/usage/UsageBarsWidget";
 
 const DashboardPage: React.FC = () => {
   const user = useAuthStore((s) => s.user);
@@ -121,6 +122,11 @@ const DashboardPage: React.FC = () => {
       />
 
 
+      {/* Step 7: Plan Usage Bars — shows daily limits (Messages, Images, Videos, etc.) */}
+      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5">
+        <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Today's Usage</p>
+        <UsageBarsWidget compact={false} />
+      </div>
 
       <WorldStudentMap />
 

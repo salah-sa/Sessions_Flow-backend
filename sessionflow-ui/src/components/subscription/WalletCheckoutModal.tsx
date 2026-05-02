@@ -114,60 +114,83 @@ export const WalletCheckoutModal: React.FC<WalletCheckoutModalProps> = ({
                 </div>
               ) : eligibility ? (
                 <div className="space-y-3">
-                  {/* Balance display */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-slate-800/50 rounded-2xl p-3.5 space-y-1">
-                      <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Your Balance</p>
-                      <p className="text-xl font-black text-white">{eligibility.balanceEgp.toFixed(2)}</p>
-                      <p className="text-[9px] text-slate-600 font-bold">EGP</p>
-                    </div>
-                    <div className="bg-slate-800/50 rounded-2xl p-3.5 space-y-1">
-                      <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Required</p>
-                      <p className={cn("text-xl font-black", eligibility.eligible ? "text-white" : "text-red-400")}>
-                        {eligibility.requiredEgp.toFixed(2)}
-                      </p>
-                      <p className="text-[9px] text-slate-600 font-bold">EGP</p>
-                    </div>
-                  </div>
-
-                  {/* Insufficient balance */}
-                  {!eligibility.eligible && (
-                    <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-3.5 flex gap-3 items-start">
-                      <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                  {/* Wallet error (no wallet / inactive) — show before balance grid */}
+                  {!eligibility.eligible && eligibility.balanceEgp === 0 && eligibility.requiredEgp === 0 ? (
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex gap-3 items-start">
+                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-[11px] text-red-300 font-bold">Insufficient Balance</p>
-                        <p className="text-[10px] text-red-400/70 mt-0.5">
-                          You need {eligibility.shortfallEgp.toFixed(2)} EGP more.
+                        <p className="text-[11px] text-amber-300 font-bold">Wallet Not Ready</p>
+                        <p className="text-[10px] text-amber-400/70 mt-0.5">
+                          {eligibility.error ?? "Please set up and activate your wallet first."}
                         </p>
                         <button
-                          onClick={() => { onClose(); navigate("/wallet/charge"); }}
+                          onClick={() => { onClose(); navigate("/wallet"); }}
                           className="mt-2 flex items-center gap-1.5 text-[10px] text-blue-400 hover:text-blue-300 font-bold transition-colors"
                         >
                           <ExternalLink className="w-3 h-3" />
-                          Charge Wallet
+                          Go to Wallet
                         </button>
                       </div>
                     </div>
-                  )}
+                  ) : (
+                    <>
+                      {/* Balance display */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-slate-800/50 rounded-2xl p-3.5 space-y-1">
+                          <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Your Balance</p>
+                          <p className="text-xl font-black text-white">{eligibility.balanceEgp.toFixed(2)}</p>
+                          <p className="text-[9px] text-slate-600 font-bold">EGP</p>
+                        </div>
+                        <div className="bg-slate-800/50 rounded-2xl p-3.5 space-y-1">
+                          <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Required</p>
+                          <p className={cn("text-xl font-black", eligibility.eligible ? "text-white" : "text-red-400")}>
+                            {eligibility.requiredEgp.toFixed(2)}
+                          </p>
+                          <p className="text-[9px] text-slate-600 font-bold">EGP</p>
+                        </div>
+                      </div>
 
-                  {/* Eligible — confirm checkbox */}
-                  {eligibility.eligible && (
-                    <label className="flex items-center gap-3 p-3 bg-slate-800/40 rounded-2xl cursor-pointer group">
-                      <input
-                        type="checkbox"
-                        checked={confirmed}
-                        onChange={(e) => setConfirmed(e.target.checked)}
-                        className="w-4 h-4 accent-violet-500 rounded"
-                      />
-                      <span className="text-[11px] text-slate-400 group-hover:text-slate-300 transition-colors">
-                        I confirm deducting <span className="text-white font-bold">{eligibility.requiredEgp.toFixed(2)} EGP</span> from my wallet
-                      </span>
-                    </label>
+                      {/* Insufficient balance */}
+                      {!eligibility.eligible && (
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-3.5 flex gap-3 items-start">
+                          <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-[11px] text-red-300 font-bold">Insufficient Balance</p>
+                            <p className="text-[10px] text-red-400/70 mt-0.5">
+                              You need {eligibility.shortfallEgp.toFixed(2)} EGP more.
+                            </p>
+                            <button
+                              onClick={() => { onClose(); navigate("/wallet/charge"); }}
+                              className="mt-2 flex items-center gap-1.5 text-[10px] text-blue-400 hover:text-blue-300 font-bold transition-colors"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              Charge Wallet
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Eligible — confirm checkbox */}
+                      {eligibility.eligible && (
+                        <label className="flex items-center gap-3 p-3 bg-slate-800/40 rounded-2xl cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={confirmed}
+                            onChange={(e) => setConfirmed(e.target.checked)}
+                            className="w-4 h-4 accent-violet-500 rounded"
+                          />
+                          <span className="text-[11px] text-slate-400 group-hover:text-slate-300 transition-colors">
+                            I confirm deducting <span className="text-white font-bold">{eligibility.requiredEgp.toFixed(2)} EGP</span> from my wallet
+                          </span>
+                        </label>
+                      )}
+                    </>
                   )}
                 </div>
               ) : (
-                <div className="p-4 bg-red-500/10 rounded-2xl text-red-300 text-sm">
-                  {"Unable to check eligibility. Please try again."}
+                <div className="p-4 bg-slate-800/40 rounded-2xl flex gap-3 items-start">
+                  <AlertTriangle className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                  <span className="text-sm text-slate-400">Unable to check eligibility. Please try again.</span>
                 </div>
               )}
 

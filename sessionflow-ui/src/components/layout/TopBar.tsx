@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 import { format } from "date-fns";
-import { useAuthStore, useAppStore, useUIStore } from "../../store/stores";
+import { useAuthStore, useAppStore, useUIStore, selectEffectiveTier } from "../../store/stores";
 import { useTranslation } from "react-i18next";
 import { useNavigate, Link } from "react-router-dom";
 import { cn, getTierBorderClass, getTierBadge, getStudentBorderStyle } from "../../lib/utils";
@@ -42,6 +42,8 @@ const TopBar: React.FC = () => {
   const { connectionMode, networkQuality } = useAppStore();
   const { walletQuery } = useWallet();
   const walletBalance = walletQuery.data?.balanceEGP;
+  // Step 6b: Always resolve correct tier — Admin → Enterprise, others → from store
+  const effectiveTier = useAuthStore(selectEffectiveTier);
 
   const [notifOpen, setNotifOpen] = React.useState(false);
   const [cmdOpen, setCmdOpen] = React.useState(false);
@@ -285,15 +287,15 @@ const TopBar: React.FC = () => {
               <p className="text-[8px] font-bold text-[var(--ui-accent)] uppercase tracking-widest opacity-80">{user?.role} NODE</p>
               <span className={cn(
                   "text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
-                  user?.subscriptionTier?.toLowerCase() === "ultra"
+                  effectiveTier?.toLowerCase() === "ultra"
                     ? "bg-purple-500/20 text-purple-300 border border-purple-500/30 animate-pulse"
-                    : user?.subscriptionTier?.toLowerCase() === "pro"
+                    : effectiveTier?.toLowerCase() === "pro"
                     ? "bg-violet-500/20 text-violet-300 border border-violet-500/30"
-                    : user?.subscriptionTier?.toLowerCase() === "enterprise"
+                    : effectiveTier?.toLowerCase() === "enterprise"
                     ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                     : "bg-slate-500/10 text-slate-500 border border-white/10"
                 )}>
-                  {getTierBadge(user?.subscriptionTier)?.label}
+                  {getTierBadge(effectiveTier)?.label}
                 </span>
             </div>
           </div>
