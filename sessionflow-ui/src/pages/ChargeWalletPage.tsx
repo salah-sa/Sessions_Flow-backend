@@ -191,11 +191,11 @@ export default function ChargeWalletPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white pb-safe">
+    <div className="h-full overflow-y-auto bg-[#0a0a0f] text-white">
 
       {/* ── Sticky Header ────────────────────────────────────────────────── */}
       <div className="sticky top-0 z-50 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/5
-                      px-4 sm:px-6 py-3 sm:py-4 pt-safe">
+                      px-4 sm:px-6 py-3 sm:py-4">
         <div className="max-w-2xl mx-auto flex items-center gap-3">
           {/* Back button — 44px minimum touch target */}
           <button
@@ -224,7 +224,7 @@ export default function ChargeWalletPage() {
       </div>
 
       {/* ── Content ──────────────────────────────────────────────────────── */}
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8 pb-safe">
 
         {/* First Charge Bonus Banner */}
         {isFirstDeposit && (
