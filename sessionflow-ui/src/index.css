@@ -382,6 +382,12 @@
     min-width: 44px;
     min-height: 44px;
   }
+
+  /* iOS Safe-Area Tailwind-style utilities */
+  .pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+  .pt-safe { padding-top: max(0px, env(safe-area-inset-top)); }
+  .ps-safe { padding-left: max(0px, env(safe-area-inset-left)); }
+  .pe-safe { padding-right: max(0px, env(safe-area-inset-right)); }
 }
 
 /* Custom Scrollbar for the Void */

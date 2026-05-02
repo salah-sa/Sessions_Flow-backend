@@ -27,12 +27,15 @@ const OtpInput = ({ value, onChange }: { value: string; onChange: (v: string) =>
   };
 
   return (
-    <div className="flex gap-2 justify-center">
+    <div className="flex gap-1.5 sm:gap-2 justify-center w-full">
       {Array.from({ length: 6 }, (_, i) => (
         <input key={i} ref={refs[i]} type="text" inputMode="numeric" maxLength={1}
           value={digits[i] || ""} onChange={e => handleChange(i, e.target.value)}
           onKeyDown={e => handleKey(i, e)}
-          className="w-10 h-12 text-center text-lg font-bold bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[var(--ui-accent)]/50 focus:ring-1 focus:ring-[var(--ui-accent)]/20"
+          className="w-[13%] min-w-0 aspect-[4/5] max-w-[44px] text-center text-base sm:text-lg font-bold
+                     bg-black/30 border border-white/10 rounded-xl text-white
+                     focus:outline-none focus:border-[var(--ui-accent)]/50
+                     focus:ring-1 focus:ring-[var(--ui-accent)]/20"
         />
       ))}
     </div>
