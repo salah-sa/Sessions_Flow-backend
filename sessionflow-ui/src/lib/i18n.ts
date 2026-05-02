@@ -252,7 +252,8 @@ const resources = {
           "fundamentals": "Level 1 — Fundamentals",
           "intermediate": "Level 2 — Intermediate",
           "advanced": "Level 3 — Advanced",
-          "masterclass": "Level 4 — Masterclass"
+          "masterclass": "Level 4 — Masterclass",
+          "expert": "Level 5 — Expert"
         }
       },
       "connection": {
@@ -1900,7 +1901,8 @@ const resources = {
           "fundamentals": "المستوى 1 — أساسيات",
           "intermediate": "المستوى 2 — متوسط",
           "advanced": "المستوى 3 — متقدم",
-          "masterclass": "المستوى 4 — ماستركلاس"
+          "masterclass": "المستوى 4 — ماستركلاس",
+          "expert": "المستوى 5 — خبير"
         }
       },
       "group_sessions": {

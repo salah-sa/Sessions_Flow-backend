@@ -236,6 +236,7 @@ export const GroupWizard: React.FC<GroupWizardProps> = ({
                   <option value={2}>{t("sidebar.levels.intermediate")}</option>
                   <option value={3}>{t("sidebar.levels.advanced")}</option>
                   <option value={4}>{t("sidebar.levels.masterclass")}</option>
+                  <option value={5}>{t("sidebar.levels.expert")}</option>
                 </select>
               </div>
             </div>

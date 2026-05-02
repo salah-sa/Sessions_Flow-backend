@@ -88,10 +88,10 @@ const DashboardPage: React.FC = () => {
   const attendanceTrend = data?.attendanceTrend  ?? [0, 0, 0, 0, 0, 0, 0, 0];
   const studentGrowth   = data?.studentGrowth    ?? [0, 0, 0, 0, 0, 0, 0, 0];
 
-  const levelColors = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b"];
-  const levelKeys = ["fundamentals", "intermediate", "advanced", "masterclass"];
+  const levelColors = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444"];
+  const levelKeys = ["fundamentals", "intermediate", "advanced", "masterclass", "expert"];
   
-  const distributionData = [1, 2, 3, 4].map((lvl, i) => {
+  const distributionData = [1, 2, 3, 4, 5].map((lvl, i) => {
     const entry = (data?.operatorDistribution || []).find(d => d.level === lvl);
     return { 
       label: t(`sidebar.levels.${levelKeys[i]}`), 

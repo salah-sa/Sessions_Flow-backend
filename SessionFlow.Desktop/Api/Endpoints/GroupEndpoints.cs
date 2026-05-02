@@ -275,8 +275,8 @@ public static class GroupEndpoints
                 }
                 // ──────────────────────────────────────────────────────────────
 
-                if (req.Level < 1 || req.Level > 4)
-                    return Results.BadRequest(new { error = "Level must be between 1 and 4." });
+                if (req.Level < 1 || req.Level > 5)
+                    return Results.BadRequest(new { error = "Level must be between 1 and 5." });
 
                 // HARDENED VALIDATION: Prevent 0 or negative student slots
                 if (req.NumberOfStudents <= 0)
@@ -458,7 +458,7 @@ public static class GroupEndpoints
 
             if (req.Description != null) update = update.Set(x => x.Description, req.Description.Trim());
             if (req.ColorTag != null) update = update.Set(x => x.ColorTag, req.ColorTag);
-            if (req.Level.HasValue && req.Level >= 1 && req.Level <= 4) update = update.Set(x => x.Level, req.Level.Value);
+            if (req.Level.HasValue && req.Level >= 1 && req.Level <= 5) update = update.Set(x => x.Level, req.Level.Value);
             if (req.NumberOfStudents.HasValue) 
              {
                 if (req.NumberOfStudents.Value <= 0)

@@ -9,7 +9,7 @@ export const scheduleSchema = z.object({
 export const groupSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
   description: z.string().optional(),
-  level: z.number().min(1).max(4),
+  level: z.number().min(1).max(5),
   colorTag: z.string().default("blue"),
   numberOfStudents: z.number().min(1).max(10),
   totalSessions: z.number().min(1).max(50).default(13),
@@ -76,5 +76,5 @@ export const generateTimeSlots = () => {
 };
 
 export const TIME_SLOTS = generateTimeSlots();
-export const LEVEL_SESSION_MAP: Record<number, number> = { 1: 13, 2: 12, 3: 13, 4: 13 };
-export const LEVEL_CAPACITY_MAP: Record<number, number> = { 1: 4, 2: 4, 3: 4, 4: 4 };
+export const LEVEL_SESSION_MAP: Record<number, number> = { 1: 13, 2: 13, 3: 13, 4: 13, 5: 13 };
+export const LEVEL_CAPACITY_MAP: Record<number, number> = { 1: 4, 2: 4, 3: 4, 4: 4, 5: 4 };
