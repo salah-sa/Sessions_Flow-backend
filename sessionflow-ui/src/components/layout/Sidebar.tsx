@@ -20,7 +20,10 @@ import {
   Wallet,
   ClipboardList,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Brain,
+  TrendingUp,
+  Flag
 } from "lucide-react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore, useSectionBadgeStore, useChatStore, selectEffectiveTier, useAIAgentStore, useUIStore } from "../../store/stores";
@@ -268,6 +271,30 @@ const Sidebar: React.FC = () => {
           <NavItem to="/staff" icon={Zap} label={t("staff.portal_title")} badge={staffBadgeCount} />
         )}
         
+        {/* Intelligence Section — Admin Only */}
+        {user?.role === "Admin" && (
+          <>
+            <div className="py-3 px-6">
+              <p className="text-[9px] font-bold text-slate-700 uppercase tracking-widest mb-4">Intelligence</p>
+              <div className="h-px bg-white/5" />
+            </div>
+            <NavItem to="/ai-center" icon={Brain} label="AI Center" />
+            <NavItem to="/analytics" icon={TrendingUp} label="Analytics" />
+            <NavItem to="/feature-flags" icon={Flag} label="Feature Flags" />
+          </>
+        )}
+
+        {/* Engineers get AI Center too */}
+        {user?.role === "Engineer" && (
+          <>
+            <div className="py-3 px-6">
+              <p className="text-[9px] font-bold text-slate-700 uppercase tracking-widest mb-4">Intelligence</p>
+              <div className="h-px bg-white/5" />
+            </div>
+            <NavItem to="/ai-center" icon={Brain} label="AI Center" />
+          </>
+        )}
+
         <NavItem to="/archive" icon={Archive} label={t("nav.archive") || "Archive"} locked={isStudent} />
         <NavItem to="/plans" icon={Crown} label={t("nav.plans") || "Plans & Upgrades"} locked={isStudent} />
         <NavItem to="/profile" icon={UserCircle} label={t("nav.profile") || "Profile"} />

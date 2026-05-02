@@ -244,6 +244,43 @@ public class MongoService
         // Attendance History: Engineer view (by GroupId)
         await AttendanceRecords.Indexes.CreateOneAsync(new CreateIndexModel<AttendanceRecord>(
             Builders<AttendanceRecord>.IndexKeys.Ascending(ar => ar.GroupId).Descending(ar => ar.MarkedAt)));
+
+        // ── AI Center Collections ──────────────────────────────────────────────
+        // AILogs: User + Timestamp (paginated history)
+        await AILogs.Indexes.CreateOneAsync(new CreateIndexModel<AILog>(
+            Builders<AILog>.IndexKeys.Ascending(l => l.UserId).Descending(l => l.Timestamp)));
+
+        // TTL: Auto-delete AI logs older than 90 days
+        await AILogs.Indexes.CreateOneAsync(new CreateIndexModel<AILog>(
+            Builders<AILog>.IndexKeys.Ascending(l => l.Timestamp),
+            new CreateIndexOptions { ExpireAfter = TimeSpan.FromDays(90) }));
+
+        // AIPromptPresets: User + Usage
+        await AIPromptPresets.Indexes.CreateOneAsync(new CreateIndexModel<AIPromptPreset>(
+            Builders<AIPromptPreset>.IndexKeys.Ascending(p => p.UserId).Descending(p => p.UsageCount)));
+
+        // ── Feature Flags ─────────────────────────────────────────────────────
+        // Unique key index
+        await FeatureFlags.Indexes.CreateOneAsync(new CreateIndexModel<FeatureFlag>(
+            Builders<FeatureFlag>.IndexKeys.Ascending(f => f.Key),
+            new CreateIndexOptions { Unique = true }));
+
+        // ── Analytics Events ──────────────────────────────────────────────────
+        // Timestamp index for range queries
+        await AnalyticsEvents.Indexes.CreateOneAsync(new CreateIndexModel<AnalyticsEvent>(
+            Builders<AnalyticsEvent>.IndexKeys.Descending(e => e.Timestamp)));
+
+        // UserId + EventType for user activity queries
+        await AnalyticsEvents.Indexes.CreateOneAsync(new CreateIndexModel<AnalyticsEvent>(
+            Builders<AnalyticsEvent>.IndexKeys.Ascending(e => e.UserId).Ascending(e => e.EventType)));
+
+        // TTL: Auto-delete analytics events older than 90 days
+        await AnalyticsEvents.Indexes.CreateOneAsync(new CreateIndexModel<AnalyticsEvent>(
+            Builders<AnalyticsEvent>.IndexKeys.Ascending(e => e.Timestamp),
+            new CreateIndexOptions { ExpireAfter = TimeSpan.FromDays(90) }));
+
+        // Seed default feature flags
+        Serilog.Log.Information("[Mongo] Seeding default feature flags...");
     }
 
     public IMongoCollection<User> Users => _database.GetCollection<User>("Users");
@@ -281,6 +318,16 @@ public class MongoService
 
     // Usage Tracking
     public IMongoCollection<UsageCounter> UsageCounters => _database.GetCollection<UsageCounter>("UsageCounters");
+
+    // ── AI Center ────────────────────────────────────────────────────────────
+    public IMongoCollection<AILog> AILogs => _database.GetCollection<AILog>("AILogs");
+    public IMongoCollection<AIPromptPreset> AIPromptPresets => _database.GetCollection<AIPromptPreset>("AIPromptPresets");
+
+    // ── Feature Flags ────────────────────────────────────────────────────────
+    public IMongoCollection<FeatureFlag> FeatureFlags => _database.GetCollection<FeatureFlag>("FeatureFlags");
+
+    // ── Analytics Events (Hybrid Tracking) ──────────────────────────────────
+    public IMongoCollection<AnalyticsEvent> AnalyticsEvents => _database.GetCollection<AnalyticsEvent>("AnalyticsEvents");
 
     public IMongoDatabase Database => _database;
     public IMongoClient Client => _database.Client;

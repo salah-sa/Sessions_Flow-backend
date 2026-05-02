@@ -16,6 +16,7 @@ import { AIAgentWidget } from "../ai";
 import { useRealtimeNotifications } from "../../hooks/realtime";
 import { useHeartbeat } from "../../hooks/useHeartbeat";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
+import { useAnalytics } from "../../hooks/useAnalytics";
 import { useUIStore, useAuthStore } from "../../store/stores";
 import { UIStyleManager, UIStyleConfig } from "../../styles/UIStyleManager";
 import { cn } from "../../lib/utils";
@@ -65,6 +66,9 @@ const Shell: React.FC = () => {
   
   // Global keyboard shortcuts
   useKeyboardShortcuts();
+
+  // Platform-wide analytics tracking (page views auto-tracked)
+  useAnalytics();
 
   const isMinimized = useUIStore((s) => s.isMinimized);
   const setMinimized = useUIStore((s) => s.setMinimized);

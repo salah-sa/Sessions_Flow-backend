@@ -190,6 +190,44 @@ public static class ApiHost
         builder.Services.AddScoped<WalletSubscriptionService>();
         builder.Services.AddScoped<UsageService>();
 
+        // ── Platform Upgrade Services ───────────────────────────────────────
+        // Analytics Service
+        builder.Services.AddScoped<AnalyticsService>();
+
+        // Feature Flag Service
+        builder.Services.AddSingleton<FeatureFlagService>(sp =>
+        {
+            var logger = sp.GetRequiredService<ILogger<FeatureFlagService>>();
+            var db = sp.GetRequiredService<MongoService>();
+            return new FeatureFlagService(db, redisConnection, logger);
+        });
+
+        // AI Service (Smart Mock by default, upgradeable to OpenAI via config)
+        builder.Services.AddScoped<AIService>(sp =>
+        {
+            var logger = sp.GetRequiredService<ILogger<AIService>>();
+            var db = sp.GetRequiredService<MongoService>();
+            var config = sp.GetRequiredService<IConfiguration>();
+
+            IChatCompletionProvider provider;
+            var openAiKey = config["AI:OpenAiApiKey"];
+            var model = config["AI:Model"] ?? "gpt-4o-mini";
+
+            if (!string.IsNullOrWhiteSpace(openAiKey))
+            {
+                var http = sp.GetRequiredService<IHttpClientFactory>().CreateClient("openai");
+                provider = new OpenAIProvider(http, openAiKey, model);
+                Log.Information("[AI] Using OpenAI provider (model: {Model})", model);
+            }
+            else
+            {
+                provider = new SmartMockProvider();
+                Log.Information("[AI] Using Smart Mock provider (no API key configured)");
+            }
+
+            return new AIService(provider, db, redisConnection, logger, config);
+        });
+
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<SessionFlow.Desktop.Services.MultiTenancy.ITenantProvider, SessionFlow.Desktop.Services.MultiTenancy.TenantProvider>();
 
@@ -302,12 +340,18 @@ public static class ApiHost
                 await auth.SeedAdminAsync();
                 await auth.SeedEngineerCodesAsync();
                 Log.Information("[Bootstrap] Admin user and engineer codes seeded.");
+
+                // Seed default feature flags (idempotent)
+                var flagsSvc = scope.ServiceProvider.GetRequiredService<FeatureFlagService>();
+                await flagsSvc.SeedDefaultFlagsAsync();
+                Log.Information("[Bootstrap] Feature flags seeded.");
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "[Bootstrap] Critical error during background initialization");
             }
         });
+
 
         // ── CSRF: Validate X-Requested-With on mutating requests ──────
         app.Use(async (context, next) =>
@@ -375,6 +419,10 @@ public static class ApiHost
         WalletSubscriptionEndpoints.Map(app);
         AdminBroadcastEndpoints.Map(app);
         AttendanceHistoryEndpoints.Map(app);
+        // ── Platform Upgrade Endpoints ──────────────────────────────────────
+        AIEndpoints.Map(app);
+        AnalyticsEndpoints.Map(app);
+        FeatureFlagEndpoints.Map(app);
 
         // 6. Map Real-time Hubs
         app.MapHub<SessionHub>("/hub");

@@ -27,6 +27,9 @@ const UsersPage = lazy(() => import("./pages/UsersPage"));
 const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
 const WalletPage = lazy(() => import("./pages/WalletPage").then(module => ({ default: module.WalletPage })));
 const ChargeWalletPage = lazy(() => import("./pages/ChargeWalletPage"));
+const AICenterPage = lazy(() => import("./pages/AICenterPage"));
+const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
+const FeatureFlagsPage = lazy(() => import("./pages/FeatureFlagsPage"));
 
 const PageLoader = () => (
   <div className="h-full w-full flex items-center justify-center bg-slate-950/50 backdrop-blur-md animate-fade-in">
@@ -268,6 +271,36 @@ export const router = createBrowserRouter([
           <RoleGuard allowedRoles={["Admin", "Engineer", "Student"]}>
             <Suspense fallback={<PageLoader />}>
               <ChargeWalletPage />
+            </Suspense>
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "ai-center",
+        element: (
+          <RoleGuard allowedRoles={["Admin", "Engineer"]}>
+            <Suspense fallback={<PageLoader />}>
+              <AICenterPage />
+            </Suspense>
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "analytics",
+        element: (
+          <RoleGuard allowedRoles={["Admin"]}>
+            <Suspense fallback={<PageLoader />}>
+              <AnalyticsPage />
+            </Suspense>
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "feature-flags",
+        element: (
+          <RoleGuard allowedRoles={["Admin"]}>
+            <Suspense fallback={<PageLoader />}>
+              <FeatureFlagsPage />
             </Suspense>
           </RoleGuard>
         ),
