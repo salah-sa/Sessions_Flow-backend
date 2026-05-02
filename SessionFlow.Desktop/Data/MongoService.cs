@@ -226,6 +226,24 @@ public class MongoService
 
         await DepositRequests.Indexes.CreateOneAsync(new CreateIndexModel<DepositRequest>(
             Builders<DepositRequest>.IndexKeys.Ascending(d => d.Status).Descending(d => d.CreatedAt)));
+
+        // Usage Counters: Unique compound (UserId + DateKey) — one document per user per day
+        await UsageCounters.Indexes.CreateOneAsync(new CreateIndexModel<UsageCounter>(
+            Builders<UsageCounter>.IndexKeys.Ascending(u => u.UserId).Ascending(u => u.DateKey),
+            new CreateIndexOptions { Unique = true }));
+
+        // TTL: Auto-delete usage counters older than 30 days
+        await UsageCounters.Indexes.CreateOneAsync(new CreateIndexModel<UsageCounter>(
+            Builders<UsageCounter>.IndexKeys.Ascending(u => u.UpdatedAt),
+            new CreateIndexOptions { ExpireAfter = TimeSpan.FromDays(30) }));
+
+        // Attendance History: Student + date descending (for paginated history queries)
+        await AttendanceRecords.Indexes.CreateOneAsync(new CreateIndexModel<AttendanceRecord>(
+            Builders<AttendanceRecord>.IndexKeys.Ascending(ar => ar.StudentId).Descending(ar => ar.MarkedAt)));
+
+        // Attendance History: Engineer view (by GroupId)
+        await AttendanceRecords.Indexes.CreateOneAsync(new CreateIndexModel<AttendanceRecord>(
+            Builders<AttendanceRecord>.IndexKeys.Ascending(ar => ar.GroupId).Descending(ar => ar.MarkedAt)));
     }
 
     public IMongoCollection<User> Users => _database.GetCollection<User>("Users");
@@ -260,6 +278,9 @@ public class MongoService
     public IMongoCollection<Wallet> Wallets => _database.GetCollection<Wallet>("Wallets");
     public IMongoCollection<Transaction> Transactions => _database.GetCollection<Transaction>("Transactions");
     public IMongoCollection<DepositRequest> DepositRequests => _database.GetCollection<DepositRequest>("DepositRequests");
+
+    // Usage Tracking
+    public IMongoCollection<UsageCounter> UsageCounters => _database.GetCollection<UsageCounter>("UsageCounters");
 
     public IMongoDatabase Database => _database;
     public IMongoClient Client => _database.Client;

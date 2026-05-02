@@ -187,6 +187,8 @@ public static class ApiHost
             return new OtpService(redisConnection, logger, gmail, notifications);
         });
         builder.Services.AddScoped<WalletService>();
+        builder.Services.AddScoped<WalletSubscriptionService>();
+        builder.Services.AddScoped<UsageService>();
 
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<SessionFlow.Desktop.Services.MultiTenancy.ITenantProvider, SessionFlow.Desktop.Services.MultiTenancy.TenantProvider>();
@@ -369,6 +371,10 @@ public static class ApiHost
         AdminUserEndpoints.Map(app);
         AdminMaintenanceEndpoints.Map(app);
         WalletEndpoints.Map(app);
+        UsageEndpoints.Map(app);
+        WalletSubscriptionEndpoints.Map(app);
+        AdminBroadcastEndpoints.Map(app);
+        AttendanceHistoryEndpoints.Map(app);
 
         // 6. Map Real-time Hubs
         app.MapHub<SessionHub>("/hub");

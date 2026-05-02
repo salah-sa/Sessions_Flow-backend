@@ -122,5 +122,28 @@ public static class PlanLimit
         SubscriptionTier.Enterprise => true,
         _ => false
     };
+
+    // ═══════════════════════════════════════
+    // AI Feature Gate
+    // ═══════════════════════════════════════
+
+    /// <summary>
+    /// AI Summaries, smart analytics — available on Ultra+ and for Admin role (always).
+    /// Role is passed as a string to avoid circular dependencies with UserRole enum.
+    /// </summary>
+    public static bool HasAIAccess(SubscriptionTier tier, string? role = null)
+    {
+        if (role is "Admin") return true;
+        return tier is SubscriptionTier.Ultra or SubscriptionTier.Enterprise;
+    }
+
+    // ═══════════════════════════════════════
+    // Admin Bypass — Admins are never blocked
+    // ═══════════════════════════════════════
+
+    /// <summary>
+    /// Returns true for Admin role — they bypass all tier-based resource limits.
+    /// </summary>
+    public static bool IsAdminBypass(string? role) => role is "Admin";
 }
 

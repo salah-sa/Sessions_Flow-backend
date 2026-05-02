@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { ShieldCheck, UserPlus, Key, Eye, CheckCircle2, XCircle, Search, RefreshCcw, MoreVertical, ShieldAlert, FileText, Clock, Users, Trash2, CheckCircle, Shield, Settings2, Sliders, Ban, RotateCcw, PauseCircle as Pause } from "lucide-react";
+import { ShieldCheck, UserPlus, Key, Eye, CheckCircle2, XCircle, Search, RefreshCcw, MoreVertical, ShieldAlert, FileText, Clock, Users, Trash2, CheckCircle, Shield, Settings2, Sliders, Ban, RotateCcw, PauseCircle as Pause, Megaphone, Send, Loader2, Radio } from "lucide-react";
+import { sendBroadcast, getBroadcastHistory } from "../api/newFeatures";
 import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
@@ -10,7 +11,7 @@ import { usePendingStudentRequests, useEngineerMutations } from "../queries/useE
 import { PendingEngineer, EngineerCode } from "../types";
 import { cn } from "../lib/utils";
 import { useTranslation } from "react-i18next";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 
 /* TAILWIND JIT SAFELIST
@@ -25,7 +26,7 @@ const AdminPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = (searchParams.get("tab") as any) || "pending";
-  const [activeTab, setActiveTab] = useState<"pending" | "students" | "codes" | "engineers" | "audit" | "users" | "settings">(initialTab);
+  const [activeTab, setActiveTab] = useState<"pending" | "students" | "codes" | "engineers" | "audit" | "users" | "settings" | "broadcast">(initialTab);
   const [searchQuery, setSearchQuery] = useState("");
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [studentProcessingIds, setStudentProcessingIds] = useState<Set<string>>(new Set());
@@ -35,7 +36,7 @@ const AdminPage: React.FC = () => {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab && ["pending", "students", "codes", "engineers", "audit", "users", "settings"].includes(tab)) {
+    if (tab && ["pending", "students", "codes", "engineers", "audit", "users", "settings", "broadcast"].includes(tab)) {
       setActiveTab(tab as any);
     }
   }, [searchParams]);
@@ -265,7 +266,8 @@ const AdminPage: React.FC = () => {
            { id: "codes", name: t("admin.tabs.codes"), icon: Key },
            { id: "engineers", name: t("admin.tabs.engineers"), icon: Shield },
            { id: "settings", name: "Settings", icon: Settings2 },
-            { id: "audit", name: t("admin.tabs.audit"), icon: FileText }
+            { id: "audit", name: t("admin.tabs.audit"), icon: FileText },
+           { id: "broadcast", name: "Broadcast", icon: Megaphone },
          ].map((item: any) => (
            <button
              key={item.id}
@@ -541,6 +543,8 @@ const AdminPage: React.FC = () => {
             </div>
          ) : activeTab === "settings" ? (
              <SystemSettingsSection />
+         ) : activeTab === "broadcast" ? (
+             <BroadcastSection />
          ) : (
             <div className="p-4 lg:p-8 animate-fade-in">
                <div className="overflow-x-auto custom-scrollbar card-base bg-[var(--ui-sidebar-bg)]/20 border-white/5 p-0">
@@ -754,4 +758,150 @@ const SystemSettingsSection: React.FC = () => {
   );
 };
 
+const BroadcastSection: React.FC = () => {
+  const [message, setMessage] = React.useState("");
+  const [channel, setChannel] = React.useState<"InApp" | "Email" | "Both">("InApp");
+  const [historyPage, setHistoryPage] = React.useState(1);
+  const queryClient = useQueryClient();
+
+  const { data: history, isLoading: historyLoading } = useQuery({
+    queryKey: ["broadcast-history", historyPage],
+    queryFn: () => getBroadcastHistory(historyPage, 10),
+    staleTime: 60_000,
+  });
+
+  const broadcastMutation = useMutation({
+    mutationFn: () => sendBroadcast(message.trim(), channel),
+    onSuccess: (data: { recipientCount: number; channel: string; broadcastId: string }) => {
+      toast.success(`📢 Broadcast sent to ${data.recipientCount} users via ${data.channel}`);
+      setMessage("");
+      queryClient.invalidateQueries({ queryKey: ["broadcast-history"] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message ?? "Broadcast failed.");
+    },
+  });
+
+  const charCount = message.length;
+  const maxChars = 500;
+  const charPct = (charCount / maxChars) * 100;
+
+  return (
+    <div className="p-4 lg:p-8 animate-fade-in space-y-8 text-start max-w-3xl mx-auto">
+      {/* Composer */}
+      <div className="card-base bg-[var(--ui-sidebar-bg)]/20 border-white/5 p-8 space-y-6">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-violet-500/10 rounded-xl border border-violet-500/20 text-violet-400">
+            <Megaphone className="w-6 h-6" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-white">Admin Broadcast</h2>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Send message to all users</p>
+          </div>
+        </div>
+
+        {/* Message */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Message</label>
+          <div className="relative">
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value.slice(0, maxChars))}
+              placeholder="Enter your announcement..."
+              rows={4}
+              className="w-full bg-black/30 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-600 resize-none focus:outline-none focus:border-violet-500/40 transition-colors"
+            />
+            <div className="absolute bottom-3 right-3 flex items-center gap-2">
+              <span className={cn("text-[9px] font-bold tabular-nums", charPct >= 90 ? "text-red-400" : charPct >= 75 ? "text-amber-400" : "text-slate-600")}>
+                {charCount}/{maxChars}
+              </span>
+              {charPct > 0 && (
+                <div className="w-12 h-1 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className={cn("h-full rounded-full transition-all", charPct >= 90 ? "bg-red-500" : charPct >= 75 ? "bg-amber-500" : "bg-violet-500")}
+                    style={{ width: `${charPct}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Channel */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Delivery Channel</label>
+          <div className="grid grid-cols-3 gap-3">
+            {(["InApp", "Email", "Both"] as const).map((ch) => (
+              <button
+                key={ch}
+                onClick={() => setChannel(ch)}
+                className={cn(
+                  "h-12 rounded-2xl text-[10px] font-bold uppercase tracking-widest border transition-all flex items-center justify-center gap-2",
+                  channel === ch
+                    ? "bg-violet-500/20 border-violet-500/40 text-violet-300"
+                    : "border-white/10 text-slate-500 hover:border-white/20 hover:text-slate-300"
+                )}
+              >
+                {ch === "InApp" ? <Radio className="w-3 h-3" /> : <Send className="w-3 h-3" />}
+                {ch}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Preview */}
+        {message && (
+          <div className="bg-black/20 border border-white/5 rounded-2xl p-4 space-y-1">
+            <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Preview</p>
+            <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{message}</p>
+          </div>
+        )}
+
+        <button
+          onClick={() => broadcastMutation.mutate()}
+          disabled={!message.trim() || broadcastMutation.isPending}
+          className={cn(
+            "w-full h-12 rounded-2xl text-[11px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all",
+            "bg-gradient-to-r from-violet-600 to-indigo-600 text-white",
+            "disabled:opacity-30 disabled:cursor-not-allowed",
+            "enabled:hover:opacity-90 enabled:active:scale-[0.98]"
+          )}
+        >
+          {broadcastMutation.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <><Send className="w-4 h-4" /> Send Broadcast</>
+          )}
+        </button>
+      </div>
+
+      {/* History */}
+      <div className="card-base bg-[var(--ui-sidebar-bg)]/20 border-white/5 p-6 space-y-4">
+        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Broadcast History</p>
+        {historyLoading ? (
+          <div className="space-y-3 animate-pulse">{[1, 2, 3].map(i => <div key={i} className="h-12 bg-slate-800/60 rounded-xl" />)}</div>
+        ) : !history?.items.length ? (
+          <p className="text-sm text-slate-600 font-medium text-center py-8">No broadcasts sent yet</p>
+        ) : (
+          <div className="space-y-2">
+            {history.items.map((b: any) => (
+              <div key={b.id} className="flex items-center gap-4 px-4 py-3 bg-black/20 rounded-2xl border border-white/5">
+                <Megaphone className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                <p className="flex-1 text-sm text-slate-300 truncate">{b.message || "—"}</p>
+                <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">
+                  {b.channel} · {b.recipientCount} users
+                </span>
+                <span className="text-[9px] text-slate-700 font-mono whitespace-nowrap">
+                  {format(new Date(b.createdAt), "dd MMM HH:mm")}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export default AdminPage;
+

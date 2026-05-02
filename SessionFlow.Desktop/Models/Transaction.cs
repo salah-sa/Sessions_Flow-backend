@@ -10,7 +10,8 @@ public enum WalletTransactionType
     AdminDeduct,
     Reversed,
     Fee,
-    Deposit
+    Deposit,
+    SubscriptionPayment    // Wallet-debit for Pro/Ultra plan purchase
 }
 
 public enum WalletTransactionStatus

@@ -51,7 +51,14 @@ public class Subscription
     public DateTimeOffset? TrialEnd { get; set; }
     
     public bool CancelAtPeriodEnd { get; set; }
-    
+
+    // Payment Source — "Paymob" (card) or "Wallet" (internal balance)
+    public string PaymentSource { get; set; } = "Paymob";
+
+    [BsonIgnoreIfNull]
+    [BsonRepresentation(BsonType.String)]
+    public Guid? WalletTransactionId { get; set; }
+
     // Retry Logic for PastDue state
     public int RetryCount { get; set; } = 0;
     

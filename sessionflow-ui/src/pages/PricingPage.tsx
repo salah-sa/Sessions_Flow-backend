@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Star, Zap, Shield, Crown, Building2, CreditCard, Sparkles } from "lucide-react";
+import { Check, Star, Zap, Shield, Crown, Building2, CreditCard, Sparkles, Wallet } from "lucide-react";
 import { Button, Badge, Skeleton } from "../components/ui";
 import { useTranslation } from "react-i18next";
 import { useSubscriptionStatus, useCheckoutMutation, useSubscriptionPlans } from "../queries/useSubscriptionQueries";
@@ -8,10 +8,15 @@ import { toast } from "sonner";
 import { useAuthStore } from "../store/stores";
 import { SubscriptionTier } from "../types";
 import { cn } from "../lib/utils";
+import { WalletCheckoutModal } from "../components/subscription/WalletCheckoutModal";
 
 export default function PricingPage() {
   const { t } = useTranslation();
   const [isAnnual, setIsAnnual] = useState(false);
+  const [walletModal, setWalletModal] = useState<{ open: boolean; tier: "Pro" | "Ultra" | "Enterprise" }>({
+    open: false,
+    tier: "Pro",
+  });
   const { data: statusData, isLoading: loadingStatus } = useSubscriptionStatus();
   const { data: plansData, isLoading: loadingPlans } = useSubscriptionPlans();
   const checkoutMutation = useCheckoutMutation();
@@ -230,9 +235,20 @@ export default function PricingPage() {
                   isLoading={checkoutMutation.isPending && checkoutMutation.variables?.tier === plan.tier}
                   onClick={() => handleUpgrade(plan.tier)}
                 >
-                  <span className="relative z-10">{isCurrent ? "Current Plan" : plan.buttonText}</span>
+                  <span className="relative z-10 flex items-center gap-2"><CreditCard className="w-3.5 h-3.5" />{isCurrent ? "Current Plan" : plan.buttonText}</span>
                   {i === 1 && !isCurrent && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />}
                 </Button>
+
+                {/* Wallet Payment Option — for paid plans only */}
+                {!isCurrent && plan.tier !== "Free" && (
+                  <button
+                    onClick={() => setWalletModal({ open: true, tier: plan.tier as "Pro" | "Ultra" | "Enterprise" })}
+                    className="w-full mt-2 h-11 rounded-2xl text-[10px] font-bold uppercase tracking-widest border border-white/10 text-slate-500 hover:border-violet-500/40 hover:text-violet-300 hover:bg-violet-500/5 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Wallet className="w-3.5 h-3.5" />
+                    Pay with Wallet
+                  </button>
+                )}
               </motion.div>
             );
           })}
@@ -244,6 +260,14 @@ export default function PricingPage() {
                 <Building2 className="w-4 h-4 opacity-30" /> Secure Enterprise Protocol Active <CreditCard className="w-4 h-4 opacity-30" />
             </p>
         </div>
+
+        {/* Wallet Checkout Modal */}
+        <WalletCheckoutModal
+          isOpen={walletModal.open}
+          onClose={() => setWalletModal((prev) => ({ ...prev, open: false }))}
+          tier={walletModal.tier}
+          isAnnual={isAnnual}
+        />
 
       </div>
     </div>

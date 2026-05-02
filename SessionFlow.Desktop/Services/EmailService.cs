@@ -36,7 +36,26 @@ public class EmailService
     {
         return await _resend.SendAsync(to, "SessionFlow — Test Email", "<h2>✅ Email delivery is working!</h2><p>This is a test from SessionFlow via Resend.</p>");
     }
+
+    /// <summary>Sends a custom admin broadcast message to a single recipient.</summary>
+    public async Task<(bool success, string? error)> SendBroadcastEmailAsync(
+        string toEmail,
+        string toName,
+        string message)
+    {
+        var subject = "📢 SessionFlow — System Announcement";
+        var html = $@"
+            <div style='font-family:Inter,sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#e2e8f0;padding:32px;border-radius:16px;'>
+                <h2 style='color:#38bdf8;margin:0 0 16px;'>📢 System Announcement</h2>
+                <p style='font-size:15px;line-height:1.6;color:#cbd5e1;white-space:pre-wrap;'>{System.Web.HttpUtility.HtmlEncode(message)}</p>
+                <hr style='border:none;border-top:1px solid #1e293b;margin:24px 0;'/>
+                <p style='font-size:11px;color:#475569;'>This message was sent by the SessionFlow admin team.</p>
+            </div>";
+
+        return await _resend.SendAsync(toEmail, subject, html);
+    }
 }
+
 
 public class EmailReminderService : BackgroundService
 {
