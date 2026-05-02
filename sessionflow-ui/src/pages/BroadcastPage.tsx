@@ -128,10 +128,10 @@ const BroadcastPage: React.FC = () => {
               {/* Subject */}
               <div>
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Subject *</label>
-                <input value={subject} onChange={e => setSubject(e.target.value.slice(0, 120))}
+                <input value={subject} onChange={e => setSubject(e.target.value.slice(0, 5000))}
                   placeholder="e.g. Important System Update"
                   className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[var(--ui-accent)]/50 placeholder:text-slate-600" />
-                <p className="text-[9px] text-slate-600 mt-1 text-right">{subject.length}/120</p>
+                <p className="text-[9px] text-slate-600 mt-1 text-right">{subject.length}/5000</p>
               </div>
 
               {/* Templates */}
