@@ -30,7 +30,7 @@ const ChargeWalletPage = lazy(() => import("./pages/ChargeWalletPage"));
 const AICenterPage = lazy(() => import("./pages/AICenterPage"));
 const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
 const FeatureFlagsPage = lazy(() => import("./pages/FeatureFlagsPage"));
-const BroadcastPage = lazy(() => import("./pages/BroadcastPage"));
+
 const SessionTimelinePage = lazy(() => import("./pages/SessionTimelinePage"));
 
 const PageLoader = () => (
@@ -307,16 +307,7 @@ export const router = createBrowserRouter([
           </RoleGuard>
         ),
       },
-      {
-        path: "broadcast",
-        element: (
-          <RoleGuard allowedRoles={["Admin"]}>
-            <Suspense fallback={<PageLoader />}>
-              <BroadcastPage />
-            </Suspense>
-          </RoleGuard>
-        ),
-      },
+
       {
         path: "session-timeline",
         element: (

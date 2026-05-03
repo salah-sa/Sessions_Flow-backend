@@ -282,7 +282,6 @@ const Sidebar: React.FC = () => {
             <NavItem to="/analytics" icon={TrendingUp} label="Analytics" />
             <NavItem to="/session-timeline" icon={Clock} label="Session Timeline" />
             <NavItem to="/feature-flags" icon={Flag} label="Feature Flags" />
-            <NavItem to="/broadcast" icon={MessageSquare} label="Broadcast" />
           </>
         )}
 
