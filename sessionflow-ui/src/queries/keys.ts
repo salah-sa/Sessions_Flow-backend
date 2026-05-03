@@ -83,4 +83,8 @@ export const queryKeys = {
     all: ["session-timeline"] as const,
     byDays: (days: number) => ["session-timeline", days] as const,
   },
+  walletDeposits: {
+    pending: ["wallet", "deposits", "pending"] as const,
+    all:     ["wallet", "deposits", "all"]     as const,
+  },
 };

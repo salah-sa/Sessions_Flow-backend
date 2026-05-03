@@ -249,7 +249,7 @@ public static class WalletEndpoints
                 d.Id.ToString(), d.AmountEGP, d.PaymentMethod.ToString(),
                 d.TargetPaymentPhone, d.Status.ToString(),
                 d.IsFirstDeposit, d.BonusPiasters / 100m,
-                d.AdminNote, d.CreatedAt, d.ReviewedAt
+                d.AdminNote, d.CreatedAt, d.ReviewedAt, null
             )));
         });
 
@@ -258,14 +258,24 @@ public static class WalletEndpoints
         var adminGroup = app.MapGroup("/api/wallet/admin").RequireAuthorization("AdminOnly");
 
         // GET /api/wallet/admin/deposit/pending
-        adminGroup.MapGet("/deposit/pending", async (WalletService walletService) =>
+        adminGroup.MapGet("/deposit/pending", async (
+            WalletService walletService,
+            SessionFlow.Desktop.Data.MongoService db) =>
         {
             var list = await walletService.GetPendingDepositRequestsAsync();
+            if (list.Count == 0) return Results.Ok(Array.Empty<DepositRequestDto>());
+
+            // Bulk-resolve user names in one query
+            var userIds = list.Select(d => d.UserId).Distinct().ToList();
+            var users = await db.Users.Find(u => userIds.Contains(u.Id)).ToListAsync();
+            var nameMap = users.ToDictionary(u => u.Id, u => u.Name);
+
             return Results.Ok(list.Select(d => new DepositRequestDto(
                 d.Id.ToString(), d.AmountEGP, d.PaymentMethod.ToString(),
                 d.TargetPaymentPhone, d.Status.ToString(),
                 d.IsFirstDeposit, d.BonusPiasters / 100m,
-                d.AdminNote, d.CreatedAt, d.ReviewedAt
+                d.AdminNote, d.CreatedAt, d.ReviewedAt,
+                nameMap.TryGetValue(d.UserId, out var n) ? n : "Unknown"
             )));
         });
 

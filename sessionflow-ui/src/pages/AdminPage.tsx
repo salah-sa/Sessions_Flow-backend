@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { ShieldCheck, UserPlus, Key, Eye, CheckCircle2, XCircle, Search, RefreshCcw, MoreVertical, ShieldAlert, FileText, Clock, Users, Trash2, CheckCircle, Shield, Settings2, Sliders, Ban, RotateCcw, PauseCircle as Pause, Megaphone, Send, Loader2, Radio } from "lucide-react";
+import { ShieldCheck, UserPlus, Key, Eye, CheckCircle2, XCircle, Search, RefreshCcw, MoreVertical, ShieldAlert, FileText, Clock, Users, Trash2, CheckCircle, Shield, Settings2, Sliders, Ban, RotateCcw, PauseCircle as Pause, Megaphone, Send, Loader2, Radio, Wallet, CheckCheck, X } from "lucide-react";
 import { sendBroadcast, getBroadcastHistory } from "../api/newFeatures";
 import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
 import { Card, Button, Input, Badge, Skeleton } from "../components/ui";
 import { ConfirmDeleteModal } from "../components/ui/ConfirmDeleteModal";
-import { useSystemQueries, useAdminMutations, useUserMutations } from "../queries/useAdminQueries";
+import { useSystemQueries, useAdminMutations, useUserMutations, useAdminPendingDeposits, useAdminDepositMutations } from "../queries/useAdminQueries";
 import { usePendingStudentRequests, useEngineerMutations } from "../queries/useEngineerQueries";
 import { PendingEngineer, EngineerCode } from "../types";
 import { cn } from "../lib/utils";
@@ -26,7 +26,7 @@ const AdminPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = (searchParams.get("tab") as any) || "pending";
-  const [activeTab, setActiveTab] = useState<"pending" | "students" | "codes" | "engineers" | "audit" | "users" | "settings" | "broadcast">(initialTab);
+  const [activeTab, setActiveTab] = useState<"pending" | "students" | "codes" | "engineers" | "audit" | "users" | "settings" | "broadcast" | "walletRequests">(initialTab);
   const [searchQuery, setSearchQuery] = useState("");
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [studentProcessingIds, setStudentProcessingIds] = useState<Set<string>>(new Set());
@@ -36,7 +36,7 @@ const AdminPage: React.FC = () => {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab && ["pending", "students", "codes", "engineers", "audit", "users", "settings", "broadcast"].includes(tab)) {
+    if (tab && ["pending", "students", "codes", "engineers", "audit", "users", "settings", "broadcast", "walletRequests"].includes(tab)) {
       setActiveTab(tab as any);
     }
   }, [searchParams]);
@@ -268,32 +268,9 @@ const AdminPage: React.FC = () => {
            { id: "settings", name: "Settings", icon: Settings2 },
             { id: "audit", name: t("admin.tabs.audit"), icon: FileText },
            { id: "broadcast", name: "Broadcast", icon: Megaphone },
+           { id: "walletRequests", name: "Wallet Requests", icon: Wallet, badge: true },
          ].map((item: any) => (
-           <button
-             key={item.id}
-             onClick={() => handleTabChange(item.id)}
-             className={cn(
-               "group flex items-center gap-3 px-6 py-3 transition-all duration-300 relative min-w-[160px] justify-center",
-               activeTab === item.id 
-                 ? "text-[var(--ui-accent)] transform scale-105" 
-                 : "text-slate-500 hover:text-slate-300"
-             )}
-           >
-             {/* Hexagon Background */}
-             <div className="absolute inset-0 z-0 opacity-20 pointer-events-none group-hover:opacity-40 transition-opacity" style={{ clipPath: 'polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%)' }}>
-               <div className={cn("w-full h-full", activeTab === item.id ? "bg-[var(--ui-accent)] shadow-glow" : "bg-slate-700")} />
-             </div>
-             
-             {/* Hexagon Border Effect */}
-             {activeTab === item.id && (
-               <div className="absolute inset-0 z-0 pointer-events-none" style={{ clipPath: 'polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%)' }}>
-                 <div className="w-full h-full border border-[var(--ui-accent)] shadow-[inset_0_0_15px_rgba(8,217,214,0.3)] bg-[var(--ui-accent)]/10" />
-               </div>
-             )}
-
-             <item.icon className="w-4 h-4 relative z-10" />
-             <span className="text-[12px] font-semibold relative z-10">{item.name}</span>
-           </button>
+           <WalletBadgeTab key={item.id} item={item} activeTab={activeTab} onTabChange={handleTabChange} />
          ))}
       </div>
 
@@ -545,6 +522,8 @@ const AdminPage: React.FC = () => {
              <SystemSettingsSection />
          ) : activeTab === "broadcast" ? (
              <BroadcastSection />
+          ) : activeTab === "walletRequests" ? (
+             <WalletRequestsSection />
          ) : (
             <div className="p-4 lg:p-8 animate-fade-in">
                <div className="overflow-x-auto custom-scrollbar card-base bg-[var(--ui-sidebar-bg)]/20 border-white/5 p-0">
@@ -907,3 +886,264 @@ const BroadcastSection: React.FC = () => {
 
 export default AdminPage;
 
+// ── WalletBadgeTab ─────────────────────────────────────────────────────────────
+// A hex nav-tab that shows an orange badge when there are pending wallet requests
+const WalletBadgeTab: React.FC<{ item: any; activeTab: string; onTabChange: (id: string) => void }> = ({ item, activeTab, onTabChange }) => {
+  const { data: pendingDeposits } = useAdminPendingDeposits();
+  const pendingCount = item.badge ? (pendingDeposits?.length ?? 0) : 0;
+
+  return (
+    <button
+      key={item.id}
+      onClick={() => onTabChange(item.id)}
+      className={cn(
+        "group flex items-center gap-3 px-6 py-3 transition-all duration-300 relative min-w-[160px] justify-center",
+        activeTab === item.id
+          ? "text-[var(--ui-accent)] transform scale-105"
+          : "text-slate-500 hover:text-slate-300"
+      )}
+    >
+      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none group-hover:opacity-40 transition-opacity" style={{ clipPath: 'polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%)' }}>
+        <div className={cn("w-full h-full", activeTab === item.id ? "bg-[var(--ui-accent)] shadow-glow" : "bg-slate-700")} />
+      </div>
+      {activeTab === item.id && (
+        <div className="absolute inset-0 z-0 pointer-events-none" style={{ clipPath: 'polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%)' }}>
+          <div className="w-full h-full border border-[var(--ui-accent)] shadow-[inset_0_0_15px_rgba(8,217,214,0.3)] bg-[var(--ui-accent)]/10" />
+        </div>
+      )}
+      <item.icon className="w-4 h-4 relative z-10" />
+      <span className="text-[12px] font-semibold relative z-10">{item.name}</span>
+      {pendingCount > 0 && (
+        <span className="relative z-10 ml-1 min-w-[18px] h-[18px] px-1 bg-orange-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center shadow-glow shadow-orange-500/30 animate-pulse">
+          {pendingCount}
+        </span>
+      )}
+    </button>
+  );
+};
+
+// ── WalletRequestsSection ─────────────────────────────────────────────────────
+const PAYMENT_META: Record<string, { label: string; color: string; bg: string }> = {
+  VodafoneCash: { label: "Vodafone Cash", color: "text-red-400",    bg: "bg-red-500/10 border-red-500/20" },
+  WePay:        { label: "WE Pay",         color: "text-blue-400",   bg: "bg-blue-500/10 border-blue-500/20" },
+  Instapay:     { label: "Instapay",       color: "text-emerald-400",bg: "bg-emerald-500/10 border-emerald-500/20" },
+  BankTransfer: { label: "Bank Transfer",  color: "text-violet-400", bg: "bg-violet-500/10 border-violet-500/20" },
+};
+
+const WalletRequestsSection: React.FC = () => {
+  const { data: deposits, isLoading, refetch } = useAdminPendingDeposits();
+  const { approveMutation, rejectMutation } = useAdminDepositMutations();
+
+  // Modal state
+  const [modal, setModal] = React.useState<{ type: "approve" | "reject"; depositId: string; userName: string; amountEGP: number } | null>(null);
+  const [adminNote, setAdminNote] = React.useState("");
+
+  const handleOpen = (type: "approve" | "reject", d: any) => {
+    setModal({ type, depositId: d.id, userName: d.userName ?? "User", amountEGP: d.amountEGP });
+    setAdminNote("");
+  };
+
+  const handleConfirm = async () => {
+    if (!modal) return;
+    try {
+      if (modal.type === "approve") {
+        await approveMutation.mutateAsync({ depositRequestId: modal.depositId, adminNote });
+        toast.success(`✅ Wallet charged ${modal.amountEGP} EGP for ${modal.userName}`);
+      } else {
+        if (!adminNote.trim()) { toast.warning("Rejection reason is required."); return; }
+        await rejectMutation.mutateAsync({ depositRequestId: modal.depositId, adminNote });
+        toast.error(`❌ Request rejected for ${modal.userName}`);
+      }
+      setModal(null);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Action failed.");
+    }
+  };
+
+  const isBusy = approveMutation.isPending || rejectMutation.isPending;
+
+  return (
+    <div className="p-4 lg:p-8 animate-fade-in space-y-8 text-start">
+      {/* Header */}
+      <div className="card-base bg-[var(--ui-sidebar-bg)]/20 border-white/5 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-orange-500/10 rounded-xl border border-orange-500/20">
+              <Wallet className="w-5 h-5 text-orange-400" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white tracking-tight">Wallet Charge Requests</h2>
+              <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">Manual payment verification center</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          {deposits && deposits.length > 0 && (
+            <span className="px-3 py-1 bg-orange-500/15 border border-orange-500/25 text-orange-400 rounded-full text-xs font-bold">
+              {deposits.length} pending
+            </span>
+          )}
+          <button
+            onClick={() => refetch()}
+            className="h-9 px-5 bg-white/5 border border-white/5 rounded-xl text-[12px] font-semibold text-slate-300 hover:text-white hover:bg-white/10 transition-all flex items-center gap-2"
+          >
+            <RefreshCcw className={cn("w-3.5 h-3.5", isLoading && "animate-spin")} />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Instructions banner */}
+      <div className="flex items-start gap-3 p-4 bg-amber-500/5 border border-amber-500/15 rounded-2xl">
+        <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0 animate-pulse" />
+        <p className="text-xs text-amber-400/80 font-medium leading-relaxed">
+          Verify that the payment was received in your account before approving. Each approval credits the user's wallet immediately and is irreversible.
+        </p>
+      </div>
+
+      {/* Table */}
+      {isLoading ? (
+        <div className="space-y-3 animate-pulse">{[1,2,3].map(i => <div key={i} className="h-20 bg-slate-800/60 rounded-2xl" />)}</div>
+      ) : !deposits?.length ? (
+        <div className="card-base bg-[var(--ui-sidebar-bg)]/20 border-white/5 p-20 text-center">
+          <CheckCheck className="w-12 h-12 text-emerald-500/40 mx-auto mb-4" />
+          <p className="text-slate-500 font-semibold text-sm">All clear — no pending requests</p>
+          <p className="text-slate-700 text-xs mt-1">New requests appear here automatically every 30 seconds.</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto custom-scrollbar card-base bg-[var(--ui-sidebar-bg)]/20 border-white/5 p-0">
+          <table className="w-full text-start border-collapse min-w-[760px]">
+            <thead>
+              <tr className="bg-[var(--ui-bg)] border-b border-white/5 text-slate-500 text-xs uppercase font-semibold tracking-wide">
+                <th className="px-6 py-5 text-start">User</th>
+                <th className="px-6 py-5 text-start">Amount</th>
+                <th className="px-6 py-5 text-start">Payment Method</th>
+                <th className="px-6 py-5 text-start">Date</th>
+                <th className="px-6 py-5 text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="text-sm">
+              {deposits.map((d: any) => {
+                const meta = PAYMENT_META[d.paymentMethod] ?? { label: d.paymentMethod, color: "text-slate-400", bg: "bg-slate-500/10 border-slate-500/20" };
+                return (
+                  <tr key={d.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center font-bold text-orange-400 text-sm">
+                          {(d.userName ?? "?").charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white text-sm">{d.userName ?? "Unknown"}</p>
+                          {d.isFirstDeposit && (
+                            <span className="text-[9px] font-bold text-amber-400 uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full">
+                              🏆 First Charge
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <p className="text-lg font-bold text-white tabular-nums">{d.amountEGP.toFixed(2)}</p>
+                      <p className="text-[10px] text-slate-600 font-medium">EGP</p>
+                    </td>
+                    <td className="px-6 py-5">
+                      <span className={cn("px-3 py-1 rounded-full text-xs font-bold border", meta.bg, meta.color)}>
+                        {meta.label}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 text-slate-500 text-xs font-medium">
+                      {format(new Date(d.createdAt), "dd MMM yyyy, HH:mm")}
+                    </td>
+                    <td className="px-6 py-5 text-end">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleOpen("approve", d)}
+                          className="h-9 px-5 bg-emerald-500 hover:bg-emerald-400 text-black text-[11px] font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-glow shadow-emerald-500/20"
+                        >
+                          <CheckCheck className="w-3.5 h-3.5" /> Approve
+                        </button>
+                        <button
+                          onClick={() => handleOpen("reject", d)}
+                          className="h-9 px-5 bg-[var(--ui-sidebar-bg)] border border-white/5 text-red-400 hover:bg-red-500 hover:text-white text-[11px] font-bold rounded-xl transition-all flex items-center gap-1.5"
+                        >
+                          <X className="w-3.5 h-3.5" /> Reject
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Confirm Modal */}
+      {modal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-[#0f172a] border border-white/10 rounded-2xl p-8 w-full max-w-md space-y-6 shadow-2xl">
+            <div className="flex items-center gap-4">
+              <div className={cn("p-3 rounded-xl border", modal.type === "approve" ? "bg-emerald-500/10 border-emerald-500/20" : "bg-red-500/10 border-red-500/20")}>
+                {modal.type === "approve"
+                  ? <CheckCheck className="w-5 h-5 text-emerald-400" />
+                  : <X className="w-5 h-5 text-red-400" />
+                }
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">
+                  {modal.type === "approve" ? "Approve Wallet Charge" : "Reject Charge Request"}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">{modal.userName} — {modal.amountEGP.toFixed(2)} EGP</p>
+              </div>
+            </div>
+
+            {modal.type === "approve" ? (
+              <div className="p-4 bg-emerald-500/5 border border-emerald-500/15 rounded-xl">
+                <p className="text-xs text-emerald-400/80 font-medium leading-relaxed">
+                  ✅ Confirm you have received <strong>{modal.amountEGP.toFixed(2)} EGP</strong> via {deposits?.find((d: any) => d.id === modal.depositId)?.paymentMethod?.replace(/([A-Z])/g, ' $1').trim()}. This will immediately credit the user's wallet.
+                </p>
+              </div>
+            ) : null}
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                {modal.type === "approve" ? "Admin Note (optional)" : "Rejection Reason *"}
+              </label>
+              <textarea
+                value={adminNote}
+                onChange={e => setAdminNote(e.target.value)}
+                placeholder={modal.type === "approve" ? "e.g. Payment confirmed via Vodafone Cash" : "e.g. Could not verify transaction ID"}
+                rows={3}
+                className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-[var(--ui-accent)]/50 resize-none"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setModal(null)}
+                disabled={isBusy}
+                className="flex-1 h-11 bg-white/5 border border-white/5 text-slate-400 hover:text-white rounded-xl text-[12px] font-semibold transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirm}
+                disabled={isBusy}
+                className={cn(
+                  "flex-1 h-11 rounded-xl text-[12px] font-bold transition-all flex items-center justify-center gap-2",
+                  modal.type === "approve"
+                    ? "bg-emerald-500 hover:bg-emerald-400 text-black"
+                    : "bg-red-500 hover:bg-red-400 text-white",
+                  isBusy && "opacity-60 cursor-not-allowed"
+                )}
+              >
+                {isBusy && <Loader2 className="w-4 h-4 animate-spin" />}
+                {modal.type === "approve" ? "✅ Confirm & Credit" : "❌ Reject Request"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

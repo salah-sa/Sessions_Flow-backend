@@ -45,5 +45,6 @@ public record DepositRequestDto(
     decimal BonusEGP,
     string? AdminNote,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? ReviewedAt
+    DateTimeOffset? ReviewedAt,
+    string? UserName
 );

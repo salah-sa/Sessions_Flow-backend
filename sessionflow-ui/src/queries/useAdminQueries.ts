@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient, UseQueryResult } from "@tanstack/react-query";
 import { auditApi, engineersApi, studentsApi, adminUsersApi } from "../api/resources_extra";
 import { groupsApi as coreGroupsApi } from "../api/resources";
+import { walletApi } from "../api/walletApi";
 import { queryKeys } from "./keys";
 import { useAuthStore } from "../store/stores";
 
@@ -163,4 +164,43 @@ export const useSystemQueries = () => {
     auditLogs,
     allEngineers
   };
+};
+
+// ── Wallet Deposit Approval Hooks ─────────────────────────────────────────────
+
+export const useAdminPendingDeposits = () => {
+  const token = useAuthStore((s) => s.token);
+  const hydrated = useAuthStore((s) => s._hasHydrated);
+
+  return useQuery({
+    queryKey: queryKeys.walletDeposits.pending,
+    queryFn: () => walletApi.adminGetPendingDeposits(),
+    enabled: !!token && hydrated,
+    refetchInterval: 30_000, // auto-poll every 30s — new requests arrive in real time
+    retry: 2,
+  });
+};
+
+export const useAdminDepositMutations = () => {
+  const queryClient = useQueryClient();
+
+  const approveMutation = useMutation({
+    mutationFn: ({ depositRequestId, adminNote }: { depositRequestId: string; adminNote?: string }) =>
+      walletApi.adminApproveDeposit({ depositRequestId, adminNote: adminNote ?? "" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.walletDeposits.pending });
+      queryClient.invalidateQueries({ queryKey: queryKeys.walletDeposits.all });
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: ({ depositRequestId, adminNote }: { depositRequestId: string; adminNote: string }) =>
+      walletApi.adminRejectDeposit({ depositRequestId, adminNote }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.walletDeposits.pending });
+      queryClient.invalidateQueries({ queryKey: queryKeys.walletDeposits.all });
+    },
+  });
+
+  return { approveMutation, rejectMutation };
 };

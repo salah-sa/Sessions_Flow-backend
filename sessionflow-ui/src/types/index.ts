@@ -478,6 +478,7 @@ export interface DepositRequest {
   adminNote?: string;
   createdAt: string;
   reviewedAt?: string;
+  userName?: string;
 }
 
 export interface CreateWalletRequest {
