@@ -192,7 +192,7 @@ public static class SubscriptionEndpoints
         }).RequireAuthorization();
 
         // POST: /api/subscription/webhook
-        group.MapPost("/webhook", async (HttpContext context, PaymobService paymob, MongoService db, AuthService auth) =>
+        group.MapPost("/webhook", async (HttpContext context, PaymobService paymob, MongoService db, AuthService auth, SessionFlow.Desktop.Services.EventBus.IEventBus eventBus) =>
         {
             // 1. Read Raw Body
             using var reader = new StreamReader(context.Request.Body);
@@ -246,6 +246,13 @@ public static class SubscriptionEndpoints
                     // UPGRADE USER
                     await auth.UpgradeSubscriptionTierAsync(myTransaction.UserId, myTransaction.TierSnapshot, myTransaction.IsAnnual);
                     
+                    // EMIT REAL-TIME TIER CHANGE EVENT
+                    _ = eventBus.PublishAsync(
+                        SessionFlow.Desktop.Services.EventBus.Events.SubscriptionChanged,
+                        SessionFlow.Desktop.Services.EventBus.EventTargetType.User,
+                        myTransaction.UserId.ToString(),
+                        new { userId = myTransaction.UserId.ToString(), newTier = myTransaction.TierSnapshot.ToString(), source = "paymob" });
+
                     // GENERATE INVOICE
                     var invoice = new Invoice
                     {

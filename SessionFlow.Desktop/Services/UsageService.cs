@@ -11,12 +11,14 @@ namespace SessionFlow.Desktop.Services;
 public class UsageService
 {
     private readonly MongoService _db;
+    private readonly Services.EventBus.IEventBus _eventBus;
 
     private static readonly TimeZoneInfo CairoTz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
 
-    public UsageService(MongoService db)
+    public UsageService(MongoService db, Services.EventBus.IEventBus eventBus)
     {
         _db = db;
+        _eventBus = eventBus;
     }
 
     private static string GetCairoDateKey()
@@ -127,5 +129,12 @@ public class UsageService
             .SetOnInsert(c => c.DateKey, dateKey);
 
         await _db.UsageCounters.UpdateOneAsync(filter, update, new UpdateOptions { IsUpsert = true }, ct);
+
+        // Emit real-time usage update (fire-and-forget to avoid blocking the request)
+        _ = _eventBus.PublishAsync(
+            Services.EventBus.Events.UsageUpdated,
+            Services.EventBus.EventTargetType.User,
+            userId.ToString(),
+            new { userId = userId.ToString(), field = mongoField });
     }
 }

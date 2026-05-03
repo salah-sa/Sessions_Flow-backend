@@ -66,6 +66,17 @@ export const Events = {
   // Wallet
   WALLET_BALANCE_UPDATED: "wallet:balance-updated",
   WALLET_TRANSACTION_RECEIVED: "wallet:transaction-received",
+  WALLET_DEPOSIT_APPROVED: "wallet:deposit-approved",
+  WALLET_DEPOSIT_REJECTED: "wallet:deposit-rejected",
+
+  // Subscription
+  SUBSCRIPTION_CHANGED: "subscription:changed",
+
+  // Usage / Quotas
+  USAGE_UPDATED: "usage:updated",
+
+  // Feature Flags
+  FLAG_UPDATED: "flag:updated",
 
   // Broadcast (platform-wide announcement popup)
   BROADCAST_MESSAGE: "broadcast:message",

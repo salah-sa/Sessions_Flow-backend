@@ -3,11 +3,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.AspNetCore.SignalR;
-using SessionFlow.Desktop.Api.Hubs;
 using SessionFlow.Desktop.Data;
 using SessionFlow.Desktop.Models;
 using SessionFlow.Desktop.Services;
+using SessionFlow.Desktop.Services.EventBus;
 using StackExchange.Redis;
 using System.Security.Claims;
 using System.Text;
@@ -25,7 +24,7 @@ public static class AIEndpoints
             AIChatRequest req,
             AIService ai,
             IConnectionMultiplexer? redis,
-            IHubContext<NotificationHub> hub,
+            IEventBus eventBus,
             ClaimsPrincipal user,
             HttpContext ctx) =>
         {
@@ -53,16 +52,18 @@ public static class AIEndpoints
                 }
                 await ctx.Response.WriteAsync("data: [DONE]\n\n", ct);
 
-                // ── Push updated quota to client via SignalR ──────────────
+                // ── Push updated quota to client via EventBus ──────────────
                 try
                 {
                     var (used, limit, resetsAt) = await ai.GetQuotaInfoAsync(userId, userTier, cacheDb);
-                    await hub.Clients.Group($"user_{userId}").SendAsync("AIQuotaUpdated", new
-                    {
-                        used, limit, tier = userTier,
-                        resetsAt = resetsAt.ToString("o"),
-                        windowHours = 3
-                    }, CancellationToken.None);
+                    _ = eventBus.PublishAsync("AIQuotaUpdated",
+                        EventTargetType.User, userId.ToString(),
+                        new
+                        {
+                            used, limit, tier = userTier,
+                            resetsAt = resetsAt.ToString("o"),
+                            windowHours = 3
+                        });
                 }
                 catch { /* non-critical */ }
             }

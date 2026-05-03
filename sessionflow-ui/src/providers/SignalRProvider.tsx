@@ -424,6 +424,74 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // Ignore network errors
       }
     });
+
+    // ═══════════════════════════════════════════════
+    // 10. Subscription & Tier Changes — instant propagation
+    // ═══════════════════════════════════════════════
+    connection.on(Events.SUBSCRIPTION_CHANGED, (raw: any) => {
+      const data = parsePayload(raw);
+      const newTier = data?.newTier;
+
+      // Update Zustand auth store immediately
+      if (newTier) {
+        const currentUser = useAuthStore.getState().user;
+        if (currentUser) {
+          useAuthStore.getState().updateUser({ ...currentUser, subscriptionTier: newTier });
+        }
+        toast.success(`🎉 Plan upgraded to ${newTier}!`, { duration: 6000 });
+      }
+
+      // Cascade invalidation — every tier-dependent query must refetch
+      queryClient.invalidateQueries({ queryKey: ["subscription-status"] });
+      queryClient.invalidateQueries({ queryKey: ["subscription-plans"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.ai.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.ai.usage });
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.flags.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+      queryClient.invalidateQueries({ queryKey: ["usage"] });
+    });
+
+    // ═══════════════════════════════════════════════
+    // 11. Usage / Quota Updates — live counter sync
+    // ═══════════════════════════════════════════════
+    connection.on(Events.USAGE_UPDATED, () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.ai.usage });
+      queryClient.invalidateQueries({ queryKey: ["usage"] });
+    });
+
+    // ═══════════════════════════════════════════════
+    // 12. Feature Flag Changes — live toggle propagation
+    // ═══════════════════════════════════════════════
+    connection.on(Events.FLAG_UPDATED, () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.flags.all });
+    });
+
+    // ═══════════════════════════════════════════════
+    // 13. Wallet Events — instant balance & transaction sync
+    // ═══════════════════════════════════════════════
+    connection.on(Events.WALLET_BALANCE_UPDATED, () => {
+      queryClient.invalidateQueries({ queryKey: ["wallet"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+    });
+
+    connection.on(Events.WALLET_TRANSACTION_RECEIVED, (raw: any) => {
+      const data = parsePayload(raw);
+      queryClient.invalidateQueries({ queryKey: ["wallet"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      toast.info("💰 New transaction received", { duration: 4000 });
+    });
+
+    connection.on(Events.WALLET_DEPOSIT_APPROVED, () => {
+      queryClient.invalidateQueries({ queryKey: ["wallet"] });
+      toast.success("✅ Deposit approved! Your wallet has been credited.", { duration: 5000 });
+      sounds.playPop();
+    });
+
+    connection.on(Events.WALLET_DEPOSIT_REJECTED, () => {
+      queryClient.invalidateQueries({ queryKey: ["wallet"] });
+      toast.error("❌ Deposit request was rejected.", { duration: 5000 });
+    });
   };
 
   // ── Degradation Engine ─────────────────────────────

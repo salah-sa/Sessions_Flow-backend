@@ -174,6 +174,26 @@ public class WalletSubscriptionService
         Log.Information("[WalletSubscription] User {UserId} upgraded to {Tier} via wallet. Amount: {Price}, Tx: {TxId}",
             userId, targetTier, priceDisplay, transactionId);
 
+        // 6. Emit real-time events — tier change + wallet balance update
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await _eventBus.PublishAsync(
+                    EventBus.Events.SubscriptionChanged,
+                    EventBus.EventTargetType.User,
+                    userId.ToString(),
+                    new { userId = userId.ToString(), newTier = targetTier.ToString(), source = "wallet" });
+
+                await _eventBus.PublishAsync(
+                    EventBus.Events.WalletBalanceUpdated,
+                    EventBus.EventTargetType.User,
+                    userId.ToString(),
+                    new { userId = userId.ToString(), newBalancePiasters = updatedWallet.BalancePiasters });
+            }
+            catch (Exception ex) { Log.Error(ex, "[WalletSubscription] Failed to emit real-time events"); }
+        });
+
         return new(true, updatedWallet.BalancePiasters);
     }
 

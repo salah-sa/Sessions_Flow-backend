@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using SessionFlow.Desktop.Data;
 using SessionFlow.Desktop.Models;
+using SessionFlow.Desktop.Services.EventBus;
 using StackExchange.Redis;
 using System.Text.Json;
 
@@ -12,14 +13,16 @@ public class FeatureFlagService
     private readonly MongoService _db;
     private readonly IConnectionMultiplexer? _redis;
     private readonly ILogger<FeatureFlagService> _logger;
+    private readonly IEventBus _eventBus;
     private const string CachePrefix = "ff:";
     private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(60);
 
-    public FeatureFlagService(MongoService db, IConnectionMultiplexer? redis, ILogger<FeatureFlagService> logger)
+    public FeatureFlagService(MongoService db, IConnectionMultiplexer? redis, ILogger<FeatureFlagService> logger, IEventBus eventBus)
     {
         _db = db;
         _redis = redis;
         _logger = logger;
+        _eventBus = eventBus;
     }
 
     /// <summary>Check if a feature flag is enabled for a given user (with Redis cache).</summary>
@@ -86,6 +89,7 @@ public class FeatureFlagService
         };
         await _db.FeatureFlags.InsertOneAsync(flag);
         await InvalidateCacheAsync(flag.Key);
+        _ = _eventBus.PublishAsync(Events.FlagUpdated, EventTargetType.All, "", new { key = flag.Key, enabled = flag.Enabled, action = "created" });
         return flag;
     }
 
@@ -103,6 +107,8 @@ public class FeatureFlagService
 
         var result = await _db.FeatureFlags.UpdateOneAsync(f => f.Key == key, update);
         await InvalidateCacheAsync(key);
+        if (result.ModifiedCount > 0)
+            _ = _eventBus.PublishAsync(Events.FlagUpdated, EventTargetType.All, "", new { key, enabled = req.Enabled, action = "updated" });
         return result.ModifiedCount > 0;
     }
 
@@ -110,6 +116,8 @@ public class FeatureFlagService
     {
         var result = await _db.FeatureFlags.DeleteOneAsync(f => f.Key == key);
         await InvalidateCacheAsync(key);
+        if (result.DeletedCount > 0)
+            _ = _eventBus.PublishAsync(Events.FlagUpdated, EventTargetType.All, "", new { key, enabled = false, action = "deleted" });
         return result.DeletedCount > 0;
     }
 

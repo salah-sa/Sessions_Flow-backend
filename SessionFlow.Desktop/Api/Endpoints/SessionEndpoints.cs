@@ -1,15 +1,13 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Configuration;
 using MongoDB.Driver;
 using SessionFlow.Desktop.Api.Helpers;
-using SessionFlow.Desktop.Api.Hubs;
 using SessionFlow.Desktop.Data;
+using SessionFlow.Desktop.Helpers;
 using SessionFlow.Desktop.Models;
 using SessionFlow.Desktop.Services;
-using SessionFlow.Desktop.Helpers;
-using Microsoft.Extensions.Configuration;
 
 namespace SessionFlow.Desktop.Api.Endpoints;
 
@@ -398,7 +396,7 @@ public static class SessionEndpoints
                     .ToListAsync();
                 // Exclude the current session (this is the one being marked now)
                 var alreadyMarkedToday = todaySessionIds.Count(sid => sid != id);
-                var maxDaily = PlanLimit.GetMaxDailyAttendance(engineerUser.SubscriptionTier);
+                var maxDaily = PlanLimit.GetMaxDailyAttendance(engineerUser.SubscriptionTier, userRole);
                 if (alreadyMarkedToday >= maxDaily)
                 {
                     return Results.Json(new

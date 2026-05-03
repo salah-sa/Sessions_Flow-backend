@@ -96,4 +96,22 @@ public static class Events
     public const string WalletTransactionReceived = "wallet:transaction-received";
     public const string WalletDepositApproved = "wallet:deposit-approved";
     public const string WalletDepositRejected = "wallet:deposit-rejected";
+
+    // ═══════════════════════════════════════════════
+    // Subscription
+    // ═══════════════════════════════════════════════
+    /// <summary>Emitted when a user's subscription tier changes (upgrade or downgrade).</summary>
+    public const string SubscriptionChanged = "subscription:changed";
+
+    // ═══════════════════════════════════════════════
+    // Usage / Quotas
+    // ═══════════════════════════════════════════════
+    /// <summary>Emitted when a user's daily usage counter is incremented.</summary>
+    public const string UsageUpdated = "usage:updated";
+
+    // ═══════════════════════════════════════════════
+    // Feature Flags
+    // ═══════════════════════════════════════════════
+    /// <summary>Emitted when an admin creates, updates, or deletes a feature flag.</summary>
+    public const string FlagUpdated = "flag:updated";
 }

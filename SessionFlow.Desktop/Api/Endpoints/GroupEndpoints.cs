@@ -260,7 +260,7 @@ public static class GroupEndpoints
                 if (engineer != null && requestorRole != "Admin")
                 {
                     var currentGroupCount = (int)await db.Groups.CountDocumentsAsync(g => g.EngineerId == engineerId && !g.IsDeleted);
-                    var maxGroups = PlanLimit.GetMaxGroups(engineer.SubscriptionTier);
+                    var maxGroups = PlanLimit.GetMaxGroups(engineer.SubscriptionTier, requestorRole);
                     if (currentGroupCount >= maxGroups)
                     {
                         return Results.Json(new
@@ -714,7 +714,8 @@ public static class GroupEndpoints
             var engineer = await db.Users.Find(u => u.Id == g.EngineerId).FirstOrDefaultAsync();
             if (engineer != null)
             {
-                var maxStudentsTier = PlanLimit.GetMaxStudentsPerGroup(engineer.SubscriptionTier);
+                var requestorRole = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
+                var maxStudentsTier = PlanLimit.GetMaxStudentsPerGroup(engineer.SubscriptionTier, requestorRole);
                 if (activeStudents >= maxStudentsTier)
                 {
                     return Results.Json(new

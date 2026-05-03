@@ -166,10 +166,10 @@ public static class ChatEndpoints
                 todayVidCount = todayMessages.Count(m => m.FileType?.StartsWith("video/") == true);
                 todayFileCount = todayMessages.Count(m => !string.IsNullOrEmpty(m.FileType) && !m.FileType.StartsWith("image/") && !m.FileType.StartsWith("video/"));
 
-                maxMsgs = PlanLimit.GetMaxDailyMessages(senderUser.SubscriptionTier);
-                maxImgs = PlanLimit.GetMaxDailyImages(senderUser.SubscriptionTier);
-                maxVids = PlanLimit.GetMaxDailyVideos(senderUser.SubscriptionTier);
-                maxFiles = PlanLimit.GetMaxDailyFiles(senderUser.SubscriptionTier);
+                maxMsgs = PlanLimit.GetMaxDailyMessages(senderUser.SubscriptionTier, userRole);
+                maxImgs = PlanLimit.GetMaxDailyImages(senderUser.SubscriptionTier, userRole);
+                maxVids = PlanLimit.GetMaxDailyVideos(senderUser.SubscriptionTier, userRole);
+                maxFiles = PlanLimit.GetMaxDailyFiles(senderUser.SubscriptionTier, userRole);
 
                 if (todayMsgCount >= maxMsgs)
                 {

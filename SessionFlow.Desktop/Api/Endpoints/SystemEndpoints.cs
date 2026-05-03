@@ -1,9 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.SignalR;
 using MongoDB.Driver;
-using SessionFlow.Desktop.Api.Hubs;
 
 namespace SessionFlow.Desktop.Api.Endpoints;
 
@@ -14,7 +12,7 @@ public static class SystemEndpoints
         var system = app.MapGroup("/api/system").RequireAuthorization();
 
         // POST /api/system/broadcast-update - Broadcasts a system update to all connected users
-        system.MapPost("/broadcast-update", async (BroadcastUpdateRequest req, IHubContext<SessionHub> hubContext, SessionFlow.Desktop.Data.MongoService db, HttpContext ctx) =>
+        system.MapPost("/broadcast-update", async (BroadcastUpdateRequest req, SessionFlow.Desktop.Services.EventBus.IEventBus eventBus, SessionFlow.Desktop.Data.MongoService db, HttpContext ctx) =>
         {
             var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
             var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -40,8 +38,10 @@ public static class SystemEndpoints
             };
             await db.SystemBroadcasts.InsertOneAsync(broadcast);
 
-            // Broadcast to ALL connected clients
-            await hubContext.Clients.All.SendAsync("SystemUpdateAvailable", payload);
+            // Broadcast to ALL connected clients via EventBus (not direct hub)
+            await eventBus.PublishAsync("SystemUpdateAvailable",
+                SessionFlow.Desktop.Services.EventBus.EventTargetType.All, "",
+                payload);
 
             return Results.Ok(new { message = "Update broadcasted successfully.", payload });
         });
