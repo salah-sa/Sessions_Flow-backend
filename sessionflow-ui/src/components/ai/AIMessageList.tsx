@@ -117,7 +117,8 @@ export const AIMessageList: React.FC = () => {
             <MessageBubble key={msg.id} msg={msg} />
           ))}
           <AnimatePresence>
-            {isThinking && (
+            {/* Show typing dots only before streaming begins (empty placeholder) */}
+            {isThinking && !(messages.length > 0 && messages[messages.length - 1].role === 'agent' && messages[messages.length - 1].content) && (
               <motion.div
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}

@@ -47,32 +47,36 @@ export const AIMessageInput: React.FC = () => {
     addMessage(userMsg);
     setThinking(true);
 
-    // Prepare history (last 12 turns)
+    // Placeholder agent message (will be filled by streaming)
+    const agentId = crypto.randomUUID();
+    const agentMsg: AIMessage = {
+      id: agentId,
+      role: 'agent',
+      content: '',
+      timestamp: new Date().toISOString(),
+      status: 'sending',
+    };
+    addMessage(agentMsg);
+
+    // Prepare history (last 12 turns, excluding the placeholder)
     const history = messages.slice(-12).map((m) => ({ role: m.role, content: m.content }));
 
     try {
-      const reply = await aiAgentService.sendMessage({ content, sessionId, history });
-      const agentMsg: AIMessage = {
-        id: crypto.randomUUID(),
-        role: 'agent',
-        content: reply,
-        timestamp: new Date().toISOString(),
-        status: 'sent',
-      };
-      addMessage(agentMsg);
+      const finalText = await aiAgentService.streamMessage(
+        { content, sessionId, history },
+        (accumulated) => {
+          // Progressive update — typewriter effect
+          updateMessageStatus(agentId, 'sending', accumulated);
+        }
+      );
+      // Mark as complete
+      updateMessageStatus(agentId, 'sent', finalText || 'No response received.');
     } catch {
-      const errMsg: AIMessage = {
-        id: crypto.randomUUID(),
-        role: 'agent',
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date().toISOString(),
-        status: 'error',
-      };
-      addMessage(errMsg);
+      updateMessageStatus(agentId, 'error', 'Sorry, I encountered an error. Please try again.');
     } finally {
       setThinking(false);
     }
-  }, [value, isThinking, sessionId, messages, addMessage, setThinking]);
+  }, [value, isThinking, sessionId, messages, addMessage, updateMessageStatus, setThinking]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
