@@ -153,8 +153,9 @@ public static class AdminBroadcastEndpoints
             TestEmailRequest req,
             ResendEmailService resend,
             ClaimsPrincipal principal,
-            ILogger<Program> logger) =>
+            ILoggerFactory loggerFactory) =>
         {
+            var logger = loggerFactory.CreateLogger("AdminBroadcast");
             if (!Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out _))
                 return Results.Unauthorized();
 

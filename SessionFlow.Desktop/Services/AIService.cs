@@ -4,6 +4,8 @@ using MongoDB.Driver;
 using SessionFlow.Desktop.Data;
 using SessionFlow.Desktop.Models;
 using StackExchange.Redis;
+using System.IO;
+using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
