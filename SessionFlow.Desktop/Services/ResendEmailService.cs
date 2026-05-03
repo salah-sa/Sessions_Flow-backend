@@ -66,11 +66,18 @@ public class ResendEmailService
             if (body.Contains("testing emails to your own email address") || body.Contains("unauthorized_email_address") || body.Contains("Forbidden"))
             {
                  var sandboxMsg = "Resend Sandbox Mode: Verification failed. You can only send emails to your own registered address until you verify a domain at resend.com.";
-                 _logger.LogWarning("[RESEND] ⚠️ {Msg}", sandboxMsg);
+                 _logger.LogWarning("[RESEND] ⚠️ Sandbox block for {To}: {Msg}", to, sandboxMsg);
                  return (false, sandboxMsg);
             }
 
-            _logger.LogError("[RESEND] ❌ {Status}: {Body}", response.StatusCode, body);
+            // Detect validation errors (invalid email, missing fields)
+            if (body.Contains("validation_error") || body.Contains("missing_required_field") || body.Contains("invalid_to_address"))
+            {
+                 _logger.LogError("[RESEND] ❌ Validation error for {To}: {Body}", to, body);
+                 return (false, $"Resend validation error for {to}: {body}");
+            }
+
+            _logger.LogError("[RESEND] ❌ Failed to send to {To} | Status={Status} | Response={Body}", to, response.StatusCode, body);
             return (false, $"Resend error ({response.StatusCode}): {body}");
         }
         catch (TaskCanceledException)

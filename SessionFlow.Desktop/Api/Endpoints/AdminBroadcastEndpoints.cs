@@ -51,9 +51,9 @@ public static class AdminBroadcastEndpoints
             var sanitizedMessage = req.Message.Trim();
             var sanitizedSubject = req.Subject.Trim();
 
-            // Get all approved users (active accounts)
+            // Get all approved users that have a valid email address
             var users = await db.Users
-                .Find(u => u.IsApproved)
+                .Find(u => u.IsApproved && u.Email != null && u.Email != "")
                 .Project(u => new { u.Id, u.Email, u.Name })
                 .ToListAsync(ct);
 
@@ -114,9 +114,17 @@ public static class AdminBroadcastEndpoints
                         return;
                     }
 
-                    int sent = 0, failed = 0;
+                    int sent = 0, failed = 0, skipped = 0;
                     foreach (var u in users)
                     {
+                        // ── Guard: skip users with null/empty/invalid email ──
+                        if (string.IsNullOrWhiteSpace(u.Email) || !u.Email.Contains('@'))
+                        {
+                            skipped++;
+                            Serilog.Log.Warning("[Broadcast] ⏭️ Skipped user {Name} (Id={Id}) — no valid email", u.Name, u.Id);
+                            continue;
+                        }
+
                         try
                         {
                             var emailSubject = $"📢 {sanitizedSubject}";
@@ -133,25 +141,46 @@ public static class AdminBroadcastEndpoints
                             if (ok)
                             {
                                 sent++;
+                                Serilog.Log.Information("[Broadcast] ✅ Delivered to {Name} <{Email}>", u.Name, u.Email);
                             }
                             else
                             {
-                                // ── Retry once after 1s ──
-                                Serilog.Log.Warning("[Broadcast] ⚠️ Retry for {Email}: {Error}", u.Email, err);
+                                // ── Retry #1 after 1s ──
+                                Serilog.Log.Warning("[Broadcast] ⚠️ Retry #1 for {Email}: {Error}", u.Email, err);
                                 await Task.Delay(1000);
-                                var (retryOk, retryErr) = await resend.SendAsync(u.Email, emailSubject, html);
-                                if (retryOk) sent++;
-                                else { failed++; Serilog.Log.Warning("[Broadcast] ❌ {Email}: {Error}", u.Email, retryErr); }
+                                var (retry1Ok, retry1Err) = await resend.SendAsync(u.Email, emailSubject, html);
+                                if (retry1Ok)
+                                {
+                                    sent++;
+                                    Serilog.Log.Information("[Broadcast] ✅ Retry #1 succeeded for {Email}", u.Email);
+                                }
+                                else
+                                {
+                                    // ── Retry #2 after 2s (exponential backoff) ──
+                                    Serilog.Log.Warning("[Broadcast] ⚠️ Retry #2 for {Email}: {Error}", u.Email, retry1Err);
+                                    await Task.Delay(2000);
+                                    var (retry2Ok, retry2Err) = await resend.SendAsync(u.Email, emailSubject, html);
+                                    if (retry2Ok)
+                                    {
+                                        sent++;
+                                        Serilog.Log.Information("[Broadcast] ✅ Retry #2 succeeded for {Email}", u.Email);
+                                    }
+                                    else
+                                    {
+                                        failed++;
+                                        Serilog.Log.Error("[Broadcast] ❌ FINAL FAIL for {Name} <{Email}>: {Error}", u.Name, u.Email, retry2Err);
+                                    }
+                                }
                             }
                         }
                         catch (Exception ex)
                         {
                             failed++;
-                            Serilog.Log.Error(ex, "[Broadcast] ❌ Exception → {Email}", u.Email);
+                            Serilog.Log.Error(ex, "[Broadcast] ❌ Exception → {Name} <{Email}>", u.Name, u.Email);
                         }
 
-                        // ── Throttle: 200ms between each send to avoid Resend rate limits ──
-                        await Task.Delay(200);
+                        // ── Throttle: 300ms between each send to avoid Resend rate limits ──
+                        await Task.Delay(300);
                     }
 
                     // ── Persist delivery metrics back to MongoDB ──
@@ -170,7 +199,7 @@ public static class AdminBroadcastEndpoints
                         Serilog.Log.Error(dbEx, "[Broadcast] Failed to update delivery metrics in DB");
                     }
 
-                    Serilog.Log.Information("[Broadcast] ✅ Done. Sent={Sent} Failed={Failed} Total={Total}", sent, failed, users.Count);
+                    Serilog.Log.Information("[Broadcast] ✅ Done. Sent={Sent} Failed={Failed} Skipped={Skipped} Total={Total}", sent, failed, skipped, users.Count);
                 }, CancellationToken.None);
             }
 
