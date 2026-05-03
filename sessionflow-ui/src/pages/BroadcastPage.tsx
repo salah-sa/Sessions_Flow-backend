@@ -25,6 +25,7 @@ const TEMPLATES = [
 const HistoryItem: React.FC<{ item: any }> = ({ item }) => {
   const ChannelIcon = item.channel === "Email" ? Mail : item.channel === "Both" ? Zap : Bell;
   const channelColor = item.channel === "Email" ? "text-sky-400" : item.channel === "Both" ? "text-amber-400" : "text-indigo-400";
+  const hasEmailChannel = item.channel === "Email" || item.channel === "Both";
   return (
     <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl hover:border-white/10 transition-all">
       <div className="flex items-start justify-between gap-3">
@@ -34,15 +35,33 @@ const HistoryItem: React.FC<{ item: any }> = ({ item }) => {
             <p className="text-sm font-semibold text-white truncate">{item.subject}</p>
           </div>
           <p className="text-xs text-slate-500 line-clamp-2 mb-2">{item.message}</p>
-          <div className="flex items-center gap-3 text-[9px] text-slate-600 font-bold uppercase tracking-widest">
+          <div className="flex items-center gap-3 text-[9px] text-slate-600 font-bold uppercase tracking-widest flex-wrap">
             <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {item.recipientCount} recipients</span>
-            {item.channel !== "InApp" && (
-              <span className={cn("flex items-center gap-1", item.emailCompleted ? "text-emerald-500" : "text-amber-500")}>
-                {item.emailCompleted ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3 animate-pulse" />}
-                {item.emailCompleted ? "Delivered" : "Sending..."}
-              </span>
+            {hasEmailChannel && (
+              item.emailCompleted ? (
+                <>
+                  <span className={cn("flex items-center gap-1", item.emailFailedCount > 0 ? "text-amber-400" : "text-emerald-500")}>
+                    <CheckCircle2 className="w-3 h-3" />
+                    {item.emailSentCount}/{item.recipientCount} sent
+                  </span>
+                  {item.emailFailedCount > 0 && (
+                    <span className="flex items-center gap-1 text-rose-400">
+                      <XCircle className="w-3 h-3" /> {item.emailFailedCount} failed
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="flex items-center gap-1 text-amber-500">
+                  <Clock className="w-3 h-3 animate-pulse" /> Sending...
+                </span>
+              )
             )}
           </div>
+          {item.emailError && (
+            <p className="text-[10px] text-rose-400 mt-1.5 flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3 flex-shrink-0" /> {item.emailError}
+            </p>
+          )}
         </div>
         <span className="text-[9px] text-slate-600 whitespace-nowrap flex-shrink-0">
           {new Date(item.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}

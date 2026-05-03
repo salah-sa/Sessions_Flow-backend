@@ -93,16 +93,24 @@ public static class AdminBroadcastEndpoints
                 channel
             });
 
-            // ── Email ─────────────────────────────────────────────────────
-            // NOTE: resend (ResendEmailService) is a SINGLETON — safe to use
-            // inside Task.Run after the HTTP request scope is disposed.
             if (channel is "Email" or "Both")
             {
+                // Capture broadcast ID + DB reference for background use.
+                // MongoService is a SINGLETON — safe after scope disposal.
+                // ResendEmailService is also SINGLETON.
+                var broadcastId = broadcast.Id;
+
                 _ = Task.Run(async () =>
                 {
                     if (!resend.IsConfigured)
                     {
                         Serilog.Log.Error("[Broadcast] ❌ RESEND_API_KEY is NOT SET. Add it in Railway → Variables → redeploy.");
+                        await db.SystemBroadcasts.UpdateOneAsync(
+                            b => b.Id == broadcastId,
+                            Builders<SystemBroadcast>.Update
+                                .Set(b => b.EmailSendCompleted, true)
+                                .Set(b => b.EmailError, "RESEND_API_KEY is not configured.")
+                                .Set(b => b.EmailSentAt, DateTimeOffset.UtcNow));
                         return;
                     }
 
@@ -122,14 +130,44 @@ public static class AdminBroadcastEndpoints
 
                             var (ok, err) = await resend.SendAsync(u.Email, emailSubject, html);
 
-                            if (ok) sent++;
-                            else { failed++; Serilog.Log.Warning("[Broadcast] ❌ {Email}: {Error}", u.Email, err); }
+                            if (ok)
+                            {
+                                sent++;
+                            }
+                            else
+                            {
+                                // ── Retry once after 1s ──
+                                Serilog.Log.Warning("[Broadcast] ⚠️ Retry for {Email}: {Error}", u.Email, err);
+                                await Task.Delay(1000);
+                                var (retryOk, retryErr) = await resend.SendAsync(u.Email, emailSubject, html);
+                                if (retryOk) sent++;
+                                else { failed++; Serilog.Log.Warning("[Broadcast] ❌ {Email}: {Error}", u.Email, retryErr); }
+                            }
                         }
                         catch (Exception ex)
                         {
                             failed++;
                             Serilog.Log.Error(ex, "[Broadcast] ❌ Exception → {Email}", u.Email);
                         }
+
+                        // ── Throttle: 200ms between each send to avoid Resend rate limits ──
+                        await Task.Delay(200);
+                    }
+
+                    // ── Persist delivery metrics back to MongoDB ──
+                    try
+                    {
+                        await db.SystemBroadcasts.UpdateOneAsync(
+                            b => b.Id == broadcastId,
+                            Builders<SystemBroadcast>.Update
+                                .Set(b => b.EmailSendCompleted, true)
+                                .Set(b => b.EmailSentCount, sent)
+                                .Set(b => b.EmailFailedCount, failed)
+                                .Set(b => b.EmailSentAt, DateTimeOffset.UtcNow));
+                    }
+                    catch (Exception dbEx)
+                    {
+                        Serilog.Log.Error(dbEx, "[Broadcast] Failed to update delivery metrics in DB");
                     }
 
                     Serilog.Log.Information("[Broadcast] ✅ Done. Sent={Sent} Failed={Failed} Total={Total}", sent, failed, users.Count);
@@ -239,6 +277,10 @@ public static class AdminBroadcastEndpoints
                     channel         = b.Channel,
                     recipientCount  = b.RecipientCount,
                     emailCompleted  = b.EmailSendCompleted,
+                    emailSentCount  = b.EmailSentCount,
+                    emailFailedCount = b.EmailFailedCount,
+                    emailError      = b.EmailError,
+                    emailSentAt     = b.EmailSentAt,
                     createdAt       = b.CreatedAt
                 }),
                 total,

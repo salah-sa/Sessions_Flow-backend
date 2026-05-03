@@ -19,7 +19,7 @@ public class ResendEmailService
     private readonly ILogger<ResendEmailService> _logger;
     private readonly string? _apiKey;
     private readonly string _fromAddress;
-    private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(10) };
+    private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(30) };
 
     public ResendEmailService(ILogger<ResendEmailService> logger, IConfiguration config)
     {

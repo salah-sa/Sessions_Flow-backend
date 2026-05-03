@@ -37,6 +37,16 @@ namespace SessionFlow.Desktop.Models
         /// <summary>Whether the background email send has completed.</summary>
         public bool EmailSendCompleted { get; set; } = false;
 
+        /// <summary>Number of emails successfully delivered.</summary>
+        public int EmailSentCount { get; set; } = 0;
+
+        /// <summary>Number of emails that failed to deliver.</summary>
+        public int EmailFailedCount { get; set; } = 0;
+
+        /// <summary>Batch-level error message if the entire send loop crashed.</summary>
+        [BsonIgnoreIfNull]
+        public string? EmailError { get; set; }
+
         [BsonIgnoreIfNull]
         public DateTimeOffset? EmailSentAt { get; set; }
 
