@@ -184,6 +184,16 @@ public static class ApiHost
         else
             Log.Information("[Bootstrap] ✅ RESEND_API_KEY is configured (from={Source}). Email delivery enabled.",
                 Environment.GetEnvironmentVariable("RESEND_API_KEY") != null ? "env" : "appsettings");
+
+        // ── Groq / AI API Key startup validation ────────────────────────────
+        var groqApiKey = builder.Configuration["AI:GroqApiKey"]
+            ?? Environment.GetEnvironmentVariable("GROQ_API_KEY");
+        if (!string.IsNullOrWhiteSpace(groqApiKey))
+            Log.Information("[Bootstrap] ✅ GROQ_API_KEY is configured. AI powered by Llama 3.3 70B (FREE).");
+        else if (!string.IsNullOrWhiteSpace(builder.Configuration["AI:OpenAiApiKey"]))
+            Log.Information("[Bootstrap] ✅ OpenAI API key is configured. AI powered by OpenAI (paid).");
+        else
+            Log.Warning("[Bootstrap] ⚠️  No AI key set — using Smart Mock. Get a FREE key at https://console.groq.com → set GROQ_API_KEY.");
         builder.Services.AddScoped<OtpService>(sp =>
         {
             // OtpService uses EmailService → ResendEmailService (sessionflow.uk verified domain)
@@ -209,27 +219,40 @@ public static class ApiHost
             return new FeatureFlagService(db, redisConnection, logger);
         });
 
-        // AI Service (Smart Mock by default, upgradeable to OpenAI via config)
+        // AI Service — Provider Priority: Groq (FREE) → OpenAI (paid) → SmartMock (fallback)
         builder.Services.AddScoped<AIService>(sp =>
         {
             var logger = sp.GetRequiredService<ILogger<AIService>>();
             var db = sp.GetRequiredService<MongoService>();
             var config = sp.GetRequiredService<IConfiguration>();
+            var httpFactory = sp.GetRequiredService<IHttpClientFactory>();
 
             IChatCompletionProvider provider;
-            var openAiKey = config["AI:OpenAiApiKey"];
-            var model = config["AI:Model"] ?? "gpt-4o-mini";
 
-            if (!string.IsNullOrWhiteSpace(openAiKey))
+            // ── 1. Groq (100% FREE — no credit card, Llama 3.3 70B) ──────
+            var groqKey = config["AI:GroqApiKey"] ?? Environment.GetEnvironmentVariable("GROQ_API_KEY");
+            var groqModel = config["AI:GroqModel"] ?? "llama-3.3-70b-versatile";
+
+            // ── 2. OpenAI (paid fallback) ─────────────────────────────────
+            var openAiKey = config["AI:OpenAiApiKey"];
+            var openAiModel = config["AI:Model"] ?? "gpt-4o-mini";
+
+            if (!string.IsNullOrWhiteSpace(groqKey))
             {
-                var http = sp.GetRequiredService<IHttpClientFactory>().CreateClient("openai");
-                provider = new OpenAIProvider(http, openAiKey, model);
-                Log.Information("[AI] Using OpenAI provider (model: {Model})", model);
+                var http = httpFactory.CreateClient("groq");
+                provider = new GroqProvider(http, groqKey, groqModel);
+                Log.Information("[AI] ✅ Using Groq provider (FREE — model: {Model})", groqModel);
+            }
+            else if (!string.IsNullOrWhiteSpace(openAiKey))
+            {
+                var http = httpFactory.CreateClient("openai");
+                provider = new OpenAIProvider(http, openAiKey, openAiModel);
+                Log.Information("[AI] Using OpenAI provider (model: {Model})", openAiModel);
             }
             else
             {
                 provider = new SmartMockProvider();
-                Log.Information("[AI] Using Smart Mock provider (no API key configured)");
+                Log.Warning("[AI] ⚠️ No AI key configured — using Smart Mock. Set GROQ_API_KEY (free) for real AI.");
             }
 
             return new AIService(provider, db, redisConnection, logger, config);

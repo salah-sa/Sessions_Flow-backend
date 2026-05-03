@@ -132,6 +132,92 @@ public class OpenAIProvider : IChatCompletionProvider
     }
 }
 
+// ── Groq Provider (100% FREE — no credit card, OpenAI-compatible) ─────────
+// Sign up at https://console.groq.com → get API key → set GROQ_API_KEY env var.
+// Uses Llama 3.3 70B (strongest free model) with ~500 tokens/sec inference.
+// Free tier: ~30 RPM, ~14,400 RPD — more than enough for SaaS usage.
+public class GroqProvider : IChatCompletionProvider
+{
+    private readonly string _apiKey;
+    private readonly string _model;
+    private readonly HttpClient _http;
+    public string ModelName => $"groq/{_model}";
+
+    private const string SystemPrompt = """
+        You are SessionFlow AI — an intelligent assistant embedded inside SessionFlow, 
+        a premium educational SaaS platform for managing tutoring sessions, student groups, 
+        attendance tracking, and analytics.
+
+        Your capabilities include:
+        - Answering questions about platform features (groups, sessions, students, attendance, reports)
+        - Helping admins and engineers with scheduling, analytics interpretation, and best practices
+        - Providing concise, actionable advice on session management and student engagement
+        - Analyzing trends and offering data-driven suggestions
+
+        Rules:
+        - Be concise and professional. Use markdown formatting for readability.
+        - When asked about data you don't have, suggest where to find it in the platform.
+        - Never fabricate specific numbers or statistics — say you need access to the data.
+        - Keep responses under 500 words unless the user asks for detail.
+        """;
+
+    public GroqProvider(HttpClient http, string apiKey, string model = "llama-3.3-70b-versatile")
+    {
+        _http = http;
+        _apiKey = apiKey;
+        _model = model;
+    }
+
+    public async IAsyncEnumerable<string> StreamAsync(
+        string prompt,
+        List<AIChatMessage> history,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        var messages = new List<object> { new { role = "system", content = SystemPrompt } };
+        foreach (var h in history.TakeLast(10))
+            messages.Add(new { role = h.Role, content = h.Content });
+        messages.Add(new { role = "user", content = prompt });
+
+        var body = JsonSerializer.Serialize(new
+        {
+            model = _model,
+            messages,
+            stream = true,
+            max_tokens = 1024,
+            temperature = 0.7
+        });
+
+        using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.groq.com/openai/v1/chat/completions");
+        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _apiKey);
+        req.Content = new StringContent(body, Encoding.UTF8, "application/json");
+
+        using var resp = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
+        resp.EnsureSuccessStatusCode();
+
+        using var stream = await resp.Content.ReadAsStreamAsync(ct);
+        using var reader = new StreamReader(stream);
+
+        while (!reader.EndOfStream && !ct.IsCancellationRequested)
+        {
+            var line = await reader.ReadLineAsync(ct);
+            if (string.IsNullOrEmpty(line) || !line.StartsWith("data: ")) continue;
+            var data = line["data: ".Length..];
+            if (data == "[DONE]") break;
+
+            JsonDocument? doc = null;
+            try { doc = JsonDocument.Parse(data); } catch { continue; }
+            using (doc)
+            {
+                var content = doc.RootElement
+                    .GetProperty("choices")[0]
+                    .GetProperty("delta")
+                    .TryGetProperty("content", out var c) ? c.GetString() : null;
+                if (content != null) yield return content;
+            }
+        }
+    }
+}
+
 // ── Main AI Service ───────────────────────────────────────────────────────────
 public class AIService
 {
