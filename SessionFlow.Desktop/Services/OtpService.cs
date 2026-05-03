@@ -120,23 +120,31 @@ public class OtpService
             : "SessionFlow — Verification Code";
 
         string htmlBody = $@"
-<div style='font-family:-apple-system,sans-serif;max-width:420px;margin:auto;padding:32px;background:#0f0f1a;border-radius:20px;border:1px solid rgba(255,255,255,0.08);'>
-    <div style='text-align:center;margin-bottom:24px;'>
-        <div style='display:inline-block;background:rgba(99,102,241,0.15);border-radius:16px;padding:12px 16px;'>
-            <span style='font-size:24px;'>🔐</span>
+<table width='100%' cellpadding='0' cellspacing='0' style='background:#0a0e1a;padding:40px 20px;'>
+  <tr><td align='center'>
+    <table width='480' cellpadding='0' cellspacing='0' style='background:linear-gradient(145deg,#111827,#0f172a);border:1px solid #1e293b;border-radius:16px;overflow:hidden;'>
+      <tr><td style='background:linear-gradient(135deg,#4f46e5,#6366f1,#818cf8);padding:24px 32px;text-align:center;'>
+        <span style='font-size:14px;font-weight:700;color:#fff;letter-spacing:2.5px;text-transform:uppercase;font-family:Inter,Segoe UI,sans-serif;'>SESSIONFLOW</span>
+      </td></tr>
+      <tr><td style='padding:32px;font-family:Inter,Segoe UI,Helvetica Neue,sans-serif;text-align:center;'>
+        <div style='display:inline-block;background:rgba(99,102,241,0.15);border-radius:16px;padding:12px 16px;margin-bottom:16px;'>
+          <span style='font-size:28px;'>🔐</span>
         </div>
-    </div>
-    <h2 style='color:#fff;font-size:20px;text-align:center;margin:0 0 8px;'>SessionFlow Wallet</h2>
-    <p style='color:#94a3b8;font-size:14px;text-align:center;margin:0 0 24px;'>
-        {(purpose == "reset_pin" ? "Your PIN reset" : "Your verification")} code
-    </p>
-    <div style='background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:16px;padding:20px;text-align:center;margin-bottom:24px;'>
-        <span style='color:#818cf8;font-size:36px;font-weight:800;letter-spacing:8px;font-family:monospace;'>{code}</span>
-    </div>
-    <p style='color:#64748b;font-size:12px;text-align:center;margin:0;'>
-        Expires in {OtpTtlMinutes} minutes · Do not share this code
-    </p>
-</div>";
+        <h2 style='color:#f1f5f9;font-size:20px;font-weight:700;margin:0 0 8px;line-height:1.3;'>{(purpose == "reset_pin" ? "PIN Reset Code" : "Verification Code")}</h2>
+        <p style='font-size:14px;color:#94a3b8;margin:0 0 24px;'>Enter this code to continue</p>
+        <div style='background:#1e293b;border:1px solid #334155;border-radius:12px;padding:20px 24px;margin:0 0 24px;'>
+          <span style='color:#a78bfa;font-size:36px;font-weight:800;letter-spacing:10px;font-family:Fira Code,Courier New,monospace;'>{code}</span>
+        </div>
+        <p style='font-size:12px;color:#64748b;margin:0;'>Expires in {OtpTtlMinutes} minutes · Do not share this code</p>
+        <hr style='border:none;border-top:1px solid #1e293b;margin:28px 0;'/>
+      </td></tr>
+      <tr><td style='padding:0 32px 28px;font-family:Inter,Segoe UI,sans-serif;text-align:center;'>
+        <p style='font-size:11px;color:#475569;margin:0 0 4px;line-height:1.5;'>If you did not request this code, please ignore this email.</p>
+        <p style='font-size:11px;color:#334155;margin:0;'>© {DateTime.UtcNow.Year} SessionFlow — Powered by precision.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>";
 
         _logger.LogInformation("[OTP] Sending code to {Email} for phone {Phone} ({Purpose})", emailTo, phone, purpose);
 

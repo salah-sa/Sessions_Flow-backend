@@ -130,12 +130,27 @@ public static class AdminBroadcastEndpoints
                         {
                             var emailSubject = $"📢 {sanitizedSubject}";
                             var html = $@"
-                                <div style='font-family:Inter,sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#e2e8f0;padding:32px;border-radius:16px;'>
-                                    <h2 style='color:#38bdf8;margin:0 0 16px;'>📢 {System.Web.HttpUtility.HtmlEncode(sanitizedSubject)}</h2>
-                                    <p style='font-size:15px;line-height:1.6;color:#cbd5e1;white-space:pre-wrap;'>{System.Web.HttpUtility.HtmlEncode(sanitizedMessage)}</p>
-                                    <hr style='border:none;border-top:1px solid #1e293b;margin:24px 0;'/>
-                                    <p style='font-size:11px;color:#475569;'>This message was sent by the SessionFlow admin team.</p>
-                                </div>";
+<table width='100%' cellpadding='0' cellspacing='0' style='background:#0a0e1a;padding:40px 20px;'>
+  <tr><td align='center'>
+    <table width='600' cellpadding='0' cellspacing='0' style='background:linear-gradient(145deg,#111827,#0f172a);border:1px solid #1e293b;border-radius:16px;overflow:hidden;'>
+      <tr><td style='background:linear-gradient(135deg,#6366f1,#8b5cf6,#a78bfa);padding:24px 32px;'>
+        <span style='font-size:14px;font-weight:700;color:#fff;letter-spacing:2.5px;text-transform:uppercase;font-family:Inter,Segoe UI,sans-serif;'>SESSIONFLOW</span>
+      </td></tr>
+      <tr><td style='padding:32px;font-family:Inter,Segoe UI,Helvetica Neue,sans-serif;'>
+        <span style='display:inline-block;background:rgba(99,102,241,0.15);color:#a5b4fc;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:4px 12px;border-radius:100px;margin-bottom:16px;'>📢 Broadcast</span>
+        <h2 style='color:#f1f5f9;font-size:20px;font-weight:700;margin:0 0 20px;line-height:1.3;'>{System.Web.HttpUtility.HtmlEncode(sanitizedSubject)}</h2>
+        <div style='background:rgba(99,102,241,0.08);border-left:4px solid #6366f1;border-radius:0 8px 8px 0;padding:16px 20px;margin:0 0 24px;'>
+          <p style='font-size:15px;line-height:1.75;color:#e2e8f0;margin:0;white-space:pre-wrap;'>{System.Web.HttpUtility.HtmlEncode(sanitizedMessage)}</p>
+        </div>
+        <hr style='border:none;border-top:1px solid #1e293b;margin:28px 0;'/>
+      </td></tr>
+      <tr><td style='padding:0 32px 28px;font-family:Inter,Segoe UI,sans-serif;'>
+        <p style='font-size:11px;color:#475569;margin:0 0 4px;line-height:1.5;'>This announcement was sent to all SessionFlow users.</p>
+        <p style='font-size:11px;color:#334155;margin:0;'>© {DateTime.UtcNow.Year} SessionFlow — Powered by precision.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>";
 
                             var (ok, err) = await resend.SendAsync(u.Email, emailSubject, html);
 
@@ -245,15 +260,31 @@ public static class AdminBroadcastEndpoints
 
             logger.LogInformation("[TestEmail] Sending diagnostic email to {To}", req.To);
 
-            var html = """
-                <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:32px;border:1px solid #e5e7eb;border-radius:12px">
-                  <h2 style="color:#7c3aed;margin-bottom:8px">✅ SessionFlow Email Diagnostic</h2>
-                  <p style="color:#374151">This is a test email confirming that the Resend API is correctly configured for <strong>sessionflow.uk</strong>.</p>
-                  <p style="color:#6b7280;font-size:13px;margin-top:16px">If you received this, email delivery is working. Check your spam folder if broadcasts are not arriving.</p>
-                  <hr style="margin:24px 0;border-color:#e5e7eb"/>
-                  <p style="color:#9ca3af;font-size:11px">Sent from SessionFlow Admin Panel — DO NOT REPLY</p>
-                </div>
-                """;
+            var html = $@"
+<table width='100%' cellpadding='0' cellspacing='0' style='background:#0a0e1a;padding:40px 20px;'>
+  <tr><td align='center'>
+    <table width='600' cellpadding='0' cellspacing='0' style='background:linear-gradient(145deg,#111827,#0f172a);border:1px solid #1e293b;border-radius:16px;overflow:hidden;'>
+      <tr><td style='background:linear-gradient(135deg,#059669,#10b981,#34d399);padding:24px 32px;'>
+        <span style='font-size:14px;font-weight:700;color:#fff;letter-spacing:2.5px;text-transform:uppercase;font-family:Inter,Segoe UI,sans-serif;'>SESSIONFLOW</span>
+      </td></tr>
+      <tr><td style='padding:32px;font-family:Inter,Segoe UI,Helvetica Neue,sans-serif;'>
+        <span style='display:inline-block;background:rgba(16,185,129,0.15);color:#6ee7b7;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:4px 12px;border-radius:100px;margin-bottom:16px;'>✅ Diagnostic</span>
+        <h2 style='color:#f1f5f9;font-size:20px;font-weight:700;margin:0 0 20px;line-height:1.3;'>Email Delivery Test — Passed</h2>
+        <p style='font-size:15px;line-height:1.75;color:#cbd5e1;margin:0 0 16px;'>This is a diagnostic email confirming that the <strong style="color:#6ee7b7;">Resend API</strong> is correctly configured for <strong style="color:#6ee7b7;">sessionflow.uk</strong>.</p>
+        <div style='background:#1e293b;border:1px solid #334155;border-radius:8px;padding:16px 24px;text-align:center;margin:20px 0;'>
+          <p style='font-size:14px;color:#94a3b8;margin:0 0 4px;'>Status</p>
+          <p style='font-size:24px;font-weight:800;color:#34d399;margin:0;letter-spacing:2px;'>OPERATIONAL</p>
+        </div>
+        <p style='font-size:13px;line-height:1.6;color:#94a3b8;margin:0;'>If you received this, email delivery is working. Check your spam folder if broadcasts are not arriving.</p>
+        <hr style='border:none;border-top:1px solid #1e293b;margin:28px 0;'/>
+      </td></tr>
+      <tr><td style='padding:0 32px 28px;font-family:Inter,Segoe UI,sans-serif;'>
+        <p style='font-size:11px;color:#475569;margin:0 0 4px;line-height:1.5;'>Sent from SessionFlow Admin Panel — DO NOT REPLY</p>
+        <p style='font-size:11px;color:#334155;margin:0;'>© {DateTime.UtcNow.Year} SessionFlow — Powered by precision.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>";
 
             var (success, error) = await resend.SendAsync(req.To, "✅ SessionFlow Email Diagnostic", html);
 
@@ -320,16 +351,27 @@ public static class AdminBroadcastEndpoints
             var sanitizedMessage = req.Message.Trim();
             var emailSubject = $"✉️ {sanitizedSubject}";
             var html = $@"
-                <div style='font-family:Inter,sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#e2e8f0;padding:32px;border-radius:16px;'>
-                    <div style='display:flex;align-items:center;gap:8px;margin-bottom:20px;'>
-                        <div style='width:8px;height:8px;background:#a78bfa;border-radius:50%;'></div>
-                        <span style='font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:2px;font-weight:700;'>Direct Message</span>
-                    </div>
-                    <h2 style='color:#a78bfa;margin:0 0 16px;font-size:18px;'>{System.Web.HttpUtility.HtmlEncode(sanitizedSubject)}</h2>
-                    <p style='font-size:15px;line-height:1.7;color:#cbd5e1;white-space:pre-wrap;'>{System.Web.HttpUtility.HtmlEncode(sanitizedMessage)}</p>
-                    <hr style='border:none;border-top:1px solid #1e293b;margin:24px 0;'/>
-                    <p style='font-size:11px;color:#475569;'>This message was sent to you personally by the SessionFlow admin team.</p>
-                </div>";
+<table width='100%' cellpadding='0' cellspacing='0' style='background:#0a0e1a;padding:40px 20px;'>
+  <tr><td align='center'>
+    <table width='600' cellpadding='0' cellspacing='0' style='background:linear-gradient(145deg,#111827,#0f172a);border:1px solid #1e293b;border-radius:16px;overflow:hidden;'>
+      <tr><td style='background:linear-gradient(135deg,#7c3aed,#a78bfa,#c4b5fd);padding:24px 32px;'>
+        <span style='font-size:14px;font-weight:700;color:#fff;letter-spacing:2.5px;text-transform:uppercase;font-family:Inter,Segoe UI,sans-serif;'>SESSIONFLOW</span>
+      </td></tr>
+      <tr><td style='padding:32px;font-family:Inter,Segoe UI,Helvetica Neue,sans-serif;'>
+        <span style='display:inline-block;background:rgba(139,92,246,0.15);color:#c4b5fd;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:4px 12px;border-radius:100px;margin-bottom:16px;'>✉️ Direct Message</span>
+        <h2 style='color:#f1f5f9;font-size:20px;font-weight:700;margin:0 0 20px;line-height:1.3;'>{System.Web.HttpUtility.HtmlEncode(sanitizedSubject)}</h2>
+        <div style='background:rgba(139,92,246,0.08);border-left:4px solid #8b5cf6;border-radius:0 8px 8px 0;padding:16px 20px;margin:0 0 24px;'>
+          <p style='font-size:15px;line-height:1.75;color:#e2e8f0;margin:0;white-space:pre-wrap;'>{System.Web.HttpUtility.HtmlEncode(sanitizedMessage)}</p>
+        </div>
+        <hr style='border:none;border-top:1px solid #1e293b;margin:28px 0;'/>
+      </td></tr>
+      <tr><td style='padding:0 32px 28px;font-family:Inter,Segoe UI,sans-serif;'>
+        <p style='font-size:11px;color:#475569;margin:0 0 4px;line-height:1.5;'>This message was sent to you personally by the SessionFlow admin team.</p>
+        <p style='font-size:11px;color:#334155;margin:0;'>© {DateTime.UtcNow.Year} SessionFlow — Powered by precision.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>";
 
             logger.LogInformation("[DirectEmail] Sending to {Name} <{Email}> | Subject: {Subject}", user.Name, user.Email, sanitizedSubject);
 

@@ -323,15 +323,33 @@ public static class ChatEndpoints
                             if (!presence.IsOnline(recipient.Id.ToString()))
                             {
                                 var subject = $"[SessionFlow] Important Message in {g.Name}";
+                                var msgContent = System.Web.HttpUtility.HtmlEncode(textParams.Trim().Substring(2).Trim());
+                                var senderEncoded = System.Web.HttpUtility.HtmlEncode(sender?.Name ?? "Someone");
+                                var groupEncoded = System.Web.HttpUtility.HtmlEncode(g.Name);
                                 var body = $@"
-                                    <h2>Important Notification</h2>
-                                    <p><b>{sender?.Name}</b> sent an important message in your group <b>{g.Name}</b>:</p>
-                                    <blockquote style='border-left: 5px solid #007bff; padding: 10px; background: #f8f9fa;'>
-                                        {textParams.Trim().Substring(2).Trim()}
-                                    </blockquote>
-                                    <p>Please check the chat for more details.</p>
-                                    <hr/>
-                                    <p><small>This is an automated notification because you are currently offline.</small></p>";
+<table width='100%' cellpadding='0' cellspacing='0' style='background:#0a0e1a;padding:40px 20px;'>
+  <tr><td align='center'>
+    <table width='600' cellpadding='0' cellspacing='0' style='background:linear-gradient(145deg,#111827,#0f172a);border:1px solid #1e293b;border-radius:16px;overflow:hidden;'>
+      <tr><td style='background:linear-gradient(135deg,#ea580c,#f97316,#fb923c);padding:24px 32px;'>
+        <span style='font-size:14px;font-weight:700;color:#fff;letter-spacing:2.5px;text-transform:uppercase;font-family:Inter,Segoe UI,sans-serif;'>SESSIONFLOW</span>
+      </td></tr>
+      <tr><td style='padding:32px;font-family:Inter,Segoe UI,Helvetica Neue,sans-serif;'>
+        <span style='display:inline-block;background:rgba(249,115,22,0.15);color:#fdba74;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:4px 12px;border-radius:100px;margin-bottom:16px;'>🔔 Important</span>
+        <h2 style='color:#f1f5f9;font-size:20px;font-weight:700;margin:0 0 12px;line-height:1.3;'>New Message in {groupEncoded}</h2>
+        <p style='font-size:14px;color:#94a3b8;margin:0 0 20px;'><strong style='color:#cbd5e1;'>{senderEncoded}</strong> sent an important message:</p>
+        <div style='background:rgba(249,115,22,0.08);border-left:4px solid #f97316;border-radius:0 8px 8px 0;padding:16px 20px;margin:0 0 24px;'>
+          <p style='font-size:15px;line-height:1.75;color:#e2e8f0;margin:0;white-space:pre-wrap;'>{msgContent}</p>
+        </div>
+        <p style='font-size:13px;color:#94a3b8;margin:0;'>Please check the chat for more details.</p>
+        <hr style='border:none;border-top:1px solid #1e293b;margin:28px 0;'/>
+      </td></tr>
+      <tr><td style='padding:0 32px 28px;font-family:Inter,Segoe UI,sans-serif;'>
+        <p style='font-size:11px;color:#475569;margin:0 0 4px;line-height:1.5;'>You received this because you are offline. This is an automated notification.</p>
+        <p style='font-size:11px;color:#334155;margin:0;'>© {DateTime.UtcNow.Year} SessionFlow — Powered by precision.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>";
                                 
                                 await emailService.SendEmailAsync(recipient.Email, subject, body);
                             }
