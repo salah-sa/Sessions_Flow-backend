@@ -142,7 +142,7 @@ public static class AdminBroadcastEndpoints
             TestEmailRequest req,
             ResendEmailService resend,
             ClaimsPrincipal principal,
-            ILogger<AdminBroadcastEndpoints> logger) =>
+            ILogger<Program> logger) =>
         {
             if (!Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out _))
                 return Results.Unauthorized();
