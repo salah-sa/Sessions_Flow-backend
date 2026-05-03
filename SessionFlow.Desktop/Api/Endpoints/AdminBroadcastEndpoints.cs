@@ -13,6 +13,7 @@ namespace SessionFlow.Desktop.Api.Endpoints;
 /// <summary>
 /// Admin broadcast endpoints.
 /// POST /api/admin/broadcast          — send a custom message to all users
+/// POST /api/admin/broadcast/direct   — send a custom email to a single user by userId
 /// POST /api/admin/broadcast/test-email — synchronous email health-check for diagnosis
 /// GET  /api/admin/broadcast/history  — paginated history of past broadcasts
 /// </summary>
@@ -276,6 +277,99 @@ public static class AdminBroadcastEndpoints
             });
         });
 
+        // ── Send Direct Email to Individual User ─────────────────────────
+        // POST /api/admin/broadcast/direct
+        group.MapPost("/direct", async (
+            DirectEmailRequest req,
+            MongoService db,
+            ResendEmailService resend,
+            ClaimsPrincipal principal,
+            ILoggerFactory loggerFactory,
+            CancellationToken ct) =>
+        {
+            var logger = loggerFactory.CreateLogger("AdminDirectEmail");
+            if (!Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out _))
+                return Results.Unauthorized();
+
+            if (string.IsNullOrWhiteSpace(req.UserId))
+                return Results.BadRequest(new { error = "userId is required." });
+
+            if (string.IsNullOrWhiteSpace(req.Subject) || req.Subject.Trim().Length < 3)
+                return Results.BadRequest(new { error = "Subject must be at least 3 characters." });
+
+            if (string.IsNullOrWhiteSpace(req.Message) || req.Message.Trim().Length < 5)
+                return Results.BadRequest(new { error = "Message must be at least 5 characters." });
+
+            // Look up user by ID
+            if (!Guid.TryParse(req.UserId, out var userId))
+                return Results.BadRequest(new { error = "Invalid user ID format." });
+
+            var user = await db.Users
+                .Find(u => u.Id == userId)
+                .Project(u => new { u.Id, u.Email, u.Name })
+                .FirstOrDefaultAsync(ct);
+
+            if (user == null)
+                return Results.NotFound(new { error = "User not found." });
+
+            if (string.IsNullOrWhiteSpace(user.Email) || !user.Email.Contains('@'))
+                return Results.BadRequest(new { error = $"User {user.Name} does not have a valid email address." });
+
+            // Build styled email HTML
+            var sanitizedSubject = req.Subject.Trim();
+            var sanitizedMessage = req.Message.Trim();
+            var emailSubject = $"✉️ {sanitizedSubject}";
+            var html = $@"
+                <div style='font-family:Inter,sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#e2e8f0;padding:32px;border-radius:16px;'>
+                    <div style='display:flex;align-items:center;gap:8px;margin-bottom:20px;'>
+                        <div style='width:8px;height:8px;background:#a78bfa;border-radius:50%;'></div>
+                        <span style='font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:2px;font-weight:700;'>Direct Message</span>
+                    </div>
+                    <h2 style='color:#a78bfa;margin:0 0 16px;font-size:18px;'>{System.Web.HttpUtility.HtmlEncode(sanitizedSubject)}</h2>
+                    <p style='font-size:15px;line-height:1.7;color:#cbd5e1;white-space:pre-wrap;'>{System.Web.HttpUtility.HtmlEncode(sanitizedMessage)}</p>
+                    <hr style='border:none;border-top:1px solid #1e293b;margin:24px 0;'/>
+                    <p style='font-size:11px;color:#475569;'>This message was sent to you personally by the SessionFlow admin team.</p>
+                </div>";
+
+            logger.LogInformation("[DirectEmail] Sending to {Name} <{Email}> | Subject: {Subject}", user.Name, user.Email, sanitizedSubject);
+
+            var (success, error) = await resend.SendAsync(user.Email, emailSubject, html);
+
+            if (success)
+            {
+                logger.LogInformation("[DirectEmail] ✅ Delivered to {Name} <{Email}>", user.Name, user.Email);
+            }
+            else
+            {
+                // Retry once after 1s
+                logger.LogWarning("[DirectEmail] ⚠️ Retry for {Email}: {Error}", user.Email, error);
+                await Task.Delay(1000);
+                var (retryOk, retryErr) = await resend.SendAsync(user.Email, emailSubject, html);
+                if (retryOk)
+                {
+                    success = true;
+                    error = null;
+                    logger.LogInformation("[DirectEmail] ✅ Retry succeeded for {Email}", user.Email);
+                }
+                else
+                {
+                    error = retryErr;
+                    logger.LogError("[DirectEmail] ❌ FINAL FAIL for {Name} <{Email}>: {Error}", user.Name, user.Email, retryErr);
+                }
+            }
+
+            return Results.Ok(new
+            {
+                success,
+                to = user.Email,
+                userName = user.Name,
+                error = success ? null : error,
+                hint = success
+                    ? "✅ Email delivered — check inbox and spam folder."
+                    : "Check Railway Logs for the full Resend API error response."
+            });
+        });
+
         // ── History ───────────────────────────────────────────────────────
         group.MapGet("/history", async (
             MongoService db,
@@ -322,4 +416,5 @@ public static class AdminBroadcastEndpoints
 
     private record BroadcastRequest(string Subject, string Message, string? Channel);
     private record TestEmailRequest(string To);
+    private record DirectEmailRequest(string UserId, string Subject, string Message);
 }

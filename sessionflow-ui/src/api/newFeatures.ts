@@ -145,6 +145,25 @@ export async function getBroadcastHistory(page = 1, pageSize = 20) {
   );
 }
 
+export interface DirectEmailResult {
+  success: boolean;
+  to: string;
+  userName: string;
+  error?: string;
+  hint?: string;
+}
+
+export async function sendDirectEmail(
+  userId: string,
+  subject: string,
+  message: string
+): Promise<DirectEmailResult> {
+  return fetchWithAuth<DirectEmailResult>("/admin/broadcast/direct", {
+    method: "POST",
+    body: JSON.stringify({ userId, subject, message }),
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 // AI Center
 // ─────────────────────────────────────────────────────────────────────────

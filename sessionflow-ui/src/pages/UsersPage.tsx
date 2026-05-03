@@ -9,6 +9,7 @@ import { formatDistanceToNow, format } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { sendBroadcast, getBroadcastHistory } from "../api/newFeatures";
+import { useSendDirectEmail } from "../queries/useBroadcastQueries";
 import {
   Users, Search, Shield, ShieldAlert, ShieldOff, ShieldCheck,
   Filter, ChevronDown, X, Lock, Unlock, Eye, EyeOff, Clock,
@@ -155,6 +156,36 @@ const UsersPage: React.FC = () => {
   };
 
   const [broadcastOpen, setBroadcastOpen] = useState(false);
+
+  // ── Direct Email state ──
+  const [directEmailOpen, setDirectEmailOpen] = useState(false);
+  const [directSubject, setDirectSubject] = useState("");
+  const [directMessage, setDirectMessage] = useState("");
+  const directEmailMutation = useSendDirectEmail();
+
+  const handleSendDirectEmail = async (user: UserItem) => {
+    if (!directSubject.trim() || !directMessage.trim()) {
+      toast.error("Subject and message are required.");
+      return;
+    }
+    try {
+      const result = await directEmailMutation.mutateAsync({
+        userId: user.id,
+        subject: directSubject.trim(),
+        message: directMessage.trim(),
+      });
+      if (result.success) {
+        toast.success(`✉️ Email sent to ${result.userName} (${result.to})`);
+        setDirectSubject("");
+        setDirectMessage("");
+        setDirectEmailOpen(false);
+      } else {
+        toast.error(result.error || "Failed to send email.");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to send email.");
+    }
+  };
 
   return (
     <div className="h-full flex flex-col bg-[var(--ui-bg)] animate-fade-in overflow-hidden">
@@ -524,6 +555,91 @@ const UsersPage: React.FC = () => {
                           <p className="text-[10px] text-slate-500">Triggers credentials email delivery via Resend</p>
                         </div>
                       </button>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="border-t border-white/5" />
+
+                    {/* ── DIRECT EMAIL COMPOSER ── */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-semibold text-slate-500 uppercase flex items-center gap-2">
+                          <Send className="w-3.5 h-3.5" /> Send Direct Email
+                        </p>
+                        <button
+                          onClick={() => setDirectEmailOpen(v => !v)}
+                          className="text-[10px] font-semibold text-violet-400 hover:text-violet-300 transition-colors uppercase"
+                        >
+                          {directEmailOpen ? "Close" : "Compose"}
+                        </button>
+                      </div>
+
+                      <p className="text-[11px] text-slate-600 leading-relaxed">
+                        Send a personal email directly to <span className="text-white font-semibold">{selectedUser.name}</span> ({selectedUser.email}).
+                      </p>
+
+                      <AnimatePresence>
+                        {directEmailOpen && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.25 }}
+                            className="overflow-hidden space-y-3"
+                          >
+                            {/* Subject */}
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Subject</label>
+                              <input
+                                value={directSubject}
+                                onChange={e => setDirectSubject(e.target.value.slice(0, 120))}
+                                placeholder="e.g. Regarding your account"
+                                className="w-full h-10 px-3 bg-[var(--ui-surface)] border border-white/10 rounded-xl text-sm text-white placeholder:text-slate-600 focus:border-violet-500/50 focus:outline-none transition-all"
+                              />
+                              <span className="text-[9px] text-slate-600 font-mono float-right">{directSubject.length}/120</span>
+                            </div>
+
+                            {/* Message */}
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Message</label>
+                              <textarea
+                                value={directMessage}
+                                onChange={e => setDirectMessage(e.target.value.slice(0, 2000))}
+                                placeholder={`Dear ${selectedUser.name},\n\nWe are reaching out regarding...\n\nBest regards,\nSessionFlow Team`}
+                                rows={5}
+                                className="w-full bg-[var(--ui-surface)] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-slate-600 resize-none focus:outline-none focus:border-violet-500/40 transition-all leading-relaxed"
+                              />
+                              <span className="text-[9px] text-slate-600 font-mono float-right">{directMessage.length}/2000</span>
+                            </div>
+
+                            {/* Recipient preview */}
+                            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-violet-500/5 border border-violet-500/10">
+                              <Mail className="w-3.5 h-3.5 text-violet-400" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[10px] text-slate-500 font-semibold uppercase">Recipient</p>
+                                <p className="text-xs text-white font-medium truncate">{selectedUser.name} — {selectedUser.email}</p>
+                              </div>
+                              <span className="px-1.5 py-0.5 rounded text-[8px] bg-violet-500/10 text-violet-400 font-bold border border-violet-500/20 uppercase">1 user</span>
+                            </div>
+
+                            {/* Send button */}
+                            <button
+                              onClick={() => handleSendDirectEmail(selectedUser)}
+                              disabled={directEmailMutation.isPending || !directSubject.trim() || !directMessage.trim()}
+                              className="w-full h-10 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-semibold uppercase flex items-center justify-center gap-2 hover:opacity-90 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              {directEmailMutation.isPending ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <Send className="w-3.5 h-3.5" />
+                                  Send Email to {selectedUser.name}
+                                </>
+                              )}
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
 
                     {/* Divider */}

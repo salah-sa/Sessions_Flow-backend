@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { broadcastApi } from "../api/resources_extra";
+import { sendDirectEmail } from "../api/newFeatures";
 import { queryKeys } from "./keys";
 import { useAuthStore } from "../store/stores";
 
@@ -32,4 +33,11 @@ export const useSendBroadcast = () => {
 export const useTestBroadcastEmail = () =>
   useMutation({
     mutationFn: (to: string) => broadcastApi.testEmail(to),
+  });
+
+/** Send a direct email to a single user by userId. */
+export const useSendDirectEmail = () =>
+  useMutation({
+    mutationFn: (payload: { userId: string; subject: string; message: string }) =>
+      sendDirectEmail(payload.userId, payload.subject, payload.message),
   });
