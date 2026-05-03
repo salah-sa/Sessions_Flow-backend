@@ -28,7 +28,7 @@ public static class AdminBroadcastEndpoints
             ClaimsPrincipal principal,
             MongoService db,
             NotificationService notificationService,
-            EmailService emailService,
+            ResendEmailService resend,
             IEventBus eventBus,
             CancellationToken ct) =>
         {
@@ -94,59 +94,45 @@ public static class AdminBroadcastEndpoints
             });
 
             // ── Email ─────────────────────────────────────────────────────
+            // NOTE: resend (ResendEmailService) is a SINGLETON — safe to use
+            // inside Task.Run after the HTTP request scope is disposed.
             if (channel is "Email" or "Both")
             {
-                // Fire-and-forget background email send (non-blocking)
                 _ = Task.Run(async () =>
                 {
-                    // ── Guard: bail out early if Resend is not configured ─
-                    if (!emailService.IsConfigured)
+                    if (!resend.IsConfigured)
                     {
-                        Serilog.Log.Error("[Broadcast] ❌ RESEND_API_KEY is NOT SET on Railway. " +
-                            "Go to Railway → Variables → add RESEND_API_KEY → redeploy.");
-                        await db.SystemBroadcasts.UpdateOneAsync(
-                            b => b.Id == broadcast.Id,
-                            Builders<SystemBroadcast>.Update.Set(b => b.EmailSendCompleted, false));
+                        Serilog.Log.Error("[Broadcast] ❌ RESEND_API_KEY is NOT SET. Add it in Railway → Variables → redeploy.");
                         return;
                     }
 
-                    int sent = 0;
-                    int failed = 0;
+                    int sent = 0, failed = 0;
                     foreach (var u in users)
                     {
                         try
                         {
-                            var (ok, err) = await emailService.SendBroadcastEmailAsync(
-                                u.Email, u.Name, sanitizedMessage, sanitizedSubject);
+                            var emailSubject = $"📢 {sanitizedSubject}";
+                            var html = $@"
+                                <div style='font-family:Inter,sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#e2e8f0;padding:32px;border-radius:16px;'>
+                                    <h2 style='color:#38bdf8;margin:0 0 16px;'>📢 {System.Web.HttpUtility.HtmlEncode(sanitizedSubject)}</h2>
+                                    <p style='font-size:15px;line-height:1.6;color:#cbd5e1;white-space:pre-wrap;'>{System.Web.HttpUtility.HtmlEncode(sanitizedMessage)}</p>
+                                    <hr style='border:none;border-top:1px solid #1e293b;margin:24px 0;'/>
+                                    <p style='font-size:11px;color:#475569;'>This message was sent by the SessionFlow admin team.</p>
+                                </div>";
 
-                            if (ok)
-                            {
-                                sent++;
-                            }
-                            else
-                            {
-                                failed++;
-                                Serilog.Log.Warning("[Broadcast] ❌ Failed → {Email}: {Error}", u.Email, err);
-                            }
+                            var (ok, err) = await resend.SendAsync(u.Email, emailSubject, html);
+
+                            if (ok) sent++;
+                            else { failed++; Serilog.Log.Warning("[Broadcast] ❌ {Email}: {Error}", u.Email, err); }
                         }
                         catch (Exception ex)
                         {
                             failed++;
-                            Serilog.Log.Error(ex, "[Broadcast] ❌ Exception sending to {Email}", u.Email);
+                            Serilog.Log.Error(ex, "[Broadcast] ❌ Exception → {Email}", u.Email);
                         }
                     }
 
-                    // Update broadcast record with completion
-                    await db.SystemBroadcasts.UpdateOneAsync(
-                        b => b.Id == broadcast.Id,
-                        Builders<SystemBroadcast>.Update
-                            .Set(b => b.EmailSendCompleted, true)
-                            .Set(b => b.EmailSentAt, DateTimeOffset.UtcNow)
-                            .Set(b => b.RecipientCount, sent));
-
-                    Serilog.Log.Information(
-                        "[Broadcast] ✅ Completed. Sent={Sent}, Failed={Failed}, Total={Total}",
-                        sent, failed, users.Count);
+                    Serilog.Log.Information("[Broadcast] ✅ Done. Sent={Sent} Failed={Failed} Total={Total}", sent, failed, users.Count);
                 }, CancellationToken.None);
             }
 
