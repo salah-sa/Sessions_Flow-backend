@@ -216,7 +216,8 @@ public static class ApiHost
         {
             var logger = sp.GetRequiredService<ILogger<FeatureFlagService>>();
             var db = sp.GetRequiredService<MongoService>();
-            return new FeatureFlagService(db, redisConnection, logger);
+            var eventBus = sp.GetRequiredService<IEventBus>();
+            return new FeatureFlagService(db, redisConnection, logger, eventBus);
         });
 
         // AI Service — Provider Priority: Groq (FREE) → OpenAI (paid) → SmartMock (fallback)
