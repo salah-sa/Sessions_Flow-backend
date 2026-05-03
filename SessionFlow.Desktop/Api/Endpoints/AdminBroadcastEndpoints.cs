@@ -99,18 +99,40 @@ public static class AdminBroadcastEndpoints
                 // Fire-and-forget background email send (non-blocking)
                 _ = Task.Run(async () =>
                 {
+                    // ── Guard: bail out early if Resend is not configured ─
+                    if (!emailService.IsConfigured)
+                    {
+                        Serilog.Log.Error("[Broadcast] ❌ RESEND_API_KEY is NOT SET on Railway. " +
+                            "Go to Railway → Variables → add RESEND_API_KEY → redeploy.");
+                        await db.SystemBroadcasts.UpdateOneAsync(
+                            b => b.Id == broadcast.Id,
+                            Builders<SystemBroadcast>.Update.Set(b => b.EmailSendCompleted, false));
+                        return;
+                    }
+
                     int sent = 0;
+                    int failed = 0;
                     foreach (var u in users)
                     {
                         try
                         {
-                            await emailService.SendBroadcastEmailAsync(
+                            var (ok, err) = await emailService.SendBroadcastEmailAsync(
                                 u.Email, u.Name, sanitizedMessage, sanitizedSubject);
-                            sent++;
+
+                            if (ok)
+                            {
+                                sent++;
+                            }
+                            else
+                            {
+                                failed++;
+                                Serilog.Log.Warning("[Broadcast] ❌ Failed → {Email}: {Error}", u.Email, err);
+                            }
                         }
                         catch (Exception ex)
                         {
-                            Serilog.Log.Warning(ex, "[Broadcast] Failed to send email to {Email}", u.Email);
+                            failed++;
+                            Serilog.Log.Error(ex, "[Broadcast] ❌ Exception sending to {Email}", u.Email);
                         }
                     }
 
@@ -122,9 +144,12 @@ public static class AdminBroadcastEndpoints
                             .Set(b => b.EmailSentAt, DateTimeOffset.UtcNow)
                             .Set(b => b.RecipientCount, sent));
 
-                    Serilog.Log.Information("[Broadcast] Email broadcast completed. Sent to {Count}/{Total} users.", sent, users.Count);
+                    Serilog.Log.Information(
+                        "[Broadcast] ✅ Completed. Sent={Sent}, Failed={Failed}, Total={Total}",
+                        sent, failed, users.Count);
                 }, CancellationToken.None);
             }
+
 
             return Results.Ok(new
             {

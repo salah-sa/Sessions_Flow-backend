@@ -27,6 +27,8 @@ public class EmailService
         _resend = resend;
     }
 
+    public bool IsConfigured => _resend.IsConfigured;
+
     public async Task<(bool success, string? error)> SendEmailAsync(string to, string subject, string htmlBody, CancellationToken ct = default)
     {
         return await _resend.SendAsync(to, subject, htmlBody);
