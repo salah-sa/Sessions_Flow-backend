@@ -55,3 +55,16 @@ export const useAILogs = (page = 1) => {
 
 // ── Re-export type for pages ──────────────────────────────────────────────────
 export type { AIPreset };
+export type { AIHistoryItem } from "../api/newFeatures";
+
+// ── History ───────────────────────────────────────────────────────────────────
+export const useAIHistory = () => {
+  const token = useAuthStore((s) => s.token);
+  const hydrated = useAuthStore((s) => s._hasHydrated);
+  return useQuery({
+    queryKey: queryKeys.ai.history,
+    queryFn: () => aiApi.getHistory(100),
+    enabled: !!token && hydrated,
+    staleTime: 30_000,
+  });
+};

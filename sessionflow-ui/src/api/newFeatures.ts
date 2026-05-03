@@ -162,6 +162,19 @@ export interface AIUsage {
   used: number;
   limit: number;
   tier: string;
+  resetsAt: string;
+  windowHours: number;
+}
+
+export interface AIHistoryItem {
+  id: string;
+  sessionId: string;
+  prompt: string;
+  response: string;
+  model: string;
+  durationMs: number;
+  wasCached: boolean;
+  timestamp: string;
 }
 
 export const aiApi = {
@@ -171,6 +184,7 @@ export const aiApi = {
   deletePreset: (id: string) => fetchWithAuth<void>(`/ai/presets/${id}`, { method: "DELETE" }),
   getLogs: (page = 1) => fetchWithAuth<unknown[]>(`/ai/logs?page=${page}`),
   getUsage: () => fetchWithAuth<AIUsage>("/ai/usage"),
+  getHistory: (limit = 100) => fetchWithAuth<AIHistoryItem[]>(`/ai/history?limit=${limit}`),
 };
 
 // ─────────────────────────────────────────────────────────────────────────

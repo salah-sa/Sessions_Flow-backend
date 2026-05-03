@@ -144,21 +144,19 @@ public class GroqProvider : IChatCompletionProvider
     public string ModelName => $"groq/{_model}";
 
     private const string SystemPrompt = """
-        You are SessionFlow AI — an intelligent assistant embedded inside SessionFlow, 
-        a premium educational SaaS platform for managing tutoring sessions, student groups, 
-        attendance tracking, and analytics.
+        You are SessionFlow Code Assistant — an expert coding AI embedded inside SessionFlow.
+        You specialize in helping developers write, debug, and understand code.
 
-        Your capabilities include:
-        - Answering questions about platform features (groups, sessions, students, attendance, reports)
-        - Helping admins and engineers with scheduling, analytics interpretation, and best practices
-        - Providing concise, actionable advice on session management and student engagement
-        - Analyzing trends and offering data-driven suggestions
-
-        Rules:
-        - Be concise and professional. Use markdown formatting for readability.
-        - When asked about data you don't have, suggest where to find it in the platform.
-        - Never fabricate specific numbers or statistics — say you need access to the data.
-        - Keep responses under 500 words unless the user asks for detail.
+        STRICT RULES:
+        - You ONLY help with coding, programming, and technical questions.
+        - If asked about non-coding topics, politely redirect: "I'm a coding assistant. Ask me about code!"
+        - ALWAYS wrap code in fenced markdown code blocks with the language tag, e.g. ```csharp ... ```
+        - When showing multiple files or steps, use separate code blocks for each.
+        - Explain code concisely — keep explanations short and actionable.
+        - Use bullet points for multi-step explanations.
+        - Supported languages include but are not limited to: C#, TypeScript, JavaScript, Python, SQL, HTML, CSS, React, .NET, and more.
+        - If the user asks to fix a bug, show ONLY the changed lines with context, not the entire file.
+        - Keep responses under 600 words unless the user asks for detail.
         """;
 
     public GroqProvider(HttpClient http, string apiKey, string model = "llama-3.3-70b-versatile")
@@ -227,12 +225,13 @@ public class AIService
     private readonly ILogger<AIService> _logger;
     private readonly IConfiguration _config;
 
-    // Quota per tier (requests per day)
-    private static readonly Dictionary<string, int> TierQuotas = new()
+    // Quota per tier (requests per 3-hour window)
+    private const int QuotaWindowHours = 3;
+    public static readonly Dictionary<string, int> TierQuotas = new()
     {
-        ["Free"] = 20,
-        ["Pro"] = 200,
-        ["Ultra"] = 500,
+        ["Free"] = 5,
+        ["Pro"] = 90,
+        ["Ultra"] = 180,
         ["Enterprise"] = int.MaxValue
     };
 
@@ -263,10 +262,10 @@ public class AIService
         var cacheKey = BuildCacheKey(prompt, history);
         var cacheDb = _redis?.GetDatabase();
 
-        // ── 1. Quota Check ──────────────────────────────────────────────────
+        // ── 1. Quota Check (3-hour window) ────────────────────────────────
         if (!await CheckQuotaAsync(userId, userTier, cacheDb))
         {
-            yield return "⚠️ **Daily AI quota reached.** Please upgrade your plan for more requests, or try again tomorrow.";
+            yield return "⚠️ **Quota reached.** You've used all your messages for this 3-hour window. Upgrade your plan or wait for the next window.";
             yield break;
         }
 
@@ -306,12 +305,12 @@ public class AIService
             await cacheDb.StringSetAsync(cacheKey, fullResponse, TimeSpan.FromHours(1));
         }
 
-        // ── 5. Increment quota usage ────────────────────────────────────────
+        // ── 5. Increment quota usage (3-hour window) ─────────────────────
         if (cacheDb != null)
         {
-            var quotaKey = $"ai:quota:{userId}:{DateTime.UtcNow:yyyyMMdd}";
+            var (quotaKey, ttl) = BuildQuotaKey(userId);
             await cacheDb.StringIncrementAsync(quotaKey);
-            await cacheDb.KeyExpireAsync(quotaKey, TimeSpan.FromDays(1));
+            await cacheDb.KeyExpireAsync(quotaKey, ttl);
         }
 
         // ── 6. Persist log to MongoDB ───────────────────────────────────────
@@ -323,12 +322,26 @@ public class AIService
     private async Task<bool> CheckQuotaAsync(Guid userId, string tier, IDatabase? db)
     {
         if (db == null) return true;
-        var limit = TierQuotas.GetValueOrDefault(tier, 20);
+        var limit = TierQuotas.GetValueOrDefault(tier, 5);
         if (limit == int.MaxValue) return true;
 
-        var quotaKey = $"ai:quota:{userId}:{DateTime.UtcNow:yyyyMMdd}";
+        var (quotaKey, _) = BuildQuotaKey(userId);
         var current = (long?)await db.StringGetAsync(quotaKey) ?? 0;
         return current < limit;
+    }
+
+    /// <summary>Builds a Redis key scoped to a 3-hour bucket from Unix epoch.</summary>
+    private static (string key, TimeSpan ttl) BuildQuotaKey(Guid userId)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var bucket = now.ToUnixTimeSeconds() / (QuotaWindowHours * 3600);
+        var key = $"ai:quota:{userId}:{bucket}";
+        // TTL = time remaining until this 3h window ends
+        var windowStart = DateTimeOffset.FromUnixTimeSeconds(bucket * QuotaWindowHours * 3600);
+        var windowEnd = windowStart.AddHours(QuotaWindowHours);
+        var ttl = windowEnd - now;
+        if (ttl < TimeSpan.FromSeconds(10)) ttl = TimeSpan.FromHours(QuotaWindowHours);
+        return (key, ttl);
     }
 
     private async Task LogAsync(
@@ -405,11 +418,32 @@ public class AIService
             .ToListAsync();
     }
 
-    public async Task<int> GetDailyUsageAsync(Guid userId, IDatabase? cacheDb)
+    /// <summary>Returns real-time quota info for the current 3-hour window.</summary>
+    public async Task<(int used, int limit, DateTimeOffset resetsAt)> GetQuotaInfoAsync(Guid userId, string tier, IDatabase? cacheDb)
     {
-        if (cacheDb == null) return 0;
-        var quotaKey = $"ai:quota:{userId}:{DateTime.UtcNow:yyyyMMdd}";
-        return (int)((long?)await cacheDb.StringGetAsync(quotaKey) ?? 0);
+        var limit = TierQuotas.GetValueOrDefault(tier, 5);
+        if (cacheDb == null) return (0, limit, DateTimeOffset.UtcNow.AddHours(QuotaWindowHours));
+
+        var (quotaKey, _) = BuildQuotaKey(userId);
+        var used = (int)((long?)await cacheDb.StringGetAsync(quotaKey) ?? 0);
+
+        // Calculate when this window resets
+        var now = DateTimeOffset.UtcNow;
+        var bucket = now.ToUnixTimeSeconds() / (QuotaWindowHours * 3600);
+        var windowEnd = DateTimeOffset.FromUnixTimeSeconds((bucket + 1) * QuotaWindowHours * 3600);
+
+        return (used, limit, windowEnd);
+    }
+
+    /// <summary>Returns user's AI chat history from MongoDB, grouped by session.</summary>
+    public async Task<List<AILog>> GetUserHistoryAsync(Guid userId, int limit = 100)
+    {
+        return await _db.AILogs.Find(
+            Builders<AILog>.Filter.Eq(l => l.UserId, userId)
+        )
+        .SortByDescending(l => l.Timestamp)
+        .Limit(limit)
+        .ToListAsync();
     }
 
     private static string BuildCacheKey(string prompt, List<AIChatMessage> history)

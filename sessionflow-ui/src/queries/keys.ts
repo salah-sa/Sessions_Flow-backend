@@ -61,6 +61,7 @@ export const queryKeys = {
     presets: ["ai", "presets"] as const,
     logs: (page: number) => ["ai", "logs", page] as const,
     usage: ["ai", "usage"] as const,
+    history: ["ai", "history"] as const,
   },
   analytics: {
     all: ["analytics"] as const,

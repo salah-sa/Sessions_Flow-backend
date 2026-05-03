@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.SignalR;
+using SessionFlow.Desktop.Api.Hubs;
 using SessionFlow.Desktop.Data;
 using SessionFlow.Desktop.Models;
 using SessionFlow.Desktop.Services;
@@ -18,11 +20,12 @@ public static class AIEndpoints
     {
         var group = app.MapGroup("/api/ai").RequireAuthorization();
 
-        // ── POST /api/ai/chat — SSE Streaming ────────────────────────────────
+        // ── POST /api/ai/chat — SSE Streaming + SignalR quota push ────────────
         group.MapPost("/chat", async (
             AIChatRequest req,
             AIService ai,
             IConnectionMultiplexer? redis,
+            IHubContext<NotificationHub> hub,
             ClaimsPrincipal user,
             HttpContext ctx) =>
         {
@@ -49,11 +52,24 @@ public static class AIEndpoints
                     await ctx.Response.Body.FlushAsync(ct);
                 }
                 await ctx.Response.WriteAsync("data: [DONE]\n\n", ct);
+
+                // ── Push updated quota to client via SignalR ──────────────
+                try
+                {
+                    var (used, limit, resetsAt) = await ai.GetQuotaInfoAsync(userId, userTier, cacheDb);
+                    await hub.Clients.Group($"user_{userId}").SendAsync("AIQuotaUpdated", new
+                    {
+                        used, limit, tier = userTier,
+                        resetsAt = resetsAt.ToString("o"),
+                        windowHours = 3
+                    }, CancellationToken.None);
+                }
+                catch { /* non-critical */ }
             }
             catch (OperationCanceledException) { /* Client disconnected */ }
         });
 
-        // ── GET /api/ai/usage — Current day quota usage ───────────────────────
+        // ── GET /api/ai/usage — 3-hour window quota info ─────────────────────
         group.MapGet("/usage", async (
             AIService ai,
             IConnectionMultiplexer? redis,
@@ -62,15 +78,9 @@ public static class AIEndpoints
             var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var tier = user.FindFirstValue("subscription_tier") ?? "Free";
             var cacheDb = redis?.GetDatabase();
-            var used = await ai.GetDailyUsageAsync(userId, cacheDb);
+            var (used, limit, resetsAt) = await ai.GetQuotaInfoAsync(userId, tier, cacheDb);
 
-            var limits = new Dictionary<string, int>
-            {
-                ["Free"] = 20, ["Pro"] = 200, ["Ultra"] = 500, ["Enterprise"] = 9999
-            };
-            var limit = limits.GetValueOrDefault(tier, 20);
-
-            return Results.Ok(new { used, limit, tier });
+            return Results.Ok(new { used, limit, tier, resetsAt = resetsAt.ToString("o"), windowHours = 3 });
         });
 
         // ── GET /api/ai/logs — Paginated AI history ───────────────────────────
@@ -123,6 +133,27 @@ public static class AIEndpoints
             var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
             await ai.DeletePresetAsync(id, userId);
             return Results.Ok(new { message = "Preset deleted." });
+        });
+
+        // ── GET /api/ai/history — User's persistent chat history ─────────────
+        group.MapGet("/history", async (
+            AIService ai,
+            ClaimsPrincipal user,
+            [FromQuery] int limit = 100) =>
+        {
+            var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var logs = await ai.GetUserHistoryAsync(userId, limit);
+            return Results.Ok(logs.Select(l => new
+            {
+                id = l.Id,
+                sessionId = l.SessionId,
+                prompt = l.Prompt,
+                response = l.Response,
+                model = l.Model,
+                durationMs = l.DurationMs,
+                wasCached = l.WasCached,
+                timestamp = l.Timestamp
+            }));
         });
     }
 }
