@@ -1,10 +1,11 @@
 import React, { useRef, useCallback } from 'react';
-import { SendHorizonal } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { SendHorizonal, Loader2 } from 'lucide-react';
 import { useAIAgentStore, type AIMessage } from '../../store/stores';
 import { aiAgentService } from '../../api/aiAgentService';
 import { cn } from '../../lib/utils';
 
-const MAX_CHARS = 500;
+const MAX_CHARS = 2000;
 
 export const AIMessageInput: React.FC = () => {
   const isThinking = useAIAgentStore((s) => s.isThinking);
@@ -21,11 +22,11 @@ export const AIMessageInput: React.FC = () => {
     const v = e.target.value;
     if (v.length <= MAX_CHARS) {
       setValue(v);
-      // Auto-resize (1–4 lines)
+      // Auto-resize (1–5 lines)
       const ta = textareaRef.current;
       if (ta) {
         ta.style.height = 'auto';
-        ta.style.height = Math.min(ta.scrollHeight, 96) + 'px';
+        ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
       }
     }
   };
@@ -86,15 +87,16 @@ export const AIMessageInput: React.FC = () => {
   };
 
   const remaining = MAX_CHARS - value.length;
+  const hasContent = value.trim().length > 0;
 
   return (
-    <div className="px-4 pb-4 pt-2 border-t border-white/5 flex-shrink-0">
+    <div className="px-4 pb-4 pt-2 border-t border-white/[0.04] flex-shrink-0 bg-gradient-to-t from-[#080c16] to-transparent">
       <div className={cn(
-        'flex items-end gap-2 rounded-2xl border p-2 transition-all duration-200',
-        'bg-slate-900/80',
+        'flex items-end gap-2 rounded-2xl border p-2.5 transition-all duration-300',
+        'bg-[#0f1420]',
         isThinking
-          ? 'border-slate-700/40'
-          : 'border-slate-700/60 focus-within:border-violet-500/50 focus-within:shadow-[0_0_0_3px_rgba(139,92,246,0.1)]'
+          ? 'border-slate-700/30'
+          : 'border-slate-700/40 focus-within:border-violet-500/40 focus-within:shadow-[0_0_0_3px_rgba(139,92,246,0.08),0_0_20px_rgba(139,92,246,0.06)]'
       )}>
         <textarea
           ref={textareaRef}
@@ -102,41 +104,59 @@ export const AIMessageInput: React.FC = () => {
           onChange={handleChange}
           onKeyDown={onKeyDown}
           disabled={isThinking}
-          placeholder={isThinking ? 'AI is thinking…' : 'Ask me anything… (Enter to send)'}
+          placeholder={isThinking ? 'Generating response…' : 'Ask me to write, debug, or explain code…'}
           rows={1}
           className={cn(
-            'flex-1 bg-transparent text-sm text-white placeholder-slate-600 resize-none outline-none',
-            'leading-relaxed py-1.5 px-2 min-h-[36px] max-h-24',
-            isThinking && 'opacity-50 cursor-not-allowed'
+            'flex-1 bg-transparent text-[13px] text-white placeholder-slate-600 resize-none outline-none',
+            'leading-relaxed py-1.5 px-2 min-h-[36px] max-h-[120px]',
+            'font-[Inter,system-ui,sans-serif]',
+            isThinking && 'opacity-40 cursor-not-allowed'
           )}
           id="ai-message-input"
           aria-label="Message to AI assistant"
         />
         <div className="flex flex-col items-end gap-1 flex-shrink-0">
-          {value.length > MAX_CHARS * 0.8 && (
-            <span className={cn('text-[9px]', remaining < 50 ? 'text-rose-400' : 'text-slate-600')}>
+          {value.length > MAX_CHARS * 0.85 && (
+            <span className={cn(
+              'text-[9px] font-mono tabular-nums',
+              remaining < 100 ? 'text-rose-400' : 'text-slate-600'
+            )}>
               {remaining}
             </span>
           )}
-          <button
+          <motion.button
             onClick={sendMessage}
-            disabled={!value.trim() || isThinking}
+            disabled={!hasContent || isThinking}
+            whileHover={hasContent && !isThinking ? { scale: 1.05 } : {}}
+            whileTap={hasContent && !isThinking ? { scale: 0.95 } : {}}
             className={cn(
-              'w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200',
-              value.trim() && !isThinking
-                ? 'bg-violet-600 text-white hover:bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.4)]'
-                : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+              'w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300',
+              hasContent && !isThinking
+                ? 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-[0_0_16px_rgba(139,92,246,0.4)] hover:shadow-[0_0_24px_rgba(139,92,246,0.6)]'
+                : isThinking
+                  ? 'bg-slate-800 text-violet-400 cursor-not-allowed'
+                  : 'bg-slate-800/60 text-slate-600 cursor-not-allowed'
             )}
             aria-label="Send message"
             id="ai-send-button"
           >
-            <SendHorizonal className="w-4 h-4" />
-          </button>
+            {isThinking ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <SendHorizonal className="w-4 h-4" />
+            )}
+          </motion.button>
         </div>
       </div>
-      <p className="text-[9px] text-slate-700 text-center mt-1.5">
-        Shift+Enter for new line · Powered by SessionFlow AI
-      </p>
+      <div className="flex items-center justify-between mt-1.5 px-1">
+        <p className="text-[9px] text-slate-700">
+          <kbd className="px-1 py-0.5 rounded bg-slate-800/60 text-slate-600 font-mono text-[8px]">Shift+Enter</kbd>
+          <span className="ml-1">new line</span>
+        </p>
+        <p className="text-[9px] text-slate-700">
+          Powered by <span className="text-violet-500/60 font-medium">SessionFlow AI</span>
+        </p>
+      </div>
     </div>
   );
 };

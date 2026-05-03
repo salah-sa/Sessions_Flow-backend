@@ -1,6 +1,6 @@
 import React, { useRef, useCallback, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, X, Minus } from 'lucide-react';
+import { Bot, X } from 'lucide-react';
 import { useAIAgentStore } from '../../store/stores';
 import { cn } from '../../lib/utils';
 
@@ -21,7 +21,7 @@ export const AIFloatingButton: React.FC = () => {
   // Compute display position — default: bottom-24 right-6
   const btnSize = 56;
   const defaultX = window.innerWidth - btnSize - 24;
-  const defaultY = window.innerHeight - btnSize - 96; // 24px above CustomerServiceFab
+  const defaultY = window.innerHeight - btnSize - 96;
   const displayPos = currentPos ?? { x: defaultX, y: defaultY };
 
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
@@ -74,25 +74,33 @@ export const AIFloatingButton: React.FC = () => {
         cursor: isDraggingRef.current ? 'grabbing' : 'pointer',
       }}
       className={cn(
-        'z-[9999] w-14 h-14 rounded-full flex items-center justify-center',
-        'border border-white/20 select-none',
-        'transition-shadow duration-300',
+        'z-[9999] w-14 h-14 rounded-2xl flex items-center justify-center',
+        'border select-none',
+        'transition-all duration-300',
         isOpen
-          ? 'bg-gradient-to-br from-violet-600 to-indigo-700 shadow-[0_0_32px_rgba(139,92,246,0.8)]'
-          : 'bg-gradient-to-br from-violet-500 to-indigo-600 shadow-[0_0_20px_rgba(139,92,246,0.5)] hover:shadow-[0_0_32px_rgba(139,92,246,0.75)]'
+          ? 'bg-gradient-to-br from-violet-600 to-indigo-700 border-violet-400/30 shadow-[0_0_36px_rgba(139,92,246,0.7),0_8px_32px_rgba(0,0,0,0.4)]'
+          : 'bg-gradient-to-br from-violet-500 to-indigo-600 border-white/15 shadow-[0_0_24px_rgba(139,92,246,0.45),0_8px_24px_rgba(0,0,0,0.3)] hover:shadow-[0_0_36px_rgba(139,92,246,0.7),0_8px_32px_rgba(0,0,0,0.4)]'
       )}
       aria-label="Toggle AI Assistant"
       id="ai-agent-fab"
     >
-      {/* Thinking pulse ring */}
+      {/* Thinking pulse rings */}
       <AnimatePresence>
         {isThinking && (
-          <motion.span
-            initial={{ scale: 1, opacity: 0.6 }}
-            animate={{ scale: 1.8, opacity: 0 }}
-            transition={{ duration: 1, repeat: Infinity, ease: 'easeOut' }}
-            className="absolute inset-0 rounded-full bg-violet-400/40"
-          />
+          <>
+            <motion.span
+              initial={{ scale: 1, opacity: 0.5 }}
+              animate={{ scale: 2, opacity: 0 }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeOut' }}
+              className="absolute inset-0 rounded-2xl bg-violet-400/30"
+            />
+            <motion.span
+              initial={{ scale: 1, opacity: 0.3 }}
+              animate={{ scale: 1.6, opacity: 0 }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeOut', delay: 0.4 }}
+              className="absolute inset-0 rounded-2xl bg-violet-400/20"
+            />
+          </>
         )}
       </AnimatePresence>
 

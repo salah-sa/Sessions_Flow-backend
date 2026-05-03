@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, Minus, X, Trash2, Sparkles, History, ChevronLeft, Clock } from 'lucide-react';
+import { Bot, Minus, X, Trash2, Sparkles, History, ChevronLeft, Clock, Zap, MessageSquare } from 'lucide-react';
 import * as signalR from '@microsoft/signalr';
 import { useAIAgentStore, useAuthStore } from '../../store/stores';
 import { useAIUsage, useAIHistory } from '../../queries/useAIQueries';
@@ -34,29 +34,37 @@ const QuotaBar: React.FC<{
     return () => clearInterval(id);
   }, [resetsAt]);
 
+  const barColor = isExhausted
+    ? 'from-rose-500 to-red-600'
+    : isLow
+      ? 'from-amber-400 to-orange-500'
+      : 'from-violet-500 to-indigo-500';
+
+  const textColor = isExhausted ? 'text-rose-400' : isLow ? 'text-amber-400' : 'text-slate-300';
+
   return (
-    <div className="px-4 py-2 border-b border-white/5 bg-slate-900/40">
-      <div className="flex items-center justify-between text-[10px] mb-1">
-        <span className={cn('font-medium', isExhausted ? 'text-rose-400' : isLow ? 'text-amber-400' : 'text-slate-400')}>
-          {remaining}/{limit} left
-        </span>
-        <span className="text-slate-600 flex items-center gap-1">
+    <div className="px-4 py-2.5 border-b border-white/[0.04] bg-[#0c1018]">
+      <div className="flex items-center justify-between text-[10px] mb-1.5">
+        <div className="flex items-center gap-1.5">
+          <Zap className={cn('w-3 h-3', isExhausted ? 'text-rose-400' : isLow ? 'text-amber-400' : 'text-violet-400')} />
+          <span className={cn('font-semibold', textColor)}>
+            {remaining} <span className="text-slate-500 font-normal">/ {limit} remaining</span>
+          </span>
+        </div>
+        <span className="text-slate-600 flex items-center gap-1 font-mono">
           <Clock className="w-2.5 h-2.5" />
           {timeLeft}
         </span>
       </div>
-      <div className="h-1 rounded-full bg-slate-800 overflow-hidden">
+      <div className="h-1.5 rounded-full bg-slate-800/80 overflow-hidden">
         <motion.div
-          className={cn(
-            'h-full rounded-full',
-            isExhausted ? 'bg-rose-500' : isLow ? 'bg-amber-500' : 'bg-violet-500'
-          )}
+          className={cn('h-full rounded-full bg-gradient-to-r', barColor)}
           initial={false}
           animate={{ width: `${pct}%` }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         />
       </div>
-      <p className="text-[9px] text-slate-600 mt-0.5 text-right capitalize">{tier} plan</p>
+      <p className="text-[9px] text-slate-600 mt-1 text-right capitalize tracking-wide">{tier} plan · 3h window</p>
     </div>
   );
 };
@@ -64,7 +72,6 @@ const QuotaBar: React.FC<{
 // ─── History Panel ────────────────────────────────────────────────────────────
 const HistoryPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { data: history, isLoading } = useAIHistory();
-  const addMessage = useAIAgentStore((s) => s.addMessage);
 
   // Group by sessionId
   const sessions = React.useMemo(() => {
@@ -106,33 +113,52 @@ const HistoryPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/5">
-        <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+      <div className="flex items-center gap-2.5 px-4 py-3.5 border-b border-white/[0.04] bg-[#0c1018]">
+        <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors p-0.5 rounded-lg hover:bg-white/5">
           <ChevronLeft className="w-4 h-4" />
         </button>
-        <p className="text-sm font-semibold text-white">Chat History</p>
+        <div className="flex items-center gap-1.5">
+          <History className="w-3.5 h-3.5 text-violet-400" />
+          <p className="text-sm font-semibold text-white">Chat History</p>
+        </div>
       </div>
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 custom-scrollbar">
         {isLoading ? (
-          <p className="text-xs text-slate-500 text-center py-8">Loading…</p>
+          <div className="flex flex-col items-center gap-3 py-12">
+            <motion.div
+              className="w-6 h-6 rounded-full border-2 border-violet-500/30 border-t-violet-400"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            />
+            <p className="text-xs text-slate-500">Loading history…</p>
+          </div>
         ) : sessions.length === 0 ? (
-          <p className="text-xs text-slate-500 text-center py-8">No history yet</p>
+          <div className="flex flex-col items-center gap-2 py-12 text-center">
+            <MessageSquare className="w-8 h-8 text-slate-700" />
+            <p className="text-xs text-slate-500">No conversations yet</p>
+          </div>
         ) : (
-          sessions.map((s) => (
-            <button
+          sessions.map((s, idx) => (
+            <motion.button
               key={s.sessionId}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.03 }}
               onClick={() => loadSession(s.items)}
-              className="w-full text-left px-3 py-2.5 rounded-xl bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700/30 hover:border-violet-500/30 transition-all group"
+              className="w-full text-left px-3.5 py-3 rounded-xl bg-[#141926] hover:bg-slate-800/80 border border-slate-700/25 hover:border-violet-500/30 transition-all duration-200 group"
             >
-              <p className="text-xs text-white truncate group-hover:text-violet-300 transition-colors">
-                {s.items[0]?.prompt.slice(0, 60) || 'Untitled'}
+              <p className="text-[12px] text-slate-200 truncate group-hover:text-violet-300 transition-colors font-medium">
+                {s.items[0]?.prompt.slice(0, 70) || 'Untitled'}
               </p>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-[9px] text-slate-600">
-                  {new Date(s.firstAt).toLocaleDateString()} · {s.items.length} msg
+              <div className="flex items-center gap-2 mt-1.5">
+                <span className="text-[10px] text-slate-600 flex items-center gap-1">
+                  <Clock className="w-2.5 h-2.5" />
+                  {new Date(s.firstAt).toLocaleDateString()}
                 </span>
+                <span className="text-[10px] text-slate-600">·</span>
+                <span className="text-[10px] text-slate-600">{s.items.length} messages</span>
               </div>
-            </button>
+            </motion.button>
           ))
         )}
       </div>
@@ -193,16 +219,15 @@ export const AIChatPanel: React.FC = () => {
     }
   }, [isThinking, messages.length]);
 
-  // Anchor panel above FAB position
+  // ── Panel dimensions & positioning ────────────────────────────────────────
   const btnSize = 56;
-  const panelW = 420;
-  const panelH = 580;
+  const panelW = 480;
+  const panelH = 640;
   const defaultFabX = window.innerWidth - btnSize - 24;
   const defaultFabY = window.innerHeight - btnSize - 96;
   const fabX = fabPosition?.x ?? defaultFabX;
   const fabY = fabPosition?.y ?? defaultFabY;
 
-  // Clamp panel to viewport
   const rawLeft = fabX + btnSize / 2 - panelW / 2;
   const panelLeft = Math.max(8, Math.min(window.innerWidth - panelW - 8, rawLeft));
   const panelTop = Math.max(8, fabY - panelH - 12);
@@ -212,9 +237,9 @@ export const AIChatPanel: React.FC = () => {
       {isOpen && (
         <motion.div
           key="ai-chat-panel"
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          initial={{ opacity: 0, scale: 0.92, y: 24 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 16 }}
+          exit={{ opacity: 0, scale: 0.92, y: 20 }}
           transition={{ type: 'spring', stiffness: 380, damping: 28 }}
           style={{
             position: 'fixed',
@@ -225,43 +250,51 @@ export const AIChatPanel: React.FC = () => {
           }}
           className={cn(
             'flex flex-col rounded-3xl overflow-hidden',
-            'border border-violet-500/20',
-            'bg-[rgba(10,12,26,0.96)] backdrop-blur-2xl',
-            'shadow-[0_24px_80px_rgba(0,0,0,0.6),0_0_60px_rgba(139,92,246,0.12)]',
+            'border border-violet-500/15',
+            'bg-[#0a0e1a] backdrop-blur-2xl',
+            'shadow-[0_32px_100px_rgba(0,0,0,0.7),0_0_80px_rgba(139,92,246,0.08)]',
           )}
           id="ai-chat-panel"
         >
           {/* ── Header ── */}
-          <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/5 flex-shrink-0 bg-gradient-to-r from-violet-500/5 to-indigo-500/5">
-            {/* Status dot + icon */}
+          <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/[0.04] flex-shrink-0 bg-gradient-to-r from-violet-500/[0.06] via-indigo-500/[0.04] to-transparent">
+            {/* Avatar with status */}
             <div className="relative">
-              <div className="w-9 h-9 rounded-2xl bg-violet-500/15 border border-violet-500/25 flex items-center justify-center">
-                <Bot className="w-4.5 h-4.5 text-violet-400 w-[18px] h-[18px]" />
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-500/20 to-indigo-600/20 border border-violet-500/20 flex items-center justify-center shadow-[0_0_20px_rgba(139,92,246,0.1)]">
+                <Bot className="w-5 h-5 text-violet-400" />
               </div>
               <span className={cn(
-                'absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[rgba(10,12,26,0.96)]',
+                'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0a0e1a]',
                 isThinking ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'
               )} />
             </div>
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <p className="text-sm font-bold text-white">Code Assistant</p>
-                <Sparkles className="w-3 h-3 text-violet-400" />
+                <p className="text-[14px] font-bold text-white tracking-tight">Code Assistant</p>
+                <Sparkles className="w-3.5 h-3.5 text-violet-400/70" />
               </div>
-              <p className="text-[10px] text-slate-500">
-                {isThinking ? 'Thinking…' : 'Coding help'}
+              <p className="text-[10px] text-slate-500 mt-0.5 font-medium">
+                {isThinking ? (
+                  <motion.span
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="text-amber-400"
+                  >
+                    Generating response…
+                  </motion.span>
+                ) : 'Ready · Coding assistant'}
               </p>
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5">
               <button
                 onClick={() => setShowHistory(!showHistory)}
                 title="Chat history"
                 className={cn(
-                  'w-7 h-7 rounded-lg flex items-center justify-center transition-all',
-                  showHistory ? 'text-violet-400 bg-violet-500/10' : 'text-slate-500 hover:text-white hover:bg-white/5'
+                  'w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200',
+                  showHistory ? 'text-violet-400 bg-violet-500/15 border border-violet-500/20' : 'text-slate-500 hover:text-white hover:bg-white/5'
                 )}
                 id="ai-history-button"
               >
@@ -270,8 +303,8 @@ export const AIChatPanel: React.FC = () => {
               {messages.length > 0 && (
                 <button
                   onClick={clearSession}
-                  title="Clear conversation"
-                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
+                  title="New conversation"
+                  className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all duration-200"
                   id="ai-clear-button"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -280,7 +313,7 @@ export const AIChatPanel: React.FC = () => {
               <button
                 onClick={() => minimizePanel(!isMinimizedPanel)}
                 title={isMinimizedPanel ? 'Expand' : 'Minimize'}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 transition-all"
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 transition-all duration-200"
                 id="ai-minimize-button"
               >
                 <Minus className="w-3.5 h-3.5" />
@@ -288,7 +321,7 @@ export const AIChatPanel: React.FC = () => {
               <button
                 onClick={closePanel}
                 title="Close"
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 transition-all"
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 transition-all duration-200"
                 id="ai-close-button"
               >
                 <X className="w-3.5 h-3.5" />
@@ -311,11 +344,11 @@ export const AIChatPanel: React.FC = () => {
             {!isMinimizedPanel && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
-                animate={{ height: panelH - 100, opacity: 1 }}
+                animate={{ height: panelH - 110, opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 className="flex flex-col overflow-hidden"
-                style={{ height: panelH - 100 }}
+                style={{ height: panelH - 110 }}
               >
                 {showHistory ? (
                   <HistoryPanel onClose={() => setShowHistory(false)} />
