@@ -269,8 +269,8 @@ public static class AdminBroadcastEndpoints
       </td></tr>
       <tr><td style='padding:32px;font-family:Inter,Segoe UI,Helvetica Neue,sans-serif;'>
         <span style='display:inline-block;background:rgba(16,185,129,0.15);color:#6ee7b7;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:4px 12px;border-radius:100px;margin-bottom:16px;'>✅ Diagnostic</span>
-        <h2 style='color:#f1f5f9;font-size:20px;font-weight:700;margin:0 0 20px;line-height:1.3;'>Email Delivery Test — Passed</h2>
-        <p style='font-size:15px;line-height:1.75;color:#cbd5e1;margin:0 0 16px;'>This is a diagnostic email confirming that the <strong style="color:#6ee7b7;">Resend API</strong> is correctly configured for <strong style="color:#6ee7b7;">sessionflow.uk</strong>.</p>
+        <h2 style='color:#f1f5f9;font-size:20px;font-weight:700;margin:0 0 20px;line-height:1.3;'>Email Delivery Test &mdash; Passed</h2>
+        <p style='font-size:15px;line-height:1.75;color:#cbd5e1;margin:0 0 16px;'>This is a diagnostic email confirming that the <strong style='color:#6ee7b7;'>Resend API</strong> is correctly configured for <strong style='color:#6ee7b7;'>sessionflow.uk</strong>.</p>
         <div style='background:#1e293b;border:1px solid #334155;border-radius:8px;padding:16px 24px;text-align:center;margin:20px 0;'>
           <p style='font-size:14px;color:#94a3b8;margin:0 0 4px;'>Status</p>
           <p style='font-size:24px;font-weight:800;color:#34d399;margin:0;letter-spacing:2px;'>OPERATIONAL</p>
@@ -279,8 +279,8 @@ public static class AdminBroadcastEndpoints
         <hr style='border:none;border-top:1px solid #1e293b;margin:28px 0;'/>
       </td></tr>
       <tr><td style='padding:0 32px 28px;font-family:Inter,Segoe UI,sans-serif;'>
-        <p style='font-size:11px;color:#475569;margin:0 0 4px;line-height:1.5;'>Sent from SessionFlow Admin Panel — DO NOT REPLY</p>
-        <p style='font-size:11px;color:#334155;margin:0;'>© {DateTime.UtcNow.Year} SessionFlow — Powered by precision.</p>
+        <p style='font-size:11px;color:#475569;margin:0 0 4px;line-height:1.5;'>Sent from SessionFlow Admin Panel &mdash; DO NOT REPLY</p>
+        <p style='font-size:11px;color:#334155;margin:0;'>&copy; {DateTime.UtcNow.Year} SessionFlow &mdash; Powered by precision.</p>
       </td></tr>
     </table>
   </td></tr>

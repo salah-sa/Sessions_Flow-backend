@@ -217,16 +217,16 @@ public class EmailReminderService : BackgroundService
         <h2 style='color:#f1f5f9;font-size:20px;font-weight:700;margin:0 0 12px;line-height:1.3;'>Tomorrow's Session: {groupEncoded}</h2>
         <p style='font-size:15px;line-height:1.75;color:#cbd5e1;margin:0 0 20px;'>Hi {stuEncoded}, you have a session coming up tomorrow.</p>
         <div style='background:#1e293b;border:1px solid #334155;border-radius:12px;padding:20px;margin:0 0 24px;'>
-          <p style='font-size:14px;color:#94a3b8;margin:0 0 8px;'>🕐 <strong style=""color:#e2e8f0;"">Time:</strong> {cairoTime:hh:mm tt} (Cairo)</p>
-          <p style='font-size:14px;color:#94a3b8;margin:0;'>📅 <strong style=""color:#e2e8f0;"">Date:</strong> {cairoTime:dddd, MMMM dd}</p>
+          <p style='font-size:14px;color:#94a3b8;margin:0 0 8px;'>🕐 <strong style='color:#e2e8f0;'>Time:</strong> {cairoTime:hh:mm tt} (Cairo)</p>
+          <p style='font-size:14px;color:#94a3b8;margin:0;'>📅 <strong style='color:#e2e8f0;'>Date:</strong> {cairoTime:dddd, MMMM dd}</p>
         </div>
         <p style='font-size:14px;font-weight:700;color:#7dd3fc;margin:0 0 12px;'>Preparation Checklist:</p>
-        <p style='font-size:14px;color:#cbd5e1;margin:0 0 6px;line-height:1.7;'>✅ Complete all pending tasks and homework.</p>
-        <p style='font-size:14px;color:#cbd5e1;margin:0 0 6px;line-height:1.7;'>✅ Be fully prepared for the session topics.</p>
-        <p style='font-size:14px;color:#cbd5e1;margin:0 0 6px;line-height:1.7;'>✅ Check your internet connection early.</p>
-        <p style='font-size:14px;color:#cbd5e1;margin:0 0 20px;line-height:1.7;'>✅ Have your work ready to present/submit.</p>
+        <p style='font-size:14px;color:#cbd5e1;margin:0 0 6px;line-height:1.7;'>&#x2705; Complete all pending tasks and homework.</p>
+        <p style='font-size:14px;color:#cbd5e1;margin:0 0 6px;line-height:1.7;'>&#x2705; Be fully prepared for the session topics.</p>
+        <p style='font-size:14px;color:#cbd5e1;margin:0 0 6px;line-height:1.7;'>&#x2705; Check your internet connection early.</p>
+        <p style='font-size:14px;color:#cbd5e1;margin:0 0 20px;line-height:1.7;'>&#x2705; Have your work ready to present/submit.</p>
         <div style='background:rgba(245,158,11,0.08);border-left:4px solid #f59e0b;border-radius:0 8px 8px 0;padding:16px 20px;margin:0 0 28px;'>
-          <p style='font-size:14px;color:#fbbf24;margin:0;'>💡 <strong>Forgot your homework?</strong> <span style=""color:#cbd5e1;"">Don't worry! Head to the Group Chat and ask your instructor for help.</span></p>
+          <p style='font-size:14px;color:#fbbf24;margin:0;'>&#x1F4A1; <strong>Forgot your homework?</strong> <span style='color:#cbd5e1;'>Don't worry! Head to the Group Chat and ask your instructor for help.</span></p>
         </div>
         <div style='text-align:center;margin:0 0 8px;'>
           <a href='{chatLink}' style='display:inline-block;background:linear-gradient(135deg,#0ea5e9,#38bdf8);color:#fff;padding:14px 32px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;letter-spacing:0.5px;'>Go to Chat →</a>
@@ -314,7 +314,7 @@ public class EmailReminderService : BackgroundService
       <tr><td style='padding:32px;font-family:Inter,Segoe UI,Helvetica Neue,sans-serif;'>
         <span style='display:inline-block;background:rgba(59,130,246,0.15);color:#93c5fd;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:4px 12px;border-radius:100px;margin-bottom:16px;'>📋 Daily Summary</span>
         <h2 style='color:#f1f5f9;font-size:20px;font-weight:700;margin:0 0 12px;line-height:1.3;'>Tomorrow's Schedule</h2>
-        <p style='font-size:15px;line-height:1.75;color:#cbd5e1;margin:0 0 20px;'>Hi {System.Web.HttpUtility.HtmlEncode(engineer.Name)}, here are your sessions for <strong style=""color:#93c5fd;"">{tomorrowStart:dddd, MMMM dd}</strong>:</p>
+        <p style='font-size:15px;line-height:1.75;color:#cbd5e1;margin:0 0 20px;'>Hi {System.Web.HttpUtility.HtmlEncode(engineer.Name)}, here are your sessions for <strong style='color:#93c5fd;'>{tomorrowStart:dddd, MMMM dd}</strong>:</p>
         <table style='width:100%;border-collapse:collapse;margin:0 0 24px;'>
           <tr style='background:#1e293b;'>
             <th style='padding:12px 16px;text-align:left;color:#94a3b8;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border-bottom:2px solid #334155;'>Time</th>
@@ -400,7 +400,7 @@ public class EmailReminderService : BackgroundService
       <tr><td style='padding:32px;font-family:Inter,Segoe UI,Helvetica Neue,sans-serif;'>
         <span style='display:inline-block;background:rgba(245,158,11,0.15);color:#fbbf24;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:4px 12px;border-radius:100px;margin-bottom:16px;'>⚠️ Alert</span>
         <h2 style='color:#f1f5f9;font-size:20px;font-weight:700;margin:0 0 12px;line-height:1.3;'>Missed Attendance</h2>
-        <p style='font-size:15px;line-height:1.75;color:#cbd5e1;margin:0 0 20px;'>Hi {System.Web.HttpUtility.HtmlEncode(engineer.DisplayName ?? engineer.Name)}, the following sessions were <strong style=""color:#fbbf24;"">not completed</strong> today:</p>
+        <p style='font-size:15px;line-height:1.75;color:#cbd5e1;margin:0 0 20px;'>Hi {System.Web.HttpUtility.HtmlEncode(engineer.DisplayName ?? engineer.Name)}, the following sessions were <strong style='color:#fbbf24;'>not completed</strong> today:</p>
         <table style='width:100%;border-collapse:collapse;margin:0 0 24px;'>
           <tr style='background:#1e293b;'>
             <th style='padding:12px 16px;text-align:left;color:#94a3b8;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border-bottom:2px solid #334155;'>Time</th>
@@ -410,13 +410,13 @@ public class EmailReminderService : BackgroundService
           {string.Join("", sessionRows)}
         </table>
         <div style='background:rgba(245,158,11,0.08);border-left:4px solid #f59e0b;border-radius:0 8px 8px 0;padding:16px 20px;margin:0 0 8px;'>
-          <p style='font-size:14px;color:#fbbf24;margin:0;'>💡 <strong>Tip:</strong> <span style=""color:#cbd5e1;"">If these sessions did not take place, mark them as <strong style=""color:#fbbf24;"">Skipped</strong> in the system to prevent session number advancement.</span></p>
+          <p style='font-size:14px;color:#fbbf24;margin:0;'>&#x1F4A1; <strong>Tip:</strong> <span style='color:#cbd5e1;'>If these sessions did not take place, mark them as <strong style='color:#fbbf24;'>Skipped</strong> in the system to prevent session number advancement.</span></p>
         </div>
         <hr style='border:none;border-top:1px solid #1e293b;margin:28px 0;'/>
       </td></tr>
       <tr><td style='padding:0 32px 28px;font-family:Inter,Segoe UI,sans-serif;text-align:center;'>
         <p style='font-size:11px;color:#475569;margin:0 0 4px;line-height:1.5;'>Automated attendance alert · Do not reply</p>
-        <p style='font-size:11px;color:#334155;margin:0;'>© {DateTime.UtcNow.Year} SessionFlow — Powered by precision.</p>
+        <p style='font-size:11px;color:#334155;margin:0;'>&copy; {DateTime.UtcNow.Year} SessionFlow &mdash; Powered by precision.</p>
       </td></tr>
     </table>
   </td></tr>
