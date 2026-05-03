@@ -4,6 +4,7 @@ import { useAuthStore, useAppStore, useChatStore } from "../store/stores";
 import { usePresenceStore } from "../store/presenceStore";
 import { useMuteStore } from "../store/muteStore";
 import { useNotificationPopupStore } from "../store/notificationStore";
+import { useBroadcastAlertStore } from "../store/broadcastAlertStore";
 import { useCallStore } from "../store/callStore";
 import { sounds } from "../lib/sounds";
 import { Events } from "../lib/eventContracts";
@@ -369,6 +370,22 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
     connection.on(Events.NOTIFICATION_CREATED, () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
       queryClient.invalidateQueries({ queryKey: ["pending-student-requests"] });
+    });
+
+    // ═══════════════════════════════════════════════
+    // 9. Admin Broadcast — center-screen modal for ALL clients
+    // ═══════════════════════════════════════════════
+    connection.on(Events.BROADCAST_MESSAGE, (raw: any) => {
+      const data = typeof raw === "string" ? JSON.parse(raw) : raw;
+      const subject: string = data?.subject ?? "System Announcement";
+      const message: string = data?.message ?? "";
+      const channel: string = data?.channel ?? "InApp";
+
+      // Push to center-screen modal store
+      useBroadcastAlertStore.getState().push(subject, message, channel);
+
+      // Also play a sound so users notice even without looking at the screen
+      sounds.playNotification();
     });
 
     // ═══════════════════════════════════════════════

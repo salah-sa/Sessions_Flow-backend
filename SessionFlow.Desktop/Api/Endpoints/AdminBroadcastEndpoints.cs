@@ -4,6 +4,7 @@ using MongoDB.Driver;
 using SessionFlow.Desktop.Data;
 using SessionFlow.Desktop.Models;
 using SessionFlow.Desktop.Services;
+using SessionFlow.Desktop.Services.EventBus;
 using System.Security.Claims;
 
 namespace SessionFlow.Desktop.Api.Endpoints;
@@ -26,6 +27,7 @@ public static class AdminBroadcastEndpoints
             MongoService db,
             NotificationService notificationService,
             EmailService emailService,
+            IEventBus eventBus,
             CancellationToken ct) =>
         {
             if (!Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var adminId))
@@ -45,14 +47,13 @@ public static class AdminBroadcastEndpoints
             };
 
             var sanitizedMessage = req.Message.Trim();
+            var sanitizedSubject = req.Subject.Trim();
 
             // Get all approved users (active accounts)
             var users = await db.Users
                 .Find(u => u.IsApproved)
                 .Project(u => new { u.Id, u.Email, u.Name })
                 .ToListAsync(ct);
-
-            var sanitizedSubject = req.Subject.Trim();
 
             var broadcast = new SystemBroadcast
             {
@@ -67,18 +68,28 @@ public static class AdminBroadcastEndpoints
 
             await db.SystemBroadcasts.InsertOneAsync(broadcast, cancellationToken: ct);
 
-            // ── In-App Notifications ──────────────────────────────────────
+            // ── In-App Notifications (persisted per-user) ─────────────────
             if (channel is "InApp" or "Both")
             {
                 var tasks = users.Select(u =>
                     notificationService.CreateNotificationAsync(
                         u.Id,
-                        "System Announcement",
+                        sanitizedSubject,       // ✔ use real subject, not hardcoded
                         sanitizedMessage,
                         NotificationType.Info));
 
                 await Task.WhenAll(tasks);
             }
+
+            // ── Real-Time Broadcast Push (instant popup for all clients) ──
+            // Published ALWAYS so every logged-in browser shows the modal popup
+            // immediately — regardless of channel selection.
+            await eventBus.PublishAsync(Events.BroadcastMessage, EventTargetType.All, "*", new
+            {
+                subject = sanitizedSubject,
+                message = sanitizedMessage,
+                channel
+            });
 
             // ── Email ─────────────────────────────────────────────────────
             if (channel is "Email" or "Both")

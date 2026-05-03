@@ -17,11 +17,11 @@ import { useRealtimeNotifications } from "../../hooks/realtime";
 import { useHeartbeat } from "../../hooks/useHeartbeat";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import { useAnalytics } from "../../hooks/useAnalytics";
-import { useNotificationHub } from "../../queries/useNotificationHub";
 import { useUIStore, useAuthStore } from "../../store/stores";
 import { UIStyleManager, UIStyleConfig } from "../../styles/UIStyleManager";
 import { cn } from "../../lib/utils";
 import { X, Gift } from "lucide-react";
+import BroadcastAlertModal from "./BroadcastAlertModal";
 
 const Shell: React.FC = () => {
   const location = useLocation();
@@ -71,8 +71,7 @@ const Shell: React.FC = () => {
   // Platform-wide analytics tracking (page views auto-tracked)
   useAnalytics();
 
-  // Real-time push notification hub (live alerts + broadcast)
-  useNotificationHub();
+  // Real-time push notification hub handled inside SignalRProvider — no separate hook needed
 
   const isMinimized = useUIStore((s) => s.isMinimized);
   const setMinimized = useUIStore((s) => s.setMinimized);
@@ -105,6 +104,7 @@ const Shell: React.FC = () => {
       <GeoAuthorization />
       <StudentWelcomeModal />
       <AIAgentWidget />
+      <BroadcastAlertModal />
 
       
       {/* Zenith Central Horizon Lighting */}

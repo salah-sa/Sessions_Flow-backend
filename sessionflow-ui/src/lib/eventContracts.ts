@@ -66,6 +66,9 @@ export const Events = {
   // Wallet
   WALLET_BALANCE_UPDATED: "wallet:balance-updated",
   WALLET_TRANSACTION_RECEIVED: "wallet:transaction-received",
+
+  // Broadcast (platform-wide announcement popup)
+  BROADCAST_MESSAGE: "broadcast:message",
 } as const;
 
 export type EventName = (typeof Events)[keyof typeof Events];

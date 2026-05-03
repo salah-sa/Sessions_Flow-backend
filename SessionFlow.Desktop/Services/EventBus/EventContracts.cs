@@ -84,6 +84,12 @@ public static class Events
     public const string UserUpdated = "user:updated";
 
     // ═══════════════════════════════════════════════
+    // Broadcast
+    // ═══════════════════════════════════════════════
+    /// <summary>Platform-wide broadcast sent to ALL connected clients simultaneously.</summary>
+    public const string BroadcastMessage = "broadcast:message";
+
+    // ═══════════════════════════════════════════════
     // Wallet
     // ═══════════════════════════════════════════════
     public const string WalletBalanceUpdated = "wallet:balance-updated";
