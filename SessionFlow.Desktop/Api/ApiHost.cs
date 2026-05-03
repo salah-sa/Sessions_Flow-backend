@@ -174,6 +174,15 @@ public static class ApiHost
         // Wallet System
         builder.Services.AddSingleton<WalletValidationService>();
         builder.Services.AddSingleton<ResendEmailService>(); // Still used by EmailService
+
+        // ── Resend API Key startup validation ──────────────────────────────
+        var resendApiKey = builder.Configuration["Resend:ApiKey"]
+            ?? Environment.GetEnvironmentVariable("RESEND_API_KEY");
+        if (string.IsNullOrWhiteSpace(resendApiKey))
+            Log.Warning("[Bootstrap] ⚠️  RESEND_API_KEY is NOT SET — email delivery is DISABLED. Add it in Railway → Variables.");
+        else
+            Log.Information("[Bootstrap] ✅ RESEND_API_KEY is configured (from={Source}). Email delivery enabled.",
+                Environment.GetEnvironmentVariable("RESEND_API_KEY") != null ? "env" : "appsettings");
         builder.Services.AddScoped<OtpService>(sp =>
         {
             // OtpService uses EmailService → ResendEmailService (sessionflow.uk verified domain)

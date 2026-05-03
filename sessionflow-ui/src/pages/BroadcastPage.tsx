@@ -2,9 +2,10 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Megaphone, Send, History, Users, Mail, Bell,
-  CheckCircle2, Clock, Loader2, Zap, AlertTriangle, RefreshCw, ChevronRight
+  CheckCircle2, Clock, Loader2, Zap, AlertTriangle, RefreshCw, ChevronRight,
+  TestTube2, XCircle
 } from "lucide-react";
-import { useBroadcastHistory, useSendBroadcast } from "../queries/useBroadcastQueries";
+import { useBroadcastHistory, useSendBroadcast, useTestBroadcastEmail } from "../queries/useBroadcastQueries";
 import { cn } from "../lib/utils";
 import { toast } from "sonner";
 
@@ -60,11 +61,12 @@ const BroadcastPage: React.FC = () => {
   const [channel, setChannel] = useState("InApp");
   const [page, setPage] = useState(1);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [testEmailAddr, setTestEmailAddr] = useState("");
+  const [testResult, setTestResult] = useState<{ success: boolean; error?: string; hint?: string } | null>(null);
 
   const historyQ = useBroadcastHistory(page, tab === "history");
-
   const sendMutation = useSendBroadcast();
-  // Wrap onSuccess/onError inline so the page retains its UI feedback
+  const testMutation = useTestBroadcastEmail();
   const handleSend = () => {
     sendMutation.mutate(
       { subject, message, channel },
@@ -76,6 +78,14 @@ const BroadcastPage: React.FC = () => {
         onError: () => toast.error("Failed to send broadcast."),
       }
     );
+  };
+
+  const handleTestEmail = () => {
+    setTestResult(null);
+    testMutation.mutate(testEmailAddr, {
+      onSuccess: (data) => setTestResult(data),
+      onError: () => setTestResult({ success: false, error: "Request failed — check network or Railway logs.", hint: "Ensure the backend is running and RESEND_API_KEY is set." }),
+    });
   };
 
   const isValid = subject.trim().length > 0 && message.trim().length >= 10;
@@ -172,6 +182,60 @@ const BroadcastPage: React.FC = () => {
                 className="w-full py-3.5 rounded-2xl bg-[var(--ui-accent)] text-white font-bold text-sm flex items-center justify-center gap-3 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity shadow-lg shadow-[var(--ui-accent)]/20">
                 {sendMutation.isPending ? <><Loader2 className="w-5 h-5 animate-spin" /> Sending...</> : <><Megaphone className="w-5 h-5" /> Send Broadcast</>}
               </button>
+
+              {/* ── Email Diagnostic Panel ────────────────────────────────────── */}
+              <div className="border border-white/5 rounded-2xl p-4 bg-white/[0.015] space-y-3">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                  <TestTube2 className="w-3.5 h-3.5" /> Email Diagnostic
+                </p>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Send a test email to verify <strong className="text-slate-400">RESEND_API_KEY</strong> is set and <strong className="text-slate-400">sessionflow.uk</strong> is verified. Check inbox + spam.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    value={testEmailAddr}
+                    onChange={e => setTestEmailAddr(e.target.value)}
+                    placeholder="your@gmail.com"
+                    type="email"
+                    className="flex-1 bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-sky-500/50 placeholder:text-slate-600"
+                  />
+                  <button
+                    onClick={handleTestEmail}
+                    disabled={testMutation.isPending || !testEmailAddr.includes('@')}
+                    className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                  >
+                    {testMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                    Send Test
+                  </button>
+                </div>
+
+                {/* Result */}
+                <AnimatePresence>
+                  {testResult && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+                      className={cn(
+                        "rounded-xl p-3 border text-xs space-y-1",
+                        testResult.success
+                          ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-300"
+                          : "bg-rose-500/10 border-rose-500/25 text-rose-300"
+                      )}
+                    >
+                      <p className="font-bold flex items-center gap-1.5">
+                        {testResult.success
+                          ? <><CheckCircle2 className="w-3.5 h-3.5" /> Email delivered successfully!</>
+                          : <><XCircle className="w-3.5 h-3.5" /> Delivery failed</>}
+                      </p>
+                      {testResult.error && <p className="opacity-80">{testResult.error}</p>}
+                      {testResult.hint && (
+                        <p className={cn("font-semibold", testResult.success ? "text-emerald-400" : "text-amber-400")}>
+                          → {testResult.hint}
+                        </p>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </motion.div>
           ) : (
             <motion.div key="history" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-3">

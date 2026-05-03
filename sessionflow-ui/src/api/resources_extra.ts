@@ -235,6 +235,15 @@ export const broadcastApi = {
       headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
       body: JSON.stringify(payload),
     }),
+  testEmail: (to: string) =>
+    fetchWithAuth<{ success: boolean; to: string; error?: string; hint?: string }>(
+      "/api/admin/broadcast/test-email",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+        body: JSON.stringify({ to }),
+      }
+    ),
 };
 
 // Session Timeline Module (Admin Only)

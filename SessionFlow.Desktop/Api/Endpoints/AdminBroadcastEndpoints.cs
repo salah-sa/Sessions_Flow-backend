@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using SessionFlow.Desktop.Data;
 using SessionFlow.Desktop.Models;
@@ -11,8 +12,9 @@ namespace SessionFlow.Desktop.Api.Endpoints;
 
 /// <summary>
 /// Admin broadcast endpoints.
-/// POST /api/admin/broadcast — send a custom message to all users
-/// GET  /api/admin/broadcasts — paginated history of past broadcasts
+/// POST /api/admin/broadcast          — send a custom message to all users
+/// POST /api/admin/broadcast/test-email — synchronous email health-check for diagnosis
+/// GET  /api/admin/broadcast/history  — paginated history of past broadcasts
 /// </summary>
 public static class AdminBroadcastEndpoints
 {
@@ -132,6 +134,69 @@ public static class AdminBroadcastEndpoints
             });
         });
 
+        // ── Email Health Check ────────────────────────────────────────────
+        // POST /api/admin/broadcast/test-email
+        // Sends ONE real email synchronously and returns the exact Resend API result.
+        // Use this to diagnose: missing RESEND_API_KEY, DNS/DKIM problems, or Gmail spam.
+        group.MapPost("/test-email", async (
+            TestEmailRequest req,
+            ResendEmailService resend,
+            ClaimsPrincipal principal,
+            ILogger<AdminBroadcastEndpoints> logger) =>
+        {
+            if (!Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out _))
+                return Results.Unauthorized();
+
+            if (string.IsNullOrWhiteSpace(req.To) || !req.To.Contains('@'))
+                return Results.BadRequest(new { error = "A valid email address is required." });
+
+            // ── Immediate failure: no API key ───────────────────────────
+            if (!resend.IsConfigured)
+            {
+                logger.LogError("[TestEmail] RESEND_API_KEY is NOT configured on this server.");
+                return Results.Ok(new
+                {
+                    success = false,
+                    to      = req.To,
+                    error   = "RESEND_API_KEY environment variable is NOT set on the server.",
+                    hint    = "Go to Railway dashboard → your service → Variables → add RESEND_API_KEY → redeploy."
+                });
+            }
+
+            logger.LogInformation("[TestEmail] Sending diagnostic email to {To}", req.To);
+
+            var html = """
+                <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:32px;border:1px solid #e5e7eb;border-radius:12px">
+                  <h2 style="color:#7c3aed;margin-bottom:8px">✅ SessionFlow Email Diagnostic</h2>
+                  <p style="color:#374151">This is a test email confirming that the Resend API is correctly configured for <strong>sessionflow.uk</strong>.</p>
+                  <p style="color:#6b7280;font-size:13px;margin-top:16px">If you received this, email delivery is working. Check your spam folder if broadcasts are not arriving.</p>
+                  <hr style="margin:24px 0;border-color:#e5e7eb"/>
+                  <p style="color:#9ca3af;font-size:11px">Sent from SessionFlow Admin Panel — DO NOT REPLY</p>
+                </div>
+                """;
+
+            var (success, error) = await resend.SendAsync(req.To, "✅ SessionFlow Email Diagnostic", html);
+
+            if (success)
+                logger.LogInformation("[TestEmail] ✅ Delivered to {To}", req.To);
+            else
+                logger.LogError("[TestEmail] ❌ Failed to deliver to {To}: {Error}", req.To, error);
+
+            return Results.Ok(new
+            {
+                success,
+                to    = req.To,
+                error = success ? null : error,
+                hint  = success
+                    ? "✅ Email delivered — check inbox and spam folder."
+                    : error != null && error.Contains("not configured")
+                        ? "RESEND_API_KEY is missing on Railway. Add it in Railway → Variables."
+                    : error != null && error.Contains("Sandbox")
+                        ? "Domain not verified. Verify sessionflow.uk at resend.com/domains and add SPF/DKIM DNS records."
+                    : "Check Railway Logs for the full Resend API error response."
+            });
+        });
+
         // ── History ───────────────────────────────────────────────────────
         group.MapGet("/history", async (
             MongoService db,
@@ -173,4 +238,5 @@ public static class AdminBroadcastEndpoints
     }
 
     private record BroadcastRequest(string Subject, string Message, string? Channel);
+    private record TestEmailRequest(string To);
 }

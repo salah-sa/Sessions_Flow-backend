@@ -27,3 +27,9 @@ export const useSendBroadcast = () => {
     },
   });
 };
+
+/** Synchronous diagnostic: sends ONE test email and returns the Resend API result. */
+export const useTestBroadcastEmail = () =>
+  useMutation({
+    mutationFn: (to: string) => broadcastApi.testEmail(to),
+  });
