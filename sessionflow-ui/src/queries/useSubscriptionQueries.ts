@@ -6,7 +6,9 @@ export const useSubscriptionStatus = () => {
     queryKey: ["subscription-status"],
     queryFn: async () => {
       return fetchWithAuth<any>("/subscription/status");
-    }
+    },
+    staleTime: 0,                // Always treat as stale — invalidation from SignalR is instant
+    refetchOnWindowFocus: true,  // Refresh when user returns to tab
   });
 };
 

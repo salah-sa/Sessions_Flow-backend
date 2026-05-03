@@ -22,6 +22,7 @@ import { UIStyleManager, UIStyleConfig } from "../../styles/UIStyleManager";
 import { cn } from "../../lib/utils";
 import { X, Gift } from "lucide-react";
 import BroadcastAlertModal from "./BroadcastAlertModal";
+import SubscriptionExpiryBanner from "./SubscriptionExpiryBanner";
 
 const Shell: React.FC = () => {
   const location = useLocation();
@@ -152,6 +153,9 @@ const Shell: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Real-time Subscription Expiry Banner */}
+        <SubscriptionExpiryBanner />
 
         <ConnectionBanner />
 
