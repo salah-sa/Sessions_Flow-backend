@@ -115,4 +115,18 @@ public static class Events
     // ═══════════════════════════════════════════════
     /// <summary>Emitted when an admin creates, updates, or deletes a feature flag.</summary>
     public const string FlagUpdated = "flag:updated";
+
+    // ═══════════════════════════════════════════════════════════════
+    // Programming Games
+    // ═══════════════════════════════════════════════════════════════
+    public const string GameChallengeStarted = "game:challenge-started";
+    public const string GameChallengeCompleted = "game:challenge-completed";
+    public const string GameLeaderboardUpdated = "game:leaderboard-updated";
+
+    // PvP Battle (Algorithm Battle / Focus Space)
+    public const string BattleCreated = "game:battle-created";
+    public const string BattleStarted = "game:battle-started";
+    public const string BattleAnswerSubmitted = "game:answer-submitted";
+    public const string BattleCompleted = "game:battle-completed";
+    public const string BattleForfeited = "game:battle-forfeited";
 }

@@ -82,6 +82,16 @@ export const Events = {
   // Broadcast (platform-wide announcement popup)
   BROADCAST_MESSAGE: "broadcast:message",
 
+  // Entertainment / Programming Games
+  GAME_CHALLENGE_STARTED: "game:challenge-started",
+  GAME_CHALLENGE_COMPLETED: "game:challenge-completed",
+  GAME_LEADERBOARD_UPDATED: "game:leaderboard-updated",
+  BATTLE_CREATED: "game:battle-created",
+  BATTLE_STARTED: "game:battle-started",
+  BATTLE_ANSWER_SUBMITTED: "game:answer-submitted",
+  BATTLE_COMPLETED: "game:battle-completed",
+  BATTLE_FORFEITED: "game:battle-forfeited",
+
   // ── Phase 3: Innovative Features (#11–#20) ────────────────
   // ⚠️ SYNC NOTE: These events are FRONTEND-DECLARED PLACEHOLDERS.
   // They are NOT yet defined in the backend EventContracts.cs.

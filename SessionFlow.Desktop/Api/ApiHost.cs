@@ -212,6 +212,12 @@ public static class ApiHost
             var db = sp.GetRequiredService<MongoService>().Database;
             return new EntertainmentService(db);
         });
+        // ── Programming Games Module (replaces generic entertainment) ────────
+        builder.Services.AddScoped<ProgrammingGameService>(sp =>
+        {
+            var db = sp.GetRequiredService<MongoService>().Database;
+            return new ProgrammingGameService(db);
+        });
 
         // ── Platform Upgrade Services ───────────────────────────────────────
         // Analytics Service
@@ -383,11 +389,16 @@ public static class ApiHost
                 await flagsSvc.SeedDefaultFlagsAsync();
                 Log.Information("[Bootstrap] Feature flags seeded.");
 
-                // Seed entertainment data (quotes, riddles, roast lines)
+                // Seed entertainment data (legacy — quotes, riddles, roast lines)
                 var entertainmentSvc = scope.ServiceProvider.GetRequiredService<EntertainmentService>();
                 await entertainmentSvc.SeedIfEmptyAsync();
                 await entertainmentSvc.SeedPhase2IfEmptyAsync();
                 Log.Information("[Bootstrap] Entertainment data seeded (Phase 1 + 2).");
+
+                // Seed programming games (new system — all programming-only)
+                var mongoDb = scope.ServiceProvider.GetRequiredService<MongoService>().Database;
+                await ProgrammingGameSeeder.SeedAllAsync(mongoDb);
+                Log.Information("[Bootstrap] Programming games seeded.");
             }
             catch (Exception ex)
             {
@@ -469,6 +480,7 @@ public static class ApiHost
         SessionTimelineEndpoints.Map(app);
         SearchEndpoints.Map(app);
         EntertainmentEndpoints.Map(app);
+        ProgrammingGameEndpoints.Map(app);
 
         // 6. Map Real-time Hubs
         app.MapHub<SessionHub>("/hub");

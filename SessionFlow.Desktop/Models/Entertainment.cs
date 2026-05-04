@@ -3,239 +3,341 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace SessionFlow.Desktop.Models;
 
-// ─── Quote of the Day ────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+//  DOMAIN CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════════
 
-public class Quote
+/// <summary>
+/// Allowed programming domains across all entertainment & focus space features.
+/// NO math, science, general knowledge, history, or language domains permitted.
+/// </summary>
+public static class ProgrammingDomains
+{
+    public const string GameDev = "game_dev";
+    public const string WebDev = "web_dev";
+    public const string AiMl = "ai_ml";
+    public const string Flutter = "flutter";
+    public const string BackendSystems = "backend_systems";
+
+    public static readonly string[] All = { GameDev, WebDev, AiMl, Flutter, BackendSystems };
+
+    public static bool IsValid(string domain) =>
+        All.Contains(domain, StringComparer.OrdinalIgnoreCase);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  GAME 1: DEBUG CHALLENGE 🐛
+// ═══════════════════════════════════════════════════════════════════════════════
+
+public class DebugChallenge
 {
     [BsonId]
     [BsonRepresentation(BsonType.String)]
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    public string Text { get; set; } = string.Empty;
-    public string Author { get; set; } = "Unknown";
+    public string Language { get; set; } = "javascript";
+    public string Domain { get; set; } = ProgrammingDomains.WebDev;
+    public string Title { get; set; } = string.Empty;
 
-    /// <summary>Category: "motivation", "humor", "philosophy", "science"</summary>
-    public string Category { get; set; } = "motivation";
+    /// <summary>Code with a deliberate bug.</summary>
+    public string BuggyCode { get; set; } = string.Empty;
 
-    public int DayIndex { get; set; } // 0-based index for deterministic daily selection
+    /// <summary>Corrected version of the code.</summary>
+    public string FixedCode { get; set; } = string.Empty;
+
+    /// <summary>1-based line number where the bug is.</summary>
+    public int BugLineNumber { get; set; }
+
+    public string BugExplanation { get; set; } = string.Empty;
+
+    /// <summary>1 = easy, 2 = medium, 3 = hard</summary>
+    public int Difficulty { get; set; } = 1;
+
+    /// <summary>Time limit in seconds: 30/45/60 by difficulty.</summary>
+    public int TimeLimitSeconds { get; set; } = 30;
 }
 
-public class QuoteStreak
+public class DebugAttempt
 {
     [BsonId]
     [BsonRepresentation(BsonType.String)]
     public Guid Id { get; set; } = Guid.NewGuid();
 
     public Guid UserId { get; set; }
-    public int CurrentStreak { get; set; } = 0;
-    public int LongestStreak { get; set; } = 0;
-    public DateTimeOffset LastSeenAt { get; set; } = DateTimeOffset.MinValue;
-    public List<Guid> LikedQuoteIds { get; set; } = new();
-    public Guid? PinnedQuoteId { get; set; }
+    public Guid ChallengeId { get; set; }
+    public int SelectedLine { get; set; }
+    public bool Correct { get; set; }
+    public int ResponseTimeMs { get; set; }
+    public int Score { get; set; }
+    public DateTimeOffset AttemptedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 
-// ─── Riddle Labyrinth ────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+//  GAME 2: CODE SPEED TYPE ⌨️
+// ═══════════════════════════════════════════════════════════════════════════════
 
-public class Riddle
+public class CodeSnippet
 {
     [BsonId]
     [BsonRepresentation(BsonType.String)]
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    public string Text { get; set; } = string.Empty;
-    public string Answer { get; set; } = string.Empty;
+    public string Language { get; set; } = "javascript";
+    public string Domain { get; set; } = ProgrammingDomains.WebDev;
+    public string Description { get; set; } = string.Empty;
 
-    /// <summary>Three progressive hints, revealed one at a time.</summary>
-    public List<string> Hints { get; set; } = new();
+    /// <summary>The exact code the player must type.</summary>
+    public string Code { get; set; } = string.Empty;
 
-    /// <summary>1 = easy, 2 = medium, 3 = hard</summary>
+    public int CharacterCount { get; set; }
+
+    /// <summary>1 = easy (short), 2 = medium, 3 = hard (complex)</summary>
     public int Difficulty { get; set; } = 1;
-
-    public int DayIndex { get; set; } // deterministic daily selection
 }
 
-public class RiddleAttempt
+public class TypingResult
 {
     [BsonId]
     [BsonRepresentation(BsonType.String)]
     public Guid Id { get; set; } = Guid.NewGuid();
 
     public Guid UserId { get; set; }
-    public Guid RiddleId { get; set; }
-    public bool Solved { get; set; } = false;
-    public int HintsUsed { get; set; } = 0;
-    public int WrongAttempts { get; set; } = 0;
-
-    /// <summary>Score: 100 (no hints) → 75 → 50 → 25</summary>
-    public int Score { get; set; } = 0;
-
-    public DateTimeOffset SolvedAt { get; set; } = DateTimeOffset.MinValue;
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public Guid SnippetId { get; set; }
+    public double Wpm { get; set; }
+    public double Accuracy { get; set; }
+    public int Score { get; set; }
+    public DateTimeOffset CompletedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 
-// ─── Roaster Lines ───────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+//  GAME 3: ALGORITHM BATTLE ⚔️ (PvP Real-Time)
+// ═══════════════════════════════════════════════════════════════════════════════
 
-public class RoastLine
+public class AlgorithmChallenge
 {
     [BsonId]
     [BsonRepresentation(BsonType.String)]
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    public string Text { get; set; } = string.Empty;
-
-    /// <summary>"idle", "return", "streak"</summary>
-    public string Category { get; set; } = "idle";
-
-    /// <summary>Minimum idle minutes before this line can trigger.</summary>
-    public int MinIdleMinutes { get; set; } = 5;
-}
-
-// ─── Brain Duel Arena (Phase 2) ─────────────────────────────────────────────
-
-public class DuelQuestion
-{
-    [BsonId]
-    [BsonRepresentation(BsonType.String)]
-    public Guid Id { get; set; } = Guid.NewGuid();
-
-    public string Text { get; set; } = string.Empty;
-    public List<string> Options { get; set; } = new(); // 4 choices
-    public int CorrectIndex { get; set; } // 0-based index of correct answer
-
-    /// <summary>"math", "science", "language", "general", "history"</summary>
-    public string Subject { get; set; } = "general";
+    public string Domain { get; set; } = ProgrammingDomains.BackendSystems;
+    public string ProblemStatement { get; set; } = string.Empty;
+    public List<string> Options { get; set; } = new();
+    public int CorrectIndex { get; set; }
+    public string Explanation { get; set; } = string.Empty;
 
     /// <summary>1 = easy, 2 = medium, 3 = hard</summary>
     public int Difficulty { get; set; } = 1;
 
-    /// <summary>Time limit in seconds per question.</summary>
-    public int TimeLimitSeconds { get; set; } = 15;
+    public int TimeLimitSeconds { get; set; } = 20;
 }
 
-public class DuelMatch
+/// <summary>PvP battle match for Algorithm Battle and Focus Space.</summary>
+public class BattleMatch
 {
     [BsonId]
     [BsonRepresentation(BsonType.String)]
     public Guid Id { get; set; } = Guid.NewGuid();
 
     public Guid ChallengerId { get; set; }
-    public Guid? OpponentId { get; set; }   // null = waiting for opponent
+    public Guid? OpponentId { get; set; }
 
-    /// <summary>"waiting", "active", "completed", "expired"</summary>
+    /// <summary>"waiting", "active", "completed", "expired", "forfeited"</summary>
     public string Status { get; set; } = "waiting";
 
-    public string Subject { get; set; } = "general";
-    public List<Guid> QuestionIds { get; set; } = new(); // 5 questions per duel
-    public List<DuelAnswer> ChallengerAnswers { get; set; } = new();
-    public List<DuelAnswer> OpponentAnswers { get; set; } = new();
-    public int ChallengerScore { get; set; } = 0;
-    public int OpponentScore { get; set; } = 0;
+    public string Domain { get; set; } = ProgrammingDomains.WebDev;
+    public List<Guid> QuestionIds { get; set; } = new();
+    public List<BattleAnswer> ChallengerAnswers { get; set; } = new();
+    public List<BattleAnswer> OpponentAnswers { get; set; } = new();
+    public int ChallengerScore { get; set; }
+    public int OpponentScore { get; set; }
     public Guid? WinnerId { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? CompletedAt { get; set; }
 }
 
-public class DuelAnswer
+public class BattleAnswer
 {
     public Guid QuestionId { get; set; }
-    public int SelectedIndex { get; set; } = -1; // -1 = unanswered / timed out
-    public bool Correct { get; set; } = false;
-    public double ResponseTimeMs { get; set; } = 0;
+    public int SelectedIndex { get; set; } = -1;
+    public bool Correct { get; set; }
+    public double ResponseTimeMs { get; set; }
 }
 
-public class DuelStats
+public class BattleStats
 {
     [BsonId]
     [BsonRepresentation(BsonType.String)]
     public Guid Id { get; set; } = Guid.NewGuid();
 
     public Guid UserId { get; set; }
-    public int Wins { get; set; } = 0;
-    public int Losses { get; set; } = 0;
-    public int Draws { get; set; } = 0;
-    public int TotalDuels { get; set; } = 0;
-    public int CurrentWinStreak { get; set; } = 0;
-    public int BestWinStreak { get; set; } = 0;
-    public int Rating { get; set; } = 1000; // ELO-style rating
+    public int Wins { get; set; }
+    public int Losses { get; set; }
+    public int Draws { get; set; }
+    public int TotalBattles { get; set; }
+    public int CurrentWinStreak { get; set; }
+    public int BestWinStreak { get; set; }
+    public int Rating { get; set; } = 1000;
 }
 
-// ─── Focus Beast (Phase 2) ──────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+//  GAME 4: MEMORY STACK 🧠
+// ═══════════════════════════════════════════════════════════════════════════════
 
-public class FocusBeast
+public class StackChallenge
+{
+    [BsonId]
+    [BsonRepresentation(BsonType.String)]
+    public Guid Id { get; set; } = Guid.NewGuid();
+
+    public string Language { get; set; } = "javascript";
+    public string Domain { get; set; } = ProgrammingDomains.WebDev;
+
+    /// <summary>Code that the player must mentally execute.</summary>
+    public string Code { get; set; } = string.Empty;
+
+    public List<StackStep> Steps { get; set; } = new();
+
+    /// <summary>1 = easy, 2 = medium, 3 = hard</summary>
+    public int Difficulty { get; set; } = 1;
+}
+
+public class StackStep
+{
+    public int StepNumber { get; set; }
+    public string Question { get; set; } = string.Empty;
+    public string CorrectAnswer { get; set; } = string.Empty;
+    public List<string> Options { get; set; } = new();
+}
+
+public class StackAttempt
 {
     [BsonId]
     [BsonRepresentation(BsonType.String)]
     public Guid Id { get; set; } = Guid.NewGuid();
 
     public Guid UserId { get; set; }
-    public string Name { get; set; } = "Sparky";
-
-    /// <summary>"egg", "hatchling", "juvenile", "warrior", "legend"</summary>
-    public string Stage { get; set; } = "egg";
-
-    public int Experience { get; set; } = 0;
-    public int Level { get; set; } = 1;
-    public int Health { get; set; } = 100;      // Decreases during idle periods
-    public int MaxHealth { get; set; } = 100;
-
-    /// <summary>Emoji or icon identifier for the beast.</summary>
-    public string Avatar { get; set; } = "🥚";
-
-    /// <summary>Total focused minutes contributing to growth.</summary>
-    public int TotalFocusMinutes { get; set; } = 0;
-
-    /// <summary>Minutes idle that damaged health today.</summary>
-    public int IdleDamageToday { get; set; } = 0;
-
-    public DateTimeOffset LastFedAt { get; set; } = DateTimeOffset.UtcNow;
-    public DateTimeOffset LastIdleCheckAt { get; set; } = DateTimeOffset.UtcNow;
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public Guid ChallengeId { get; set; }
+    public int CorrectSteps { get; set; }
+    public int TotalSteps { get; set; }
+    public int Score { get; set; }
+    public int ComboMax { get; set; }
+    public DateTimeOffset CompletedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 
-// ─── Meme Forge (Phase 2) ───────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+//  GAME 5: BUG HUNTER 🔍
+// ═══════════════════════════════════════════════════════════════════════════════
 
-public class MemeTemplate
+public class BugHunterChallenge
 {
     [BsonId]
     [BsonRepresentation(BsonType.String)]
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    public string Name { get; set; } = string.Empty;
+    public string Language { get; set; } = "javascript";
+    public string Domain { get; set; } = ProgrammingDomains.WebDev;
+    public string Title { get; set; } = string.Empty;
 
-    /// <summary>Emoji representation of the template for UI.</summary>
-    public string Emoji { get; set; } = "😂";
+    /// <summary>Code block with hidden bugs (20–40 lines).</summary>
+    public string Code { get; set; } = string.Empty;
 
-    /// <summary>Format string: "When {top} but {bottom}"</summary>
-    public string Format { get; set; } = string.Empty;
+    /// <summary>Exactly 3 bugs per challenge.</summary>
+    public List<BugLocation> Bugs { get; set; } = new();
 
-    /// <summary>"study", "exam", "homework", "teacher", "general"</summary>
-    public string Category { get; set; } = "general";
+    public int TimeLimitSeconds { get; set; } = 90;
 
-    public bool Active { get; set; } = true;
+    /// <summary>1 = easy, 2 = medium, 3 = hard</summary>
+    public int Difficulty { get; set; } = 1;
 }
 
-public class CreatedMeme
+public class BugLocation
+{
+    public int LineNumber { get; set; }
+
+    /// <summary>"off-by-one", "null-ref", "race-condition", "wrong-operator", etc.</summary>
+    public string BugType { get; set; } = string.Empty;
+
+    public string Explanation { get; set; } = string.Empty;
+}
+
+public class BugHunterAttempt
 {
     [BsonId]
     [BsonRepresentation(BsonType.String)]
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    public Guid AuthorId { get; set; }
-    public Guid TemplateId { get; set; }
-    public string TopText { get; set; } = string.Empty;
-    public string BottomText { get; set; } = string.Empty;
+    public Guid UserId { get; set; }
+    public Guid ChallengeId { get; set; }
+    public List<int> FlaggedLines { get; set; } = new();
+    public int CorrectFlags { get; set; }
+    public int WrongFlags { get; set; }
+    public int Score { get; set; }
+    public int TimeSpentMs { get; set; }
+    public DateTimeOffset CompletedAt { get; set; } = DateTimeOffset.UtcNow;
+}
 
-    /// <summary>The final rendered text combining template + user input.</summary>
-    public string RenderedText { get; set; } = string.Empty;
+// ═══════════════════════════════════════════════════════════════════════════════
+//  GAME 6: API RACE 🏎️
+// ═══════════════════════════════════════════════════════════════════════════════
 
-    public int Upvotes { get; set; } = 0;
-    public int Downvotes { get; set; } = 0;
-    public List<Guid> UpvotedBy { get; set; } = new();
-    public List<Guid> DownvotedBy { get; set; } = new();
+public class ApiChallenge
+{
+    [BsonId]
+    [BsonRepresentation(BsonType.String)]
+    public Guid Id { get; set; } = Guid.NewGuid();
 
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public string Domain { get; set; } = ProgrammingDomains.WebDev;
+    public string TaskDescription { get; set; } = string.Empty;
+    public string CorrectMethod { get; set; } = "GET";
+    public string CorrectPath { get; set; } = string.Empty;
 
-    /// <summary>Flagged for moderation?</summary>
-    public bool Flagged { get; set; } = false;
+    /// <summary>Expected request body template (JSON string or empty).</summary>
+    public string CorrectBody { get; set; } = string.Empty;
+
+    public int ExpectedStatusCode { get; set; } = 200;
+
+    /// <summary>1 = easy, 2 = medium, 3 = hard</summary>
+    public int Difficulty { get; set; } = 1;
+}
+
+public class ApiRaceAttempt
+{
+    [BsonId]
+    [BsonRepresentation(BsonType.String)]
+    public Guid Id { get; set; } = Guid.NewGuid();
+
+    public Guid UserId { get; set; }
+    public Guid ChallengeId { get; set; }
+    public string SubmittedMethod { get; set; } = string.Empty;
+    public string SubmittedPath { get; set; } = string.Empty;
+    public string SubmittedBody { get; set; } = string.Empty;
+    public bool MethodCorrect { get; set; }
+    public bool PathCorrect { get; set; }
+    public bool BodyCorrect { get; set; }
+    public int Score { get; set; }
+    public int TimeSpentMs { get; set; }
+    public DateTimeOffset CompletedAt { get; set; } = DateTimeOffset.UtcNow;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  UNIFIED GAME LEADERBOARD
+// ═══════════════════════════════════════════════════════════════════════════════
+
+public class GameLeaderboardEntry
+{
+    [BsonId]
+    [BsonRepresentation(BsonType.String)]
+    public Guid Id { get; set; } = Guid.NewGuid();
+
+    public Guid UserId { get; set; }
+
+    /// <summary>"debug_challenge", "code_speed_type", "algorithm_battle", "memory_stack", "bug_hunter", "api_race"</summary>
+    public string GameType { get; set; } = string.Empty;
+
+    public int TotalScore { get; set; }
+    public int GamesPlayed { get; set; }
+    public int BestScore { get; set; }
+    public double AverageScore { get; set; }
+    public DateTimeOffset LastPlayedAt { get; set; } = DateTimeOffset.UtcNow;
 }
