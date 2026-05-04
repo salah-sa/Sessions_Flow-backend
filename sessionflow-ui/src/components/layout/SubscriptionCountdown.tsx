@@ -101,7 +101,7 @@ const SubscriptionCountdown: React.FC = () => {
 
   // Live tick every second
   useEffect(() => {
-    if (!data?.expiryDate || isUnlimitedExpiry(data.expiryDate)) return;
+    if (!data?.expiryDate) return;
     setTick(calcRemaining(data.expiryDate));
     const id = setInterval(() => setTick(calcRemaining(data.expiryDate)), 1000);
     return () => clearInterval(id);
@@ -123,27 +123,8 @@ const SubscriptionCountdown: React.FC = () => {
   // Free tier: no subscription to count
   if (apiTier === "Free") return null;
 
-  // Admin / Enterprise with unlimited (DateTime.MaxValue sentinel)
-  if (user.role === "Admin" || isUnlimitedExpiry(data.expiryDate)) {
-    return (
-      <button
-        onClick={() => navigate("/subscription")}
-        className={cn(
-          "hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl",
-          "bg-amber-500/10 border border-amber-500/20",
-          "hover:bg-amber-500/20 transition-all group/sub",
-          "shadow-[0_0_8px_rgba(245,158,11,0.1)]"
-        )}
-        title="Enterprise — Unlimited Subscription"
-      >
-        <Crown className="w-3.5 h-3.5 text-amber-400 group-hover/sub:scale-110 transition-transform" />
-        <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">∞</span>
-        <span className="text-[8px] font-bold text-amber-500/60 uppercase tracking-widest hidden md:inline">
-          Unlimited
-        </span>
-      </button>
-    );
-  }
+  // Unlimited sentinel (DateTime.MaxValue edge case — no real expiry)
+  if (isUnlimitedExpiry(data?.expiryDate)) return null;
 
   // Paid tier but no expiry data
   const r = tick ?? calcRemaining(data.expiryDate);

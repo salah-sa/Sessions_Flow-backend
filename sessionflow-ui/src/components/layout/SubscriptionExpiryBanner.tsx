@@ -121,23 +121,7 @@ const SubscriptionExpiryBanner: React.FC = () => {
   // Must be logged in
   if (!user) return null;
 
-  // Admins: show unlimited badge instead of hiding
-  if (user.role === "Admin") {
-    return (
-      <div
-        role="status"
-        className={cn(
-          "relative flex items-center justify-center gap-3 px-4 py-1.5 border-b overflow-hidden z-40",
-          "bg-gradient-to-r from-amber-950/80 via-amber-900/60 to-amber-950/80 border-amber-700/30"
-        )}
-      >
-        <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-        <p className="text-[10px] font-bold text-amber-300 uppercase tracking-widest">
-          Enterprise — Unlimited Subscription
-        </p>
-      </div>
-    );
-  }
+  // (Admin now flows through normal countdown logic — no special-case)
 
   // Avoid flash while loading
   if (isLoading) return null;

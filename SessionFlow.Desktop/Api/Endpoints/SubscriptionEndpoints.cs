@@ -23,26 +23,19 @@ public static class SubscriptionEndpoints
             var user = await auth.GetUserFromClaimsAsync(ctx.User);
             if (user == null) return Results.Unauthorized();
 
-            if (user.Role == UserRole.Admin)
-            {
-                return Results.Ok(new
-                {
-                    tier = "Enterprise",
-                    paymobCustomerId = user.PaymobCustomerId,
-                    subscriptionId = (Guid?)null,
-                    status = "Active",
-                    expiryDate = DateTime.MaxValue,
-                    canUpgrade = false
-                });
-            }
-
+            // Look up real subscription for ALL users (including Admin)
             var subscription = await db.Subscriptions
                 .Find(s => s.UserId == user.Id && s.Status == SubscriptionStatus.Active)
                 .SortByDescending(s => s.CreatedAt)
                 .FirstOrDefaultAsync();
 
-            // Fallback: if user has a paid tier but no active subscription record,
-            // synthesize an expiry from their last-update timestamp + 30 days.
+            // Resolve tier: Admin always maps to Enterprise
+            var effectiveTier = user.Role == UserRole.Admin
+                ? "Enterprise"
+                : user.SubscriptionTier.ToString();
+
+            // Resolve expiry: use real subscription period if available,
+            // otherwise synthesize from last-update + 30 days for paid tiers.
             DateTimeOffset? expiryDate = subscription?.CurrentPeriodEnd;
             if (expiryDate == null && user.SubscriptionTier != SubscriptionTier.Free)
             {
@@ -51,12 +44,12 @@ public static class SubscriptionEndpoints
 
             return Results.Ok(new
             {
-                tier = user.SubscriptionTier.ToString(),
+                tier = effectiveTier,
                 paymobCustomerId = user.PaymobCustomerId,
                 subscriptionId = subscription?.Id,
-                status = subscription?.Status.ToString() ?? "None",
+                status = subscription?.Status.ToString() ?? (user.Role == UserRole.Admin ? "Active" : "None"),
                 expiryDate,
-                canUpgrade = user.SubscriptionTier != SubscriptionTier.Enterprise
+                canUpgrade = user.Role != UserRole.Admin && user.SubscriptionTier != SubscriptionTier.Enterprise
             });
         }).RequireAuthorization();
 
