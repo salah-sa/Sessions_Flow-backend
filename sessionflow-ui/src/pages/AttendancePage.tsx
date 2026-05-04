@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
-import { Calendar, CheckCircle, Clock, Users, Zap, Search, ExternalLink, SkipForward, Loader2, X, Lock, ArrowUpRight, AlertCircle, UserCheck, UserX, Info } from "lucide-react";
+import { Calendar, CheckCircle, Clock, Users, Zap, Search, ExternalLink, SkipForward, Loader2, X, Lock, ArrowUpRight, AlertCircle, UserCheck, UserX, Info, History } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useInfiniteSessions, useSessionMutations } from "../queries/useSessionQueries";
 import { Session } from "../types";
@@ -126,6 +126,13 @@ const AttendancePage: React.FC = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+          <button
+            onClick={() => navigate("/attendance/history")}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white/[0.03] border border-white/10 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:border-white/20 hover:bg-white/[0.06] transition-all"
+          >
+            <History className="w-4 h-4" />
+            View History
+          </button>
           <div className="relative flex-1 sm:flex-initial">
             <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
             <input

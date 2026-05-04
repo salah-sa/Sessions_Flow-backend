@@ -1,5 +1,5 @@
 import React from "react";
-import { User, Check, X, Clock } from "lucide-react";
+import { Check, X, Clock } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Card, Button } from "../ui";
 import { Student, AttendanceRecord, AttendanceStatus } from "../../types";

@@ -176,7 +176,10 @@ const AttendanceHistoryPage: React.FC = () => {
 
                   {/* Marked At */}
                   <span className="text-[10px] text-slate-500 font-mono whitespace-nowrap">
-                    {format(new Date(item.markedAt), "dd MMM HH:mm")}
+                    {item.markedAt
+                      ? format(new Date(item.markedAt), "dd MMM HH:mm")
+                      : "—"
+                    }
                   </span>
 
                   {/* Status */}

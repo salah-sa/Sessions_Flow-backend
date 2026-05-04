@@ -139,6 +139,7 @@ public static class SessionEndpoints
                     notes = s.Notes,
                     attendanceCount = records.Count,
                     presentCount = records.Count(ar => ar.Status == AttendanceStatus.Present),
+                    absentCount = records.Count(ar => ar.Status == AttendanceStatus.Absent),
                     totalStudents = studentsLookup.GetValueOrDefault(s.GroupId, 0),
                     durationMinutes = s.DurationMinutes,
                     createdAt = s.CreatedAt
