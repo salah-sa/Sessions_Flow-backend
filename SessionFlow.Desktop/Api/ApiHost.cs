@@ -206,6 +206,13 @@ public static class ApiHost
         builder.Services.AddScoped<WalletSubscriptionService>();
         builder.Services.AddScoped<UsageService>();
 
+        // ── Entertainment Module ────────────────────────────────────────────
+        builder.Services.AddScoped<EntertainmentService>(sp =>
+        {
+            var db = sp.GetRequiredService<MongoService>().Database;
+            return new EntertainmentService(db);
+        });
+
         // ── Platform Upgrade Services ───────────────────────────────────────
         // Analytics Service
         builder.Services.AddScoped<AnalyticsService>();
@@ -375,6 +382,12 @@ public static class ApiHost
                 var flagsSvc = scope.ServiceProvider.GetRequiredService<FeatureFlagService>();
                 await flagsSvc.SeedDefaultFlagsAsync();
                 Log.Information("[Bootstrap] Feature flags seeded.");
+
+                // Seed entertainment data (quotes, riddles, roast lines)
+                var entertainmentSvc = scope.ServiceProvider.GetRequiredService<EntertainmentService>();
+                await entertainmentSvc.SeedIfEmptyAsync();
+                await entertainmentSvc.SeedPhase2IfEmptyAsync();
+                Log.Information("[Bootstrap] Entertainment data seeded (Phase 1 + 2).");
             }
             catch (Exception ex)
             {
@@ -455,6 +468,7 @@ public static class ApiHost
         FeatureFlagEndpoints.Map(app);
         SessionTimelineEndpoints.Map(app);
         SearchEndpoints.Map(app);
+        EntertainmentEndpoints.Map(app);
 
         // 6. Map Real-time Hubs
         app.MapHub<SessionHub>("/hub");

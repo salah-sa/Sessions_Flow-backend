@@ -26,7 +26,8 @@ import {
   Flag,
   Megaphone,
   BarChart2,
-  FileText
+  FileText,
+  Gamepad2
 } from "lucide-react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore, useSectionBadgeStore, useChatStore, selectEffectiveTier, useAIAgentStore, useUIStore } from "../../store/stores";
@@ -323,6 +324,13 @@ const Sidebar: React.FC = () => {
             <NavItem to="/session-timeline" icon={Clock} label="Session Timeline" />
           </>
         )}
+
+        {/* Entertainment Section — All Roles */}
+        <div className="py-3 px-6">
+          <p className="text-[9px] font-bold text-slate-700 uppercase tracking-widest mb-4">Entertainment</p>
+          <div className="h-px bg-white/5" />
+        </div>
+        <NavItem to="/entertainment" icon={Gamepad2} label="Entertainment" />
 
         <NavItem to="/archive" icon={Archive} label={t("nav.archive") || "Archive"} locked={isStudent} />
         <NavItem to="/plans" icon={Crown} label={t("nav.plans") || "Plans & Upgrades"} locked={isStudent} />

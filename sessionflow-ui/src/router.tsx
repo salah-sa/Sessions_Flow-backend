@@ -37,6 +37,14 @@ const BroadcastPage = lazy(() => import("./pages/BroadcastPage"));
 const DeepAnalyticsPage = lazy(() => import("./pages/DeepAnalyticsPage"));
 const ReportBuilderPage = lazy(() => import("./pages/ReportBuilderPage"));
 
+// ── Entertainment Module ──────────────────────────────────────────────────────
+const EntertainmentHub = lazy(() => import("./pages/entertainment/EntertainmentHub"));
+const QuoteDojoPage = lazy(() => import("./pages/entertainment/QuoteDojoPage"));
+const RiddleLabyrinthPage = lazy(() => import("./pages/entertainment/RiddleLabyrinthPage"));
+const BrainDuelPage = lazy(() => import("./pages/entertainment/BrainDuelPage"));
+const FocusBeastPage = lazy(() => import("./pages/entertainment/FocusBeastPage"));
+const MemeForge = lazy(() => import("./pages/entertainment/MemeForge"));
+
 const PageLoader = () => (
   <div className="h-full w-full flex items-center justify-center bg-slate-950/50 backdrop-blur-md animate-fade-in">
     <div className="flex flex-col items-center gap-4">
@@ -353,6 +361,55 @@ export const router = createBrowserRouter([
       {
         path: "subscription",
         element: <Navigate to="/plans" replace />,
+      },
+      // ── Entertainment Routes ──────────────────────────────────────────
+      {
+        path: "entertainment",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <EntertainmentHub />
+          </Suspense>
+        ),
+      },
+      {
+        path: "entertainment/quotes",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <QuoteDojoPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "entertainment/riddles",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <RiddleLabyrinthPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "entertainment/duel",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <BrainDuelPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "entertainment/beast",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <FocusBeastPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "entertainment/memes",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <MemeForge />
+          </Suspense>
+        ),
       },
       {
         path: "pricing",

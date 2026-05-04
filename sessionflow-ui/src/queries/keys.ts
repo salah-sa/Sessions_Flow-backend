@@ -160,4 +160,26 @@ export const queryKeys = {
     byEntity: (type: string, id: string) => ["encrypted-notes", type, id] as const,
     list: ["encrypted-notes", "list"] as const,
   },
+
+  // ── Entertainment Module ──────────────────────────────────────
+  entertainment: {
+    all: ["entertainment"] as const,
+    quoteToday: ["entertainment", "quote-today"] as const,
+    quoteStreak: ["entertainment", "quote-streak"] as const,
+    quoteCollection: ["entertainment", "quote-collection"] as const,
+    riddleToday: ["entertainment", "riddle-today"] as const,
+    riddleLeaderboard: ["entertainment", "riddle-leaderboard"] as const,
+    roastLines: (category: string) => ["entertainment", "roast", category] as const,
+
+    // Phase 2
+    duelStats: ["entertainment", "duel-stats"] as const,
+    duelLeaderboard: ["entertainment", "duel-leaderboard"] as const,
+    duelHistory: ["entertainment", "duel-history"] as const,
+    duelQuestions: (matchId: string) => ["entertainment", "duel-questions", matchId] as const,
+    beast: ["entertainment", "beast"] as const,
+    memeTemplates: (category?: string) => ["entertainment", "meme-templates", category] as const,
+    memeGallery: (sort: string, page: number) => ["entertainment", "meme-gallery", sort, page] as const,
+    memesMine: ["entertainment", "memes-mine"] as const,
+  },
 };
+

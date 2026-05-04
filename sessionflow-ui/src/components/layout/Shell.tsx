@@ -23,6 +23,7 @@ import { cn } from "../../lib/utils";
 import { X, Gift } from "lucide-react";
 import BroadcastAlertModal from "./BroadcastAlertModal";
 import SubscriptionExpiryBanner from "./SubscriptionExpiryBanner";
+import ProcrastinationRoaster from "../entertainment/ProcrastinationRoaster";
 
 const Shell: React.FC = () => {
   const location = useLocation();
@@ -106,6 +107,7 @@ const Shell: React.FC = () => {
       <StudentWelcomeModal />
       <AIAgentWidget />
       <BroadcastAlertModal />
+      <ProcrastinationRoaster />
 
       
       {/* Zenith Central Horizon Lighting */}
