@@ -6,390 +6,309 @@ namespace SessionFlow.Desktop.Services;
 public class EntertainmentService
 {
     private readonly IMongoCollection<DebugChallenge> _debugChallenges;
-    private readonly IMongoCollection<CodeSpeedSnippet> _codeSpeedSnippets;
-    private readonly IMongoCollection<AlgorithmBattleQuestion> _algorithmQuestions;
-    private readonly IMongoCollection<MemoryStackCard> _memoryCards;
-    private readonly IMongoCollection<BugHunterScenario> _bugHunterScenarios;
-    private readonly IMongoCollection<ApiRaceChallenge> _apiRaceChallenges;
-    private readonly IMongoCollection<PlayerScore> _playerScores;
+    private readonly IMongoCollection<CodeSnippet> _codeSnippets;
+    private readonly IMongoCollection<AlgorithmChallenge> _algorithmChallenges;
+    private readonly IMongoCollection<StackChallenge> _stackChallenges;
+    private readonly IMongoCollection<BugHunterChallenge> _bugHunterChallenges;
+    private readonly IMongoCollection<ApiChallenge> _apiChallenges;
+    private readonly IMongoCollection<GameLeaderboardEntry> _leaderboard;
     private readonly IMongoCollection<BattleMatch> _battleMatches;
 
     public EntertainmentService(IMongoDatabase db)
     {
         _debugChallenges = db.GetCollection<DebugChallenge>("debug_challenges");
-        _codeSpeedSnippets = db.GetCollection<CodeSpeedSnippet>("code_speed_snippets");
-        _algorithmQuestions = db.GetCollection<AlgorithmBattleQuestion>("algorithm_battle_questions");
-        _memoryCards = db.GetCollection<MemoryStackCard>("memory_stack_cards");
-        _bugHunterScenarios = db.GetCollection<BugHunterScenario>("bug_hunter_scenarios");
-        _apiRaceChallenges = db.GetCollection<ApiRaceChallenge>("api_race_challenges");
-        _playerScores = db.GetCollection<PlayerScore>("player_scores");
+        _codeSnippets = db.GetCollection<CodeSnippet>("code_snippets");
+        _algorithmChallenges = db.GetCollection<AlgorithmChallenge>("algorithm_challenges");
+        _stackChallenges = db.GetCollection<StackChallenge>("stack_challenges");
+        _bugHunterChallenges = db.GetCollection<BugHunterChallenge>("bug_hunter_challenges");
+        _apiChallenges = db.GetCollection<ApiChallenge>("api_challenges");
+        _leaderboard = db.GetCollection<GameLeaderboardEntry>("game_leaderboard");
         _battleMatches = db.GetCollection<BattleMatch>("battle_matches");
     }
 
-    // ══════════════════════════════════════════════════════════════
-    //  DEBUG CHALLENGE
-    // ══════════════════════════════════════════════════════════════
-
-    public async Task<List<DebugChallenge>> GetDebugChallengesAsync(string? domain = null, string? difficulty = null)
+    // ── Debug Challenge ──────────────────────────────────────────
+    public async Task<List<DebugChallenge>> GetDebugChallengesAsync(string? domain, int? difficulty)
     {
         var fb = Builders<DebugChallenge>.Filter;
-        var filter = fb.Empty;
-        if (!string.IsNullOrEmpty(domain)) filter &= fb.Eq(x => x.Domain, domain);
-        if (!string.IsNullOrEmpty(difficulty)) filter &= fb.Eq(x => x.Difficulty, difficulty);
-        return await _debugChallenges.Find(filter).Limit(10).ToListAsync();
+        var f = fb.Empty;
+        if (!string.IsNullOrEmpty(domain)) f &= fb.Eq(x => x.Domain, domain);
+        if (difficulty.HasValue) f &= fb.Eq(x => x.Difficulty, difficulty.Value);
+        return await _debugChallenges.Find(f).Limit(10).ToListAsync();
     }
 
     public async Task<DebugChallenge?> GetDebugChallengeByIdAsync(Guid id) =>
         await _debugChallenges.Find(x => x.Id == id).FirstOrDefaultAsync();
 
-    public async Task<DebugChallenge?> GetRandomDebugChallengeAsync(string? domain = null)
+    public async Task<DebugChallenge?> GetRandomDebugChallengeAsync(string? domain)
     {
-        var fb = Builders<DebugChallenge>.Filter;
-        var filter = !string.IsNullOrEmpty(domain) ? fb.Eq(x => x.Domain, domain) : fb.Empty;
-        var count = await _debugChallenges.CountDocumentsAsync(filter);
-        if (count == 0) return null;
-        var skip = new Random().Next((int)count);
-        return await _debugChallenges.Find(filter).Skip(skip).Limit(1).FirstOrDefaultAsync();
+        var f = string.IsNullOrEmpty(domain) ? Builders<DebugChallenge>.Filter.Empty
+            : Builders<DebugChallenge>.Filter.Eq(x => x.Domain, domain);
+        var c = await _debugChallenges.CountDocumentsAsync(f);
+        return c == 0 ? null : await _debugChallenges.Find(f).Skip(Random.Shared.Next((int)c)).Limit(1).FirstOrDefaultAsync();
     }
 
-    // ══════════════════════════════════════════════════════════════
-    //  CODE SPEED TYPE
-    // ══════════════════════════════════════════════════════════════
-
-    public async Task<List<CodeSpeedSnippet>> GetCodeSpeedSnippetsAsync(string? language = null)
+    // ── Code Speed Type ──────────────────────────────────────────
+    public async Task<List<CodeSnippet>> GetCodeSnippetsAsync(string? language)
     {
-        var filter = !string.IsNullOrEmpty(language)
-            ? Builders<CodeSpeedSnippet>.Filter.Eq(x => x.Language, language)
-            : Builders<CodeSpeedSnippet>.Filter.Empty;
-        return await _codeSpeedSnippets.Find(filter).Limit(10).ToListAsync();
+        var f = string.IsNullOrEmpty(language) ? Builders<CodeSnippet>.Filter.Empty
+            : Builders<CodeSnippet>.Filter.Eq(x => x.Language, language);
+        return await _codeSnippets.Find(f).Limit(10).ToListAsync();
     }
 
-    public async Task<CodeSpeedSnippet?> GetRandomCodeSpeedSnippetAsync(string? language = null)
+    public async Task<CodeSnippet?> GetRandomCodeSnippetAsync(string? language)
     {
-        var filter = !string.IsNullOrEmpty(language)
-            ? Builders<CodeSpeedSnippet>.Filter.Eq(x => x.Language, language)
-            : Builders<CodeSpeedSnippet>.Filter.Empty;
-        var count = await _codeSpeedSnippets.CountDocumentsAsync(filter);
-        if (count == 0) return null;
-        return await _codeSpeedSnippets.Find(filter).Skip(new Random().Next((int)count)).Limit(1).FirstOrDefaultAsync();
+        var f = string.IsNullOrEmpty(language) ? Builders<CodeSnippet>.Filter.Empty
+            : Builders<CodeSnippet>.Filter.Eq(x => x.Language, language);
+        var c = await _codeSnippets.CountDocumentsAsync(f);
+        return c == 0 ? null : await _codeSnippets.Find(f).Skip(Random.Shared.Next((int)c)).Limit(1).FirstOrDefaultAsync();
     }
 
-    // ══════════════════════════════════════════════════════════════
-    //  ALGORITHM BATTLE
-    // ══════════════════════════════════════════════════════════════
-
-    public async Task<List<AlgorithmBattleQuestion>> GetAlgorithmQuestionsAsync(string? domain = null)
+    // ── Algorithm Battle ─────────────────────────────────────────
+    public async Task<List<AlgorithmChallenge>> GetAlgorithmChallengesAsync(string? domain)
     {
-        var filter = !string.IsNullOrEmpty(domain)
-            ? Builders<AlgorithmBattleQuestion>.Filter.Eq(x => x.Domain, domain)
-            : Builders<AlgorithmBattleQuestion>.Filter.Empty;
-        return await _algorithmQuestions.Find(filter).Limit(10).ToListAsync();
+        var f = string.IsNullOrEmpty(domain) ? Builders<AlgorithmChallenge>.Filter.Empty
+            : Builders<AlgorithmChallenge>.Filter.Eq(x => x.Domain, domain);
+        return await _algorithmChallenges.Find(f).Limit(10).ToListAsync();
     }
 
-    public async Task<AlgorithmBattleQuestion?> GetRandomAlgorithmQuestionAsync(string? domain = null)
+    public async Task<AlgorithmChallenge?> GetRandomAlgorithmChallengeAsync(string? domain)
     {
-        var filter = !string.IsNullOrEmpty(domain)
-            ? Builders<AlgorithmBattleQuestion>.Filter.Eq(x => x.Domain, domain)
-            : Builders<AlgorithmBattleQuestion>.Filter.Empty;
-        var count = await _algorithmQuestions.CountDocumentsAsync(filter);
-        if (count == 0) return null;
-        return await _algorithmQuestions.Find(filter).Skip(new Random().Next((int)count)).Limit(1).FirstOrDefaultAsync();
+        var f = string.IsNullOrEmpty(domain) ? Builders<AlgorithmChallenge>.Filter.Empty
+            : Builders<AlgorithmChallenge>.Filter.Eq(x => x.Domain, domain);
+        var c = await _algorithmChallenges.CountDocumentsAsync(f);
+        return c == 0 ? null : await _algorithmChallenges.Find(f).Skip(Random.Shared.Next((int)c)).Limit(1).FirstOrDefaultAsync();
     }
 
-    // ══════════════════════════════════════════════════════════════
-    //  MEMORY STACK
-    // ══════════════════════════════════════════════════════════════
-
-    public async Task<List<MemoryStackCard>> GetMemoryCardsAsync(string? domain = null)
+    // ── Memory Stack ─────────────────────────────────────────────
+    public async Task<List<StackChallenge>> GetStackChallengesAsync(string? domain)
     {
-        var filter = !string.IsNullOrEmpty(domain)
-            ? Builders<MemoryStackCard>.Filter.Eq(x => x.Domain, domain)
-            : Builders<MemoryStackCard>.Filter.Empty;
-        return await _memoryCards.Find(filter).Limit(20).ToListAsync();
+        var f = string.IsNullOrEmpty(domain) ? Builders<StackChallenge>.Filter.Empty
+            : Builders<StackChallenge>.Filter.Eq(x => x.Domain, domain);
+        return await _stackChallenges.Find(f).Limit(20).ToListAsync();
     }
 
-    // ══════════════════════════════════════════════════════════════
-    //  BUG HUNTER
-    // ══════════════════════════════════════════════════════════════
-
-    public async Task<List<BugHunterScenario>> GetBugHunterScenariosAsync(string? domain = null)
+    // ── Bug Hunter ───────────────────────────────────────────────
+    public async Task<List<BugHunterChallenge>> GetBugHunterChallengesAsync(string? domain)
     {
-        var filter = !string.IsNullOrEmpty(domain)
-            ? Builders<BugHunterScenario>.Filter.Eq(x => x.Domain, domain)
-            : Builders<BugHunterScenario>.Filter.Empty;
-        return await _bugHunterScenarios.Find(filter).Limit(10).ToListAsync();
+        var f = string.IsNullOrEmpty(domain) ? Builders<BugHunterChallenge>.Filter.Empty
+            : Builders<BugHunterChallenge>.Filter.Eq(x => x.Domain, domain);
+        return await _bugHunterChallenges.Find(f).Limit(10).ToListAsync();
     }
 
-    public async Task<BugHunterScenario?> GetRandomBugHunterAsync(string? domain = null)
+    public async Task<BugHunterChallenge?> GetRandomBugHunterAsync(string? domain)
     {
-        var filter = !string.IsNullOrEmpty(domain)
-            ? Builders<BugHunterScenario>.Filter.Eq(x => x.Domain, domain)
-            : Builders<BugHunterScenario>.Filter.Empty;
-        var count = await _bugHunterScenarios.CountDocumentsAsync(filter);
-        if (count == 0) return null;
-        return await _bugHunterScenarios.Find(filter).Skip(new Random().Next((int)count)).Limit(1).FirstOrDefaultAsync();
+        var f = string.IsNullOrEmpty(domain) ? Builders<BugHunterChallenge>.Filter.Empty
+            : Builders<BugHunterChallenge>.Filter.Eq(x => x.Domain, domain);
+        var c = await _bugHunterChallenges.CountDocumentsAsync(f);
+        return c == 0 ? null : await _bugHunterChallenges.Find(f).Skip(Random.Shared.Next((int)c)).Limit(1).FirstOrDefaultAsync();
     }
 
-    // ══════════════════════════════════════════════════════════════
-    //  API RACE
-    // ══════════════════════════════════════════════════════════════
-
-    public async Task<List<ApiRaceChallenge>> GetApiRaceChallengesAsync(string? difficulty = null)
+    // ── API Race ─────────────────────────────────────────────────
+    public async Task<List<ApiChallenge>> GetApiChallengesAsync(int? difficulty)
     {
-        var filter = !string.IsNullOrEmpty(difficulty)
-            ? Builders<ApiRaceChallenge>.Filter.Eq(x => x.Difficulty, difficulty)
-            : Builders<ApiRaceChallenge>.Filter.Empty;
-        return await _apiRaceChallenges.Find(filter).Limit(10).ToListAsync();
+        var f = difficulty.HasValue ? Builders<ApiChallenge>.Filter.Eq(x => x.Difficulty, difficulty.Value)
+            : Builders<ApiChallenge>.Filter.Empty;
+        return await _apiChallenges.Find(f).Limit(10).ToListAsync();
     }
 
-    public async Task<ApiRaceChallenge?> GetRandomApiRaceAsync()
+    public async Task<ApiChallenge?> GetRandomApiChallengeAsync()
     {
-        var count = await _apiRaceChallenges.CountDocumentsAsync(Builders<ApiRaceChallenge>.Filter.Empty);
-        if (count == 0) return null;
-        return await _apiRaceChallenges.Find(_ => true).Skip(new Random().Next((int)count)).Limit(1).FirstOrDefaultAsync();
+        var c = await _apiChallenges.CountDocumentsAsync(_ => true);
+        return c == 0 ? null : await _apiChallenges.Find(_ => true).Skip(Random.Shared.Next((int)c)).Limit(1).FirstOrDefaultAsync();
     }
 
-    // ══════════════════════════════════════════════════════════════
-    //  PLAYER SCORES & LEADERBOARD
-    // ══════════════════════════════════════════════════════════════
-
-    public async Task<PlayerScore?> GetPlayerScoreAsync(Guid userId)
-    {
-        return await _playerScores.Find(x => x.UserId == userId).FirstOrDefaultAsync();
-    }
+    // ── Leaderboard ──────────────────────────────────────────────
+    public async Task<GameLeaderboardEntry?> GetPlayerScoreAsync(Guid userId) =>
+        await _leaderboard.Find(x => x.UserId == userId).FirstOrDefaultAsync();
 
     public async Task RecordScoreAsync(Guid userId, string gameType, int points)
     {
-        var existing = await _playerScores.Find(x => x.UserId == userId).FirstOrDefaultAsync();
-        if (existing == null)
-        {
-            existing = new PlayerScore { UserId = userId };
-            await _playerScores.InsertOneAsync(existing);
-        }
-
-        var update = Builders<PlayerScore>.Update
-            .Inc(x => x.TotalPoints, points)
+        var filter = Builders<GameLeaderboardEntry>.Filter.And(
+            Builders<GameLeaderboardEntry>.Filter.Eq(x => x.UserId, userId),
+            Builders<GameLeaderboardEntry>.Filter.Eq(x => x.GameType, gameType));
+        var exists = await _leaderboard.Find(filter).AnyAsync();
+        if (!exists)
+            await _leaderboard.InsertOneAsync(new GameLeaderboardEntry { UserId = userId, GameType = gameType });
+        var update = Builders<GameLeaderboardEntry>.Update
+            .Inc(x => x.TotalScore, points)
             .Inc(x => x.GamesPlayed, 1)
             .Set(x => x.LastPlayedAt, DateTimeOffset.UtcNow);
-
-        switch (gameType)
-        {
-            case "debug_challenge": update = update.Inc(x => x.DebugChallengesCompleted, 1); break;
-            case "code_speed": update = update.Inc(x => x.CodeSpeedRoundsPlayed, 1); break;
-            case "algorithm_battle": update = update.Inc(x => x.AlgorithmBattlesWon, 1); break;
-            case "memory_stack": update = update.Inc(x => x.MemoryStackHighScore, points); break;
-            case "bug_hunter": update = update.Inc(x => x.BugHunterCompleted, 1); break;
-            case "api_race": update = update.Inc(x => x.ApiRacesCompleted, 1); break;
-        }
-
-        await _playerScores.UpdateOneAsync(x => x.UserId == userId, update);
+        await _leaderboard.UpdateOneAsync(filter, update);
     }
 
-    public async Task<List<PlayerScore>> GetLeaderboardAsync(int limit = 20)
-    {
-        return await _playerScores.Find(_ => true)
-            .SortByDescending(x => x.TotalPoints)
-            .Limit(limit)
-            .ToListAsync();
-    }
+    public async Task<List<GameLeaderboardEntry>> GetLeaderboardAsync(int limit = 20) =>
+        await _leaderboard.Find(_ => true).SortByDescending(x => x.TotalScore).Limit(limit).ToListAsync();
 
-    // ══════════════════════════════════════════════════════════════
-    //  BATTLE MATCHES (PvP)
-    // ══════════════════════════════════════════════════════════════
-
-    public async Task<BattleMatch> CreateBattleAsync(Guid creatorId, string domain)
+    // ── Battle (PvP) ─────────────────────────────────────────────
+    public async Task<BattleMatch> CreateBattleAsync(Guid challengerId, string domain)
     {
-        var match = new BattleMatch
-        {
-            CreatorId = creatorId,
-            Domain = domain,
-            Status = "waiting"
-        };
-        await _battleMatches.InsertOneAsync(match);
-        return match;
+        var m = new BattleMatch { ChallengerId = challengerId, Domain = domain, Status = "waiting" };
+        await _battleMatches.InsertOneAsync(m);
+        return m;
     }
 
     public async Task<BattleMatch?> JoinBattleAsync(Guid matchId, Guid opponentId)
     {
-        var update = Builders<BattleMatch>.Update
+        var upd = Builders<BattleMatch>.Update
             .Set(x => x.OpponentId, opponentId)
-            .Set(x => x.Status, "active")
-            .Set(x => x.StartedAt, DateTimeOffset.UtcNow);
+            .Set(x => x.Status, "active");
         return await _battleMatches.FindOneAndUpdateAsync(
-            x => x.Id == matchId && x.Status == "waiting",
-            update,
+            x => x.Id == matchId && x.Status == "waiting", upd,
             new FindOneAndUpdateOptions<BattleMatch> { ReturnDocument = ReturnDocument.After });
     }
 
-    public async Task<BattleMatch?> CompleteBattleAsync(Guid matchId, Guid winnerId, int winnerScore, int loserScore)
+    public async Task<BattleMatch?> CompleteBattleAsync(Guid matchId, Guid winnerId, int cs, int os)
     {
-        var update = Builders<BattleMatch>.Update
-            .Set(x => x.WinnerId, winnerId)
-            .Set(x => x.Status, "completed")
-            .Set(x => x.WinnerScore, winnerScore)
-            .Set(x => x.LoserScore, loserScore)
+        var upd = Builders<BattleMatch>.Update
+            .Set(x => x.WinnerId, winnerId).Set(x => x.Status, "completed")
+            .Set(x => x.ChallengerScore, cs).Set(x => x.OpponentScore, os)
             .Set(x => x.CompletedAt, DateTimeOffset.UtcNow);
-        return await _battleMatches.FindOneAndUpdateAsync(
-            x => x.Id == matchId,
-            update,
+        return await _battleMatches.FindOneAndUpdateAsync(x => x.Id == matchId, upd,
             new FindOneAndUpdateOptions<BattleMatch> { ReturnDocument = ReturnDocument.After });
     }
 
-    public async Task<BattleMatch?> GetBattleAsync(Guid matchId) =>
-        await _battleMatches.Find(x => x.Id == matchId).FirstOrDefaultAsync();
+    public async Task<BattleMatch?> GetBattleAsync(Guid id) =>
+        await _battleMatches.Find(x => x.Id == id).FirstOrDefaultAsync();
 
     public async Task<List<BattleMatch>> GetUserBattleHistoryAsync(Guid userId, int limit = 20)
     {
-        var filter = Builders<BattleMatch>.Filter.Or(
-            Builders<BattleMatch>.Filter.Eq(x => x.CreatorId, userId),
+        var f = Builders<BattleMatch>.Filter.Or(
+            Builders<BattleMatch>.Filter.Eq(x => x.ChallengerId, userId),
             Builders<BattleMatch>.Filter.Eq(x => x.OpponentId, userId));
-        return await _battleMatches.Find(filter)
-            .SortByDescending(x => x.CreatedAt)
-            .Limit(limit)
-            .ToListAsync();
+        return await _battleMatches.Find(f).SortByDescending(x => x.CreatedAt).Limit(limit).ToListAsync();
     }
 
-    public async Task<BattleMatch?> FindOpenBattleAsync(string domain, Guid excludeUserId)
+    public async Task<BattleMatch?> FindOpenBattleAsync(string domain, Guid excludeUser)
     {
-        var filter = Builders<BattleMatch>.Filter.And(
+        var f = Builders<BattleMatch>.Filter.And(
             Builders<BattleMatch>.Filter.Eq(x => x.Domain, domain),
             Builders<BattleMatch>.Filter.Eq(x => x.Status, "waiting"),
-            Builders<BattleMatch>.Filter.Ne(x => x.CreatorId, excludeUserId));
-        return await _battleMatches.Find(filter).SortBy(x => x.CreatedAt).FirstOrDefaultAsync();
+            Builders<BattleMatch>.Filter.Ne(x => x.ChallengerId, excludeUser));
+        return await _battleMatches.Find(f).SortBy(x => x.CreatedAt).FirstOrDefaultAsync();
     }
 
-    // ══════════════════════════════════════════════════════════════
-    //  SEEDING (Idempotent)
-    // ══════════════════════════════════════════════════════════════
-
+    // ── Seeding ──────────────────────────────────────────────────
     public async Task SeedIfEmptyAsync()
     {
         if (await _debugChallenges.CountDocumentsAsync(_ => true) > 0) return;
-        await SeedDebugChallengesAsync();
-        await SeedCodeSpeedSnippetsAsync();
-        await SeedAlgorithmQuestionsAsync();
-        await SeedMemoryCardsAsync();
-        await SeedBugHunterScenariosAsync();
-        await SeedApiRaceChallengesAsync();
+        await SeedDebugAsync();
+        await SeedCodeSnippetsAsync();
+        await SeedAlgorithmAsync();
+        await SeedStackAsync();
+        await SeedBugHunterAsync();
+        await SeedApiAsync();
     }
 
-    /// <summary>Kept for backward compat — no-op now.</summary>
     public Task SeedPhase2IfEmptyAsync() => Task.CompletedTask;
 
-    private async Task SeedDebugChallengesAsync()
+    private async Task SeedDebugAsync()
     {
-        var items = new List<DebugChallenge>
+        await _debugChallenges.InsertManyAsync(new[]
         {
-            new() { Language="javascript", Domain=ProgrammingDomains.WebDev, Title="Off-by-one in loop", Difficulty="easy",
-                BuggyCode="for(let i=0; i<=arr.length; i++) { console.log(arr[i]); }",
-                FixedCode="for(let i=0; i<arr.length; i++) { console.log(arr[i]); }",
-                BugLineNumber=1, Explanation="Using <= causes index out of bounds." },
-            new() { Language="python", Domain=ProgrammingDomains.AiMl, Title="Missing return in function", Difficulty="easy",
-                BuggyCode="def predict(model, data):\n    result = model.predict(data)\n    print(result)",
-                FixedCode="def predict(model, data):\n    result = model.predict(data)\n    return result",
-                BugLineNumber=3, Explanation="Function prints instead of returning the prediction." },
-            new() { Language="dart", Domain=ProgrammingDomains.Flutter, Title="setState after dispose", Difficulty="medium",
-                BuggyCode="Future.delayed(Duration(seconds:2), () {\n  setState(() { loading=false; });\n});",
-                FixedCode="Future.delayed(Duration(seconds:2), () {\n  if(mounted) setState(() { loading=false; });\n});",
-                BugLineNumber=2, Explanation="Must check mounted before setState." },
-            new() { Language="csharp", Domain=ProgrammingDomains.BackendSystems, Title="Async deadlock", Difficulty="hard",
-                BuggyCode="var result = GetDataAsync().Result;",
-                FixedCode="var result = await GetDataAsync();",
-                BugLineNumber=1, Explanation=".Result causes deadlock; use await instead." },
-            new() { Language="csharp", Domain=ProgrammingDomains.GameDev, Title="Null reference in Update", Difficulty="medium",
-                BuggyCode="void Update() {\n  player.transform.position += velocity;\n}",
-                FixedCode="void Update() {\n  if(player != null) player.transform.position += velocity;\n}",
-                BugLineNumber=2, Explanation="player may be destroyed; null check needed." },
-        };
-        await _debugChallenges.InsertManyAsync(items);
+            new DebugChallenge { Language="javascript", Domain=ProgrammingDomains.WebDev, Title="Off-by-one loop", Difficulty=1,
+                BuggyCode="for(let i=0;i<=arr.length;i++){console.log(arr[i]);}",
+                FixedCode="for(let i=0;i<arr.length;i++){console.log(arr[i]);}",
+                BugLineNumber=1, BugExplanation="<= causes out-of-bounds" },
+            new DebugChallenge { Language="python", Domain=ProgrammingDomains.AiMl, Title="Missing return", Difficulty=1,
+                BuggyCode="def predict(m,d):\n  r=m.predict(d)\n  print(r)",
+                FixedCode="def predict(m,d):\n  r=m.predict(d)\n  return r",
+                BugLineNumber=3, BugExplanation="print instead of return" },
+            new DebugChallenge { Language="dart", Domain=ProgrammingDomains.Flutter, Title="setState after dispose", Difficulty=2,
+                BuggyCode="Future.delayed(Duration(seconds:2),(){\n  setState((){loading=false;});\n});",
+                FixedCode="Future.delayed(Duration(seconds:2),(){\n  if(mounted) setState((){loading=false;});\n});",
+                BugLineNumber=2, BugExplanation="Check mounted before setState" },
+            new DebugChallenge { Language="csharp", Domain=ProgrammingDomains.BackendSystems, Title="Async deadlock", Difficulty=3,
+                BuggyCode="var r = GetDataAsync().Result;",
+                FixedCode="var r = await GetDataAsync();",
+                BugLineNumber=1, BugExplanation=".Result causes deadlock" },
+            new DebugChallenge { Language="csharp", Domain=ProgrammingDomains.GameDev, Title="Null ref in Update", Difficulty=2,
+                BuggyCode="void Update(){\n  player.transform.position+=vel;\n}",
+                FixedCode="void Update(){\n  if(player!=null) player.transform.position+=vel;\n}",
+                BugLineNumber=2, BugExplanation="player may be destroyed" },
+        });
     }
 
-    private async Task SeedCodeSpeedSnippetsAsync()
+    private async Task SeedCodeSnippetsAsync()
     {
-        var items = new List<CodeSpeedSnippet>
+        await _codeSnippets.InsertManyAsync(new[]
         {
-            new() { Language="javascript", Domain=ProgrammingDomains.WebDev, CharacterCount=85,
-                Code="const fetchData = async (url) => {\n  const res = await fetch(url);\n  return res.json();\n};" },
-            new() { Language="python", Domain=ProgrammingDomains.AiMl, CharacterCount=72,
-                Code="def train(model, X, y, epochs=10):\n    for e in range(epochs):\n        model.fit(X, y)" },
-            new() { Language="dart", Domain=ProgrammingDomains.Flutter, CharacterCount=95,
-                Code="Widget build(BuildContext context) {\n  return Scaffold(\n    appBar: AppBar(title: Text('Home')),\n  );\n}" },
-            new() { Language="csharp", Domain=ProgrammingDomains.BackendSystems, CharacterCount=90,
-                Code="app.MapGet(\"/api/items\", async (MyService svc) =>\n{\n    return Results.Ok(await svc.GetAllAsync());\n});" },
-        };
-        await _codeSpeedSnippets.InsertManyAsync(items);
+            new CodeSnippet { Language="javascript", Domain=ProgrammingDomains.WebDev, Difficulty=1, CharacterCount=85,
+                Code="const fetchData=async(url)=>{const res=await fetch(url);return res.json();};" },
+            new CodeSnippet { Language="python", Domain=ProgrammingDomains.AiMl, Difficulty=1, CharacterCount=72,
+                Code="def train(model,X,y,epochs=10):\n  for e in range(epochs):\n    model.fit(X,y)" },
+            new CodeSnippet { Language="dart", Domain=ProgrammingDomains.Flutter, Difficulty=2, CharacterCount=95,
+                Code="Widget build(BuildContext c){return Scaffold(appBar:AppBar(title:Text('Home')));}" },
+            new CodeSnippet { Language="csharp", Domain=ProgrammingDomains.BackendSystems, Difficulty=2, CharacterCount=90,
+                Code="app.MapGet(\"/api/items\",async(MyService svc)=>Results.Ok(await svc.GetAllAsync()));" },
+        });
     }
 
-    private async Task SeedAlgorithmQuestionsAsync()
+    private async Task SeedAlgorithmAsync()
     {
-        var items = new List<AlgorithmBattleQuestion>
+        await _algorithmChallenges.InsertManyAsync(new[]
         {
-            new() { Domain=ProgrammingDomains.WebDev, Difficulty="easy",
-                Question="What is the time complexity of array.push() in JavaScript?",
-                Options=new(){"O(1)","O(n)","O(log n)","O(n²)"}, CorrectIndex=0, TimeLimitSeconds=15,
-                Explanation="push() is amortized O(1)." },
-            new() { Domain=ProgrammingDomains.AiMl, Difficulty="medium",
-                Question="Which activation function can cause the vanishing gradient problem?",
-                Options=new(){"ReLU","Sigmoid","Leaky ReLU","GELU"}, CorrectIndex=1, TimeLimitSeconds=20,
-                Explanation="Sigmoid squashes to 0-1, causing vanishing gradients in deep nets." },
-            new() { Domain=ProgrammingDomains.BackendSystems, Difficulty="medium",
-                Question="What does ACID stand for in databases?",
-                Options=new(){"Atomicity, Consistency, Isolation, Durability","Async, Cache, Index, Data","Atomic, Concurrent, Isolated, Durable","Access, Control, Identity, Data"}, CorrectIndex=0, TimeLimitSeconds=15 },
-            new() { Domain=ProgrammingDomains.Flutter, Difficulty="easy",
-                Question="Which widget is used for scrollable lists in Flutter?",
-                Options=new(){"Column","ListView","Row","Stack"}, CorrectIndex=1, TimeLimitSeconds=10 },
-            new() { Domain=ProgrammingDomains.GameDev, Difficulty="hard",
-                Question="What is the purpose of a spatial hash grid in game dev?",
-                Options=new(){"Rendering","Collision detection optimization","Audio processing","Save game state"}, CorrectIndex=1, TimeLimitSeconds=20 },
-        };
-        await _algorithmQuestions.InsertManyAsync(items);
+            new AlgorithmChallenge { Domain=ProgrammingDomains.WebDev, Difficulty=1, TimeLimitSeconds=15,
+                ProblemStatement="Time complexity of array.push() in JS?",
+                Options=new(){"O(1)","O(n)","O(log n)","O(n²)"}, CorrectIndex=0,
+                Explanation="push() is amortized O(1)" },
+            new AlgorithmChallenge { Domain=ProgrammingDomains.AiMl, Difficulty=2, TimeLimitSeconds=20,
+                ProblemStatement="Which activation causes vanishing gradient?",
+                Options=new(){"ReLU","Sigmoid","Leaky ReLU","GELU"}, CorrectIndex=1,
+                Explanation="Sigmoid squashes to 0-1" },
+            new AlgorithmChallenge { Domain=ProgrammingDomains.BackendSystems, Difficulty=2, TimeLimitSeconds=15,
+                ProblemStatement="What does ACID stand for?",
+                Options=new(){"Atomicity,Consistency,Isolation,Durability","Async,Cache,Index,Data","Atomic,Concurrent,Isolated,Durable","Access,Control,Identity,Data"}, CorrectIndex=0 },
+            new AlgorithmChallenge { Domain=ProgrammingDomains.Flutter, Difficulty=1, TimeLimitSeconds=10,
+                ProblemStatement="Widget for scrollable lists in Flutter?",
+                Options=new(){"Column","ListView","Row","Stack"}, CorrectIndex=1 },
+            new AlgorithmChallenge { Domain=ProgrammingDomains.GameDev, Difficulty=3, TimeLimitSeconds=20,
+                ProblemStatement="Purpose of spatial hash grid?",
+                Options=new(){"Rendering","Collision detection","Audio","Save state"}, CorrectIndex=1 },
+        });
     }
 
-    private async Task SeedMemoryCardsAsync()
+    private async Task SeedStackAsync()
     {
-        var items = new List<MemoryStackCard>
+        await _stackChallenges.InsertManyAsync(new[]
         {
-            new() { Domain=ProgrammingDomains.WebDev, Term="REST", Definition="Representational State Transfer — architectural style for APIs" },
-            new() { Domain=ProgrammingDomains.WebDev, Term="CORS", Definition="Cross-Origin Resource Sharing — browser security mechanism" },
-            new() { Domain=ProgrammingDomains.AiMl, Term="Epoch", Definition="One complete pass through the entire training dataset" },
-            new() { Domain=ProgrammingDomains.AiMl, Term="Overfitting", Definition="Model memorizes training data instead of generalizing" },
-            new() { Domain=ProgrammingDomains.Flutter, Term="Widget", Definition="Basic building block of Flutter UI — everything is a widget" },
-            new() { Domain=ProgrammingDomains.Flutter, Term="BuildContext", Definition="Handle to the location of a widget in the widget tree" },
-            new() { Domain=ProgrammingDomains.BackendSystems, Term="Middleware", Definition="Software that sits between the OS and applications in a pipeline" },
-            new() { Domain=ProgrammingDomains.GameDev, Term="Delta Time", Definition="Time elapsed since last frame — ensures frame-rate independent movement" },
-        };
-        await _memoryCards.InsertManyAsync(items);
+            new StackChallenge { Domain=ProgrammingDomains.WebDev, Difficulty=1,
+                Code="let x=5;\nfunction add(a){return a+x;}\nconsole.log(add(3));",
+                Steps=new(){new StackStep{StepNumber=1,Question="What is x?",CorrectAnswer="5",Options=new(){"5","3","8","undefined"}},
+                            new StackStep{StepNumber=2,Question="What does add(3) return?",CorrectAnswer="8",Options=new(){"3","5","8","undefined"}}} },
+            new StackChallenge { Domain=ProgrammingDomains.AiMl, Difficulty=2,
+                Code="data=[1,2,3]\nresult=sum(data)/len(data)\nprint(result)",
+                Steps=new(){new StackStep{StepNumber=1,Question="What is sum(data)?",CorrectAnswer="6",Options=new(){"3","6","2","1"}},
+                            new StackStep{StepNumber=2,Question="What is result?",CorrectAnswer="2.0",Options=new(){"2.0","3","6","1.5"}}} },
+        });
     }
 
-    private async Task SeedBugHunterScenariosAsync()
+    private async Task SeedBugHunterAsync()
     {
-        var items = new List<BugHunterScenario>
+        await _bugHunterChallenges.InsertManyAsync(new[]
         {
-            new() { Domain=ProgrammingDomains.WebDev, Title="XSS in user input", Difficulty="medium",
-                CodeWithBugs="document.innerHTML = userInput;",
-                BugDescriptions=new(){"Unsanitized user input injected into DOM"},
-                BugCount=1, HintText="Think about what happens if userInput contains <script> tags." },
-            new() { Domain=ProgrammingDomains.BackendSystems, Title="SQL Injection", Difficulty="hard",
-                CodeWithBugs="var query = $\"SELECT * FROM users WHERE name='{name}'\";",
-                BugDescriptions=new(){"String interpolation allows SQL injection"},
-                BugCount=1, HintText="Use parameterized queries instead." },
-        };
-        await _bugHunterScenarios.InsertManyAsync(items);
+            new BugHunterChallenge { Domain=ProgrammingDomains.WebDev, Title="XSS vulnerability", Difficulty=2,
+                Code="document.innerHTML=userInput;\nfetch('/api?q='+userInput);",
+                Bugs=new(){new BugLocation{LineNumber=1,BugType="xss",Explanation="Unsanitized DOM injection"},
+                           new BugLocation{LineNumber=2,BugType="xss",Explanation="Unescaped query param"},
+                           new BugLocation{LineNumber=2,BugType="injection",Explanation="URL injection risk"}} },
+            new BugHunterChallenge { Domain=ProgrammingDomains.BackendSystems, Title="SQL Injection", Difficulty=3,
+                Code="var q=$\"SELECT * FROM users WHERE name='{name}'\";\nvar r=db.Execute(q);",
+                Bugs=new(){new BugLocation{LineNumber=1,BugType="sql-injection",Explanation="String interpolation in SQL"},
+                           new BugLocation{LineNumber=1,BugType="wrong-operator",Explanation="No parameterized query"},
+                           new BugLocation{LineNumber=2,BugType="null-ref",Explanation="No null check on result"}} },
+        });
     }
 
-    private async Task SeedApiRaceChallengesAsync()
+    private async Task SeedApiAsync()
     {
-        var items = new List<ApiRaceChallenge>
+        await _apiChallenges.InsertManyAsync(new[]
         {
-            new() { Title="Build a GET endpoint", Difficulty="easy",
-                Description="Create a GET /api/hello that returns { message: 'Hello World' }",
-                ExpectedMethod="GET", ExpectedPath="/api/hello",
-                ExpectedResponseSchema="{\"message\":\"string\"}", TimeLimitSeconds=60 },
-            new() { Title="POST with validation", Difficulty="medium",
-                Description="Create POST /api/users that validates email and name fields",
-                ExpectedMethod="POST", ExpectedPath="/api/users",
-                ExpectedResponseSchema="{\"id\":\"string\",\"email\":\"string\",\"name\":\"string\"}", TimeLimitSeconds=120 },
-        };
-        await _apiRaceChallenges.InsertManyAsync(items);
+            new ApiChallenge { Domain=ProgrammingDomains.WebDev, Difficulty=1,
+                TaskDescription="Create GET /api/hello returning {message:'Hello'}",
+                CorrectMethod="GET", CorrectPath="/api/hello", ExpectedStatusCode=200 },
+            new ApiChallenge { Domain=ProgrammingDomains.BackendSystems, Difficulty=2,
+                TaskDescription="Create POST /api/users validating email and name",
+                CorrectMethod="POST", CorrectPath="/api/users", CorrectBody="{\"email\":\"string\",\"name\":\"string\"}", ExpectedStatusCode=201 },
+        });
     }
 }

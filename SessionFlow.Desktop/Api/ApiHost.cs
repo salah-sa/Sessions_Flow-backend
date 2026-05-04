@@ -389,16 +389,10 @@ public static class ApiHost
                 await flagsSvc.SeedDefaultFlagsAsync();
                 Log.Information("[Bootstrap] Feature flags seeded.");
 
-                // Seed entertainment data (legacy — quotes, riddles, roast lines)
+                // Seed entertainment data (programming games)
                 var entertainmentSvc = scope.ServiceProvider.GetRequiredService<EntertainmentService>();
                 await entertainmentSvc.SeedIfEmptyAsync();
-                await entertainmentSvc.SeedPhase2IfEmptyAsync();
-                Log.Information("[Bootstrap] Entertainment data seeded (Phase 1 + 2).");
-
-                // Seed programming games (new system — all programming-only)
-                var mongoDb = scope.ServiceProvider.GetRequiredService<MongoService>().Database;
-                await ProgrammingGameSeeder.SeedAllAsync(mongoDb);
-                Log.Information("[Bootstrap] Programming games seeded.");
+                Log.Information("[Bootstrap] Programming games data seeded.");
             }
             catch (Exception ex)
             {
