@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { useAuthStore } from "../store/stores";
 import { getTierLimits } from "../lib/limits";
 import AttendanceHeatmap from "../components/attendance/AttendanceHeatmap";
+import AmbientPlayer from "../components/attendance/AmbientPlayer";
 
 // ─── Hover Summary Tooltip ───────────────────────────────────────────────────
 const AttendanceSummaryTooltip: React.FC<{ session: Session; visible: boolean }> = ({ session, visible }) => {
@@ -479,6 +480,9 @@ const AttendancePage: React.FC = () => {
           </Card>
         </div>
       )}
+
+      {/* ── Ambient Music Player ── */}
+      <AmbientPlayer />
     </div>
   );
 };
