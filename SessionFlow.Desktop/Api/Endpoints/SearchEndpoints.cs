@@ -84,7 +84,7 @@ public static class SearchEndpoints
                     category = "Students",
                     id = s.Id.ToString(),
                     label = s.Name,
-                    sublabel = s.Phone ?? "No phone",
+                    sublabel = !string.IsNullOrEmpty(s.UniqueStudentCode) ? s.UniqueStudentCode : s.StudentId ?? "—",
                     route = $"/students/{s.Id}"
                 }));
             }
