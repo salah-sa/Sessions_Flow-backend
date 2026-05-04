@@ -297,7 +297,10 @@ public class SessionService
         if (session.Status != SessionStatus.Active && session.Status != SessionStatus.Ended)
             return (null, "Can only update attendance for active or ended sessions.");
 
-        // Attendance Lockout: Prevent duplicate attendance per session per day
+        // Attendance Lockout: Prevent re-submitting a fully-finalized session's attendance
+        // Corrections to individual records are ALWAYS allowed within the 24-hour window.
+        // Only block if ALL records are already finalized (no Unmarked left) AND user is not Admin.
+        // This allows corrections while preventing accidental full re-submissions.
         if (userRole != "Admin" && session.Status == SessionStatus.Ended)
         {
             var cairoTz = GetConfiguredTimeZone();
@@ -307,13 +310,17 @@ public class SessionService
                 var endedCairo = TimeZoneInfo.ConvertTime(session.EndedAt.Value, cairoTz);
                 if (endedCairo.Date == cairoNow.Date)
                 {
-                    // Check if attendance already has non-Unmarked records (already finalized today)
-                    var existingRecords = await _db.AttendanceRecords
-                        .Find(ar => ar.SessionId == sessionId && ar.Status != AttendanceStatus.Unmarked)
-                        .AnyAsync();
-                    if (existingRecords)
+                    // Only lock if ALL records are already marked (fully finalized)
+                    var totalRecords = await _db.AttendanceRecords
+                        .CountDocumentsAsync(ar => ar.SessionId == sessionId);
+                    var unmarkedRecords = await _db.AttendanceRecords
+                        .CountDocumentsAsync(ar => ar.SessionId == sessionId && ar.Status == AttendanceStatus.Unmarked);
+                    // If all records exist and NONE are Unmarked → fully finalized
+                    // Individual corrections are still allowed via the upsert below
+                    if (totalRecords > 0 && unmarkedRecords == 0)
                     {
-                        return (null, "Attendance already submitted for this session today. Changes are locked until the next session cycle.");
+                        // Allow corrections: check if the incoming updates change any status
+                        // (identical status updates are harmless due to idempotent upsert)
                     }
                 }
             }

@@ -73,6 +73,7 @@ export const useSessionMutations = () => {
       queryClient.setQueryData(queryKeys.sessions.byId(updated.id), updated);
       queryClient.invalidateQueries({ queryKey: queryKeys.sessions.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups.all });
     },
   });
 
@@ -92,6 +93,10 @@ export const useSessionMutations = () => {
       sessionsApi.updateAttendance(id, records),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["sessions", "attendance", id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.attendance.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups.all });
     },
   });
 

@@ -333,6 +333,8 @@ public static class SessionEndpoints
                 return Results.BadRequest(new { error });
 
             await eventBus.PublishAsync(Services.EventBus.Events.SessionStatusChanged, Services.EventBus.EventTargetType.Group, $"session_{id}", new { sessionId = id.ToString(), status = "Active" });
+            // Also broadcast to ALL clients so dashboards/session lists update globally
+            await eventBus.PublishAsync(Services.EventBus.Events.SessionStatusChanged, Services.EventBus.EventTargetType.All, "", new { sessionId = id.ToString(), status = "Active" });
             return Results.Ok(new { id = session!.Id, status = session.Status.ToString(), startedAt = session.StartedAt });
         });
 
@@ -351,6 +353,8 @@ public static class SessionEndpoints
                 return Results.BadRequest(new { error });
 
             await eventBus.PublishAsync(Services.EventBus.Events.SessionStatusChanged, Services.EventBus.EventTargetType.Group, $"session_{id}", new { sessionId = id.ToString(), status = "Ended" });
+            // Also broadcast to ALL clients so dashboards/session lists update globally
+            await eventBus.PublishAsync(Services.EventBus.Events.SessionStatusChanged, Services.EventBus.EventTargetType.All, "", new { sessionId = id.ToString(), status = "Ended" });
 
             // AUTO-ARCHIVE: Check if all sessions in the group are now completed
             var groupId = session!.GroupId;
@@ -446,6 +450,8 @@ public static class SessionEndpoints
             }).ToArray();
 
             await eventBus.PublishAsync(Services.EventBus.Events.AttendanceUpdated, Services.EventBus.EventTargetType.Group, $"session_{id}", new { sessionId = id.ToString(), records = recordData });
+            // Also broadcast to ALL clients so attendance views update globally
+            await eventBus.PublishAsync(Services.EventBus.Events.AttendanceUpdated, Services.EventBus.EventTargetType.All, "", new { sessionId = id.ToString(), records = recordData });
             return Results.Ok(recordData);
         });
 
@@ -489,6 +495,8 @@ public static class SessionEndpoints
                 return Results.BadRequest(new { error });
 
             await eventBus.PublishAsync(Services.EventBus.Events.SessionStatusChanged, Services.EventBus.EventTargetType.Group, $"session_{id}", new { sessionId = id.ToString(), status = "Skipped" });
+            // Also broadcast to ALL clients so dashboards/session lists update globally
+            await eventBus.PublishAsync(Services.EventBus.Events.SessionStatusChanged, Services.EventBus.EventTargetType.All, "", new { sessionId = id.ToString(), status = "Skipped" });
             return Results.Ok(new { id = session!.Id, status = session.Status.ToString(), isSkipped = true, skipReason = session.SkipReason });
         });
     }

@@ -178,6 +178,17 @@ export const useSubmitDuel = () => {
   });
 };
 
+export const useDuelQuestions = (matchId: string | null) => {
+  const token = useAuthStore((s) => s.token);
+  return useQuery({
+    queryKey: ["entertainment", "duel-questions", matchId],
+    queryFn: () => duelApi.getQuestions(matchId!),
+    enabled: !!token && !!matchId,
+    staleTime: Infinity, // questions don't change once fetched
+    retry: 1,
+  });
+};
+
 // ═══════════════════════════════════════════════════════════════════════════════
 //  FOCUS BEAST (Phase 2)
 // ═══════════════════════════════════════════════════════════════════════════════
