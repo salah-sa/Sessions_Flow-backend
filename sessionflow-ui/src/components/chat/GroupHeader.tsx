@@ -175,13 +175,25 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
         </div>
 
         <div className="hidden md:flex items-center">
-          <div className="flex -space-x-3">
-            {(window.innerWidth < 1024 ? members.slice(0, 3) : visibleAvatars).map((m) => (
+          {/* md-lg: show max 3 avatars */}
+          <div className="flex -space-x-3 lg:hidden">
+            {members.slice(0, 3).map((m) => (
               <MemberAvatar key={m.id} name={m.name} userId={m.userId} studentId={m.studentId} isEngineer={m.isEngineer} subscriptionTier={user?.subscriptionTier} />
             ))}
-            {(overflow > 0 || (window.innerWidth < 1024 && members.length > 3)) && (
+            {members.length > 3 && (
               <div className="w-8 h-8 rounded-full bg-[var(--ui-sidebar-bg)] border border-white/10 flex items-center justify-center text-[8px] font-bold text-slate-500 relative z-10">
-                +{window.innerWidth < 1024 ? members.length - 3 : overflow}
+                +{members.length - 3}
+              </div>
+            )}
+          </div>
+          {/* lg+: show max 5 avatars */}
+          <div className="hidden lg:flex -space-x-3">
+            {visibleAvatars.map((m) => (
+              <MemberAvatar key={m.id} name={m.name} userId={m.userId} studentId={m.studentId} isEngineer={m.isEngineer} subscriptionTier={user?.subscriptionTier} />
+            ))}
+            {overflow > 0 && (
+              <div className="w-8 h-8 rounded-full bg-[var(--ui-sidebar-bg)] border border-white/10 flex items-center justify-center text-[8px] font-bold text-slate-500 relative z-10">
+                +{overflow}
               </div>
             )}
           </div>

@@ -121,7 +121,7 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
         </div>
       )}
 
-      <div className={cn("flex items-end gap-3 max-w-[85%] md:max-w-[70%]", isMe && "flex-row-reverse")}>
+      <div className={cn("flex items-end gap-2 xs:gap-3 max-w-[80%] xs:max-w-[85%] md:max-w-[70%]", isMe && "flex-row-reverse")}>
         <ProfileImage 
           userId={message.senderId} 
           url={profileImageUrl} 
@@ -552,11 +552,11 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
         )}
 
         {/* ═══ Plan Info Strip ═══ Always visible above the input */}
-        <div className="flex items-center justify-between gap-3 px-4 py-2 mb-2 rounded-2xl bg-white/[0.05] border border-white/10 backdrop-blur-xl shadow-lg relative z-10">
+        <div className="flex items-center justify-between gap-2 xs:gap-3 px-3 xs:px-4 py-1.5 xs:py-2 mb-2 rounded-2xl bg-white/[0.05] border border-white/10 backdrop-blur-xl shadow-lg relative z-10">
           {/* Tier Badge */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <span className={cn(
-              "text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border",
+              "text-[8px] xs:text-[10px] font-black uppercase tracking-widest px-1.5 xs:px-2.5 py-0.5 xs:py-1 rounded-lg border",
               user?.subscriptionTier?.toLowerCase() === 'ultra' ? "bg-purple-500/10 border-purple-500/30 text-purple-400" :
               user?.subscriptionTier?.toLowerCase() === 'pro' ? "bg-violet-500/10 border-violet-500/30 text-violet-400" :
               user?.subscriptionTier?.toLowerCase() === 'enterprise' ? "bg-amber-500/10 border-amber-500/30 text-amber-400" :
@@ -566,23 +566,23 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
             </span>
           </div>
           {/* Allowances */}
-          <div className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-widest text-slate-500">
+          <div className="flex items-center gap-1.5 xs:gap-3 text-[8px] xs:text-[9px] font-bold uppercase tracking-widest text-slate-500 flex-wrap justify-end">
             <span className="flex items-center gap-1">
               <MessageSquare className="w-3 h-3" />
               {isUnlimitedMessages ? "∞" : (localRemaining ?? tierLimits.maxDailyMessages)}
             </span>
-            <span className="text-slate-700">·</span>
+            <span className="text-slate-700 hidden xs:inline">·</span>
             <span className="flex items-center gap-1">
               <ImageIcon className="w-3 h-3" />
               {imagesRemaining === Infinity ? "∞" : imagesRemaining}
             </span>
-            <span className="text-slate-700">·</span>
-            <span className="flex items-center gap-1">
+            <span className="text-slate-700 hidden sm:inline">·</span>
+            <span className="hidden sm:flex items-center gap-1">
               <FileText className="w-3 h-3" />
               {filesRemaining === Infinity ? "∞" : filesRemaining}
             </span>
-            <span className="text-slate-700">·</span>
-            <span className="flex items-center gap-1">
+            <span className="text-slate-700 hidden sm:inline">·</span>
+            <span className="hidden sm:flex items-center gap-1">
               <Video className="w-3 h-3" />
               {videosRemaining === Infinity ? "∞" : videosRemaining}
             </span>
@@ -599,8 +599,8 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
                 localRemaining <= 3 ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]" : 
                 "bg-ui-accent shadow-[0_0_8px_rgba(var(--ui-accent-rgb),0.6)]"
               )} />
-              <span className="text-[10px] font-semibold tracking-wider text-slate-300 uppercase">
-                {localRemaining} message{localRemaining !== 1 ? 's' : ''} remaining
+              <span className="text-[9px] xs:text-[10px] font-semibold tracking-wider text-slate-300 uppercase">
+                {localRemaining} <span className="hidden xs:inline">message{localRemaining !== 1 ? 's' : ''} remaining</span><span className="xs:hidden">left</span>
               </span>
             </div>
           </div>
@@ -627,7 +627,7 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
           </motion.div>
         )}
 
-        <div className="flex items-center gap-3 bg-white/[0.03] rounded-[24px] border border-white/10 px-4 md:px-6 h-16 md:h-20 shadow-2xl transition-all focus-within:border-ui-accent/40 focus-within:bg-white/[0.05]">
+        <div className="flex items-center gap-2 xs:gap-3 bg-white/[0.03] rounded-[20px] xs:rounded-[24px] border border-white/10 px-3 xs:px-4 md:px-6 h-14 xs:h-16 md:h-20 shadow-2xl transition-all focus-within:border-ui-accent/40 focus-within:bg-white/[0.05]">
           <Button 
             variant="ghost" 
             size="icon" 

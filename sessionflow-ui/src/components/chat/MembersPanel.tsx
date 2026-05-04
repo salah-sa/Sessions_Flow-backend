@@ -218,7 +218,7 @@ const MembersPanel: React.FC<MembersPanelProps> = ({ group, isOpen, onClose }) =
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className={cn(
               "h-full border-s border-white/5 bg-[var(--ui-sidebar-bg)]/95 backdrop-blur-3xl overflow-hidden flex flex-col shrink-0 transition-all",
-              "fixed inset-y-0 end-0 z-[60] w-full xs:w-[320px] sm:w-[340px] md:relative lg:w-[360px] md:z-auto"
+              "fixed inset-y-0 end-0 z-[60] w-full xs:w-[320px] sm:w-[340px] md:relative md:w-[280px] lg:w-[360px] md:z-auto"
             )}
           >
           <div className="absolute top-0 end-0 w-full h-[300px] bg-[var(--ui-accent)]/5 blur-[100px] pointer-events-none" />
