@@ -97,7 +97,7 @@ const BrainDuelPage: React.FC = () => {
                   <p className="text-sm font-bold text-white mb-1">Create Duel</p>
                   <p className="text-[10px] text-slate-500">Start a match & wait for an opponent</p>
                 </button>
-                <button onClick={() => joinDuel.mutate()} disabled={joinDuel.isPending}
+                <button onClick={() => joinDuel.mutate(undefined)} disabled={joinDuel.isPending}
                   className="group p-6 rounded-2xl bg-gradient-to-br from-violet-600/20 to-purple-600/10 border border-violet-500/20 hover:border-violet-500/30 transition-all text-left">
                   <Target className="w-8 h-8 text-violet-400 mb-3" />
                   <p className="text-sm font-bold text-white mb-1">Quick Match</p>
