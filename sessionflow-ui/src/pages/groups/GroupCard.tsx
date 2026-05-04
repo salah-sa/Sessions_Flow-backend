@@ -38,7 +38,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({
       <div className="card-base flex flex-col group transition-all duration-500 border-white/5 hover:border-[var(--ui-accent)]/40 shadow-2xl overflow-hidden">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--ui-accent)]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         
-        <div className="p-5 md:p-8 space-y-6 md:space-y-8 flex-1 relative z-20">
+        <div className="p-4 sm:p-5 md:p-6 lg:p-8 space-y-5 md:space-y-6 lg:space-y-8 flex-1 relative z-20">
           <div className="flex justify-between items-start">
             <div className="p-3 md:p-4 rounded-xl bg-white/[0.03] border border-white/5 text-[var(--ui-accent)] shadow-inner transition-transform group-hover:scale-105">
               <Users className="w-5 h-5 md:w-6 md:h-6" />
@@ -94,14 +94,14 @@ export const GroupCard: React.FC<GroupCardProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-4 md:gap-8 pt-5 md:pt-8 border-t border-white/5">
-              <div className="flex items-center gap-3 md:gap-4 min-w-0">
-                <div className="relative w-12 h-12 md:w-16 md:h-16 flex items-center justify-center drop-shadow-2xl shrink-0">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4 lg:gap-6 pt-4 md:pt-6 lg:pt-8 border-t border-white/5">
+              <div className="flex items-center gap-2.5 sm:gap-3 md:gap-4 min-w-0">
+                <div className="relative w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 flex items-center justify-center drop-shadow-2xl shrink-0">
                   <svg viewBox="0 0 64 64" className="w-full h-full -rotate-90 transform">
                     <circle cx="32" cy="32" r="30" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-white/5" />
                     <circle cx="32" cy="32" r="30" stroke="currentColor" strokeWidth="4" fill="transparent" strokeDasharray="188.5" strokeDashoffset={188.5 - (Math.min(1, (group.studentCount ?? group.students?.length ?? 0) / group.numberOfStudents) * 188.5)} className="text-[var(--ui-accent)] transition-all duration-1000" />
                   </svg>
-                  <span className="absolute text-sm md:text-lg font-bold text-white">
+                  <span className="absolute text-xs sm:text-sm lg:text-lg font-bold text-white">
                     {group.studentCount ?? group.students?.length ?? 0}
                   </span>
                 </div>
@@ -110,8 +110,8 @@ export const GroupCard: React.FC<GroupCardProps> = ({
                   <p className="text-[11px] font-bold text-white uppercase tabular-nums">{group.numberOfStudents} SLOTS</p>
                 </div>
               </div>
-            <div className="w-px h-12 bg-white/5" />
-            <div className="flex items-center gap-3 md:gap-4 flex-1 ps-2">
+            <div className="hidden sm:block w-px h-10 lg:h-12 bg-white/5" />
+            <div className="flex items-center gap-2.5 sm:gap-3 md:gap-4 min-w-0 ps-0 sm:ps-2">
                <ProgressRing
                  value={group.totalSessions > 0 ? Math.min(100, ((group.currentSessionNumber - 1) / group.totalSessions) * 100) : 0}
                  color={group.colorTag || "var(--ui-accent)"}
@@ -128,7 +128,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({
           </div>
         </div>
 
-        <div className="px-5 py-4 md:px-8 md:py-6 bg-white/[0.01] border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-auto">
+        <div className="px-4 py-3 sm:px-5 sm:py-4 md:px-6 md:py-5 lg:px-8 lg:py-6 bg-white/[0.01] border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mt-auto">
           <div className="space-y-1">
              <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">{t("groups.card.next_session")}</p>
              <p className="text-[11px] font-bold text-slate-300 uppercase tracking-tighter">

@@ -74,7 +74,7 @@ export const GroupToolbar: React.FC<GroupToolbarProps> = ({
       <div className="h-6 w-px bg-white/5 hidden lg:block" />
 
       {/* Filters Container */}
-      <div className="flex items-center gap-3 overflow-x-auto no-scrollbar -mx-2 px-2 md:mx-0 md:px-0">
+      <div className="flex flex-wrap items-center gap-3 overflow-x-auto no-scrollbar -mx-2 px-2 md:mx-0 md:px-0">
         {/* Status Filter */}
         <div className="flex bg-white/[0.03] p-1 rounded-xl md:rounded-2xl border border-white/5 relative overflow-hidden shrink-0">
           {["All", "Active", "Completed", "Archived"].map((status) => (

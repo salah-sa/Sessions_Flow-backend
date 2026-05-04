@@ -33,10 +33,10 @@ export const GroupList: React.FC<GroupListProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-8 pt-4"
+            className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 pt-4"
           >
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-[280px] md:h-[380px] rounded-2zl bg-white/[0.02] border border-white/5 animate-pulse" />
+              <div key={i} className="h-[280px] lg:h-[380px] rounded-2xl bg-white/[0.02] border border-white/5 animate-pulse" />
             ))}
           </motion.div>
         ) : groups.length === 0 ? (
@@ -62,7 +62,7 @@ export const GroupList: React.FC<GroupListProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-8 pt-4"
+            className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 pt-4"
           >
             {groups.map((group, index) => (
               <GroupCard 
