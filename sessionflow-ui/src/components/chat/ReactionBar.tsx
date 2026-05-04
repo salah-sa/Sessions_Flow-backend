@@ -87,7 +87,7 @@ const ReactionBar: React.FC<ReactionBarProps> = ({ messageId, groupId, reactions
       <div className={cn("relative", isMe && "self-end")}>
         <button
           onClick={() => setShowPicker(p => !p)}
-          className="opacity-0 group-hover/bubble:opacity-100 p-1.5 rounded-full text-slate-600 hover:text-[var(--ui-accent)] hover:bg-white/5 transition-all"
+          className="opacity-0 group-hover/msg:opacity-100 p-1.5 rounded-full text-slate-600 hover:text-[var(--ui-accent)] hover:bg-white/5 transition-all"
         >
           <Smile className="w-3.5 h-3.5" />
         </button>

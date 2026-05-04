@@ -131,7 +131,7 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
           role={profileRole}
         />
 
-        <div className="flex flex-col gap-1.5 min-w-0">
+        <div className="flex flex-col gap-1.5 min-w-0 group/msg">
           <div className={cn(
             "px-4 py-3 rounded-[24px] text-[14px] relative shadow-xl border transition-all duration-300 group/bubble",
             isMe 
