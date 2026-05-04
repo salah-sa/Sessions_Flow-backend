@@ -27,6 +27,11 @@ public class ChatMessage
     public DateTimeOffset SentAt { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
+    /// Emoji reactions on this message. Key = emoji string, Value = list of user IDs.
+    /// </summary>
+    public Dictionary<string, List<string>> Reactions { get; set; } = new();
+
+    /// <summary>
     /// Tracks who has read this message. Populated when a client calls MarkMessagesAsRead.
     /// Visible only to the message sender (engineer) for the "Seen By" feature.
     /// </summary>

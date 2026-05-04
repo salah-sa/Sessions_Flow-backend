@@ -11,6 +11,7 @@ import { cn, formatDateTo12h, getCairoDateStr } from "../lib/utils";
 import { toast } from "sonner";
 import { useAuthStore } from "../store/stores";
 import { getTierLimits } from "../lib/limits";
+import AttendanceHeatmap from "../components/attendance/AttendanceHeatmap";
 
 // ─── Hover Summary Tooltip ───────────────────────────────────────────────────
 const AttendanceSummaryTooltip: React.FC<{ session: Session; visible: boolean }> = ({ session, visible }) => {
@@ -160,6 +161,9 @@ const AttendancePage: React.FC = () => {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 pb-8 custom-scrollbar relative z-10">
+        {/* Heatmap Calendar */}
+        <AttendanceHeatmap className="mb-6" />
+
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <div className="flex flex-col items-center gap-4">

@@ -86,6 +86,11 @@ export const timetableApi = {
   getFreeSlots: (engineerId: string, date: string, duration: number) =>
     fetchWithAuth<string[]>(`/timetable/free-slots?engineerId=${engineerId}&date=${date}&duration=${duration}`),
   autoFill: () => fetchWithAuth<void>("/timetable/auto-fill", { method: "POST" }),
+  updateSchedule: (items: { id: string; dayOfWeek: number; startTime: string; durationMinutes: number }[]) =>
+    fetchWithAuth<void>("/timetable", {
+      method: "PUT",
+      body: JSON.stringify(items),
+    }),
 };
 
 // Chat Module

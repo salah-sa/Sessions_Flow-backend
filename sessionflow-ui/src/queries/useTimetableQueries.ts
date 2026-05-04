@@ -27,8 +27,17 @@ export const useTimetableMutations = () => {
     },
   });
 
+  const updateSchedule = useMutation({
+    mutationFn: (items: { id: string; dayOfWeek: number; startTime: string; durationMinutes: number }[]) =>
+      timetableApi.updateSchedule(items),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.timetable.all });
+    },
+  });
+
   return {
     updateAvailabilityMutation: updateAvailability,
-    autoFillMutation: autoFill
+    autoFillMutation: autoFill,
+    updateScheduleMutation: updateSchedule,
   };
 };

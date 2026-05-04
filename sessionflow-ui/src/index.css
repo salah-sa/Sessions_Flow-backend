@@ -66,6 +66,17 @@
   100% { background-position: 0% 50%; }
 }
 
+/* Presence Aura Animations — Feature #8 */
+@keyframes aura-breathe {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(34,197,94,0.12), 0 0 8px 2px rgba(34,197,94,0.06); }
+  50% { box-shadow: 0 0 0 3px rgba(34,197,94,0.2), 0 0 16px 6px rgba(34,197,94,0.12); }
+}
+
+@keyframes aura-pulse-fast {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(245,158,11,0.12), 0 0 6px 2px rgba(245,158,11,0.06); }
+  50% { box-shadow: 0 0 0 3px rgba(245,158,11,0.25), 0 0 14px 5px rgba(245,158,11,0.15); }
+}
+
 @layer base {
   body {
     background-color: var(--ui-bg);

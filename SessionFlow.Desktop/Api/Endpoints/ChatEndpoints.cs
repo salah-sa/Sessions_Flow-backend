@@ -103,7 +103,8 @@ public static class ChatEndpoints
                     fileUrl = AuthEndpoints.ResolveAvatarUrl(m.FileUrl, ctx.Request),
                     fileName = m.FileName,
                     fileType = m.FileType,
-                    sentAt = m.SentAt
+                    sentAt = m.SentAt,
+                    reactions = m.Reactions
                 });
             }
 
@@ -286,6 +287,7 @@ public static class ChatEndpoints
                 fileName = message.FileName,
                 fileType = message.FileType,
                 sentAt = message.SentAt,
+                reactions = message.Reactions,
                 _usage = senderUser != null ? new { 
                     remaining = Math.Max(0, maxMsgs - todayMsgCount - 1), 
                     limit = maxMsgs,
@@ -361,7 +363,70 @@ public static class ChatEndpoints
 
             return Results.Created($"/api/chat/{groupId}/messages", msgData);
         }).DisableAntiforgery(); // Disable default antiforgery check for multipart API submission
+
+        // ── Reaction toggle ───────────────────────────────────────────────
+        group.MapPost("/{groupIdStr}/messages/{messageIdStr}/react", async (
+            string groupIdStr, string messageIdStr,
+            ReactionRequest body,
+            MongoService db, HttpContext ctx,
+            Services.EventBus.IEventBus eventBus) =>
+        {
+            if (!Guid.TryParse(groupIdStr, out var groupId)) return Results.BadRequest("Invalid Group ID");
+            if (!Guid.TryParse(messageIdStr, out var messageId)) return Results.BadRequest("Invalid Message ID");
+            var userIdStr = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId)) return Results.Unauthorized();
+
+            var emoji = body.Emoji?.Trim();
+            if (string.IsNullOrEmpty(emoji) || emoji.Length > 8)
+                return Results.BadRequest("Invalid emoji");
+
+            var msg = await db.ChatMessages.Find(m => m.Id == messageId && m.GroupId == groupId).FirstOrDefaultAsync();
+            if (msg == null) return Results.NotFound("Message not found");
+
+            var userIdKey = userId.ToString();
+            bool added;
+
+            if (msg.Reactions.TryGetValue(emoji, out var userList))
+            {
+                if (userList.Contains(userIdKey))
+                {
+                    userList.Remove(userIdKey);
+                    if (userList.Count == 0) msg.Reactions.Remove(emoji);
+                    added = false;
+                }
+                else
+                {
+                    userList.Add(userIdKey);
+                    added = true;
+                }
+            }
+            else
+            {
+                msg.Reactions[emoji] = new List<string> { userIdKey };
+                added = true;
+            }
+
+            await db.ChatMessages.ReplaceOneAsync(m => m.Id == messageId, msg);
+
+            var payload = new
+            {
+                messageId = messageId.ToString(),
+                emoji,
+                userId = userIdKey,
+                added,
+                reactions = msg.Reactions
+            };
+
+            await eventBus.PublishAsync(
+                Services.EventBus.Events.ReactionToggled,
+                Services.EventBus.EventTargetType.Group,
+                $"chat_{groupId}",
+                payload);
+
+            return Results.Ok(payload);
+        });
     }
 
     public record SendMessageRequest(string Text);
+    public record ReactionRequest(string Emoji);
 }

@@ -6,6 +6,8 @@ import { getTierLimits } from "../../lib/limits";
 import { Card, Button, Input, EmptyState, Skeleton, Badge } from "../ui";
 import { ChatMessage, MessageMention } from "../../types";
 import { useAuthStore, useChatStore } from "../../store/stores";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "../../queries/keys";
 import { useShallow } from "zustand/shallow";
 import { useSignalR } from "../../providers/SignalRProvider";
 import { toast } from "sonner";
@@ -19,6 +21,8 @@ import { Group, Student, User as ProjectUser } from "../../types";
 import { createMentionEngine, MentionEngine, MentionableMember } from "../../lib/MentionEngine";
 import { usePresenceStore, PresenceStatus } from "../../store/presenceStore";
 import AnimatedChatIcon from "../ui/AnimatedChatIcon";
+import ReactionBar from "./ReactionBar";
+import { Events } from "../../lib/eventContracts";
 
 const BlockMessageRenderer: React.FC<{ message: ChatMessage }> = ({ message }) => {
   const { text, blocks, mentions } = message;
@@ -89,7 +93,7 @@ const ProfileImage: React.FC<{ userId?: string; url?: string | null; initial?: s
   );
 };
 
-export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; showSender?: boolean; }>(({ message, isMe, showSender }) => {
+export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; showSender?: boolean; onReactionsUpdate?: (messageId: string, reactions: Record<string, string[]>) => void; }>(({ message, isMe, showSender, onReactionsUpdate }) => {
   const [isViewerOpen, setIsViewerOpen] = React.useState(false);
   const [showReadBy, setShowReadBy] = React.useState(false);
   const currentUser = useAuthStore((s) => s.user);
@@ -250,6 +254,15 @@ export const MessageBubble = React.memo<{ message: ChatMessage; isMe: boolean; s
               )}
           </div>
         </div>
+
+          {/* Reactions */}
+          <ReactionBar
+            messageId={message.id}
+            groupId={message.groupId}
+            reactions={message.reactions}
+            isMe={isMe}
+            onReactionsUpdate={onReactionsUpdate || (() => {})}
+          />
       </div>
     </div>
   </motion.div>
@@ -272,8 +285,9 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
   const lastTypingEvent = useRef<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { invoke } = useSignalR();
+  const { invoke, on } = useSignalR();
   const user = useAuthStore((s) => s.user);
+  const qc = useQueryClient();
   // Initialize from tier limits so UI is always populated, even before first API response
   const tierLimits = getTierLimits(user?.subscriptionTier, user?.role);
   const tierBadge = getTierBadge(user?.subscriptionTier, user?.role);
@@ -381,6 +395,31 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
     }
   };
 
+  // Reaction handler — updates TanStack Query cache
+  const handleReactionsUpdate = React.useCallback((messageId: string, reactions: Record<string, string[]>) => {
+    if (!activeGroupId) return;
+    qc.setQueryData(queryKeys.chat.messages(activeGroupId), (old: any) => {
+      if (!old) return old;
+      return {
+        ...old,
+        pages: old.pages.map((page: ChatMessage[]) =>
+          page.map(m => m.id === messageId ? { ...m, reactions } : m)
+        ),
+      };
+    });
+  }, [activeGroupId, qc]);
+
+  // Listen for real-time reaction broadcasts
+  useEffect(() => {
+    if (!activeGroupId) return;
+    const unsub = on(Events.REACTION_TOGGLED, (data: any) => {
+      if (data?.messageId && data?.reactions) {
+        handleReactionsUpdate(data.messageId, data.reactions);
+      }
+    });
+    return unsub;
+  }, [activeGroupId, on, handleReactionsUpdate]);
+
   return (
     <div className="flex flex-col h-full bg-ui-sidebar-bg/60 backdrop-blur-3xl rounded-none md:rounded-3xl border-0 md:border border-white/10 overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] relative">
       <div className="flex-1 min-h-0 relative">
@@ -397,7 +436,8 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
               key={msg.id} 
               message={msg} 
               isMe={msg.senderId === user?.id} 
-              showSender={i === messages.length - 1 || messages[i+1]?.senderId !== msg.senderId} 
+              showSender={i === messages.length - 1 || messages[i+1]?.senderId !== msg.senderId}
+              onReactionsUpdate={handleReactionsUpdate}
             />
           ))}
           {hasNextPage && (

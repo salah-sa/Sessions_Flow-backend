@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -6,9 +6,13 @@ import { walletApi } from "../api/walletApi";
 import { useAuthStore } from "../store/stores";
 import { toast } from "sonner";
 import { cn } from "../lib/utils";
+import { useCountUp } from "../hooks/useCountUp";
+import { useSignalR } from "../providers/SignalRProvider";
+import { Events } from "../lib/eventContracts";
 import {
   Wallet, ArrowUpRight, ArrowDownLeft, ShieldCheck, Zap,
-  Eye, EyeOff, X, RefreshCw, Plus, AlertTriangle, Check, Mail
+  Eye, EyeOff, X, RefreshCw, Plus, AlertTriangle, Check, Mail,
+  TrendingUp, TrendingDown
 } from "lucide-react";
 
 // ─── OTP Input ───────────────────────────────────────────────────────────────
@@ -379,6 +383,8 @@ export function WalletPage() {
   const user = useAuthStore(s => s.user);
   const [showTransfer, setShowTransfer] = useState(false);
   const [showBalance, setShowBalance] = useState(true);
+  const [balanceFlash, setBalanceFlash] = useState<"up" | "down" | null>(null);
+  const prevBalanceRef = useRef<number | null>(null);
 
   const walletQuery = useQuery({ queryKey: ["wallet-me"], queryFn: walletApi.getMe, retry: 1 });
   const txQuery = useQuery({ queryKey: ["wallet-txns"], queryFn: () => walletApi.getTransactions(1, 30), enabled: !!walletQuery.data });
@@ -398,6 +404,38 @@ export function WalletPage() {
   );
 
   const dailyUsedPct = wallet.dailyLimitEGP > 0 ? (wallet.dailyUsedEGP / wallet.dailyLimitEGP) * 100 : 0;
+
+  // ── Animated balance ─────────────────────────────────────────────
+  const animatedBalance = useCountUp(wallet.balanceEGP ?? 0, 800, { decimals: 2 });
+
+  // Detect balance direction change for flash effect
+  useEffect(() => {
+    if (prevBalanceRef.current !== null && wallet.balanceEGP !== prevBalanceRef.current) {
+      setBalanceFlash(wallet.balanceEGP > prevBalanceRef.current ? "up" : "down");
+      const t = setTimeout(() => setBalanceFlash(null), 1500);
+      return () => clearTimeout(t);
+    }
+    prevBalanceRef.current = wallet.balanceEGP;
+  }, [wallet.balanceEGP]);
+
+  // ── Confetti on deposit approval via SignalR ─────────────────────
+  const { on } = useSignalR();
+  useEffect(() => {
+    const unsub = on(Events.WALLET_DEPOSIT_APPROVED || "wallet:deposit-approved", () => {
+      toast.success("💰 Deposit approved! Funds are now available.");
+      // Canvas confetti burst
+      import("canvas-confetti").then(mod => {
+        const confetti = mod.default;
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ["#22c55e", "#10b981", "#34d399", "#6ee7b7"],
+        });
+      }).catch(() => {});
+    });
+    return unsub;
+  }, [on]);
 
   return (
     <div className="h-full overflow-y-auto p-6 space-y-6">
@@ -421,9 +459,14 @@ export function WalletPage() {
               {showBalance ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
-          <p className="text-4xl font-black text-white tracking-tight mt-3">
-            {showBalance ? `${(wallet.balanceEGP ?? 0).toLocaleString("en-EG", { minimumFractionDigits: 2 })}` : "••••••"}
+          <p className={cn(
+            "text-4xl font-black tracking-tight mt-3 transition-colors duration-500",
+            balanceFlash === "up" ? "text-emerald-400" : balanceFlash === "down" ? "text-rose-400" : "text-white"
+          )}>
+            {showBalance ? animatedBalance.toLocaleString("en-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "••••••"}
             <span className="text-lg text-slate-400 ms-2">EGP</span>
+            {balanceFlash === "up" && <TrendingUp className="inline w-5 h-5 text-emerald-400 ms-2 animate-bounce" />}
+            {balanceFlash === "down" && <TrendingDown className="inline w-5 h-5 text-rose-400 ms-2" />}
           </p>
           <p className="text-slate-500 text-xs mt-1">🇪🇬 {wallet.phoneNumber}</p>
 
@@ -469,10 +512,16 @@ export function WalletPage() {
           </div>
         ) : (
           <div className="space-y-2">
-            {txQuery.data.items.map(tx => (
-              <motion.div key={tx.referenceCode} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex items-center gap-4 hover:bg-white/[0.04] transition-all">
-                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center",
+            <AnimatePresence initial={true}>
+              {txQuery.data.items.map((tx, i) => (
+                <motion.div
+                  key={tx.referenceCode}
+                  initial={{ opacity: 0, x: 40, scale: 0.95 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  transition={{ delay: i * 0.06, type: "spring", damping: 20, stiffness: 300 }}
+                  className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex items-center gap-4 hover:bg-white/[0.04] transition-all group/tx"
+                >
+                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover/tx:scale-110",
                   tx.direction === "Received" ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-rose-500/10 border border-rose-500/20")}>
                   {tx.direction === "Received"
                     ? <ArrowDownLeft className="w-5 h-5 text-emerald-400" />
@@ -490,8 +539,9 @@ export function WalletPage() {
                     <p className="text-slate-600 text-[10px]">fee {tx.feeEGP.toFixed(2)} EGP</p>
                   )}
                 </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </div>

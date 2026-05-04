@@ -13,6 +13,7 @@ public static class Events
     public const string MessageReceive = "message:receive";
     public const string MessageRead = "message:read";
     public const string MessageTyping = "message:typing";
+    public const string ReactionToggled = "reaction:toggled";
 
     // ═══════════════════════════════════════════════
     // Presence

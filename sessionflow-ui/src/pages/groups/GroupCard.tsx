@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Group } from "../../types";
+import ProgressRing from "../../components/viz/ProgressRing";
 
 interface GroupCardProps {
   group: Group;
@@ -110,16 +111,18 @@ export const GroupCard: React.FC<GroupCardProps> = ({
                 </div>
               </div>
             <div className="w-px h-12 bg-white/5" />
-            <div className="space-y-3 flex-1 ps-2">
-               <div className="flex justify-between items-end">
-                 <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{t("groups.card.progression")}</p>
-                 <p className="text-sm font-bold text-[var(--ui-accent)]">{group.currentSessionNumber} / {group.totalSessions}</p>
-               </div>
-               <div className="h-1.5 w-full bg-white/[0.03] rounded-full overflow-hidden relative border border-white/5">
-                  <div 
-                    className="h-full bg-gradient-to-r from-[var(--ui-accent)]/80 to-[var(--ui-accent)] transition-all duration-1000 shadow-[0_0_15px_rgba(var(--ui-accent-rgb),0.3)]" 
-                    style={{ width: `${Math.min(100, ((group.currentSessionNumber - 1) / group.totalSessions) * 100)}%` }}
-                  />
+            <div className="flex items-center gap-3 md:gap-4 flex-1 ps-2">
+               <ProgressRing
+                 value={group.totalSessions > 0 ? Math.min(100, ((group.currentSessionNumber - 1) / group.totalSessions) * 100) : 0}
+                 color={group.colorTag || "var(--ui-accent)"}
+                 size={48}
+                 strokeWidth={4}
+                 label={`${group.currentSessionNumber - 1}`}
+                 tooltip={`${group.currentSessionNumber - 1}/${group.totalSessions} sessions completed`}
+               />
+               <div className="space-y-1 min-w-0">
+                  <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{t("groups.card.progression")}</p>
+                  <p className="text-sm font-bold text-[var(--ui-accent)] tabular-nums">{group.currentSessionNumber} / {group.totalSessions}</p>
                </div>
             </div>
           </div>

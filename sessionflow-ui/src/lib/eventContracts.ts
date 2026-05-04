@@ -9,6 +9,7 @@ export const Events = {
   MESSAGE_RECEIVE: "message:receive",
   MESSAGE_READ: "message:read",
   MESSAGE_TYPING: "message:typing",
+  REACTION_TOGGLED: "reaction:toggled",
 
   // Presence
   PRESENCE_ONLINE: "presence:online",
@@ -80,6 +81,66 @@ export const Events = {
 
   // Broadcast (platform-wide announcement popup)
   BROADCAST_MESSAGE: "broadcast:message",
+
+  // ── Phase 3: Innovative Features (#11–#20) ────────────────
+  // #11 Neural Session Autopilot
+  SESSION_AI_RECOMMENDATION: "session:ai-recommendation",
+
+  // #12 Live Collaboration Cursors
+  COLLAB_CURSOR: "collab:cursor",
+  COLLAB_VIEWER_JOINED: "collab:viewer-joined",
+  COLLAB_VIEWER_LEFT: "collab:viewer-left",
+
+  // #13 Student Momentum Score
+  STUDENT_MOMENTUM_UPDATED: "student:momentum-updated",
+
+  // #15 Ghost Replay Mode
+  TIMELINE_EVENT: "timeline:event",
+
+  // #16 Predictive Absence Alert
+  SESSION_ABSENCE_PREDICTION: "session:absence-prediction",
+
+  // #17 Spatial Audio Chat Rooms
+  CALL_POSITION_UPDATE: "call:position-update",
+
+  // #19 Cross-Device Session Handoff
+  HANDOFF_OFFER: "handoff:offer",
+  HANDOFF_ACCEPTED: "handoff:accepted",
+  HANDOFF_REJECTED: "handoff:rejected",
+  HANDOFF_DEVICES_UPDATED: "handoff:devices-updated",
+
+  // #20 Mood Pulse Check
+  MOOD_SUBMITTED: "mood:submitted",
+
+  // ── Phase 4: Premium Features (#21–#30) ────────────────────
+  // #21 AI Study Path Generator
+  STUDYPATH_UPDATED: "studypath:updated",
+
+  // #24 Attendance Streak Rewards
+  STREAK_ACHIEVED: "streak:achieved",
+
+  // #25 Session Recording & Playback
+  SESSION_RECORDING_STARTED: "session:recording-started",
+  SESSION_RECORDING_STOPPED: "session:recording-stopped",
+
+  // #23 Smart Note Transcription
+  SESSION_TRANSCRIPTION: "session:transcription",
+
+  // #26 Intelligent Schedule Optimizer
+  SCHEDULE_OPTIMIZATION_READY: "schedule:optimization-ready",
+
+  // #27 Custom Report Builder
+  REPORT_DATA_STALE: "report:data-stale",
+
+  // #28 Multi-Group Student Transfer
+  GROUP_STUDENT_TRANSFERRED: "group:student-transferred",
+
+  // #29 Focus Timer with Pomodoro
+  FOCUS_TICK: "focus:tick",
+  FOCUS_COMPLETED: "focus:completed",
+
+  // #30 Encrypted Private Notes
+  NOTES_SYNCED: "notes:synced",
 } as const;
 
 export type EventName = (typeof Events)[keyof typeof Events];

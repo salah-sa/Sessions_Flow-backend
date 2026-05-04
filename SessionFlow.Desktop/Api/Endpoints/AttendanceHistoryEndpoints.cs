@@ -19,6 +19,75 @@ public static class AttendanceHistoryEndpoints
     {
         var group = app.MapGroup("/api/attendance").RequireAuthorization();
 
+        // ── Heatmap aggregation ───────────────────────────────────────────
+        group.MapGet("/heatmap", async (
+            ClaimsPrincipal principal,
+            MongoService db,
+            int? year,
+            int? month,
+            CancellationToken ct) =>
+        {
+            if (!Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+                return Results.Unauthorized();
+
+            var user = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync(ct);
+            if (user is null) return Results.Unauthorized();
+
+            var filterBuilder = Builders<AttendanceRecord>.Filter;
+            FilterDefinition<AttendanceRecord> filter;
+
+            if (user.Role == UserRole.Student)
+                filter = filterBuilder.Eq(ar => ar.StudentId, userId);
+            else if (user.Role == UserRole.Admin)
+                filter = filterBuilder.Empty;
+            else
+            {
+                var engineerGroupIds = await db.Groups
+                    .Find(g => g.EngineerId == userId && !g.IsDeleted)
+                    .Project(g => g.Id)
+                    .ToListAsync(ct);
+                var nullableIds = engineerGroupIds.Cast<Guid?>().ToList();
+                filter = filterBuilder.In(ar => ar.GroupId, nullableIds);
+            }
+
+            // Date range filter
+            var targetYear = year ?? DateTime.UtcNow.Year;
+            var startDate = month.HasValue
+                ? new DateTime(targetYear, month.Value, 1, 0, 0, 0, DateTimeKind.Utc)
+                : new DateTime(targetYear, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            var endDate = month.HasValue
+                ? startDate.AddMonths(1)
+                : startDate.AddYears(1);
+
+            filter = filterBuilder.And(filter,
+                filterBuilder.Gte(ar => ar.MarkedAt, startDate),
+                filterBuilder.Lt(ar => ar.MarkedAt, endDate));
+
+            var records = await db.AttendanceRecords.Find(filter).ToListAsync(ct);
+
+            var grouped = records
+                .GroupBy(r => r.MarkedAt.ToString("yyyy-MM-dd"))
+                .Select(g =>
+                {
+                    var total = g.Count();
+                    var present = g.Count(r => r.Status == AttendanceStatus.Present || r.Status == AttendanceStatus.Late);
+                    var absent = g.Count(r => r.Status == AttendanceStatus.Absent);
+                    return new
+                    {
+                        date = g.Key,
+                        sessionCount = g.Select(r => r.SessionId).Distinct().Count(),
+                        presentCount = present,
+                        absentCount = absent,
+                        total,
+                        rate = total > 0 ? Math.Round((double)present / total * 100, 1) : 0.0
+                    };
+                })
+                .OrderBy(x => x.date)
+                .ToList();
+
+            return Results.Ok(grouped);
+        });
+
         // ── Paginated history ─────────────────────────────────────────────
         group.MapGet("/history", async (
             ClaimsPrincipal principal,

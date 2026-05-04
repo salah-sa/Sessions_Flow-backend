@@ -455,6 +455,7 @@ public static class ApiHost
         AnalyticsEndpoints.Map(app);
         FeatureFlagEndpoints.Map(app);
         SessionTimelineEndpoints.Map(app);
+        SearchEndpoints.Map(app);
 
         // 6. Map Real-time Hubs
         app.MapHub<SessionHub>("/hub");

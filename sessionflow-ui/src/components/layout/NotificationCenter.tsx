@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { 
   Bell, 
   X, 
@@ -10,7 +10,13 @@ import {
   CheckCircle2,
   ExternalLink,
   Info,
-  Trash2
+  Trash2,
+  Inbox,
+  Users,
+  Calendar,
+  Wallet,
+  MessageSquare,
+  Filter,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -27,6 +33,74 @@ import {
 } from "../../queries/useNotificationQueries";
 import { Notification as NotificationType } from "../../types";
 
+// ── Category Definitions ────────────────────────────────────
+type NotificationCategory = "all" | "system" | "users" | "sessions" | "wallet" | "chat";
+
+interface CategoryDef {
+  id: NotificationCategory;
+  label: string;
+  icon: React.ElementType;
+  color: string;
+  match: (n: NotificationType) => boolean;
+}
+
+const CATEGORIES: CategoryDef[] = [
+  {
+    id: "all", label: "All", icon: Inbox,
+    color: "text-white",
+    match: () => true,
+  },
+  {
+    id: "system", label: "System", icon: Zap,
+    color: "text-[var(--ui-accent)]",
+    match: (n) => {
+      const t = n.title.toLowerCase();
+      return t.includes("system") || t.includes("maintenance") || t.includes("update") || n.type === "Warning" || n.type === "Error";
+    },
+  },
+  {
+    id: "users", label: "Users", icon: Users,
+    color: "text-emerald-400",
+    match: (n) => {
+      const t = n.title.toLowerCase();
+      return t.includes("join") || t.includes("student") || t.includes("engineer") || t.includes("register") || t.includes("user");
+    },
+  },
+  {
+    id: "sessions", label: "Sessions", icon: Calendar,
+    color: "text-blue-400",
+    match: (n) => {
+      const t = n.title.toLowerCase();
+      return t.includes("session") || t.includes("schedule") || t.includes("attendance") || t.includes("timetable");
+    },
+  },
+  {
+    id: "wallet", label: "Wallet", icon: Wallet,
+    color: "text-amber-400",
+    match: (n) => {
+      const t = n.title.toLowerCase();
+      return t.includes("wallet") || t.includes("payment") || t.includes("transfer") || t.includes("deposit") || t.includes("balance");
+    },
+  },
+  {
+    id: "chat", label: "Chat", icon: MessageSquare,
+    color: "text-purple-400",
+    match: (n) => {
+      const t = n.title.toLowerCase();
+      return t.includes("message") || t.includes("chat") || t.includes("mention");
+    },
+  },
+];
+
+// ── Utility: Classify a notification ────────────────────────
+function classifyNotification(n: NotificationType): NotificationCategory {
+  // Return the first matching non-"all" category
+  for (const cat of CATEGORIES) {
+    if (cat.id !== "all" && cat.match(n)) return cat.id;
+  }
+  return "system"; // Default fallback
+}
+
 const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -36,12 +110,36 @@ const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void }> = (
   const unreadCount = notificationData?.unreadCount || 0;
   const { markAsReadMutation, markAllAsReadMutation } = useNotificationMutations();
 
+  const [activeCategory, setActiveCategory] = useState<NotificationCategory>("all");
+
   // Optimized Auto-Read Logic: Mark all as read immediately when panel opens
   useEffect(() => {
     if (isOpen && unreadCount > 0) {
       markAllAsReadMutation.mutate();
     }
   }, [isOpen, unreadCount, markAllAsReadMutation]);
+
+  // Reset category when reopening
+  useEffect(() => {
+    if (isOpen) setActiveCategory("all");
+  }, [isOpen]);
+
+  // ── Category Counts ─────────────────────────────────────────
+  const categoryCounts = useMemo(() => {
+    const counts: Record<NotificationCategory, number> = { all: 0, system: 0, users: 0, sessions: 0, wallet: 0, chat: 0 };
+    counts.all = notifications.length;
+    for (const n of notifications) {
+      const cat = classifyNotification(n);
+      counts[cat]++;
+    }
+    return counts;
+  }, [notifications]);
+
+  // ── Filtered Notifications ──────────────────────────────────
+  const filtered = useMemo(() => {
+    if (activeCategory === "all") return notifications;
+    return notifications.filter(n => classifyNotification(n) === activeCategory);
+  }, [notifications, activeCategory]);
 
   const handleNotificationClick = (n: NotificationType) => {
     if (!n.isRead) {
@@ -104,27 +202,62 @@ const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void }> = (
             className="relative w-full max-w-[420px] h-full bg-[var(--ui-sidebar-bg)] border-s border-white/5 shadow-2x-strong overflow-hidden flex flex-col"
           >
             {/* Header with Glass Effect */}
-            <div className="px-8 py-8 border-b border-white/5 bg-black/20 backdrop-blur-3xl relative z-10 flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-black text-white uppercase tracking-[0.25em] flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-[var(--ui-accent)]/10 border border-[var(--ui-accent)]/20 flex items-center justify-center">
-                    <Bell className="w-4 h-4 text-[var(--ui-accent)]" />
+            <div className="px-8 py-6 border-b border-white/5 bg-black/20 backdrop-blur-3xl relative z-10">
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h2 className="text-sm font-black text-white uppercase tracking-[0.25em] flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[var(--ui-accent)]/10 border border-[var(--ui-accent)]/20 flex items-center justify-center">
+                      <Bell className="w-4 h-4 text-[var(--ui-accent)]" />
+                    </div>
+                    {t("notifications.title", "Intelligence Feed")}
+                  </h2>
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className={cn("w-1 h-1 rounded-full", unreadCount > 0 ? "bg-[var(--ui-accent)] animate-pulse" : "bg-slate-600")} />
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                      {unreadCount} {t("notifications.unread", "Pending Pulses")}
+                    </p>
                   </div>
-                  {t("notifications.title", "Intelligence Feed")}
-                </h2>
-                <div className="flex items-center gap-2 mt-2">
-                  <div className={cn("w-1 h-1 rounded-full", unreadCount > 0 ? "bg-[var(--ui-accent)] animate-pulse" : "bg-slate-600")} />
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    {unreadCount} {t("notifications.unread", "Pending Pulses")}
-                  </p>
                 </div>
+                <button 
+                  onClick={onClose} 
+                  className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10 transition-all active:scale-90"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <button 
-                onClick={onClose} 
-                className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10 transition-all active:scale-90"
-              >
-                <X className="w-4 h-4" />
-              </button>
+
+              {/* Category Tabs */}
+              <div className="flex gap-1 overflow-x-auto no-scrollbar -mx-2 px-2">
+                {CATEGORIES.map((cat) => {
+                  const isActive = activeCategory === cat.id;
+                  const count = categoryCounts[cat.id];
+                  const CatIcon = cat.icon;
+
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setActiveCategory(cat.id)}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-200 shrink-0",
+                        isActive
+                          ? "bg-[var(--ui-accent)]/10 border border-[var(--ui-accent)]/20 text-[var(--ui-accent)]"
+                          : "bg-white/[0.02] border border-transparent text-slate-600 hover:text-slate-400 hover:bg-white/[0.04]"
+                      )}
+                    >
+                      <CatIcon className={cn("w-3 h-3", isActive ? cat.color : "")} />
+                      {cat.label}
+                      {count > 0 && cat.id !== "all" && (
+                        <span className={cn(
+                          "min-w-[16px] h-4 rounded-full text-[8px] font-black flex items-center justify-center px-1",
+                          isActive ? "bg-[var(--ui-accent)]/20 text-[var(--ui-accent)]" : "bg-white/5 text-slate-600"
+                        )}>
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Notification List */}
@@ -134,73 +267,103 @@ const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void }> = (
                   <div className="w-8 h-8 border-2 border-[var(--ui-accent)]/20 border-t-[var(--ui-accent)] rounded-full animate-spin" />
                   <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{t("common.loading")}</p>
                 </div>
-              ) : notifications.length > 0 ? (
+              ) : filtered.length > 0 ? (
                 <div className="space-y-3">
-                  {notifications.map((n, i) => (
-                    <motion.div
-                      initial={{ x: 30, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: i * 0.04 }}
-                      key={n.id}
-                      onClick={() => handleNotificationClick(n)}
-                      className={cn(
-                        "p-4 rounded-2xl transition-all border group relative cursor-pointer overflow-hidden",
-                        getCardStyles(n)
-                      )}
-                    >
-                      {!n.isRead && (
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--ui-accent)] shadow-glow" />
-                      )}
-                      
-                      <div className="flex gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 duration-500">
-                          {getNotificationIcon(n)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-4">
-                            <h4 className="text-[11px] font-black text-white uppercase tracking-widest leading-none truncate group-hover:text-[var(--ui-accent)] transition-colors">
-                              {n.title}
-                            </h4>
-                            <div className="flex items-center gap-1.5 shrink-0 opacity-40">
-                              <Clock className="w-3 h-3 text-slate-400" />
-                              <span className="text-[9px] font-mono font-bold text-slate-400">
-                                {formatDistanceToNow(new Date(n.createdAt), { addSuffix: false })}
-                              </span>
+                  <AnimatePresence mode="popLayout">
+                    {filtered.map((n, i) => (
+                      <motion.div
+                        initial={{ x: 30, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: -30, opacity: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                        layout
+                        key={n.id}
+                        onClick={() => handleNotificationClick(n)}
+                        className={cn(
+                          "p-4 rounded-2xl transition-all border group relative cursor-pointer overflow-hidden",
+                          getCardStyles(n)
+                        )}
+                      >
+                        {!n.isRead && (
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--ui-accent)] shadow-glow" />
+                        )}
+                        
+                        <div className="flex gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 duration-500">
+                            {getNotificationIcon(n)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-4">
+                              <h4 className="text-[11px] font-black text-white uppercase tracking-widest leading-none truncate group-hover:text-[var(--ui-accent)] transition-colors">
+                                {n.title}
+                              </h4>
+                              <div className="flex items-center gap-1.5 shrink-0 opacity-40">
+                                <Clock className="w-3 h-3 text-slate-400" />
+                                <span className="text-[9px] font-mono font-bold text-slate-400">
+                                  {formatDistanceToNow(new Date(n.createdAt), { addSuffix: false })}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <p className="text-[10px] text-slate-400 font-medium leading-relaxed mt-2 line-clamp-2 italic opacity-80 group-hover:opacity-100 transition-opacity">
+                              {n.message}
+                            </p>
+
+                            <div className="mt-3 flex items-center justify-between border-t border-white/[0.02] pt-2">
+                               <div className="flex items-center gap-2">
+                                 {/* Category badge */}
+                                 {(() => {
+                                   const cat = CATEGORIES.find(c => c.id === classifyNotification(n));
+                                   if (!cat) return null;
+                                   const CIcon = cat.icon;
+                                   return (
+                                     <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/5">
+                                       <CIcon className={cn("w-2.5 h-2.5", cat.color)} />
+                                       <span className="text-[7px] font-black text-slate-600 uppercase tracking-wider">{cat.label}</span>
+                                     </div>
+                                   );
+                                 })()}
+                               </div>
+                               
+                               {(n.title.toLowerCase().includes("join") || n.message.toLowerCase().includes("join")) && (
+                                 <div className="flex items-center gap-1.5 text-[var(--ui-accent)] text-[9px] font-black uppercase tracking-widest animate-pulse">
+                                    <span>{t("common.actions", "Navigate")}</span>
+                                    <ExternalLink className="w-2.5 h-2.5" />
+                                 </div>
+                               )}
                             </div>
                           </div>
-                          
-                          <p className="text-[10px] text-slate-400 font-medium leading-relaxed mt-2 line-clamp-2 italic opacity-80 group-hover:opacity-100 transition-opacity">
-                            {n.message}
-                          </p>
-
-                          <div className="mt-3 flex items-center justify-between border-t border-white/[0.02] pt-2">
-                             <div className="flex items-center gap-2">
-                               <Info className="w-3 h-3 text-slate-600" />
-                               <span className="text-[8px] font-black text-slate-600 uppercase tracking-tighter">
-                                  ID: {n.id.slice(-8)}
-                               </span>
-                             </div>
-                             
-                             {(n.title.toLowerCase().includes("join") || n.message.toLowerCase().includes("join")) && (
-                               <div className="flex items-center gap-1.5 text-[var(--ui-accent)] text-[9px] font-black uppercase tracking-widest animate-pulse">
-                                  <span>{t("common.actions", "Navigate")}</span>
-                                  <ExternalLink className="w-2.5 h-2.5" />
-                               </div>
-                             )}
-                          </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </div>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center px-12 text-center">
                    <div className="w-20 h-20 rounded-full bg-white/[0.02] border border-white/5 flex items-center justify-center mb-8 relative">
-                      <Bell className="w-8 h-8 text-slate-700 opacity-20" />
+                      {activeCategory === "all" ? (
+                        <Bell className="w-8 h-8 text-slate-700 opacity-20" />
+                      ) : (
+                        (() => {
+                          const cat = CATEGORIES.find(c => c.id === activeCategory);
+                          const CIcon = cat?.icon || Bell;
+                          return <CIcon className="w-8 h-8 text-slate-700 opacity-20" />;
+                        })()
+                      )}
                       <div className="absolute inset-0 rounded-full bg-[var(--ui-accent)]/5 animate-ping duration-[3s]" />
                    </div>
-                   <h3 className="text-xs font-black text-white uppercase tracking-widest mb-2 opacity-50">{t("notifications.empty_title", "Void Channel")}</h3>
-                   <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest leading-relaxed">{t("notifications.empty_desc", "All neural pulses have been synchronized.")}</p>
+                   <h3 className="text-xs font-black text-white uppercase tracking-widest mb-2 opacity-50">
+                     {activeCategory === "all" 
+                       ? t("notifications.empty_title", "Void Channel")
+                       : `No ${CATEGORIES.find(c => c.id === activeCategory)?.label} Notifications`
+                     }
+                   </h3>
+                   <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest leading-relaxed">
+                     {activeCategory === "all" 
+                       ? t("notifications.empty_desc", "All neural pulses have been synchronized.")
+                       : "Try selecting a different category."
+                     }
+                   </p>
                 </div>
               )}
             </div>

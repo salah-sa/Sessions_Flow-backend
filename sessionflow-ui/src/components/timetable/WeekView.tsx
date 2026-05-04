@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { format, addDays, startOfWeek, isSameDay, isAfter } from "date-fns";
 import { Calendar as CalendarIcon, Clock, Plus, Zap, Archive, Layers } from "lucide-react";
 import { cn } from "../../lib/utils";
@@ -11,12 +11,28 @@ interface WeekViewProps {
   onAddSession: (date: Date, groupId?: string) => void;
   onViewSession: (session: Session) => void;
   isStudent?: boolean;
+  onScheduleUpdate?: (items: { id: string; dayOfWeek: number; startTime: string; durationMinutes: number }[]) => void;
+}
+
+interface DragState {
+  scheduleId: string;
+  type: "move" | "resize";
+  startY: number;
+  startDay: number;
+  originalTop: number;
+  originalHeight: number;
+  originalDayOfWeek: number;
+  originalStartTime: string;
+  originalDuration: number;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i); // 00:00 to 23:00
 
-export const WeekView: React.FC<WeekViewProps> = ({ sessions, groupSchedules, currentDate, onAddSession, onViewSession, isStudent }) => {
+export const WeekView: React.FC<WeekViewProps> = ({ sessions, groupSchedules, currentDate, onAddSession, onViewSession, isStudent, onScheduleUpdate }) => {
   const [now, setNow] = useState(new Date());
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const [dragOffset, setDragOffset] = useState({ dy: 0, dx: 0 });
+  const gridRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 60000);
@@ -31,6 +47,79 @@ export const WeekView: React.FC<WeekViewProps> = ({ sessions, groupSchedules, cu
     const minutes = date.getMinutes();
     return hour * 96 + (minutes / 60) * 96;
   };
+
+  // ── Drag handlers ────────────────────────────────────────────
+  const handleDragStart = useCallback((e: React.MouseEvent, gs: GroupScheduleEntry, type: "move" | "resize") => {
+    if (isStudent || !gs.id) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const [hours, minutes] = gs.startTime.split(":").map(Number);
+    const top = hours * 96 + (minutes / 60) * 96;
+    const height = (gs.durationMinutes / 60) * 96;
+    setDrag({
+      scheduleId: gs.id,
+      type,
+      startY: e.clientY,
+      startDay: gs.dayOfWeek,
+      originalTop: top,
+      originalHeight: height,
+      originalDayOfWeek: gs.dayOfWeek,
+      originalStartTime: gs.startTime,
+      originalDuration: gs.durationMinutes,
+    });
+    setDragOffset({ dy: 0, dx: 0 });
+  }, [isStudent]);
+
+  useEffect(() => {
+    if (!drag) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const dy = e.clientY - drag.startY;
+      setDragOffset({ dy, dx: 0 });
+    };
+
+    const handleMouseUp = () => {
+      if (!drag) return;
+
+      // Calculate new time from drag offset
+      const snappedMinutes = Math.round(dragOffset.dy / 24) * 15; // snap to 15-min
+      const [origH, origM] = drag.originalStartTime.split(":").map(Number);
+      let totalMinutes = origH * 60 + origM;
+      let newDuration = drag.originalDuration;
+
+      if (drag.type === "move") {
+        totalMinutes += snappedMinutes;
+      } else {
+        newDuration += snappedMinutes;
+      }
+
+      totalMinutes = Math.max(0, Math.min(totalMinutes, 23 * 60 + 45));
+      newDuration = Math.max(15, Math.min(newDuration, 480));
+
+      const newH = Math.floor(totalMinutes / 60);
+      const newM = totalMinutes % 60;
+      const newStartTime = `${String(newH).padStart(2, "0")}:${String(newM).padStart(2, "0")}`;
+
+      if (onScheduleUpdate) {
+        onScheduleUpdate([{
+          id: drag.scheduleId,
+          dayOfWeek: drag.originalDayOfWeek,
+          startTime: newStartTime,
+          durationMinutes: newDuration,
+        }]);
+      }
+
+      setDrag(null);
+      setDragOffset({ dy: 0, dx: 0 });
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [drag, dragOffset, onScheduleUpdate]);
 
   return (
     <div className="flex flex-col h-full bg-[var(--ui-sidebar-bg)]/40 rounded-xl overflow-hidden relative">
@@ -149,19 +238,24 @@ export const WeekView: React.FC<WeekViewProps> = ({ sessions, groupSchedules, cu
                               return (
                                  <div
                                     key={`blueprint-${idx}`}
+                                    onMouseDown={(e) => handleDragStart(e, gs, "move")}
                                     onClick={() => {
-                                       if (isStudent) return;
+                                       if (isStudent || drag) return;
                                        const date = new Date(day);
                                        date.setHours(hours, minutes, 0, 0);
                                        onAddSession(date, gs.groupId);
                                     }}
                                     className={cn(
                                       "absolute left-2.5 right-2.5 rounded-xl transition-all z-0 flex flex-col p-3 overflow-hidden",
+                                      drag?.scheduleId === gs.id ? "ring-2 ring-[var(--ui-accent)] z-20 shadow-2xl opacity-90" : "",
                                       !isStudent 
-                                        ? "border-2 border-dashed border-white/5 bg-white/[0.01] hover:border-[var(--ui-accent)]/30 hover:bg-[var(--ui-accent)]/5 cursor-pointer group/blueprint" 
+                                        ? "border-2 border-dashed border-white/5 bg-white/[0.01] hover:border-[var(--ui-accent)]/30 hover:bg-[var(--ui-accent)]/5 cursor-grab active:cursor-grabbing group/blueprint" 
                                         : "border border-white/10 bg-[var(--ui-sidebar-bg)]/80 shadow-md"
                                     )}
-                                    style={{ top: `${top + 3}px`, height: `${height - 6}px` }}
+                                    style={{ 
+                                      top: `${(drag?.scheduleId === gs.id && drag.type === "move" ? top + 3 + dragOffset.dy : top + 3)}px`,
+                                      height: `${(drag?.scheduleId === gs.id && drag.type === "resize" ? height - 6 + dragOffset.dy : height - 6)}px`,
+                                    }}
                                  >
                                     <div className={cn("flex items-center justify-between transition-opacity", !isStudent ? "opacity-30 group-hover/blueprint:opacity-100" : "opacity-100")}>
                                        <span className={cn("text-[9px] font-bold uppercase tracking-widest truncate max-w-[80%]", !isStudent ? "text-slate-400" : "text-white")}>
@@ -175,6 +269,16 @@ export const WeekView: React.FC<WeekViewProps> = ({ sessions, groupSchedules, cu
                                           {isStudent ? "Upcoming Session" : "Template Matrix"}
                                        </span>
                                     </div>
+
+                                    {/* Resize Handle */}
+                                    {!isStudent && gs.id && (
+                                      <div
+                                        onMouseDown={(e) => { e.stopPropagation(); handleDragStart(e, gs, "resize"); }}
+                                        className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize hover:bg-[var(--ui-accent)]/20 transition-colors rounded-b-xl flex items-center justify-center"
+                                      >
+                                        <div className="w-8 h-[2px] rounded-full bg-white/10 group-hover/blueprint:bg-[var(--ui-accent)]/40" />
+                                      </div>
+                                    )}
                                  </div>
                               );
                            })}

@@ -118,6 +118,37 @@ export async function getAttendanceSummary(): Promise<AttendanceSummary> {
   return fetchWithAuth<AttendanceSummary>("/attendance/summary");
 }
 
+export async function toggleReaction(
+  groupId: string,
+  messageId: string,
+  emoji: string
+): Promise<{ messageId: string; emoji: string; userId: string; added: boolean; reactions: Record<string, string[]> }> {
+  return fetchWithAuth(`/chat/${groupId}/messages/${messageId}/react`, {
+    method: "POST",
+    body: JSON.stringify({ emoji }),
+  });
+}
+
+export interface HeatmapDay {
+  date: string;
+  sessionCount: number;
+  presentCount: number;
+  absentCount: number;
+  total: number;
+  rate: number;
+}
+
+export async function getAttendanceHeatmap(
+  year?: number,
+  month?: number
+): Promise<HeatmapDay[]> {
+  const params = new URLSearchParams();
+  if (year) params.set("year", String(year));
+  if (month) params.set("month", String(month));
+  const qs = params.toString();
+  return fetchWithAuth<HeatmapDay[]>(`/attendance/heatmap${qs ? `?${qs}` : ""}`);
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 // Admin Broadcast
 // ─────────────────────────────────────────────────────────────────────────
@@ -298,3 +329,111 @@ export async function streamAIChat(
     }
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Global Search
+// ─────────────────────────────────────────────────────────────────────────
+
+export interface SearchResult {
+  category: string;
+  id: string;
+  label: string;
+  sublabel: string;
+  route: string;
+}
+
+export async function globalSearch(q: string, limit = 5): Promise<SearchResult[]> {
+  if (!q || q.length < 2) return [];
+  return fetchWithAuth<SearchResult[]>(`/search?q=${encodeURIComponent(q)}&limit=${limit}`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase 3: Innovative Features (#11–#20)
+// ─────────────────────────────────────────────────────────────────────────
+
+// #11 Neural Session Autopilot
+export interface AutopilotRecommendation {
+  suggestedDate: string;
+  suggestedTime: string;
+  predictedAttendance: number;
+  reasoning: string;
+  confidence: number;
+}
+
+export const autopilotApi = {
+  getRecommendation: (groupId: string) =>
+    fetchWithAuth<AutopilotRecommendation>(`/ai/session-plan?groupId=${groupId}`),
+  dismissRecommendation: (groupId: string) =>
+    fetchWithAuth<void>(`/ai/session-plan/${groupId}/dismiss`, { method: "POST" }),
+};
+
+// #13 Student Momentum Score
+export interface MomentumData {
+  score: number;
+  trend: "improving" | "declining" | "stable";
+  breakdown: {
+    attendanceStreak: number;
+    consistency: number;
+    completionRate: number;
+  };
+  lastUpdated: string;
+}
+
+export const momentumApi = {
+  getScore: (studentId: string) =>
+    fetchWithAuth<MomentumData>(`/students/${studentId}/momentum`),
+};
+
+// #15 Ghost Replay Mode
+export interface ReplayEvent {
+  timestamp: string;
+  type: string;
+  actorName: string;
+  description: string;
+  data?: Record<string, unknown>;
+}
+
+export const replayApi = {
+  getEvents: (sessionId: string) =>
+    fetchWithAuth<{ events: ReplayEvent[] }>(`/sessions/${sessionId}/replay`),
+};
+
+// #16 Predictive Absence Alert
+export interface AbsencePrediction {
+  studentId: string;
+  studentName: string;
+  probability: number;
+  reasons: string[];
+}
+
+export const absenceApi = {
+  getPredictions: (sessionId: string) =>
+    fetchWithAuth<{ predictions: AbsencePrediction[] }>(`/ai/predict-absence/${sessionId}`),
+  sendReminder: (sessionId: string, studentIds: string[]) =>
+    fetchWithAuth<void>("/ai/send-absence-reminder", {
+      method: "POST",
+      body: JSON.stringify({ sessionId, studentIds }),
+    }),
+};
+
+// #20 Mood Pulse Check
+export interface MoodBreakdown {
+  emoji: string;
+  count: number;
+  percentage: number;
+}
+
+export interface MoodSummary {
+  total: number;
+  breakdown: MoodBreakdown[];
+}
+
+export const moodApi = {
+  submit: (sessionId: string, emoji: string) =>
+    fetchWithAuth<void>(`/sessions/${sessionId}/mood`, {
+      method: "POST",
+      body: JSON.stringify({ emoji }),
+    }),
+  getSummary: (sessionId: string) =>
+    fetchWithAuth<MoodSummary>(`/sessions/${sessionId}/mood-summary`),
+};

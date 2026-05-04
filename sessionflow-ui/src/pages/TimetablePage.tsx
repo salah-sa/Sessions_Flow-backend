@@ -71,7 +71,7 @@ const TimetablePage: React.FC = () => {
   const loading = loadingTimetable || loadingGroups || loadingSessions;
 
   const { createMutation: createSessionMutation } = useSessionMutations();
-  const { autoFillMutation, updateAvailabilityMutation } = useTimetableMutations();
+  const { autoFillMutation, updateAvailabilityMutation, updateScheduleMutation } = useTimetableMutations();
   
   const submitting = createSessionMutation.isPending || autoFillMutation.isPending;
   const savingAvail = updateAvailabilityMutation.isPending;
@@ -306,14 +306,22 @@ const TimetablePage: React.FC = () => {
                 </div>
              </div>
            ) : (
-             <WeekView 
-               sessions={sessions}
-               groupSchedules={groupSchedules}
-               currentDate={currentDate}
-               onAddSession={handleAddSession}
-               onViewSession={handleViewSession}
-               isStudent={isStudent}
-             />
+              <WeekView 
+                sessions={sessions}
+                groupSchedules={groupSchedules}
+                currentDate={currentDate}
+                onAddSession={handleAddSession}
+                onViewSession={handleViewSession}
+                isStudent={isStudent}
+                onScheduleUpdate={async (items) => {
+                  try {
+                    await updateScheduleMutation.mutateAsync(items);
+                    toast.success("Schedule updated");
+                  } catch (err: any) {
+                    toast.error(err?.message || "Failed to update schedule");
+                  }
+                }}
+              />
            )}
         </div>
       </div>

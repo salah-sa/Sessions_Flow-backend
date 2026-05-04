@@ -33,17 +33,128 @@ export const AttendanceRing: React.FC<{ percentage: number; label: string }> = (
 };
 
 /**
- * Sparkline: Tiny line chart for trend analysis.
+ * Sparkline: Enhanced tiny line chart with gradient fill, trend coloring,
+ * hover tooltips, and mount draw animation.
  */
-export const Sparkline: React.FC<{ data: number[] }> = ({ data }) => {
-  const max = Math.max(...data);
-  const min = Math.min(...data);
+export const Sparkline: React.FC<{
+  data: number[];
+  width?: number;
+  height?: number;
+  color?: string;
+}> = ({ data, width = 96, height = 32, color }) => {
+  const id = React.useId();
+  const svgRef = React.useRef<SVGSVGElement>(null);
+  const [hoveredIdx, setHoveredIdx] = React.useState<number | null>(null);
+  const [drawn, setDrawn] = React.useState(false);
+
+  // Determine trend color
+  const isRising = data.length >= 2 && data[data.length - 1] >= data[0];
+  const strokeColor = color ?? (isRising ? "#22c55e" : "#ef4444");
+
+  const max = Math.max(...data, 1);
+  const min = Math.min(...data, 0);
   const range = max - min || 1;
-  const points = data.map((v, i) => `${(i / (data.length - 1)) * 100},${60 - ((v - min) / range) * 40}`).join(" ");
+  const pad = 2; // padding inside SVG
+
+  const points = data.map((v, i) => ({
+    x: pad + (i / Math.max(data.length - 1, 1)) * (width - pad * 2),
+    y: pad + (1 - (v - min) / range) * (height - pad * 2),
+    value: v,
+  }));
+
+  const polyPoints = points.map(p => `${p.x},${p.y}`).join(" ");
+  // Closed polygon for gradient fill
+  const fillPoints = `${pad},${height} ${polyPoints} ${width - pad},${height}`;
+
+  // Animate draw on mount
+  React.useEffect(() => {
+    const t = setTimeout(() => setDrawn(true), 50);
+    return () => clearTimeout(t);
+  }, []);
+
+  const lineLength = points.reduce((acc, p, i) => {
+    if (i === 0) return 0;
+    const prev = points[i - 1];
+    return acc + Math.sqrt((p.x - prev.x) ** 2 + (p.y - prev.y) ** 2);
+  }, 0);
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const relX = e.clientX - rect.left;
+    const idx = Math.round((relX / width) * (data.length - 1));
+    setHoveredIdx(Math.max(0, Math.min(data.length - 1, idx)));
+  };
 
   return (
-    <svg className="w-24 h-8 overflow-visible">
-      <polyline points={points} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--ui-accent)]/40 drop-shadow-sm" />
+    <svg
+      ref={svgRef}
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      className="overflow-visible cursor-crosshair"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => setHoveredIdx(null)}
+    >
+      <defs>
+        <linearGradient id={`spark-grad-${id}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={strokeColor} stopOpacity="0.3" />
+          <stop offset="100%" stopColor={strokeColor} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {/* Gradient fill */}
+      <polygon
+        points={fillPoints}
+        fill={`url(#spark-grad-${id})`}
+        opacity={drawn ? 1 : 0}
+        style={{ transition: "opacity 0.6s ease" }}
+      />
+      {/* Line with draw animation */}
+      <polyline
+        points={polyPoints}
+        fill="none"
+        stroke={strokeColor}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeDasharray={lineLength}
+        strokeDashoffset={drawn ? 0 : lineLength}
+        style={{ transition: "stroke-dashoffset 0.8s ease-out" }}
+      />
+      {/* Hover dot + tooltip */}
+      {hoveredIdx !== null && points[hoveredIdx] && (
+        <>
+          <circle
+            cx={points[hoveredIdx].x}
+            cy={points[hoveredIdx].y}
+            r="3"
+            fill={strokeColor}
+            stroke="#0c0c14"
+            strokeWidth="1.5"
+          />
+          <rect
+            x={points[hoveredIdx].x - 14}
+            y={points[hoveredIdx].y - 20}
+            width="28"
+            height="14"
+            rx="4"
+            fill="#0c0c14"
+            stroke={strokeColor}
+            strokeWidth="0.5"
+            opacity="0.95"
+          />
+          <text
+            x={points[hoveredIdx].x}
+            y={points[hoveredIdx].y - 10}
+            textAnchor="middle"
+            fill="white"
+            fontSize="8"
+            fontWeight="bold"
+          >
+            {points[hoveredIdx].value}
+          </text>
+        </>
+      )}
     </svg>
   );
 };

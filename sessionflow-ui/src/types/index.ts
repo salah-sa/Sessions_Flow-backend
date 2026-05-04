@@ -165,6 +165,7 @@ export interface ChatMessage {
     videosRemaining?: number;
     filesRemaining?: number;
   };
+  reactions?: Record<string, string[]>;
 }
 
 

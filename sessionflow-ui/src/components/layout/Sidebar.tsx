@@ -101,7 +101,13 @@ const NavItem = ({ to, icon: Icon, label, badge, locked, premiumLocked, pageBloc
               className="absolute start-0 w-1 h-6 bg-[var(--ui-accent)] rounded-e-full shadow-glow shadow-[var(--ui-accent)]/40"
             />
           )}
-          <div className="relative">
+          <motion.div
+            className="relative"
+            whileHover={(locked || pageBlocked) ? { x: [-2, 2, -2, 2, 0] } : { scale: 1.15, rotate: 5 }}
+            whileTap={(locked || pageBlocked) ? { x: [-3, 3, -3, 3, 0] } : { scale: 0.9 }}
+            animate={isActive && !locked && !pageBlocked ? { scale: [1, 1.06, 1] } : {}}
+            transition={isActive && !locked ? { repeat: Infinity, duration: 2, ease: "easeInOut" } : { type: "spring", stiffness: 400, damping: 15 }}
+          >
             <Icon className={cn("w-5 h-5 transition-all duration-300", 
               isActive && !locked ? "text-[var(--ui-accent)]" : "group-hover:text-[var(--ui-accent)]",
               locked && "text-rose-500 group-hover:text-rose-500"
@@ -112,25 +118,40 @@ const NavItem = ({ to, icon: Icon, label, badge, locked, premiumLocked, pageBloc
                 walletVerified ? "bg-emerald-500" : "bg-amber-500 animate-pulse"
               )} />
             )}
-          </div>
+          </motion.div>
           <span className="text-[11px] font-bold uppercase tracking-[0.2em] flex-1">{label}</span>
           
           {locked || pageBlocked ? (
-            <div className={cn("w-6 h-6 rounded-md flex items-center justify-center backdrop-blur-md", pageBlocked ? "bg-rose-500/10 border border-rose-500/20 shadow-glow shadow-rose-500/10" : "bg-rose-500/10 border border-rose-500/20 shadow-glow shadow-rose-500/10")}>
+            <motion.div
+              whileHover={{ rotate: [0, -8, 8, -8, 0] }}
+              transition={{ duration: 0.4 }}
+              className={cn("w-6 h-6 rounded-md flex items-center justify-center backdrop-blur-md", "bg-rose-500/10 border border-rose-500/20 shadow-glow shadow-rose-500/10")}
+            >
                {pageBlocked ? (
                  <ShieldBan className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
                ) : (
                  <Lock className="w-3 h-3 text-rose-500" />
                )}
-            </div>
+            </motion.div>
           ) : premiumLocked ? (
-            <div className="w-6 h-6 rounded-md bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shadow-glow shadow-purple-500/10 backdrop-blur-md">
+            <motion.div
+              whileHover={{ scale: 1.15, rotate: 12 }}
+              whileTap={{ scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 400, damping: 12 }}
+              className="w-6 h-6 rounded-md bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shadow-glow shadow-purple-500/10 backdrop-blur-md"
+            >
                <Crown className="w-3 h-3 text-purple-400" />
-            </div>
+            </motion.div>
           ) : badge !== undefined && badge > 0 ? (
-            <span className="px-2 py-0.5 rounded-md bg-rose-500 text-white text-[8px] font-bold shadow-glow shadow-rose-500/20">
+            <motion.span
+              key={badge}
+              initial={{ scale: 1.4, y: -3 }}
+              animate={{ scale: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 500, damping: 15 }}
+              className="px-2 py-0.5 rounded-md bg-rose-500 text-white text-[8px] font-bold shadow-glow shadow-rose-500/20"
+            >
               {badge}
-            </span>
+            </motion.span>
           ) : null}
           
           {isActive && !locked && (
