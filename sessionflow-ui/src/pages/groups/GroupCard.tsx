@@ -1,11 +1,12 @@
 import React from "react";
-import { Users, Edit2, Trash2, ChevronRight, Plus } from "lucide-react";
+import { Users, Edit2, Trash2, ChevronRight, Plus, Copy, Check } from "lucide-react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Group } from "../../types";
 import ProgressRing from "../../components/viz/ProgressRing";
+import { toast } from "sonner";
 
 interface GroupCardProps {
   group: Group;
@@ -24,6 +25,16 @@ export const GroupCard: React.FC<GroupCardProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [copied, setCopied] = React.useState(false);
+
+  const handleCopyName = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(group.name).then(() => {
+      setCopied(true);
+      toast.success("Group name copied!", { duration: 1500 });
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   return (
     <motion.div 
@@ -65,6 +76,13 @@ export const GroupCard: React.FC<GroupCardProps> = ({
                <div className="h-5 px-2.5 md:px-3 rounded-md bg-[var(--ui-accent)]/10 text-[var(--ui-accent)] text-[8px] md:text-[9px] font-bold uppercase tracking-[0.2em] flex items-center border border-[var(--ui-accent)]/20 shrink-0">
                  LVL {group.level}
                </div>
+               <button
+                 onClick={handleCopyName}
+                 className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-600 hover:text-[var(--ui-accent)] hover:bg-[var(--ui-accent)]/10 border border-transparent hover:border-[var(--ui-accent)]/20 transition-all shrink-0"
+                 title="Copy group name"
+               >
+                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+               </button>
             </div>
             <p className="text-[11px] text-slate-500 font-medium uppercase tracking-widest leading-relaxed line-clamp-2">
               {group.description || (group.schedules && group.schedules.length > 0 ? (
