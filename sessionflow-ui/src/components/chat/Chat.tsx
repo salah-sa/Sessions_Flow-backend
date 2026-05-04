@@ -619,7 +619,7 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
               <p className="text-[9px] text-slate-400 font-medium">Upgrade to Pro or Ultra for unlimited messages</p>
             </div>
             <button 
-              onClick={() => navigate("/pricing")} 
+              onClick={() => navigate("/plans")} 
               className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl bg-ui-accent text-white text-[10px] font-bold uppercase tracking-widest hover:bg-ui-accent/80 transition-colors shadow-glow shadow-ui-accent/20"
             >
               Upgrade <ArrowUpRight className="w-3 h-3" />

@@ -155,7 +155,7 @@ const AttendancePage: React.FC = () => {
               </span>
               {quotaReached && (
                 <button
-                  onClick={() => navigate("/pricing")}
+                  onClick={() => navigate("/plans")}
                   className="flex items-center gap-1 text-[10px] font-bold text-ui-accent uppercase tracking-widest hover:underline ms-2"
                 >
                   Upgrade <ArrowUpRight className="w-3 h-3" />
@@ -244,7 +244,7 @@ const AttendancePage: React.FC = () => {
                       <Lock className="w-8 h-8 text-rose-500/80 mb-3" />
                       <p className="text-[10px] font-bold text-rose-400 uppercase tracking-widest mb-2">Daily Limit Reached</p>
                       <button
-                        onClick={(e) => { e.stopPropagation(); navigate("/pricing"); }}
+                        onClick={(e) => { e.stopPropagation(); navigate("/plans"); }}
                         className="pointer-events-auto px-4 py-1.5 rounded-lg bg-ui-accent text-white text-[10px] font-bold uppercase tracking-widest hover:bg-ui-accent/80 transition-colors flex items-center gap-1.5"
                       >
                         Upgrade Plan <ArrowUpRight className="w-3 h-3" />
@@ -284,7 +284,7 @@ const AttendancePage: React.FC = () => {
                           if (completedToday >= limits.maxDailyAttendance && session.status !== "Active") {
                             toast.error(`Daily attendance limit reached (${limits.maxDailyAttendance}/day). Upgrade for more.`, {
                               icon: <Zap className="w-4 h-4 text-rose-500" />,
-                              action: { label: "Upgrade", onClick: () => navigate("/pricing") },
+                              action: { label: "Upgrade", onClick: () => navigate("/plans") },
                             });
                             return;
                           }

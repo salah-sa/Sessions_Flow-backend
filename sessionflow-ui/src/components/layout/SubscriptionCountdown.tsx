@@ -150,7 +150,7 @@ const SubscriptionCountdown: React.FC = () => {
   return (
     <div className="relative hidden sm:block">
       <button
-        onClick={() => navigate("/subscription")}
+        onClick={() => navigate("/plans")}
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
         className={cn(

@@ -206,7 +206,7 @@ const SubscriptionExpiryBanner: React.FC = () => {
       {/* Actions */}
       <div className="flex items-center gap-2 shrink-0 relative z-10">
         <a
-          href="/subscription"
+          href="/plans"
           className={cn(
             "hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold",
             "bg-white/10 hover:bg-white/20 border border-white/10 text-white transition-all whitespace-nowrap"

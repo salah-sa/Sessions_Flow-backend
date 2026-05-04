@@ -62,7 +62,7 @@ const GroupsPage: React.FC = () => {
         icon: <Lock className="w-4 h-4 text-rose-500" />,
         action: {
           label: "Upgrade",
-          onClick: () => navigate("/pricing"),
+          onClick: () => navigate("/plans"),
         },
       });
       return;
@@ -170,7 +170,7 @@ const GroupsPage: React.FC = () => {
               </span>
               {groupLimitReached && (
                 <button 
-                  onClick={() => navigate("/pricing")} 
+                  onClick={() => navigate("/plans")} 
                   className="flex items-center gap-1 text-[10px] font-bold text-ui-accent uppercase tracking-widest hover:underline ms-2"
                 >
                   Upgrade <ArrowUpRight className="w-3 h-3" />
