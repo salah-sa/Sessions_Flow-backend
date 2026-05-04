@@ -41,13 +41,21 @@ public static class SubscriptionEndpoints
                 .SortByDescending(s => s.CreatedAt)
                 .FirstOrDefaultAsync();
 
+            // Fallback: if user has a paid tier but no active subscription record,
+            // synthesize an expiry from their last-update timestamp + 30 days.
+            DateTimeOffset? expiryDate = subscription?.CurrentPeriodEnd;
+            if (expiryDate == null && user.SubscriptionTier != SubscriptionTier.Free)
+            {
+                expiryDate = user.UpdatedAt.AddDays(30);
+            }
+
             return Results.Ok(new
             {
                 tier = user.SubscriptionTier.ToString(),
                 paymobCustomerId = user.PaymobCustomerId,
                 subscriptionId = subscription?.Id,
                 status = subscription?.Status.ToString() ?? "None",
-                expiryDate = subscription?.CurrentPeriodEnd,
+                expiryDate,
                 canUpgrade = user.SubscriptionTier != SubscriptionTier.Enterprise
             });
         }).RequireAuthorization();

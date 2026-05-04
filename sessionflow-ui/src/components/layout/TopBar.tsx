@@ -34,6 +34,7 @@ import { useNotifications } from "../../queries/useNotificationQueries";
 import { useIPGeolocation } from "../../queries/useGeoQueries";
 import { ConfirmDialog } from "../ui";
 import { useWallet } from "../../hooks/useWallet";
+import SubscriptionCountdown from "./SubscriptionCountdown";
 
 const TopBar: React.FC = () => {
   const { t } = useTranslation();
@@ -257,6 +258,7 @@ const TopBar: React.FC = () => {
                <span className="text-[9px] font-black text-emerald-500/60 uppercase tracking-widest">EGP</span>
              </button>
            )}
+           <SubscriptionCountdown />
            <button
               onClick={() => navigate("/chat")}
               className="p-2 text-slate-500 hover:text-white transition-colors relative"

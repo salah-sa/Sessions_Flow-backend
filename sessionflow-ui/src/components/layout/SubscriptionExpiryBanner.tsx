@@ -121,8 +121,23 @@ const SubscriptionExpiryBanner: React.FC = () => {
   // Must be logged in
   if (!user) return null;
 
-  // Admins: no expiry concern
-  if (user.role === "Admin") return null;
+  // Admins: show unlimited badge instead of hiding
+  if (user.role === "Admin") {
+    return (
+      <div
+        role="status"
+        className={cn(
+          "relative flex items-center justify-center gap-3 px-4 py-1.5 border-b overflow-hidden z-40",
+          "bg-gradient-to-r from-amber-950/80 via-amber-900/60 to-amber-950/80 border-amber-700/30"
+        )}
+      >
+        <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+        <p className="text-[10px] font-bold text-amber-300 uppercase tracking-widest">
+          Enterprise — Unlimited Subscription
+        </p>
+      </div>
+    );
+  }
 
   // Avoid flash while loading
   if (isLoading) return null;
@@ -133,6 +148,10 @@ const SubscriptionExpiryBanner: React.FC = () => {
   // Use data.tier (API ground truth) — Zustand store can lag on first load
   const apiTier: string = data.tier ?? "Free";
   if (apiTier === "Free") return null;
+
+  // Handle unlimited sentinel (DateTime.MaxValue from backend → year > 9000)
+  const expiryYear = data.expiryDate ? new Date(data.expiryDate).getFullYear() : 0;
+  if (expiryYear > 9000) return null; // Unlimited — handled by TopBar widget
 
   // Must have a valid expiry date
   const base = getRemainingParts(data.expiryDate);
