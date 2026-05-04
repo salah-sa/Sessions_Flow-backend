@@ -351,6 +351,14 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: "subscription",
+        element: <Navigate to="/plans" replace />,
+      },
+      {
+        path: "pricing",
+        element: <Navigate to="/plans" replace />,
+      },
+      {
         path: "*",
         element: (
           <div className="h-full w-full flex items-center justify-center">

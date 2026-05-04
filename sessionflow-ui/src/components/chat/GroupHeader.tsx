@@ -134,7 +134,7 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
         </button>
 
         <div className="flex items-center gap-2 xs:gap-3 md:gap-5 min-w-0 flex-1">
-          <div className="w-9 h-9 xs:w-10 xs:h-10 md:w-12 md:h-12 shrink-0 rounded-xl bg-gradient-to-br from-[var(--ui-accent)]/20 to-[#7c3aed]/10 border border-[var(--ui-accent)]/30 flex items-center justify-center text-white font-bold text-[10px] xs:text-xs shadow-glow shadow-[var(--ui-accent)]/10">
+          <div className="hidden xs:flex w-9 h-9 xs:w-10 xs:h-10 md:w-12 md:h-12 shrink-0 rounded-xl bg-gradient-to-br from-[var(--ui-accent)]/20 to-[#7c3aed]/10 border border-[var(--ui-accent)]/30 items-center justify-center text-white font-bold text-[10px] xs:text-xs shadow-glow shadow-[var(--ui-accent)]/10">
             L{group.level}
           </div>
 
@@ -200,12 +200,12 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5 xs:gap-2 md:gap-3 shrink-0">
-          {/* Group Call — Engineers only */}
+          {/* Group Call — Engineers only, hidden on small mobile */}
           {canEdit && (
             canCall && onStartCall ? (
               <button
                 onClick={onStartCall}
-                className="w-10 h-10 xs:w-11 xs:h-11 rounded-xl flex items-center justify-center transition-all border shrink-0 touch-target-min bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
+                className="hidden sm:flex w-10 h-10 xs:w-11 xs:h-11 rounded-xl items-center justify-center transition-all border shrink-0 touch-target-min bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
                 title="Start Group Call"
               >
                 <Phone className="w-4 h-4" />
@@ -213,14 +213,14 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
             ) : (
               <button
                 disabled
-                className="w-10 h-10 xs:w-11 xs:h-11 rounded-xl flex items-center justify-center transition-all border shrink-0 touch-target-min bg-white/[0.02] border-white/5 text-slate-700 cursor-not-allowed"
+                className="hidden sm:flex w-10 h-10 xs:w-11 xs:h-11 rounded-xl items-center justify-center transition-all border shrink-0 touch-target-min bg-white/[0.02] border-white/5 text-slate-700 cursor-not-allowed"
                 title="Upgrade to Pro/Ultra for group calls"
               >
                 <PhoneOff className="w-4 h-4" />
               </button>
             )
           )}
-          <button onClick={onToggleMute} className={cn("w-10 h-10 xs:w-11 xs:h-11 rounded-xl flex items-center justify-center transition-all border shrink-0 touch-target-min", isMuted ? "bg-rose-500/10 border-rose-500/30 text-rose-500" : "bg-white/[0.02] border-white/5 text-slate-600 hover:text-[var(--ui-accent)] hover:border-[var(--ui-accent)]/20")}>
+          <button onClick={onToggleMute} className={cn("hidden sm:flex w-10 h-10 xs:w-11 xs:h-11 rounded-xl items-center justify-center transition-all border shrink-0 touch-target-min", isMuted ? "bg-rose-500/10 border-rose-500/30 text-rose-500" : "bg-white/[0.02] border-white/5 text-slate-600 hover:text-[var(--ui-accent)] hover:border-[var(--ui-accent)]/20")}>
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
           <button onClick={onToggleMembers} className={cn("h-10 xs:h-11 px-2.5 xs:px-3 md:px-5 rounded-xl flex items-center gap-2 md:gap-3 transition-all border font-bold text-[9px] uppercase tracking-widest shrink-0 touch-target-min", membersOpen ? "bg-[var(--ui-accent)]/10 border-[var(--ui-accent)]/40 text-[var(--ui-accent)]" : "bg-white/[0.02] border-white/5 text-slate-600 hover:text-white hover:border-white/10")}>

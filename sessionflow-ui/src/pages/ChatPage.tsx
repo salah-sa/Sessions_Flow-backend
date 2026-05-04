@@ -197,7 +197,7 @@ const ChatPage: React.FC = () => {
       {/* Zenith Sidebar */}
       <div className={cn(
         "fixed top-[56px] lg:top-0 bottom-0 start-0 z-50 w-full lg:chat-sidebar-width lg:relative border-e border-white/5 flex flex-col h-auto bg-[var(--ui-sidebar-bg)] backdrop-blur-3xl transition-all duration-500",
-        activeGroupId ? "translate-x-full lg:translate-x-0 opacity-0 lg:opacity-100 pointer-events-none lg:pointer-events-auto" : "translate-x-0 opacity-100",
+        activeGroupId ? "max-lg:invisible max-lg:hidden lg:translate-x-0 lg:opacity-100" : "translate-x-0 opacity-100 flex",
         !isSidebarOpen && "-translate-x-full lg:translate-x-0"
       )}>
         <div className="p-4 space-y-4 xs:p-5 xs:space-y-5 md:p-6 md:space-y-6 flex-none">
