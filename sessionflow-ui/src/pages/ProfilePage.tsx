@@ -8,7 +8,7 @@ import { useShallow } from "zustand/shallow";
 import { useAuditLogs } from "../queries/useAdminQueries";
 import { useDashboardSummary } from "../queries/useDashboardQueries";
 import { useAuthMutations } from "../queries/useAuthQueries";
-import { cn } from "../lib/utils";
+import { cn, getTierBorderClass, getStudentBorderStyle } from "../lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
 import { useTranslation } from "react-i18next";
 
@@ -155,20 +155,33 @@ const ProfilePage: React.FC = () => {
                 <div className="card-base relative overflow-hidden group">
                    <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--ui-accent)]/10 blur-3xl rounded-full" />
                    <div className="flex flex-col items-center text-center relative z-10">
-                      <div 
-                        onClick={() => !isUploading && fileInputRef.current?.click()}
-                        className="w-32 h-32 rounded-[2.5rem] bg-[var(--ui-sidebar-bg)] flex items-center justify-center text-4xl font-semibold text-white shadow-2xl border-4 border-white/10 mb-8 group/avatar relative overflow-hidden cursor-pointer"
-                      >
-                         {user?.avatarUrl ? (
-                           <img src={`${user.avatarUrl}${user.avatarUrl.includes('?') ? '&' : '?'}v=${Date.now()}`} alt="Avatar" className="w-full h-full object-cover" key={user.avatarUrl} />
-                         ) : (
-                           user?.name?.charAt(0).toUpperCase()
-                         )}
-                         <div className="absolute inset-0 bg-[var(--ui-accent)]/80 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
-                            {isUploading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Camera className="w-6 h-6" />}
-                            <span className="text-xs font-semibold">{isUploading ? t("common.syncing") : t("common.change")}</span>
-                         </div>
-                      </div>
+                      {(() => {
+                        const isPremium = ['ultra', 'pro', 'enterprise'].includes(user?.subscriptionTier?.toLowerCase() || "");
+                        const isStudent = user?.role === 'Student';
+                        const studentStyle = (isStudent && !isPremium) ? getStudentBorderStyle(user?.id || "") : {};
+                        return (
+                          <div
+                            onClick={() => !isUploading && fileInputRef.current?.click()}
+                            className={cn(
+                              "rounded-[2.5rem] cursor-pointer mb-8",
+                              !studentStyle.background && getTierBorderClass(user?.subscriptionTier, user?.role)
+                            )}
+                            style={studentStyle}
+                          >
+                            <div className="w-32 h-32 rounded-[2.3rem] bg-[var(--ui-sidebar-bg)] flex items-center justify-center text-4xl font-semibold text-white shadow-2xl group/avatar relative overflow-hidden">
+                              {user?.avatarUrl ? (
+                                <img src={`${user.avatarUrl}${user.avatarUrl.includes('?') ? '&' : '?'}v=${Date.now()}`} alt="Avatar" className="w-full h-full object-cover" key={user.avatarUrl} />
+                              ) : (
+                                user?.name?.charAt(0).toUpperCase()
+                              )}
+                              <div className="absolute inset-0 bg-[var(--ui-accent)]/80 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                                {isUploading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Camera className="w-6 h-6" />}
+                                <span className="text-xs font-semibold">{isUploading ? t("common.syncing") : t("common.change")}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
                       <input type="file" ref={fileInputRef} onChange={handleAvatarUpload} accept="image/*" className="hidden" />
                     <h2 className="text-2xl font-sora font-semibold text-white mb-0.5">{user?.displayName || user?.name}</h2>
                     {user?.displayName && user?.displayName !== user?.name && (
