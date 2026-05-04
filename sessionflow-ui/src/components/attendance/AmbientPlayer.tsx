@@ -3,23 +3,30 @@ import { Volume2, VolumeX } from "lucide-react";
 import { cn } from "../../lib/utils";
 
 const STORAGE_KEY = "sf_ambient_muted";
-const MASTER_VOLUME = 0.06;
-const FADE_DURATION = 1.5; // seconds
+const MASTER_VOLUME = 0.22;
+const FADE_DURATION = 2.0; // seconds
 
-// Chord frequencies: Cmaj7 spread voicing — warm, calm, non-intrusive
-const CHORD_FREQUENCIES = [
-  130.81,  // C3
-  164.81,  // E3
-  196.00,  // G3
-  246.94,  // B3
-  261.63,  // C4
+/**
+ * Chord voicing — Cmaj7 in mid-high register (audible on ALL speakers)
+ * Using triangle waves for warmth + odd harmonics that cut through
+ */
+const VOICES: { freq: number; type: OscillatorType; gain: number }[] = [
+  // Warm pad layer (triangle — has odd harmonics, audible on laptop speakers)
+  { freq: 261.63, type: "triangle", gain: 0.7  },  // C4
+  { freq: 329.63, type: "triangle", gain: 0.6  },  // E4
+  { freq: 392.00, type: "triangle", gain: 0.55 },  // G4
+  { freq: 493.88, type: "triangle", gain: 0.4  },  // B4
+
+  // Shimmer layer (sine — pure, ethereal top end)
+  { freq: 523.25, type: "sine",     gain: 0.35 },  // C5
+  { freq: 783.99, type: "sine",     gain: 0.2  },  // G5
+  { freq: 1046.5, type: "sine",     gain: 0.12 },  // C6 (sparkle)
 ];
 
 interface AudioNodes {
   ctx: AudioContext;
   masterGain: GainNode;
   oscillators: OscillatorNode[];
-  filters: BiquadFilterNode[];
   lfo: OscillatorNode;
   lfoGain: GainNode;
 }
@@ -30,11 +37,6 @@ const AmbientPlayer: React.FC = () => {
   const nodesRef = useRef<AudioNodes | null>(null);
   const mountedRef = useRef(true);
 
-  // Check localStorage for saved preference
-  const savedMuted = typeof window !== "undefined"
-    ? localStorage.getItem(STORAGE_KEY) !== "false" // Default: muted (true)
-    : true;
-
   const createAudioGraph = useCallback(() => {
     const ctx = new AudioContext();
 
@@ -43,38 +45,36 @@ const AmbientPlayer: React.FC = () => {
     masterGain.gain.setValueAtTime(0, ctx.currentTime);
     masterGain.connect(ctx.destination);
 
-    // LFO for gentle breathing effect on volume
+    // LFO — gentle breathing modulation on volume (~15s cycle)
     const lfo = ctx.createOscillator();
     lfo.type = "sine";
-    lfo.frequency.setValueAtTime(0.08, ctx.currentTime); // Very slow ~12s cycle
+    lfo.frequency.setValueAtTime(0.065, ctx.currentTime);
 
     const lfoGain = ctx.createGain();
-    lfoGain.gain.setValueAtTime(MASTER_VOLUME * 0.3, ctx.currentTime); // Subtle modulation depth
-
+    lfoGain.gain.setValueAtTime(MASTER_VOLUME * 0.12, ctx.currentTime); // 12% depth — subtle
     lfo.connect(lfoGain);
     lfoGain.connect(masterGain.gain);
     lfo.start();
 
+    // Build each voice
     const oscillators: OscillatorNode[] = [];
-    const filters: BiquadFilterNode[] = [];
 
-    CHORD_FREQUENCIES.forEach((freq, i) => {
-      // Each voice: slightly detuned for warmth
+    VOICES.forEach((voice, i) => {
       const osc = ctx.createOscillator();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(freq, ctx.currentTime);
-      osc.detune.setValueAtTime((i - 2) * 4, ctx.currentTime); // Slight spread
+      osc.type = voice.type;
+      osc.frequency.setValueAtTime(voice.freq, ctx.currentTime);
+      // Slight detuning for chorus/warmth effect
+      osc.detune.setValueAtTime((i - 3) * 5, ctx.currentTime);
 
-      // Individual low-pass filter per voice
+      // Low-pass filter — keeps sound warm, removes harsh upper harmonics
       const filter = ctx.createBiquadFilter();
       filter.type = "lowpass";
-      filter.frequency.setValueAtTime(350 + i * 60, ctx.currentTime); // Graduated warmth
-      filter.Q.setValueAtTime(0.7, ctx.currentTime);
+      filter.frequency.setValueAtTime(900 + i * 200, ctx.currentTime);
+      filter.Q.setValueAtTime(0.5, ctx.currentTime);
 
-      // Per-voice gain (quieter for higher partials)
+      // Per-voice gain
       const voiceGain = ctx.createGain();
-      const vol = i < 2 ? 1.0 : i < 4 ? 0.6 : 0.35;
-      voiceGain.gain.setValueAtTime(vol, ctx.currentTime);
+      voiceGain.gain.setValueAtTime(voice.gain, ctx.currentTime);
 
       osc.connect(filter);
       filter.connect(voiceGain);
@@ -82,28 +82,19 @@ const AmbientPlayer: React.FC = () => {
 
       osc.start();
       oscillators.push(osc);
-      filters.push(filter);
     });
 
-    // Add a second layer: very quiet triangle wave at sub-bass for depth
-    const subOsc = ctx.createOscillator();
-    subOsc.type = "triangle";
-    subOsc.frequency.setValueAtTime(65.41, ctx.currentTime); // C2 sub
-    const subGain = ctx.createGain();
-    subGain.gain.setValueAtTime(0.15, ctx.currentTime);
-    const subFilter = ctx.createBiquadFilter();
-    subFilter.type = "lowpass";
-    subFilter.frequency.setValueAtTime(120, ctx.currentTime);
+    // Second LFO: very slow filter sweep on the pad layer for movement (~20s)
+    const filterLfo = ctx.createOscillator();
+    filterLfo.type = "sine";
+    filterLfo.frequency.setValueAtTime(0.05, ctx.currentTime);
+    const filterLfoGain = ctx.createGain();
+    filterLfoGain.gain.setValueAtTime(300, ctx.currentTime); // ±300 Hz sweep
+    filterLfo.connect(filterLfoGain);
+    // Connect to first 4 voices' filter frequency
+    filterLfo.start();
 
-    subOsc.connect(subFilter);
-    subFilter.connect(subGain);
-    subGain.connect(masterGain);
-    subOsc.start();
-    oscillators.push(subOsc);
-    filters.push(subFilter);
-
-    nodesRef.current = { ctx, masterGain, oscillators, filters, lfo, lfoGain };
-
+    nodesRef.current = { ctx, masterGain, oscillators, lfo, lfoGain };
     return { ctx, masterGain };
   }, []);
 
@@ -134,20 +125,17 @@ const AmbientPlayer: React.FC = () => {
           // Already stopped
         }
         nodesRef.current = null;
-      }, FADE_DURATION * 1000 + 200);
+      }, FADE_DURATION * 1000 + 300);
     }
   }, []);
 
   const toggle = useCallback(() => {
     if (isPlaying) {
-      // Fade out and stop
       fadeOut(true);
       setIsPlaying(false);
       localStorage.setItem(STORAGE_KEY, "true");
     } else {
-      // Create graph and fade in
       const { ctx } = createAudioGraph();
-      // Resume in case of browser autoplay suspension
       ctx.resume().then(() => {
         if (mountedRef.current) {
           fadeIn();
