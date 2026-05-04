@@ -196,9 +196,9 @@ const ChatPage: React.FC = () => {
 
       {/* Zenith Sidebar */}
       <div className={cn(
-        "fixed top-[56px] md:top-0 bottom-0 start-0 z-50 w-full md:chat-sidebar-width md:relative border-e border-white/5 flex flex-col h-auto bg-[var(--ui-sidebar-bg)] backdrop-blur-3xl transition-all duration-500",
-        activeGroupId ? "translate-x-full md:translate-x-0 opacity-0 md:opacity-100 pointer-events-none md:pointer-events-auto" : "translate-x-0 opacity-100",
-        !isSidebarOpen && "-translate-x-full md:translate-x-0"
+        "fixed top-[56px] lg:top-0 bottom-0 start-0 z-50 w-full lg:chat-sidebar-width lg:relative border-e border-white/5 flex flex-col h-auto bg-[var(--ui-sidebar-bg)] backdrop-blur-3xl transition-all duration-500",
+        activeGroupId ? "translate-x-full lg:translate-x-0 opacity-0 lg:opacity-100 pointer-events-none lg:pointer-events-auto" : "translate-x-0 opacity-100",
+        !isSidebarOpen && "-translate-x-full lg:translate-x-0"
       )}>
         <div className="p-4 space-y-4 xs:p-5 xs:space-y-5 md:p-6 md:space-y-6 flex-none">
           <div className="flex items-center justify-between">
@@ -334,7 +334,7 @@ const ChatPage: React.FC = () => {
       {/* Zenith Chat Area */}
       <div className={cn(
         "flex-1 flex h-full bg-[var(--ui-bg)]/40 relative z-0 transition-all duration-500",
-        activeGroupId ? "translate-x-0 opacity-100" : "translate-x-full md:translate-x-0 opacity-0 md:opacity-100 pointer-events-none md:pointer-events-auto"
+        activeGroupId ? "translate-x-0 opacity-100" : "translate-x-full lg:translate-x-0 opacity-0 lg:opacity-100 pointer-events-none lg:pointer-events-auto"
       )}>
         {currentGroup ? (
           <div className="flex-1 flex flex-col h-full">

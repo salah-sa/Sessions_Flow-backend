@@ -128,7 +128,7 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
       <div className="flex items-center justify-between gap-2 xs:gap-3 md:gap-6">
         <button 
           onClick={() => useChatStore.getState().setActiveGroup(null)} 
-          className="md:hidden p-2.5 rounded-xl text-slate-500 hover:text-white bg-white/[0.02] border border-white/5 transition-all shrink-0 touch-target-min"
+          className="lg:hidden p-2.5 rounded-xl text-slate-500 hover:text-white bg-white/[0.02] border border-white/5 transition-all shrink-0 touch-target-min"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
