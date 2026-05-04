@@ -23,7 +23,10 @@ import {
   PanelLeftOpen,
   Brain,
   TrendingUp,
-  Flag
+  Flag,
+  Megaphone,
+  BarChart2,
+  FileText
 } from "lucide-react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore, useSectionBadgeStore, useChatStore, selectEffectiveTier, useAIAgentStore, useUIStore } from "../../store/stores";
@@ -301,6 +304,9 @@ const Sidebar: React.FC = () => {
             </div>
             <NavItem to="/ai-center" icon={Brain} label="AI Center" />
             <NavItem to="/analytics" icon={TrendingUp} label="Analytics" />
+            <NavItem to="/deep-analytics" icon={BarChart2} label="Deep Analytics" />
+            <NavItem to="/broadcast" icon={Megaphone} label="Broadcast" />
+            <NavItem to="/report-builder" icon={FileText} label="Report Builder" />
             <NavItem to="/session-timeline" icon={Clock} label="Session Timeline" />
             <NavItem to="/feature-flags" icon={Flag} label="Feature Flags" />
           </>

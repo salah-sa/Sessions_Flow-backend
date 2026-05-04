@@ -4,6 +4,7 @@ import Shell from "./components/layout/Shell";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import GuestGuard from "./components/auth/GuestGuard";
+import RoleGuard from "./components/auth/RoleGuard";
 
 // Lazy load pages for performance
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
@@ -32,6 +33,9 @@ const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
 const FeatureFlagsPage = lazy(() => import("./pages/FeatureFlagsPage"));
 
 const SessionTimelinePage = lazy(() => import("./pages/SessionTimelinePage"));
+const BroadcastPage = lazy(() => import("./pages/BroadcastPage"));
+const DeepAnalyticsPage = lazy(() => import("./pages/DeepAnalyticsPage"));
+const ReportBuilderPage = lazy(() => import("./pages/ReportBuilderPage"));
 
 const PageLoader = () => (
   <div className="h-full w-full flex items-center justify-center bg-slate-950/50 backdrop-blur-md animate-fade-in">
@@ -41,8 +45,6 @@ const PageLoader = () => (
     </div>
   </div>
 );
-
-import RoleGuard from "./components/auth/RoleGuard";
 
 export const router = createBrowserRouter([
   {
@@ -195,7 +197,7 @@ export const router = createBrowserRouter([
               <AdminPage />
             </Suspense>
           </RoleGuard>
-        )
+        ),
       },
       {
         path: "staff",
@@ -205,7 +207,7 @@ export const router = createBrowserRouter([
               <StaffPortalPage />
             </Suspense>
           </RoleGuard>
-        )
+        ),
       },
       {
         path: "settings",
@@ -314,6 +316,36 @@ export const router = createBrowserRouter([
           <RoleGuard allowedRoles={["Admin", "Engineer"]}>
             <Suspense fallback={<PageLoader />}>
               <SessionTimelinePage />
+            </Suspense>
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "broadcast",
+        element: (
+          <RoleGuard allowedRoles={["Admin"]}>
+            <Suspense fallback={<PageLoader />}>
+              <BroadcastPage />
+            </Suspense>
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "deep-analytics",
+        element: (
+          <RoleGuard allowedRoles={["Admin"]}>
+            <Suspense fallback={<PageLoader />}>
+              <DeepAnalyticsPage />
+            </Suspense>
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "report-builder",
+        element: (
+          <RoleGuard allowedRoles={["Admin"]}>
+            <Suspense fallback={<PageLoader />}>
+              <ReportBuilderPage />
             </Suspense>
           </RoleGuard>
         ),

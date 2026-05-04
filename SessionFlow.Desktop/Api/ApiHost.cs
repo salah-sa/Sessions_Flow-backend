@@ -141,7 +141,6 @@ public static class ApiHost
         builder.Services.AddScoped<GmailSenderService>();
         builder.Services.AddScoped<EmailService>();
         builder.Services.AddHttpClient<WhatsAppService>();
-        builder.Services.AddHostedService<EmailReminderService>();
 
         // Firebase Admin SDK
         if (FirebaseApp.DefaultInstance == null)

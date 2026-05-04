@@ -10,7 +10,7 @@ import { validateSession } from "./api/authService";
 
 import { CustomerServiceFab } from "./components/support/CustomerServiceFab";
 import { SystemUpdatePopup } from "./components/support/SystemUpdatePopup";
-import { StudentWelcomeModal } from "./components/StudentWelcomeModal";
+
 
 const App: React.FC = () => {
   const [showSplash, setShowSplash] = useState(true);
@@ -76,7 +76,7 @@ const App: React.FC = () => {
       <ErrorBoundary onRetry={() => window.location.reload()}>
         <SignalRProvider>
           <RouterProvider router={router} />
-          <StudentWelcomeModal />
+
           <CustomerServiceFab />
           <SystemUpdatePopup />
         </SignalRProvider>

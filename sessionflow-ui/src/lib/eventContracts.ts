@@ -83,6 +83,10 @@ export const Events = {
   BROADCAST_MESSAGE: "broadcast:message",
 
   // ── Phase 3: Innovative Features (#11–#20) ────────────────
+  // ⚠️ SYNC NOTE: These events are FRONTEND-DECLARED PLACEHOLDERS.
+  // They are NOT yet defined in the backend EventContracts.cs.
+  // Backend implementation is pending. Do NOT rely on these for
+  // real-time delivery until the backend mirrors them.
   // #11 Neural Session Autopilot
   SESSION_AI_RECOMMENDATION: "session:ai-recommendation",
 
