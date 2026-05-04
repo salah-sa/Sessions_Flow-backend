@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Calendar, Loader2 } from "lucide-react";
 import { useAttendanceHeatmap } from "../../queries/useAttendanceHeatmapQuery";
+import { type HeatmapDay } from "../../api/newFeatures";
 import { cn } from "../../lib/utils";
 
 const MONTH_NAMES = [
@@ -41,7 +42,7 @@ const AttendanceHeatmap: React.FC<AttendanceHeatmapProps> = ({ className }) => {
 
   // Build date → data lookup
   const dayMap = useMemo(() => {
-    const map = new Map<string, typeof heatmapData extends (infer T)[] ? T : never>();
+    const map = new Map<string, HeatmapDay>();
     heatmapData?.forEach(d => map.set(d.date, d));
     return map;
   }, [heatmapData]);
