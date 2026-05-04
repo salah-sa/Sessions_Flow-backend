@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Group } from "../../types";
-import ProgressRing from "../../components/viz/ProgressRing";
 import { toast } from "sonner";
 
 interface GroupCardProps {
@@ -130,17 +129,27 @@ export const GroupCard: React.FC<GroupCardProps> = ({
               </div>
             <div className="hidden sm:block w-px h-10 lg:h-12 bg-white/5" />
             <div className="flex items-center gap-2.5 sm:gap-3 md:gap-4 min-w-0 ps-0 sm:ps-2">
-               <ProgressRing
-                 value={group.totalSessions > 0 ? Math.min(100, ((group.currentSessionNumber - 1) / group.totalSessions) * 100) : 0}
-                 color={group.colorTag || "var(--ui-accent)"}
-                 size={48}
-                 strokeWidth={4}
-                 label={`${group.currentSessionNumber - 1}`}
-                 tooltip={`${group.currentSessionNumber - 1}/${group.totalSessions} sessions completed`}
-               />
+               <div className="relative w-12 h-12 lg:w-14 lg:h-14 shrink-0">
+                 {/* Glow pulse behind ring */}
+                 <div className="absolute inset-0 rounded-full bg-gradient-to-br from-violet-500/30 via-fuchsia-500/20 to-cyan-500/30 blur-lg animate-pulse" />
+                 {/* Ring */}
+                 <div className="relative w-full h-full rounded-full bg-gradient-to-br from-violet-500/20 via-fuchsia-500/10 to-cyan-500/20 border-2 border-violet-500/40 flex items-center justify-center shadow-[0_0_20px_rgba(139,92,246,0.3)]">
+                   <span 
+                     className="text-lg lg:text-xl font-black tabular-nums bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-400 bg-clip-text text-transparent animate-[gradient-shift_3s_ease_infinite]"
+                     style={{ backgroundSize: '200% 200%' }}
+                   >
+                     {group.currentSessionNumber}
+                   </span>
+                 </div>
+               </div>
                <div className="space-y-1 min-w-0">
-                  <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{t("groups.card.progression")}</p>
-                  <p className="text-sm font-bold text-[var(--ui-accent)] tabular-nums">{group.currentSessionNumber} / {group.totalSessions}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">NEXT SESSION</p>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-sm font-black tabular-nums bg-gradient-to-r from-violet-300 via-fuchsia-300 to-cyan-300 bg-clip-text text-transparent animate-[gradient-shift_3s_ease_infinite]" style={{ backgroundSize: '200% 200%' }}>
+                      #{group.currentSessionNumber}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-600 tabular-nums">/ {group.totalSessions}</span>
+                  </div>
                </div>
             </div>
           </div>
