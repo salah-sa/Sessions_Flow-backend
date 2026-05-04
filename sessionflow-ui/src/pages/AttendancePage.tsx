@@ -97,7 +97,7 @@ const AttendancePage: React.FC = () => {
 
   const { startMutation, endMutation, skipMutation } = useSessionMutations();
   const user   = useAuthStore(s => s.user);
-  const limits = getTierLimits(user?.subscriptionTier);
+  const limits = getTierLimits(user?.subscriptionTier, user?.role);
 
   const sessions         = data?.pages.flatMap(p => p.items) || [];
   const completedToday   = sessions.filter(s => s.status === "Ended" && !s.isSkipped).length;
@@ -144,7 +144,7 @@ const AttendancePage: React.FC = () => {
             />
           </div>
 
-          {user?.role === "Engineer" && (
+          {(user?.role === "Engineer" || user?.role === "Admin") && (
             <div className={cn(
               "flex items-center gap-2 px-4 py-2 bg-white/[0.03] border rounded-xl",
               quotaReached ? "border-rose-500/30 bg-rose-500/5" : "border-white/10"

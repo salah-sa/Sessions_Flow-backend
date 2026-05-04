@@ -49,7 +49,7 @@ public static class UsageEndpoints
             var currentGroupCount = (int)await db.Groups
                 .CountDocumentsAsync(g => g.EngineerId == userId && !g.IsDeleted, cancellationToken: ct);
 
-            var summary = await usageService.GetSummaryAsync(userId, user.SubscriptionTier, currentGroupCount, ct);
+            var summary = await usageService.GetSummaryAsync(userId, user.SubscriptionTier, currentGroupCount, user.Role.ToString(), ct);
 
             static object ToDto(UsageService.ResourceUsage r) => new
             {

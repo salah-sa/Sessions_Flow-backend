@@ -39,7 +39,18 @@ export const PLAN_LIMITS = {
   }
 };
 
+// Admin bypass — unlimited everything, independent of subscription tier
+const ADMIN_LIMITS = {
+  maxGroups: Infinity,
+  maxStudentsPerGroup: Infinity,
+  maxDailyMessages: Infinity,
+  maxDailyImages: Infinity,
+  maxDailyVideos: Infinity,
+  maxDailyFiles: Infinity,
+  maxDailyAttendance: Infinity,
+};
+
 export const getTierLimits = (tier?: SubscriptionTier, role?: string) => {
-  if (role === "Admin") return PLAN_LIMITS["Ultra"];
+  if (role === "Admin") return ADMIN_LIMITS;
   return PLAN_LIMITS[tier || "Free"];
 };

@@ -77,6 +77,7 @@ public class UsageService
         Guid userId,
         SubscriptionTier tier,
         int currentGroupCount,
+        string? role = null,
         CancellationToken ct = default)
     {
         var counter = await GetTodayAsync(userId, ct);
@@ -89,12 +90,12 @@ public class UsageService
         }
 
         return new UsageSummary(
-            Messages: Calc(counter.MessagesCount, PlanLimit.GetMaxDailyMessages(tier)),
-            Images: Calc(counter.ImagesCount, PlanLimit.GetMaxDailyImages(tier)),
-            Videos: Calc(counter.VideosCount, PlanLimit.GetMaxDailyVideos(tier)),
-            Files: Calc(counter.FilesCount, PlanLimit.GetMaxDailyFiles(tier)),
-            Attendance: Calc(counter.AttendanceCount, PlanLimit.GetMaxDailyAttendance(tier)),
-            Groups: Calc(currentGroupCount, PlanLimit.GetMaxGroups(tier))
+            Messages: Calc(counter.MessagesCount, PlanLimit.GetMaxDailyMessages(tier, role)),
+            Images: Calc(counter.ImagesCount, PlanLimit.GetMaxDailyImages(tier, role)),
+            Videos: Calc(counter.VideosCount, PlanLimit.GetMaxDailyVideos(tier, role)),
+            Files: Calc(counter.FilesCount, PlanLimit.GetMaxDailyFiles(tier, role)),
+            Attendance: Calc(counter.AttendanceCount, PlanLimit.GetMaxDailyAttendance(tier, role)),
+            Groups: Calc(currentGroupCount, PlanLimit.GetMaxGroups(tier, role))
         );
     }
 

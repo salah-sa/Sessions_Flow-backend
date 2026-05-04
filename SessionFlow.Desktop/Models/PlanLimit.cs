@@ -32,15 +32,19 @@ public static class PlanLimit
             _ => 0
         };
 
-    public static bool HasFeature(SubscriptionTier tier, string feature) => (tier, feature) switch
+    public static bool HasFeature(SubscriptionTier tier, string feature, string? role = null)
     {
-        (_, "attendance_basic") => true,
-        (SubscriptionTier.Pro or SubscriptionTier.Ultra or SubscriptionTier.Enterprise, "attendance_detailed") => true,
-        (SubscriptionTier.Pro or SubscriptionTier.Ultra or SubscriptionTier.Enterprise, "student_map") => true,
-        (SubscriptionTier.Enterprise, "white_label") => true,
-        (SubscriptionTier.Ultra or SubscriptionTier.Enterprise, "ai_summaries") => true,
-        _ => false
-    };
+        if (IsAdminBypass(role)) return true;
+        return (tier, feature) switch
+        {
+            (_, "attendance_basic") => true,
+            (SubscriptionTier.Pro or SubscriptionTier.Ultra or SubscriptionTier.Enterprise, "attendance_detailed") => true,
+            (SubscriptionTier.Pro or SubscriptionTier.Ultra or SubscriptionTier.Enterprise, "student_map") => true,
+            (SubscriptionTier.Enterprise, "white_label") => true,
+            (SubscriptionTier.Ultra or SubscriptionTier.Enterprise, "ai_summaries") => true,
+            _ => false
+        };
+    }
 
     public static long GetPriceMonthlyPiasters(SubscriptionTier tier) => tier switch
     {
