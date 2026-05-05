@@ -39,6 +39,9 @@ public class Session
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
     
+    // Optimistic concurrency control — prevents race conditions on session start/end
+    public int Version { get; set; } = 1;
+    
     // Stamped Data (Mandatory for Production)
     public decimal StampedRevenue { get; set; }
     public int PresentCount { get; set; }

@@ -9,7 +9,7 @@ public static class SystemEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var system = app.MapGroup("/api/system").RequireAuthorization();
+        var system = app.MapGroup("/api/v1/system").RequireAuthorization();
 
         // POST /api/system/broadcast-update - Broadcasts a system update to all connected users
         system.MapPost("/broadcast-update", async (BroadcastUpdateRequest req, SessionFlow.Desktop.Services.EventBus.IEventBus eventBus, SessionFlow.Desktop.Data.MongoService db, HttpContext ctx) =>

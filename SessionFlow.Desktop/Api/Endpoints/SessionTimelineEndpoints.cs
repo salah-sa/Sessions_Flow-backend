@@ -17,7 +17,7 @@ public static class SessionTimelineEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/admin").RequireAuthorization("AdminOnly");
+        var group = app.MapGroup("/api/v1/admin").RequireAuthorization("AdminOnly");
 
         group.MapGet("/session-timeline", async (
             MongoService db,

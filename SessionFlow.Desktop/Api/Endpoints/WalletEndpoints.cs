@@ -13,7 +13,7 @@ public static class WalletEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/wallet").RequireAuthorization();
+        var group = app.MapGroup("/api/v1/wallet").RequireAuthorization();
 
         // ─── OTP / Phone Verification ────────────────────────────────────────
 
@@ -255,7 +255,7 @@ public static class WalletEndpoints
 
         // ─── Admin Endpoints ──────────────────────────────────────────────────
 
-        var adminGroup = app.MapGroup("/api/wallet/admin").RequireAuthorization("AdminOnly");
+        var adminGroup = app.MapGroup("/api/v1/wallet/admin").RequireAuthorization("AdminOnly");
 
         // GET /api/wallet/admin/deposit/pending
         adminGroup.MapGet("/deposit/pending", async (

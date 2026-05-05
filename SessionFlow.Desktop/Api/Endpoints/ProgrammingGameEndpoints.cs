@@ -21,7 +21,7 @@ public static class ProgrammingGameEndpoints
 
     public static void Map(WebApplication app)
     {
-        var api = app.MapGroup("/api/games").RequireAuthorization();
+        var api = app.MapGroup("/api/v1/games").RequireAuthorization();
 
         // ── DEBUG CHALLENGE ──────────────────────────────────────────────
         api.MapGet("/debug/random", async (string? domain, int? difficulty, ProgrammingGameService svc) =>

@@ -16,13 +16,15 @@ export interface StudentLocationData {
 export interface AuthState {
   user: User | null;
   token: string | null;
+  refreshToken: string | null;
   rememberMe: boolean;
   studentLocation: string | null; // Keep for legacy/string display
   studentLocationData: StudentLocationData | null;
   _hasHydrated: boolean;
   _lastLoginAt: number; // Timestamp of last successful login
   hasAcknowledgedFreeModal: boolean;
-  setAuth: (user: User, token: string) => void;
+  setAuth: (user: User, token: string, refreshToken?: string) => void;
+  setRefreshToken: (refreshToken: string) => void;
   setRememberMe: (val: boolean) => void;
   setStudentLocation: (loc: string) => void;
   setStudentLocationData: (data: StudentLocationData) => void;
@@ -48,15 +50,17 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       token: null,
+      refreshToken: null,
       rememberMe: false,
       studentLocation: null,
       studentLocationData: null,
       _hasHydrated: false,
       _lastLoginAt: 0,
       hasAcknowledgedFreeModal: false,
-      setAuth: (user, token) => {
-        set({ user, token, _lastLoginAt: Date.now() });
+      setAuth: (user, token, refreshToken) => {
+        set({ user, token, refreshToken: refreshToken ?? null, _lastLoginAt: Date.now() });
       },
+      setRefreshToken: (refreshToken) => set({ refreshToken }),
       setRememberMe: (val) => set({ rememberMe: val }),
       setStudentLocation: (studentLocation) => set({ studentLocation }),
       setStudentLocationData: (data) => set({ 
@@ -66,7 +70,7 @@ export const useAuthStore = create<AuthState>()(
       updateUser: (user) => set({ user }),
       setHasHydrated: (val) => set({ _hasHydrated: val }),
       logout: () => {
-        set({ user: null, token: null, rememberMe: false, studentLocation: null, studentLocationData: null, hasAcknowledgedFreeModal: false });
+        set({ user: null, token: null, refreshToken: null, rememberMe: false, studentLocation: null, studentLocationData: null, hasAcknowledgedFreeModal: false });
         clearSessionCaches();
       },
       setHasAcknowledgedFreeModal: (val) => set({ hasAcknowledgedFreeModal: val }),

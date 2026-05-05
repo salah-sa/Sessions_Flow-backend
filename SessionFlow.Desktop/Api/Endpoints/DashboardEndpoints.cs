@@ -14,7 +14,7 @@ public static class DashboardEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/dashboard").RequireAuthorization();
+        var group = app.MapGroup("/api/v1/dashboard").RequireAuthorization();
 
         group.MapGet("/summary", async (MongoService db, HttpContext ctx, AuthService auth) =>
         {

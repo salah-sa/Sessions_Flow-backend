@@ -232,17 +232,17 @@ export const studentLocationApi = {
 export const broadcastApi = {
   getHistory: (page: number, pageSize = 20) =>
     fetchWithAuth<{ items: any[]; total: number; page: number; totalPages: number }>(
-      `/api/admin/broadcast/history?page=${page}&pageSize=${pageSize}`
+      `/admin/broadcast/history?page=${page}&pageSize=${pageSize}`
     ),
   send: (payload: { subject: string; message: string; channel: string }) =>
-    fetchWithAuth<{ recipientCount: number }>("/api/admin/broadcast", {
+    fetchWithAuth<{ recipientCount: number }>("/admin/broadcast", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
       body: JSON.stringify(payload),
     }),
   testEmail: (to: string) =>
     fetchWithAuth<{ success: boolean; to: string; error?: string; hint?: string }>(
-      "/api/admin/broadcast/test-email",
+      "/admin/broadcast/test-email",
       {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },

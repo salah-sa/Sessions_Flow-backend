@@ -14,7 +14,7 @@ public static class GroupEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/groups").RequireAuthorization();
+        var group = app.MapGroup("/api/v1/groups").RequireAuthorization();
 
         // GET /api/groups — list all groups with student count and schedule
         group.MapGet("/", async (MongoService db, HttpContext ctx, AuthService auth, SessionFlow.Desktop.Services.MultiTenancy.ITenantProvider tenantProvider,

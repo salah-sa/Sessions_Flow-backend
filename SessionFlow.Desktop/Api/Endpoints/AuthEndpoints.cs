@@ -30,9 +30,42 @@ public static class AuthEndpoints
         return null;
     }
 
+    /// <summary>
+    /// S7: Validates email format using a strict but practical regex.
+    /// </summary>
+    private static string? ValidateEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return "Email is required.";
+        if (email.Length > 254)
+            return "Email address is too long.";
+        if (!System.Text.RegularExpressions.Regex.IsMatch(email.Trim(),
+            @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$",
+            System.Text.RegularExpressions.RegexOptions.None,
+            TimeSpan.FromMilliseconds(250)))
+            return "Invalid email format.";
+        return null;
+    }
+
+    /// <summary>
+    /// S7: Validates display name — prevents empty, too short, too long, or script-injection names.
+    /// </summary>
+    private static string? ValidateName(string name, string fieldLabel = "Name")
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return $"{fieldLabel} is required.";
+        if (name.Trim().Length < 2)
+            return $"{fieldLabel} must be at least 2 characters.";
+        if (name.Trim().Length > 100)
+            return $"{fieldLabel} must be under 100 characters.";
+        if (name.Contains('<') || name.Contains('>'))
+            return $"{fieldLabel} contains invalid characters.";
+        return null;
+    }
+
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/auth");
+        var group = app.MapGroup("/api/v1/auth");
 
         group.MapGet("/status", () => Results.Ok(new { status = "Ready" }));
 
@@ -46,9 +79,16 @@ public static class AuthEndpoints
             if (error != null)
                 return Results.BadRequest(new { error });
 
+            // Issue refresh token alongside JWT
+            var ip = ctx.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+                     ?? ctx.Connection.RemoteIpAddress?.ToString();
+            var ua = ctx.Request.Headers["User-Agent"].FirstOrDefault();
+            var (refreshToken, _) = await auth.CreateRefreshTokenAsync(user!.Id, ip, ua);
+
             return Results.Ok(new
             {
                 token,
+                refreshToken,
                 user = new
                 {
                     id = user!.Id,
@@ -73,11 +113,50 @@ public static class AuthEndpoints
             });
         });
 
+        // POST /api/auth/refresh — Rotate refresh token + issue new JWT
+        group.MapPost("/refresh", async (RefreshRequest req, AuthService auth, HttpContext ctx) =>
+        {
+            if (string.IsNullOrWhiteSpace(req.RefreshToken))
+                return Results.BadRequest(new { error = "Refresh token is required." });
+
+            var ip = ctx.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+                     ?? ctx.Connection.RemoteIpAddress?.ToString();
+            var ua = ctx.Request.Headers["User-Agent"].FirstOrDefault();
+
+            var (user, accessToken, newRefreshToken, error) =
+                await auth.RotateRefreshTokenAsync(req.RefreshToken, ip, ua);
+
+            if (error != null)
+                return Results.BadRequest(new { error });
+
+            return Results.Ok(new
+            {
+                token = accessToken,
+                refreshToken = newRefreshToken,
+                user = new
+                {
+                    id = user!.Id,
+                    name = user.Name,
+                    role = user.Role.ToString(),
+                    subscriptionTier = user.SubscriptionTier.ToString()
+                }
+            });
+        });
+
         group.MapPost("/register", async (RegisterRequest req, AuthService auth) =>
         {
             if (string.IsNullOrWhiteSpace(req.Name) || string.IsNullOrWhiteSpace(req.Email) ||
                 string.IsNullOrWhiteSpace(req.Password))
                 return Results.BadRequest(new { error = "All fields are required." });
+
+            // S7: Comprehensive input validation
+            var nameError = ValidateName(req.Name);
+            if (nameError != null)
+                return Results.BadRequest(new { error = nameError });
+
+            var emailError = ValidateEmail(req.Email);
+            if (emailError != null)
+                return Results.BadRequest(new { error = emailError });
 
             var pwError = ValidatePasswordStrength(req.Password);
             if (pwError != null)
@@ -563,4 +642,5 @@ public static class AuthEndpoints
     public record VerifyEmailChangeRequest(string Code);
     public record LinkSocialRequest(string Provider, string SocialId);
     public record LoginSocialRequest(string Provider, string SocialId);
+    public record RefreshRequest(string RefreshToken);
 }

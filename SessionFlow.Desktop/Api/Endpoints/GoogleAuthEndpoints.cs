@@ -11,7 +11,7 @@ public static class GoogleAuthEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var google = app.MapGroup("/api/admin/gmail").RequireAuthorization();
+        var google = app.MapGroup("/api/v1/admin/gmail").RequireAuthorization();
 
         // GET /api/admin/gmail/status — check if authorized
         google.MapGet("/status", async (GoogleAuthService auth, MongoService db) =>

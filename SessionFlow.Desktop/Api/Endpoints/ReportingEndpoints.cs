@@ -12,7 +12,7 @@ public static class ReportingEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var reports = app.MapGroup("/api/reports").RequireAuthorization();
+        var reports = app.MapGroup("/api/v1/reports").RequireAuthorization();
 
         // GET /api/reports/session/{id} — download PDF report
         reports.MapGet("/session/{id:guid}", async (Guid id, ReportingService reporting, MongoService db, HttpContext ctx) =>

@@ -27,6 +27,18 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error:", error, errorInfo);
+    
+    // F14: Detect chunk load failures (common after deployments) and auto-reload once
+    const isChunkError = error.message?.includes('Loading chunk') || 
+                         error.message?.includes('Failed to fetch dynamically imported module') ||
+                         error.message?.includes('Importing a module script failed');
+    
+    if (isChunkError && !sessionStorage.getItem('chunk_reload_attempted')) {
+      sessionStorage.setItem('chunk_reload_attempted', '1');
+      window.location.reload();
+      return;
+    }
+    // Clear the flag on successful loads (set in main.tsx or App.tsx)
   }
 
   public handleRetry = () => {

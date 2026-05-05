@@ -4,7 +4,44 @@ import { clearSessionCaches } from "../lib/sessionCleanup";
 
 // In dev: Vite proxy forwards /api → Railway (BASE_URL = "")
 // In Electron build: VITE_API_URL = full Railway origin, so fetch hits it directly
-const BASE_URL = (import.meta.env.VITE_API_URL ?? "") + "/api";
+const BASE_URL = (import.meta.env.VITE_API_URL ?? "") + "/api/v1";
+
+// Refresh token rotation lock to prevent concurrent refresh attempts
+let refreshPromise: Promise<boolean> | null = null;
+
+async function attemptTokenRefresh(): Promise<boolean> {
+  // If already refreshing, wait for the existing attempt
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    try {
+      const { refreshToken } = useAuthStore.getState();
+      if (!refreshToken) return false;
+
+      const response = await fetch(`${BASE_URL}/auth/refresh`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!response.ok) return false;
+
+      const data = await response.json();
+      const { setAuth } = useAuthStore.getState();
+      setAuth(data.user, data.token, data.refreshToken);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
 
 
 export async function fetchPublic<T>(
@@ -55,10 +92,30 @@ export async function fetchWithAuth<T>(
   apiMonitor.track(endpoint, options.method || "GET");
 
   try {
-    const response = await fetch(`${BASE_URL}${endpoint}`, {
+    let response = await fetch(`${BASE_URL}${endpoint}`, {
       ...options,
       headers,
     });
+
+    // Automatic token refresh on 401
+    if (response.status === 401) {
+      const refreshed = await attemptTokenRefresh();
+      if (refreshed) {
+        // Retry the original request with the new token
+        const { token: newToken } = useAuthStore.getState();
+        const retryHeaders = new Headers(options.headers);
+        if (newToken) retryHeaders.set("Authorization", `Bearer ${newToken}`);
+        if (!isBlob && !retryHeaders.has("Content-Type") && !(options.body instanceof FormData)) {
+          retryHeaders.set("Content-Type", "application/json");
+        }
+        retryHeaders.set("X-Requested-With", "XMLHttpRequest");
+
+        response = await fetch(`${BASE_URL}${endpoint}`, {
+          ...options,
+          headers: retryHeaders,
+        });
+      }
+    }
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -104,3 +161,4 @@ export async function fetchWithAuth<T>(
 }
 
 // Resource modules can now use this client.
+

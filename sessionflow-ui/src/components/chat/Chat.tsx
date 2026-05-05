@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from "react";
 import { Send, User as UserIcon, Smile, Paperclip, X, MessageSquare, Loader2, Clock, Check, CheckCheck, Lock, ChevronDown, Zap, Target, Copy, Sparkles, Info, MoreVertical, Eye, Image as ImageIcon, Video, FileText, ArrowUpRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn, getTierBorderClass, getTierBadge, getStudentBorderStyle } from "../../lib/utils";
@@ -15,14 +15,23 @@ import { useNavigate } from "react-router-dom";
 import { AudioPlayer } from "./AudioPlayer";
 import { ImageViewer } from "./ImageViewer";
 import { format, isToday, isYesterday } from "date-fns";
-import data from '@emoji-mart/data';
-import Picker from '@emoji-mart/react';
+// F5: Lazy-loaded emoji picker — saves ~300KB from initial bundle
+const LazyEmojiData = () => import('@emoji-mart/data');
+const LazyPicker = lazy(() => import('@emoji-mart/react'));
 import { Group, Student, User as ProjectUser } from "../../types";
 import { createMentionEngine, MentionEngine, MentionableMember } from "../../lib/MentionEngine";
 import { usePresenceStore, PresenceStatus } from "../../store/presenceStore";
 import AnimatedChatIcon from "../ui/AnimatedChatIcon";
 import ReactionBar from "./ReactionBar";
 import { Events } from "../../lib/eventContracts";
+
+// F5: Wrapper that loads emoji data on-demand
+const EmojiPickerLoader: React.FC<{ onEmojiSelect: (emoji: any) => void }> = ({ onEmojiSelect }) => {
+  const [emojiData, setEmojiData] = React.useState<any>(null);
+  React.useEffect(() => { LazyEmojiData().then(m => setEmojiData(m.default)); }, []);
+  if (!emojiData) return <div className="flex items-center justify-center h-[350px] bg-slate-900"><div className="w-8 h-8 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" /></div>;
+  return <LazyPicker data={emojiData} onEmojiSelect={onEmojiSelect} theme="dark" set="native" previewPosition="none" skinTonePosition="none" width="100%" />;
+};
 
 const BlockMessageRenderer: React.FC<{ message: ChatMessage }> = ({ message }) => {
   const { text, blocks, mentions } = message;
@@ -489,15 +498,9 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
               exit={{ opacity: 0, y: 20, scale: 0.95 }}
               className="absolute bottom-full start-4 end-4 md:start-8 md:end-auto mb-6 z-[60] shadow-2xl rounded-3xl overflow-hidden border border-white/10"
             >
-              <Picker 
-                data={data} 
-                onEmojiSelect={handleEmojiSelect} 
-                theme="dark"
-                set="native"
-                previewPosition="none"
-                skinTonePosition="none"
-                width="100%"
-              />
+              <Suspense fallback={<div className="flex items-center justify-center h-[350px] bg-slate-900"><div className="w-8 h-8 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" /></div>}>
+                <EmojiPickerLoader onEmojiSelect={handleEmojiSelect} />
+              </Suspense>
             </motion.div>
           )}
 

@@ -18,4 +18,14 @@ public class AuditLog
     public string EntityId { get; set; } = string.Empty;
     public string Details { get; set; } = string.Empty;
     public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
+
+    // Security forensics
+    [BsonIgnoreIfNull]
+    public string? IpAddress { get; set; }
+
+    [BsonIgnoreIfNull]
+    public string? UserAgent { get; set; }
+
+    [BsonIgnoreIfNull]
+    public string? Severity { get; set; } // Info, Warning, Critical
 }

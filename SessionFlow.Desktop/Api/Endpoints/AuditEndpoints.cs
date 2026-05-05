@@ -11,7 +11,7 @@ public static class AuditEndpoints
     public static void Map(WebApplication app)
     {
         // Require Admin policy for audit logs
-        var group = app.MapGroup("/api/admin/audit-logs").RequireAuthorization("AdminOnly");
+        var group = app.MapGroup("/api/v1/admin/audit-logs").RequireAuthorization("AdminOnly");
 
         group.MapGet("/", async (AuditService service) =>
         {

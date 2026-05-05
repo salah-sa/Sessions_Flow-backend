@@ -63,11 +63,37 @@ public class AuthService
         if (user == null)
             return (null, null, "Invalid credentials.");
 
+        // ── Brute-force protection: check account lockout ──
+        if (user.LockoutUntil.HasValue && user.LockoutUntil.Value > DateTimeOffset.UtcNow)
+        {
+            var remaining = (int)(user.LockoutUntil.Value - DateTimeOffset.UtcNow).TotalMinutes + 1;
+            return (null, null, $"Account temporarily locked. Try again in {remaining} minute(s).");
+        }
+
         if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+        {
+            // Increment failed attempts; lock after 5 consecutive failures
+            var newCount = user.FailedLoginAttempts + 1;
+            var updateFail = Builders<User>.Update.Set(u => u.FailedLoginAttempts, newCount);
+            if (newCount >= 5)
+            {
+                updateFail = updateFail.Set(u => u.LockoutUntil, DateTimeOffset.UtcNow.AddMinutes(10));
+            }
+            await _db.Users.UpdateOneAsync(u => u.Id == user.Id, updateFail);
             return (null, null, "Invalid credentials.");
+        }
 
         if (!user.IsApproved)
             return (null, null, "Your account is pending approval.");
+
+        // ── Successful login: reset lockout state ──
+        if (user.FailedLoginAttempts > 0 || user.LockoutUntil.HasValue)
+        {
+            var resetLockout = Builders<User>.Update
+                .Set(u => u.FailedLoginAttempts, 0)
+                .Unset(u => u.LockoutUntil);
+            await _db.Users.UpdateOneAsync(u => u.Id == user.Id, resetLockout);
+        }
 
         var token = GenerateJwtToken(user);
         return (user, token, null);
@@ -791,12 +817,23 @@ public class AuthService
             if (commaIndex < 0)
                 throw new ArgumentException("Invalid base64 image payload.");
 
+            // S11: Validate declared content-type
+            var mimeSegment = avatarPayload[5..avatarPayload.IndexOf(';')]; // "image/png" etc.
+            var allowedMimes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                { "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml" };
+            if (!allowedMimes.Contains(mimeSegment))
+                throw new ArgumentException($"Unsupported image format: {mimeSegment}. Allowed: JPEG, PNG, GIF, WebP.");
+
             var base64Data = avatarPayload[(commaIndex + 1)..];
             var imageBytes = Convert.FromBase64String(base64Data);
 
             // Enforce 2MB limit
             if (imageBytes.Length > 2 * 1024 * 1024)
                 throw new ArgumentException("Avatar too large. Maximum 2MB allowed.");
+
+            // S11: Magic byte validation — verify actual file content matches claimed type
+            if (!IsValidImageMagicBytes(imageBytes))
+                throw new ArgumentException("File content does not match a valid image format. Upload rejected.");
 
             using var scope = _scopeFactory.CreateScope();
             var storage = scope.ServiceProvider.GetRequiredService<StorageService>();
@@ -1030,7 +1067,8 @@ public class AuthService
             ?? throw new InvalidOperationException("JWT SecretKey not configured.");
         var issuer = _config["Jwt:Issuer"] ?? "SessionFlow";
         var audience = _config["Jwt:Audience"] ?? "SessionFlow";
-        var expiryDays = int.Parse(_config["Jwt:ExpiryDays"] ?? "7");
+        // Short-lived access tokens (default: 60 min). Refresh tokens handle renewal.
+        var expiryMinutes = int.Parse(_config["Jwt:ExpiryMinutes"] ?? "60");
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey.Trim()))
         {
@@ -1064,11 +1102,130 @@ public class AuthService
             issuer: issuer,
             audience: audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddDays(expiryDays),
+            expires: DateTime.UtcNow.AddMinutes(expiryMinutes),
             signingCredentials: credentials
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    // ── Refresh Token Management ────────────────────────────────────────
+
+    /// <summary>
+    /// Creates a new refresh token and persists its SHA-256 hash to MongoDB.
+    /// Returns the raw token value (to be sent to the client once).
+    /// </summary>
+    public async Task<(string rawToken, RefreshToken entity)> CreateRefreshTokenAsync(
+        Guid userId, string? ipAddress = null, string? userAgent = null)
+    {
+        var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+        var tokenHash = ComputeSha256(rawToken);
+
+        var refreshToken = new RefreshToken
+        {
+            UserId = userId,
+            TokenHash = tokenHash,
+            ExpiresAt = DateTimeOffset.UtcNow.AddDays(30),
+            IpAddress = ipAddress,
+            UserAgent = userAgent
+        };
+
+        await _db.RefreshTokens.InsertOneAsync(refreshToken);
+        return (rawToken, refreshToken);
+    }
+
+    /// <summary>
+    /// Rotates a refresh token: revokes the old one, issues a new one.
+    /// Returns null if the token is invalid, expired, or already revoked (replay attack).
+    /// </summary>
+    public async Task<(User? user, string? accessToken, string? newRefreshToken, string? error)> RotateRefreshTokenAsync(
+        string rawToken, string? ipAddress = null, string? userAgent = null)
+    {
+        var tokenHash = ComputeSha256(rawToken);
+        var existing = await _db.RefreshTokens
+            .Find(rt => rt.TokenHash == tokenHash)
+            .FirstOrDefaultAsync();
+
+        if (existing == null)
+            return (null, null, null, "Invalid refresh token.");
+
+        if (existing.IsRevoked)
+        {
+            // Replay detected — revoke ALL tokens for this user
+            Log.Warning("[Auth] Refresh token replay detected for UserId={UserId}. Revoking all tokens.", existing.UserId);
+            var revokeAll = Builders<RefreshToken>.Update
+                .Set(rt => rt.RevokedAt, DateTimeOffset.UtcNow);
+            await _db.RefreshTokens.UpdateManyAsync(
+                rt => rt.UserId == existing.UserId && rt.RevokedAt == null, revokeAll);
+            return (null, null, null, "Token reuse detected. All sessions revoked.");
+        }
+
+        if (existing.IsExpired)
+            return (null, null, null, "Refresh token expired. Please login again.");
+
+        // Revoke current token
+        var revokeUpdate = Builders<RefreshToken>.Update
+            .Set(rt => rt.RevokedAt, DateTimeOffset.UtcNow);
+
+        // Create new token
+        var (newRawToken, newEntity) = await CreateRefreshTokenAsync(existing.UserId, ipAddress, userAgent);
+
+        // Link old → new for audit trail
+        revokeUpdate = revokeUpdate.Set(rt => rt.ReplacedByTokenId, newEntity.Id);
+        await _db.RefreshTokens.UpdateOneAsync(rt => rt.Id == existing.Id, revokeUpdate);
+
+        // Issue new access token
+        var user = await GetUserByIdAsync(existing.UserId);
+        if (user == null || !user.IsApproved)
+            return (null, null, null, "User account not found or not approved.");
+
+        var accessToken = GenerateJwtToken(user);
+        return (user, accessToken, newRawToken, null);
+    }
+
+    /// <summary>
+    /// Revokes all refresh tokens for a user (logout-all, password change, etc.)
+    /// </summary>
+    public async Task RevokeAllRefreshTokensAsync(Guid userId)
+    {
+        var update = Builders<RefreshToken>.Update
+            .Set(rt => rt.RevokedAt, DateTimeOffset.UtcNow);
+        await _db.RefreshTokens.UpdateManyAsync(
+            rt => rt.UserId == userId && rt.RevokedAt == null, update);
+    }
+
+    private static string ComputeSha256(string input)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+        return Convert.ToHexStringLower(bytes);
+    }
+
+    /// <summary>
+    /// S11: Validates file content against known image format magic bytes.
+    /// Prevents disguised malicious file uploads.
+    /// </summary>
+    private static bool IsValidImageMagicBytes(byte[] data)
+    {
+        if (data.Length < 4) return false;
+
+        // JPEG: FF D8 FF
+        if (data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF) return true;
+
+        // PNG: 89 50 4E 47
+        if (data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47) return true;
+
+        // GIF: 47 49 46 38 (GIF87a or GIF89a)
+        if (data[0] == 0x47 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x38) return true;
+
+        // WebP: RIFF....WEBP (bytes 0-3 = RIFF, bytes 8-11 = WEBP)
+        if (data.Length >= 12 &&
+            data[0] == 0x52 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x46 &&
+            data[8] == 0x57 && data[9] == 0x45 && data[10] == 0x42 && data[11] == 0x50) return true;
+
+        // BMP: 42 4D
+        if (data[0] == 0x42 && data[1] == 0x4D) return true;
+
+        return false;
     }
 
     public async Task SeedAdminAsync()

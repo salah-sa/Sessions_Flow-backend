@@ -71,7 +71,7 @@ export const useAuthMutations = () => {
       authApi.loginSocial(provider, id),
     onSuccess: (data: AuthResponse) => {
       // Login mutations are the ONLY place we call setAuth with a new token
-      setAuth(data.user, data.token);
+      setAuth(data.user, data.token, data.refreshToken);
     },
   });
 

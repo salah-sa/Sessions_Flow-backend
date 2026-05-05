@@ -12,7 +12,7 @@ public static class AccessEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/access").RequireAuthorization();
+        var group = app.MapGroup("/api/v1/access").RequireAuthorization();
 
         // GET /api/access/requests
         group.MapGet("/requests", async (MongoService db, ITenantProvider tenantProvider) =>

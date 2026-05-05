@@ -128,7 +128,22 @@ public class SessionService
 
         if (newSessions.Count > 0)
         {
-            await _db.Sessions.InsertManyAsync(newSessions);
+            // D5: Schedule idempotency — deduplicate against existing sessions
+            var scheduledTimes = newSessions.Select(s => s.ScheduledAt).ToList();
+            var existingDuplicates = await _db.Sessions
+                .Find(s => s.GroupId == group.Id && scheduledTimes.Contains(s.ScheduledAt) && !s.IsDeleted)
+                .ToListAsync();
+
+            if (existingDuplicates.Count > 0)
+            {
+                var existingTimes = new HashSet<DateTimeOffset>(existingDuplicates.Select(s => s.ScheduledAt));
+                newSessions = newSessions.Where(s => !existingTimes.Contains(s.ScheduledAt)).ToList();
+                Serilog.Log.Warning("[SessionService] Skipped {Count} duplicate session(s) for group {GroupId}",
+                    existingDuplicates.Count, group.Id);
+            }
+
+            if (newSessions.Count > 0)
+                await _db.Sessions.InsertManyAsync(newSessions);
         }
     }
 

@@ -1,54 +1,120 @@
-﻿name: SessionFlow SaaS Build
+name: SessionFlow CI/CD
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
+
+env:
+  NODE_VERSION: '20'
+  DOTNET_VERSION: '9.0.x'
 
 jobs:
-  build-frontend:
+  # ═══════════════════════════════════════════════
+  # Step 1: Frontend — Lint, Type-Check, Build
+  # ═══════════════════════════════════════════════
+  frontend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: './sessionflow-ui/package-lock.json'
+
       - name: Install dependencies
         working-directory: ./sessionflow-ui
         run: npm ci
-      - name: Build frontend
+
+      - name: Type-check (TSC)
+        working-directory: ./sessionflow-ui
+        run: npx tsc --noEmit
+
+      - name: Architecture Guard
+        working-directory: ./sessionflow-ui
+        run: npx tsx scripts/arch-guard.ts
+
+      - name: Build production bundle
         working-directory: ./sessionflow-ui
         run: npm run build
-      - name: Upload dist
+
+      - name: Upload frontend dist
         uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
           path: ./sessionflow-ui/dist
+          retention-days: 5
 
-  build-backend:
-    needs: build-frontend
-    runs-on: windows-latest
+  # ═══════════════════════════════════════════════
+  # Step 2: Backend — Restore, Build, Format Check
+  # ═══════════════════════════════════════════════
+  backend:
+    needs: frontend
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
       - name: Download frontend dist
         uses: actions/download-artifact@v4
         with:
           name: frontend-dist
           path: ./SessionFlow.Desktop/wwwroot
+
       - name: Restore dependencies
-        working-directory: ./SessionFlow.Desktop
-        run: dotnet restore
-      - name: Build
-        working-directory: ./SessionFlow.Desktop
-        run: dotnet build --configuration Release --no-restore
-      - name: Publish
-        working-directory: ./SessionFlow.Desktop
-        run: dotnet publish --configuration Release --no-build -o ../dist/SessionFlow
+        run: dotnet restore HeadlessHost/HeadlessHost.csproj
+
+      - name: Build (Release)
+        run: dotnet build HeadlessHost/HeadlessHost.csproj --configuration Release --no-restore
+
+      - name: Verify formatting
+        run: dotnet format HeadlessHost/HeadlessHost.csproj --verify-no-changes --severity warn || true
+
+      - name: Run unit tests
+        run: dotnet test SessionFlow.Tests/SessionFlow.Tests.csproj --verbosity minimal --no-restore
+
+  # ═══════════════════════════════════════════════
+  # Step 3: Docker Build + Security Scan
+  # ═══════════════════════════════════════════════
+  docker:
+    needs: [frontend, backend]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t sessionflow:${{ github.sha }} .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: sessionflow:${{ github.sha }}
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
+
+  # ═══════════════════════════════════════════════
+  # Step 4: Dependency Lock Verification
+  # ═══════════════════════════════════════════════
+  lockfile-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Verify package-lock.json integrity
+        working-directory: ./sessionflow-ui
+        run: npm ci --ignore-scripts

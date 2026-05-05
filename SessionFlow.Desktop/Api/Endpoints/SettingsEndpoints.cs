@@ -17,7 +17,7 @@ public static class SettingsEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/settings").RequireAuthorization();
+        var group = app.MapGroup("/api/v1/settings").RequireAuthorization();
 
         // GET /api/settings - all settings (filtered by role)
         group.MapGet("/", async (MongoService db, ClaimsPrincipal user) =>

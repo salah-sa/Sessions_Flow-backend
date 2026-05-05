@@ -9,6 +9,7 @@ using Serilog;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using SessionFlow.Desktop.Api.Endpoints;
 using SessionFlow.Desktop.Api.Hubs;
@@ -20,6 +21,9 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http;
 using System.Linq;
 using System.Net.Http;
+using OpenTelemetry.Trace;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 using SessionFlow.Desktop.Helpers;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
@@ -74,11 +78,25 @@ public static class ApiHost
         }
 
         Log.Information("[Bootstrap] Stage 3: Registering Core Services...");
-        // Configure Serilog
+        // Configure Serilog — S14: Secret Masking via destructure policy
         builder.Host.UseSerilog((context, services, configuration) => configuration
             .ReadFrom.Configuration(context.Configuration)
             .ReadFrom.Services(services)
             .Enrich.FromLogContext()
+            .Destructure.ByTransforming<Dictionary<string, object>>(d =>
+            {
+                var maskedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                    { "password", "token", "secret", "apikey", "api_key", "refreshtoken",
+                      "accesstoken", "authorization", "cookie", "hmac", "privatekey",
+                      "connectionstring", "secretkey", "jwt", "otp", "code" };
+                var result = new Dictionary<string, object>(d);
+                foreach (var key in d.Keys)
+                {
+                    if (maskedKeys.Any(mk => key.Contains(mk, StringComparison.OrdinalIgnoreCase)))
+                        result[key] = "***REDACTED***";
+                }
+                return result;
+            })
             .WriteTo.Console()
             .WriteTo.File(
                 new Serilog.Formatting.Json.JsonFormatter(),
@@ -89,6 +107,34 @@ public static class ApiHost
         builder.Services.AddHealthChecks()
             .AddCheck<MongoHealthCheck>("MongoDB")
             .AddCheck<RedisHealthCheck>("Redis");
+
+        // A4: OpenAPI document generation (Development only)
+        builder.Services.AddOpenApi();
+
+        // O3: OpenTelemetry Tracing — ASP.NET Core + HTTP client instrumentation
+        builder.Services.AddOpenTelemetry()
+            .WithTracing(tracing =>
+            {
+                tracing
+                    .SetResourceBuilder(
+                        OpenTelemetry.Resources.ResourceBuilder.CreateDefault()
+                            .AddService("SessionFlow"))
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation();
+
+                // Console exporter for Development (switch to OTLP/Jaeger in prod)
+                if (builder.Environment.IsDevelopment())
+                {
+                    tracing.AddConsoleExporter();
+                }
+            })
+            .WithMetrics(metrics =>
+            {
+                metrics
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddPrometheusExporter();
+            });
             
         builder.Services.ConfigureHttpJsonOptions(options =>
         {
@@ -290,12 +336,29 @@ public static class ApiHost
         }
         builder.Services.AddLogging();
 
-        // 2. JWT Authentication
+        // 2. JWT Authentication — Dual-Key Rotation Support
         Log.Information("[Bootstrap] Stage 5: Configuring JWT & Auth...");
         var secretKey = builder.Configuration["Jwt:SecretKey"]
             ?? throw new InvalidOperationException("JWT SecretKey is not configured. Set SESSIONFLOW_JWT_SECRET environment variable.");
         var issuer = builder.Configuration["Jwt:Issuer"] ?? "SessionFlow";
         var audience = builder.Configuration["Jwt:Audience"] ?? "SessionFlow";
+
+        // Support key rotation: Primary + optional Secondary (old) key
+        var primaryKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey.Trim()))
+        {
+            KeyId = "SessionFlow-Primary-Key"
+        };
+
+        var signingKeys = new List<SecurityKey> { primaryKey };
+        var secondarySecret = builder.Configuration["Jwt:SecondaryKey"];
+        if (!string.IsNullOrWhiteSpace(secondarySecret))
+        {
+            signingKeys.Add(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secondarySecret.Trim()))
+            {
+                KeyId = "SessionFlow-Secondary-Key"
+            });
+            Log.Information("[Bootstrap] JWT dual-key rotation enabled (Primary + Secondary).");
+        }
 
         builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
@@ -308,10 +371,7 @@ public static class ApiHost
                     ValidateIssuerSigningKey = true,
                     ValidIssuer = issuer,
                     ValidAudience = audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey.Trim()))
-                    {
-                        KeyId = "SessionFlow-Primary-Key"
-                    }
+                    IssuerSigningKeys = signingKeys
                 };
                 
                 options.Events = new JwtBearerEvents
@@ -401,6 +461,16 @@ public static class ApiHost
         });
 
 
+
+        // ── O2: Correlation ID (must be FIRST for full request tracing) ──
+        app.UseMiddleware<SessionFlow.Desktop.Api.Middleware.CorrelationIdMiddleware>();
+
+        // ── Global Exception Handler ─────────────────────────────────
+        app.UseMiddleware<SessionFlow.Desktop.Api.Middleware.GlobalExceptionMiddleware>();
+
+        // ── D2: Idempotency Guard (opt-in via Idempotency-Key header) ──
+        app.UseMiddleware<SessionFlow.Desktop.Api.Middleware.IdempotencyMiddleware>();
+
         // ── CSRF: Validate X-Requested-With on mutating requests ──────
         app.Use(async (context, next) =>
         {
@@ -410,11 +480,11 @@ public static class ApiHost
             
             // Skip CSRF for auth endpoints (JWT-based, already rate-limited),
             // SignalR hub, health checks, and file uploads
-            var isExempt = path.StartsWith("/api/auth", StringComparison.OrdinalIgnoreCase) ||
+            var isExempt = path.StartsWith("/api/v1/auth", StringComparison.OrdinalIgnoreCase) ||
                            path.StartsWith("/hub", StringComparison.OrdinalIgnoreCase) ||
                            path == "/ping" ||
                            path.StartsWith("/uploads", StringComparison.OrdinalIgnoreCase) ||
-                           path.StartsWith("/api/admin/gmail/callback", StringComparison.OrdinalIgnoreCase);
+                           path.StartsWith("/api/v1/admin/gmail/callback", StringComparison.OrdinalIgnoreCase);
             
             if (isMutating && !isExempt && !context.Request.Headers.ContainsKey("X-Requested-With"))
             {
@@ -430,6 +500,13 @@ public static class ApiHost
         app.MapGet("/ping", () => Results.Ok(new { status = "alive", time = DateTime.UtcNow }));
 
 // 4. Pipeline Configuration
+        // A4: OpenAPI endpoint (Development only)
+        if (app.Environment.IsDevelopment())
+        {
+            app.MapOpenApi();
+        }
+        // O4: Prometheus metrics scraping endpoint
+        app.UseOpenTelemetryPrometheusScrapingEndpoint();
         app.UseCors("LocalOnly");
         app.UseMiddleware<RateLimitingMiddleware>();
         app.UseAuthentication();
@@ -480,7 +557,7 @@ public static class ApiHost
         app.MapHub<SessionHub>("/hub");
         app.MapHub<NotificationHub>("/hub/notifications");
         
-        app.MapHealthChecks("/api/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+        app.MapHealthChecks("/api/v1/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
         {
             ResponseWriter = async (context, report) =>
             {
@@ -488,10 +565,15 @@ public static class ApiHost
                 var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0";
                 
                 // Build per-service status map dynamically
-                var services = new Dictionary<string, string>();
+                var services = new Dictionary<string, object>();
                 foreach (var entry in report.Entries)
                 {
-                    services[entry.Key.ToLowerInvariant()] = entry.Value.Status == HealthStatus.Healthy ? "connected" : "disconnected";
+                    services[entry.Key.ToLowerInvariant()] = new
+                    {
+                        status = entry.Value.Status == HealthStatus.Healthy ? "connected" : "disconnected",
+                        duration = entry.Value.Duration.TotalMilliseconds.ToString("F1") + "ms",
+                        description = entry.Value.Description ?? ""
+                    };
                 }
                 
                 var response = new
@@ -499,6 +581,9 @@ public static class ApiHost
                     status = report.Status == HealthStatus.Healthy ? "ok" : "degraded",
                     services,
                     version,
+                    uptime = (DateTimeOffset.UtcNow - System.Diagnostics.Process.GetCurrentProcess().StartTime.ToUniversalTime()).ToString(@"d\.hh\:mm\:ss"),
+                    totalDuration = report.TotalDuration.TotalMilliseconds.ToString("F1") + "ms",
+                    environment = app.Environment.EnvironmentName,
                     time = DateTimeOffset.UtcNow,
                     cairoTime = DateTimeOffset.UtcNow.ToCairoTime(app.Configuration)
                 };
@@ -506,6 +591,9 @@ public static class ApiHost
                 await context.Response.WriteAsJsonAsync(response);
             }
         });
+
+        // A5: /healthz alias for Kubernetes / Docker health probes
+        app.MapGet("/healthz", () => Results.Ok(new { status = "ok", time = DateTime.UtcNow }));
 
         // Fallback for SPA routing
         app.MapFallbackToFile("index.html");

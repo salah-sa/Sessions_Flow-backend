@@ -10,7 +10,7 @@ public static class StationEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/stations").RequireAuthorization("AdminOnly");
+        var group = app.MapGroup("/api/v1/stations").RequireAuthorization("AdminOnly");
 
         // GET /api/stations — list all stations
         group.MapGet("/", async (MongoService db) =>

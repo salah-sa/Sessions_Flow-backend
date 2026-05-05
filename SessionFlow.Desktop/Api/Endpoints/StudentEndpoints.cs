@@ -17,7 +17,7 @@ public static class StudentEndpoints
 
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/students").RequireAuthorization();
+        var group = app.MapGroup("/api/v1/students").RequireAuthorization();
 
         // GET /api/student/dashboard - SSOT for Student UI
         app.MapGet("/api/student/dashboard", async (MongoService db, HttpContext ctx, AuthService auth) =>

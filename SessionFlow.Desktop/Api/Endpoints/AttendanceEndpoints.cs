@@ -11,7 +11,7 @@ public static class AttendanceEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/attendance").RequireAuthorization();
+        var group = app.MapGroup("/api/v1/attendance").RequireAuthorization();
 
         // GET /api/attendance?sessionId=&studentId= — get attendance records with tenant isolation
         group.MapGet("/", async (MongoService db, HttpContext ctx, string? sessionId, string? studentId) =>

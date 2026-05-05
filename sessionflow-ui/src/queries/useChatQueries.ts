@@ -13,6 +13,8 @@ export const useInfiniteChatMessages = (groupId: string | undefined) => {
       // Index 0 is newest, index length-1 is oldest in current page
       return lastPage[lastPage.length - 1].sentAt;
     },
+    // F4: Memory cap — keep only 20 most recent pages (1000 msgs) in memory
+    maxPages: 20,
     enabled: !!groupId,
     refetchInterval: false,
   });

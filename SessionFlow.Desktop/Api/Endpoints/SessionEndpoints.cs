@@ -15,7 +15,7 @@ public static class SessionEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/sessions").RequireAuthorization();
+        var group = app.MapGroup("/api/v1/sessions").RequireAuthorization();
 
         // GET /api/sessions — list sessions with filters
         group.MapGet("/", async (MongoService db, SessionService sessionService, HttpContext ctx, IConfiguration config, SessionFlow.Desktop.Services.MultiTenancy.ITenantProvider tenantProvider,

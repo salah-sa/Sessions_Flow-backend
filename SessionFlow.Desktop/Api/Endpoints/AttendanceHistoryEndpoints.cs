@@ -17,7 +17,7 @@ public static class AttendanceHistoryEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/attendance").RequireAuthorization();
+        var group = app.MapGroup("/api/v1/attendance").RequireAuthorization();
 
         // ── Heatmap aggregation ───────────────────────────────────────────
         group.MapGet("/heatmap", async (

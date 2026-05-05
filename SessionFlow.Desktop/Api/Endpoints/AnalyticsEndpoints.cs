@@ -14,7 +14,7 @@ public static class AnalyticsEndpoints
     public static void Map(WebApplication app)
     {
         // ── Public Analytics Ingest (Frontend events) ─────────────────────────
-        var ingest = app.MapGroup("/api/analytics").RequireAuthorization();
+        var ingest = app.MapGroup("/api/v1/analytics").RequireAuthorization();
 
         // POST /api/analytics/event — Single event from frontend
         ingest.MapPost("/event", async (
@@ -49,7 +49,7 @@ public static class AnalyticsEndpoints
         });
 
         // ── Admin Analytics Dashboard ──────────────────────────────────────────
-        var admin = app.MapGroup("/api/analytics/admin")
+        var admin = app.MapGroup("/api/v1/analytics/admin")
             .RequireAuthorization()
             .AddEndpointFilter(async (ctx, next) =>
             {

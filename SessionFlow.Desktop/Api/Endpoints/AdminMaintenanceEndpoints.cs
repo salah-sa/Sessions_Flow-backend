@@ -16,7 +16,7 @@ public static class AdminMaintenanceEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/admin/maintenance");
+        var group = app.MapGroup("/api/v1/admin/maintenance");
 
         group.MapPost("/fix-session-times", async (MongoService db, SessionService sessionService) =>
         {

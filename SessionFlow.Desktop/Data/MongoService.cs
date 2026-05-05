@@ -279,6 +279,58 @@ public class MongoService
             Builders<AnalyticsEvent>.IndexKeys.Ascending(e => e.Timestamp),
             new CreateIndexOptions { ExpireAfter = TimeSpan.FromDays(90) }));
 
+        // ── Phase 13: Production Hardening Indexes ──────────────────────────
+        // Users: Role + EngineerId (admin dashboard queries)
+        await Users.Indexes.CreateOneAsync(new CreateIndexModel<User>(
+            Builders<User>.IndexKeys.Ascending(u => u.Role).Ascending(u => u.SubscriptionTier)));
+
+        // Groups: EngineerId + CreatedAt (dashboard sort)
+        await Groups.Indexes.CreateOneAsync(new CreateIndexModel<Group>(
+            Builders<Group>.IndexKeys.Ascending(g => g.EngineerId).Descending(g => g.CreatedAt)));
+
+        // Sessions: EngineerId + Status + ScheduledAt (session management queries)
+        await Sessions.Indexes.CreateOneAsync(new CreateIndexModel<Session>(
+            Builders<Session>.IndexKeys
+                .Ascending(s => s.EngineerId)
+                .Ascending(s => s.Status)
+                .Descending(s => s.ScheduledAt)));
+
+        // Transactions: InitiatedByUserId + CreatedAt (wallet history by user)
+        await Transactions.Indexes.CreateOneAsync(new CreateIndexModel<Transaction>(
+            Builders<Transaction>.IndexKeys.Ascending(t => t.InitiatedByUserId).Descending(t => t.CreatedAt)));
+
+        // AnalyticsEvents: EventType + Timestamp (dashboard aggregation)
+        await AnalyticsEvents.Indexes.CreateOneAsync(new CreateIndexModel<AnalyticsEvent>(
+            Builders<AnalyticsEvent>.IndexKeys.Ascending(e => e.EventType).Descending(e => e.Timestamp)));
+
+        // PaymentTransactions: UserId + CreatedAt (payment history)
+        await PaymentTransactions.Indexes.CreateOneAsync(new CreateIndexModel<PaymentTransaction>(
+            Builders<PaymentTransaction>.IndexKeys.Ascending(t => t.UserId).Descending(t => t.CreatedAt)));
+
+        // ── Refresh Tokens ──────────────────────────────────────────────────
+        await RefreshTokens.Indexes.CreateOneAsync(new CreateIndexModel<RefreshToken>(
+            Builders<RefreshToken>.IndexKeys.Ascending(rt => rt.UserId)));
+
+        // TTL: Auto-delete expired refresh tokens after 30 days
+        await RefreshTokens.Indexes.CreateOneAsync(new CreateIndexModel<RefreshToken>(
+            Builders<RefreshToken>.IndexKeys.Ascending(rt => rt.ExpiresAt),
+            new CreateIndexOptions { ExpireAfter = TimeSpan.FromDays(7) }));
+
+        // ── D2: Idempotency Records ─────────────────────────────────────────
+        var idempotencyCollection = _database.GetCollection<Api.Middleware.IdempotencyRecord>("IdempotencyRecords");
+        
+        // Unique hash prevents duplicate inserts
+        await idempotencyCollection.Indexes.CreateOneAsync(
+            new CreateIndexModel<Api.Middleware.IdempotencyRecord>(
+                Builders<Api.Middleware.IdempotencyRecord>.IndexKeys.Ascending(r => r.Hash),
+                new CreateIndexOptions { Unique = true }));
+        
+        // TTL: Auto-expire after 24 hours
+        await idempotencyCollection.Indexes.CreateOneAsync(
+            new CreateIndexModel<Api.Middleware.IdempotencyRecord>(
+                Builders<Api.Middleware.IdempotencyRecord>.IndexKeys.Ascending(r => r.CreatedAt),
+                new CreateIndexOptions { ExpireAfter = TimeSpan.FromHours(24) }));
+
         // Seed default feature flags
         Serilog.Log.Information("[Mongo] Seeding default feature flags...");
     }
@@ -328,6 +380,9 @@ public class MongoService
 
     // ── Analytics Events (Hybrid Tracking) ──────────────────────────────────
     public IMongoCollection<AnalyticsEvent> AnalyticsEvents => _database.GetCollection<AnalyticsEvent>("AnalyticsEvents");
+
+    // ── Refresh Tokens ──────────────────────────────────────────────────────
+    public IMongoCollection<RefreshToken> RefreshTokens => _database.GetCollection<RefreshToken>("RefreshTokens");
 
     public IMongoDatabase Database => _database;
     public IMongoClient Client => _database.Client;

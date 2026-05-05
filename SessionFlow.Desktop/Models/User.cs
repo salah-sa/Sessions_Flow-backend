@@ -89,4 +89,10 @@ public class User
     // Rate limiting for credential resend
     public int ResendCredentialsCount { get; set; } = 0;
     public DateTimeOffset? LastCredentialResendAt { get; set; }
+
+    // Brute-force protection — account lockout
+    public int FailedLoginAttempts { get; set; } = 0;
+
+    [BsonIgnoreIfNull]
+    public DateTimeOffset? LockoutUntil { get; set; }
 }

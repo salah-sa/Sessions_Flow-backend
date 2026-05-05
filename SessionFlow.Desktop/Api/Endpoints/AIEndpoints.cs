@@ -17,7 +17,7 @@ public static class AIEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/ai").RequireAuthorization();
+        var group = app.MapGroup("/api/v1/ai").RequireAuthorization();
 
         // ── POST /api/ai/chat — SSE Streaming + SignalR quota push ────────────
         group.MapPost("/chat", async (

@@ -404,7 +404,7 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       try {
         const currentToken = useAuthStore.getState().token;
         if (!currentToken) return;
-        const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/auth/me`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/auth/me`, {
           headers: {
             Authorization: `Bearer ${currentToken}`,
             "X-Requested-With": "XMLHttpRequest",

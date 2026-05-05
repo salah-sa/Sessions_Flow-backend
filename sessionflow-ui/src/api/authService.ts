@@ -42,7 +42,7 @@ export async function loginUser(
 
     // Store auth state
     const store = useAuthStore.getState();
-    store.setAuth(response.user, response.token);
+    store.setAuth(response.user, response.token, response.refreshToken);
     store.setRememberMe(rememberMe);
 
     return { success: true, user: response.user };

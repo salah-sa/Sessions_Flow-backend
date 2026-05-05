@@ -15,7 +15,7 @@ public static class WalletSubscriptionEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/subscription").RequireAuthorization();
+        var group = app.MapGroup("/api/v1/subscription").RequireAuthorization();
 
         // ── Eligibility pre-check ────────────────────────────────────────
         group.MapPost("/wallet-eligibility", async (

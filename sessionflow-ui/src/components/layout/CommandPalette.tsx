@@ -195,6 +195,9 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose }) => {
           exit={{ opacity: 0, scale: 0.95, y: -20 }}
           transition={{ type: "spring", damping: 25, stiffness: 400 }}
           className="w-full max-w-[600px] bg-[#0e1017]/95 backdrop-blur-3xl border border-white/[0.06] rounded-3xl shadow-[0_25px_100px_rgba(0,0,0,0.8)] overflow-hidden relative z-10"
+          role="dialog"
+          aria-label="Command palette"
+          aria-modal="true"
         >
           {/* Search Input */}
           <div className="p-5 border-b border-white/5 flex items-center gap-4">
@@ -212,6 +215,11 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose }) => {
               className="flex-1 bg-transparent border-none text-white focus:outline-none text-[15px] font-medium placeholder:text-slate-600"
               value={query}
               onChange={(e) => { setQuery(e.target.value); setActiveIndex(0); }}
+              role="combobox"
+              aria-expanded={flatItems.length > 0}
+              aria-controls="cmd-palette-list"
+              aria-activedescendant={flatItems[activeIndex] ? `cmd-item-${flatItems[activeIndex].id}` : undefined}
+              aria-label="Search command palette"
             />
             <div className="flex items-center gap-2">
               {query && (
@@ -226,7 +234,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* Results */}
-          <div ref={listRef} className="max-h-[400px] overflow-y-auto p-2 custom-scrollbar">
+          <div ref={listRef} id="cmd-palette-list" role="listbox" aria-label="Search results" className="max-h-[400px] overflow-y-auto p-2 custom-scrollbar">
             {/* Section header if showing recent */}
             {query.trim().length < 2 && recentItems.length > 0 && (
               <div className="px-4 pt-3 pb-2 text-[9px] font-black text-slate-600 uppercase tracking-[0.25em] flex items-center gap-2">
@@ -262,7 +270,10 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose }) => {
                         return (
                           <button
                             key={item.id}
+                            id={`cmd-item-${item.id}`}
                             data-idx={idx}
+                            role="option"
+                            aria-selected={isActive}
                             onClick={() => handleSelect(item)}
                             onMouseEnter={() => setActiveIndex(idx)}
                             className={cn(

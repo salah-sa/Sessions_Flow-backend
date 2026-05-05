@@ -12,7 +12,7 @@ public static class SupportEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var support = app.MapGroup("/api/support").RequireAuthorization();
+        var support = app.MapGroup("/api/v1/support").RequireAuthorization();
 
         // POST /api/support/tickets - Submit a new ticket (Any authenticated user)
         support.MapPost("/tickets", async (CreateTicketRequest req, MongoService db, HttpContext ctx) =>

@@ -16,12 +16,31 @@ import { useSignalR } from "../providers/SignalRProvider";
 // useCallStore.getState() to avoid stale closures.
 // ═══════════════════════════════════════════════════════════
 
-const ICE_SERVERS: RTCConfiguration = {
-  iceServers: [
+// R5: Dynamic ICE configuration with TURN server support
+// TURN enables NAT traversal for users behind symmetric NATs / restrictive firewalls.
+// Configure via env vars: VITE_TURN_URI, VITE_TURN_USER, VITE_TURN_PASS
+const buildIceConfig = (): RTCConfiguration => {
+  const servers: RTCIceServer[] = [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
-  ],
+  ];
+
+  const turnUri = import.meta.env.VITE_TURN_URI;
+  const turnUser = import.meta.env.VITE_TURN_USER;
+  const turnPass = import.meta.env.VITE_TURN_PASS;
+
+  if (turnUri && turnUser && turnPass) {
+    servers.push({
+      urls: turnUri,
+      username: turnUser,
+      credential: turnPass,
+    });
+  }
+
+  return { iceServers: servers };
 };
+
+const ICE_SERVERS: RTCConfiguration = buildIceConfig();
 
 export const useWebRTC = () => {
   const { invoke } = useSignalR();

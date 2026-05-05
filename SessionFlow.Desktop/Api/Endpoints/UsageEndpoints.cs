@@ -15,7 +15,7 @@ public static class UsageEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/usage").RequireAuthorization();
+        var group = app.MapGroup("/api/v1/usage").RequireAuthorization();
 
         group.MapGet("/today", async (
             ClaimsPrincipal principal,

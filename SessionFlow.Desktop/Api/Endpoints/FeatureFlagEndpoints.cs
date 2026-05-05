@@ -26,7 +26,7 @@ public static class FeatureFlagEndpoints
         }).RequireAuthorization();
 
         // ── Admin: full CRUD ──────────────────────────────────────────────────
-        var admin = app.MapGroup("/api/admin/flags")
+        var admin = app.MapGroup("/api/v1/admin/flags")
             .RequireAuthorization("AdminOnly");
 
         // GET /api/admin/flags

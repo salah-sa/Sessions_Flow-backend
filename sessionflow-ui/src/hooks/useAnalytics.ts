@@ -6,6 +6,8 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 
+const API_BASE = (import.meta.env.VITE_API_URL ?? "") + "/api/v1";
+
 interface AnalyticsEvent {
   eventType: string;
   route: string;
@@ -21,7 +23,7 @@ function flushQueue(queue: AnalyticsEvent[]): void {
   if (queue.length === 0) return;
   // sendBeacon is reliable across page transitions and doesn't block
   const blob = new Blob([JSON.stringify({ events: queue })], { type: "application/json" });
-  navigator.sendBeacon("/api/analytics/events/batch", blob);
+  navigator.sendBeacon(`${API_BASE}/analytics/events/batch`, blob);
 }
 
 let globalQueue: AnalyticsEvent[] = [];
@@ -59,7 +61,7 @@ if (typeof window !== "undefined") {
       [JSON.stringify({ events: globalQueue })],
       { type: "application/json" }
     );
-    navigator.sendBeacon("/api/analytics/events/batch", blob);
+    navigator.sendBeacon(`${API_BASE}/analytics/events/batch`, blob);
     globalQueue = [];
   });
 }

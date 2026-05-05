@@ -13,7 +13,7 @@ public static class EngineerEndpoints
     public static void Map(WebApplication app)
     {
         // --- Engineer stats ---
-        var engineers = app.MapGroup("/api/engineers").RequireAuthorization("AdminOnly");
+        var engineers = app.MapGroup("/api/v1/engineers").RequireAuthorization("AdminOnly");
 
         // GET /api/engineers â€” list all engineers with stats (Admin only)
         engineers.MapGet("/", async (MongoService db, HttpContext ctx) =>
@@ -122,7 +122,7 @@ public static class EngineerEndpoints
         });
 
         // --- Pending engineers ---
-        var pending = app.MapGroup("/api/pending").RequireAuthorization("AdminOnly");
+        var pending = app.MapGroup("/api/v1/pending").RequireAuthorization("AdminOnly");
 
         // GET /api/pending â€” list pending registrations (Admin only)
         pending.MapGet("/", async (MongoService db, HttpContext ctx) =>
@@ -212,7 +212,7 @@ public static class EngineerEndpoints
         });
 
         // --- Engineer codes ---
-        var codes = app.MapGroup("/api/engineer-codes").RequireAuthorization("AdminOnly");
+        var codes = app.MapGroup("/api/v1/engineer-codes").RequireAuthorization("AdminOnly");
 
         // GET /api/engineer-codes â€” list all codes
         codes.MapGet("/", async (MongoService db, HttpContext ctx) =>

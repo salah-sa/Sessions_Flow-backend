@@ -15,7 +15,7 @@ public static class SubscriptionEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/subscription");
+        var group = app.MapGroup("/api/v1/subscription");
 
         // GET: /api/subscription/status
         group.MapGet("/status", async (HttpContext ctx, AuthService auth, MongoService db) =>

@@ -14,7 +14,7 @@ public static class AdminUserEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/admin/users").RequireAuthorization();
+        var group = app.MapGroup("/api/v1/admin/users").RequireAuthorization();
 
         // GET: /api/admin/users — List all users (paginated, searchable)
         group.MapGet("/", async (HttpContext ctx, AuthService auth, MongoService db,

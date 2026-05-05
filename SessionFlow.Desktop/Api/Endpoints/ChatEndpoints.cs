@@ -15,7 +15,7 @@ public static class ChatEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/chat").RequireAuthorization();
+        var group = app.MapGroup("/api/v1/chat").RequireAuthorization();
 
         app.MapGet("/api/media/{id}", async (string id, StorageService storage, HttpContext ctx) =>
         {
@@ -257,7 +257,7 @@ public static class ChatEndpoints
             {
                 GroupId = groupId,
                 SenderId = userGuid,
-                Text = textParams.Trim(),
+                Text = SanitizeUserInput(textParams.Trim()),
                 FileUrl = fileUrl,
                 FileName = fileName,
                 FileType = fileType,
@@ -429,4 +429,39 @@ public static class ChatEndpoints
 
     public record SendMessageRequest(string Text);
     public record ReactionRequest(string Emoji);
+
+    /// <summary>
+    /// S13: Strips dangerous HTML tags from user-supplied text to prevent stored XSS.
+    /// Preserves plain text content. Markdown is rendered client-side so raw markdown is safe.
+    /// </summary>
+    private static string SanitizeUserInput(string input)
+    {
+        if (string.IsNullOrEmpty(input)) return input;
+
+        // Remove script/style/iframe/object/embed/form/link tags and their content
+        var dangerous = System.Text.RegularExpressions.Regex.Replace(
+            input,
+            @"<\s*(script|style|iframe|object|embed|form|link|meta|base)[^>]*>.*?</\s*\1\s*>|<\s*(script|style|iframe|object|embed|form|link|meta|base)[^>]*/?\s*>",
+            string.Empty,
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Singleline,
+            TimeSpan.FromMilliseconds(500));
+
+        // Remove event handlers (onclick, onerror, onload, etc.)
+        dangerous = System.Text.RegularExpressions.Regex.Replace(
+            dangerous,
+            @"\bon\w+\s*=\s*""[^""]*""|on\w+\s*=\s*'[^']*'",
+            string.Empty,
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase,
+            TimeSpan.FromMilliseconds(500));
+
+        // Remove javascript: and data: URIs in href/src attributes
+        dangerous = System.Text.RegularExpressions.Regex.Replace(
+            dangerous,
+            @"(href|src)\s*=\s*[""']\s*(javascript|data|vbscript)\s*:",
+            "$1=\"#\"",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase,
+            TimeSpan.FromMilliseconds(500));
+
+        return dangerous;
+    }
 }

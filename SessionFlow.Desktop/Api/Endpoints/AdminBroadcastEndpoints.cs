@@ -21,7 +21,7 @@ public static class AdminBroadcastEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/admin/broadcast").RequireAuthorization("AdminOnly");
+        var group = app.MapGroup("/api/v1/admin/broadcast").RequireAuthorization("AdminOnly");
 
         // ── Send broadcast ────────────────────────────────────────────────
         group.MapPost("/", async (

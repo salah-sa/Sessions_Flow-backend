@@ -11,7 +11,7 @@ public static class NotificationEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/notifications").RequireAuthorization();
+        var group = app.MapGroup("/api/v1/notifications").RequireAuthorization();
 
         group.MapGet("/", async (NotificationService service, ClaimsPrincipal user) =>
         {

@@ -14,7 +14,7 @@ public static class TimetableEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/timetable").RequireAuthorization();
+        var group = app.MapGroup("/api/v1/timetable").RequireAuthorization();
 
         // GET /api/timetable — weekly schedule
         group.MapGet("/", async (MongoService db, AuthService auth, HttpContext ctx, IConfiguration config) =>

@@ -11,7 +11,7 @@ public static class EntertainmentEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var ent = app.MapGroup("/api/entertainment").RequireAuthorization();
+        var ent = app.MapGroup("/api/v1/entertainment").RequireAuthorization();
 
         // ── Debug Challenge ──────────────────────────────────────
         ent.MapGet("/debug/random", async (string? domain, EntertainmentService svc) =>

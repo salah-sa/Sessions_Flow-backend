@@ -12,7 +12,7 @@ public static class ImportEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/import").RequireAuthorization();
+        var group = app.MapGroup("/api/v1/import").RequireAuthorization();
 
         // POST /api/import/3cschool/test — test connection to 3cschool.net
         group.MapPost("/3cschool/test", async (ThreeCSchoolService service, HttpContext ctx) =>
