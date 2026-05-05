@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Modal, Button, Input, Card } from "../../components/ui";
-import { Check, Clock, Users, ArrowRight, FileText, Calendar, CheckCircle2 } from "lucide-react";
+import { Check, Clock, Users, ArrowRight, FileText, Calendar, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Session } from "../../types";
 import { useSession, useSessionMutations } from "../../queries/useSessionQueries";
@@ -8,6 +8,7 @@ import { StudentFeedback, AttendanceFormData, generateAttendanceFormUrl } from "
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { cn, formatDateTo12h, formatTime12h } from "../../lib/utils";
+import { toast } from "sonner";
 
 interface AttendanceWizardProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ interface AttendanceWizardProps {
 export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onClose, session }) => {
   const { t } = useTranslation();
   const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Form State
   const [formData, setFormData] = useState<Partial<AttendanceFormData>>({});
@@ -96,42 +98,52 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
 
   const handleSubmit = async () => {
     const activeSession = detailedSession || session;
-    if (!activeSession) return;
+    if (!activeSession || isSubmitting) return;
 
-    // 1. Ensure the session is started if it's currently Scheduled
-    if (activeSession.status === "Scheduled") {
-      try {
-         await startMutation.mutateAsync(activeSession.id);
-      } catch (e: any) {
-         console.error("Failed to start session.", e);
-         // Don't block — the session may already be active
+    setIsSubmitting(true);
+
+    try {
+      // 1. MUST start the session first — BLOCK if this fails
+      if (activeSession.status === "Scheduled") {
+        try {
+          await startMutation.mutateAsync(activeSession.id);
+        } catch (e: any) {
+          const msg = e?.message || "Failed to start session.";
+          toast.error(msg, { icon: <AlertCircle className="w-4 h-4 text-rose-500" /> });
+          setIsSubmitting(false);
+          return; // ← STOP: session not started, cannot proceed
+        }
       }
-    }
 
-    // 2. Persist attendance records to MongoDB BEFORE opening the Google Form
-    if (formData.students && formData.students.length > 0) {
-      try {
-        const records = formData.students.map(s => ({
-          studentId: s.id,
-          status: (s.isPresent ? "Present" : "Absent") as import("../../types").AttendanceStatus
-        }));
-        await updateAttendanceMutation.mutateAsync({ id: activeSession.id, records });
-      } catch (e: any) {
-        console.error("Failed to persist attendance.", e);
-        // Continue — the form will still open
+      // 2. Persist attendance records — BLOCK if this fails
+      if (formData.students && formData.students.length > 0) {
+        try {
+          const records = formData.students.map(s => ({
+            studentId: s.id,
+            status: (s.isPresent ? "Present" : "Absent") as import("../../types").AttendanceStatus
+          }));
+          await updateAttendanceMutation.mutateAsync({ id: activeSession.id, records });
+        } catch (e: any) {
+          const msg = e?.message || "Failed to save attendance records.";
+          toast.error(msg, { icon: <AlertCircle className="w-4 h-4 text-rose-500" /> });
+          setIsSubmitting(false);
+          return; // ← STOP: attendance not saved, cannot proceed
+        }
       }
-    }
 
-    // 3. Generate and open Google Form URL
-    const url = generateAttendanceFormUrl(formData as AttendanceFormData);
-    window.open(url, "_blank");
-    
-    // 4. Notify parent to show the "Complete Attendance" confirmation dialog
-    if ((window as any).onWizardComplete) {
-       (window as any).onWizardComplete(activeSession.id);
+      // 3. All backend ops succeeded → open Google Form
+      const url = generateAttendanceFormUrl(formData as AttendanceFormData);
+      window.open(url, "_blank");
+
+      // 4. Notify parent to show the "Complete Attendance" confirmation dialog
+      if ((window as any).onWizardComplete) {
+        (window as any).onWizardComplete(activeSession.id);
+      }
+
+      onClose();
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    onClose();
   };
 
   if (!session || !formData.students) return null;
@@ -391,12 +403,14 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
           variant="primary" 
           className={cn("gap-2 w-48 shadow-[0_0_20px_rgba(var(--ui-accent-rgb),0.2)]", step === 4 && "bg-emerald-600 hover:bg-emerald-500 border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.3)] text-white")}
           onClick={step === 4 ? handleSubmit : handleNext}
+          disabled={step === 4 && isSubmitting}
         >
           {step === 4 ? (
-            <>
-              <FileText className="w-4 h-4" />
-              Submit to Form
-            </>
+            isSubmitting ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+            ) : (
+              <><FileText className="w-4 h-4" /> Submit to Form</>
+            )
           ) : (
             <>
               Next Step

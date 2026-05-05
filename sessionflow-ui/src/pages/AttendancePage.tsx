@@ -235,11 +235,15 @@ const AttendancePage: React.FC = () => {
                     </div>
                   )}
 
-                  {/* ── Ended badge ── */}
+                  {/* ── Prominent Completion Banner ── */}
                   {isEnded && (
-                    <div className="absolute top-0 right-0 px-3 py-1 bg-emerald-500/10 text-emerald-400 text-[8px] font-black uppercase tracking-[0.2em] rounded-bl-xl border-b border-l border-emerald-500/20 flex items-center gap-1">
-                      <Info className="w-2.5 h-2.5" />
-                      Hover for summary
+                    <div className="absolute top-0 inset-x-0 flex items-center justify-center gap-2 py-2 bg-gradient-to-r from-emerald-500/15 via-emerald-500/10 to-transparent border-b border-emerald-500/20 rounded-t-[inherit]">
+                      <div className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
+                        <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                      </div>
+                      <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-[0.15em]">
+                        Attendance Completed{session.sessionNumber ? ` — Session ${session.sessionNumber}` : ""}
+                      </span>
                     </div>
                   )}
 
