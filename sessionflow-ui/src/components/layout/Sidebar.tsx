@@ -325,12 +325,64 @@ const Sidebar: React.FC = () => {
           </>
         )}
 
-        {/* Entertainment Section — All Roles */}
+        {/* Entertainment Section — All Roles (Under Development) */}
         <div className="py-3 px-6">
           <p className="text-[9px] font-bold text-slate-700 uppercase tracking-widest mb-4">Entertainment</p>
           <div className="h-px bg-white/5" />
         </div>
-        <NavItem to="/entertainment" icon={Gamepad2} label="Entertainment" />
+        {/* ── Locked Entertainment Item ── */}
+        <motion.button
+          onClick={(e) => { e.preventDefault(); toast.info("🚧 Under Development — Coming Soon!"); }}
+          className="group relative flex items-center gap-4 px-6 py-2.5 rounded-xl transition-all duration-300 overflow-hidden w-full text-slate-500 hover:bg-white/[0.02] cursor-not-allowed"
+          whileHover="hover"
+        >
+          {/* Colorful icon wrapper */}
+          <motion.div
+            className="relative"
+            variants={{
+              hover: { scale: 1.18, rotate: -8, transition: { type: "spring", stiffness: 400, damping: 12 } }
+            }}
+          >
+            {/* Gradient glow ring */}
+            <motion.div
+              className="absolute -inset-1.5 rounded-xl opacity-40 blur-md"
+              style={{ background: "linear-gradient(135deg, #a855f7, #ec4899, #f97316, #06b6d4)" }}
+              animate={{ opacity: [0.25, 0.5, 0.25], scale: [0.95, 1.08, 0.95], rotate: [0, 180, 360] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <Gamepad2 className="w-5 h-5 relative z-10 text-transparent bg-clip-text" style={{
+              color: "transparent",
+              backgroundImage: "linear-gradient(135deg, #a855f7, #ec4899, #f97316)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              filter: "drop-shadow(0 0 6px rgba(168,85,247,0.4))"
+            } as any} />
+            {/* Animated lock badge */}
+            <motion.div
+              className="absolute -top-1.5 -end-1.5 w-4 h-4 rounded-full flex items-center justify-center z-20"
+              style={{ background: "linear-gradient(135deg, #f59e0b, #ef4444)" }}
+              animate={{ scale: [1, 1.2, 1], boxShadow: ["0 0 0px rgba(245,158,11,0.3)", "0 0 10px rgba(245,158,11,0.6)", "0 0 0px rgba(245,158,11,0.3)"] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <Lock className="w-2.5 h-2.5 text-white" />
+            </motion.div>
+          </motion.div>
+
+          <span className="text-[11px] font-bold uppercase tracking-[0.2em] flex-1 text-start bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent opacity-70 group-hover:opacity-100 transition-opacity">Entertainment</span>
+
+          {/* Hover tooltip */}
+          <motion.div
+            className="absolute -top-9 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest whitespace-nowrap pointer-events-none z-50 border"
+            style={{ background: "linear-gradient(135deg, rgba(168,85,247,0.15), rgba(236,72,153,0.15))", borderColor: "rgba(168,85,247,0.3)", color: "#c084fc" }}
+            initial={{ opacity: 0, y: 6, scale: 0.9 }}
+            variants={{
+              hover: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 500, damping: 20 } }
+            }}
+          >
+            🚧 Under Development
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-purple-500/30" />
+          </motion.div>
+        </motion.button>
 
         <NavItem to="/archive" icon={Archive} label={t("nav.archive") || "Archive"} locked={isStudent} />
         <NavItem to="/plans" icon={Crown} label={t("nav.plans") || "Plans & Upgrades"} locked={isStudent} />
