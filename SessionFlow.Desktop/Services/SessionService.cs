@@ -298,31 +298,17 @@ public class SessionService
             return (null, "Can only update attendance for active or ended sessions.");
 
         // Attendance Lockout: Prevent re-submitting a fully-finalized session's attendance
-        // Corrections to individual records are ALWAYS allowed within the 24-hour window.
         // Only block if ALL records are already finalized (no Unmarked left) AND user is not Admin.
-        // This allows corrections while preventing accidental full re-submissions.
         if (userRole != "Admin" && session.Status == SessionStatus.Ended)
         {
-            var cairoTz = GetConfiguredTimeZone();
-            var cairoNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, cairoTz);
-            if (session.EndedAt.HasValue)
+            var totalRecords = await _db.AttendanceRecords
+                .CountDocumentsAsync(ar => ar.SessionId == sessionId);
+            var unmarkedRecords = await _db.AttendanceRecords
+                .CountDocumentsAsync(ar => ar.SessionId == sessionId && ar.Status == AttendanceStatus.Unmarked);
+            // If all records exist and NONE are Unmarked → fully finalized → block
+            if (totalRecords > 0 && unmarkedRecords == 0)
             {
-                var endedCairo = TimeZoneInfo.ConvertTime(session.EndedAt.Value, cairoTz);
-                if (endedCairo.Date == cairoNow.Date)
-                {
-                    // Only lock if ALL records are already marked (fully finalized)
-                    var totalRecords = await _db.AttendanceRecords
-                        .CountDocumentsAsync(ar => ar.SessionId == sessionId);
-                    var unmarkedRecords = await _db.AttendanceRecords
-                        .CountDocumentsAsync(ar => ar.SessionId == sessionId && ar.Status == AttendanceStatus.Unmarked);
-                    // If all records exist and NONE are Unmarked → fully finalized
-                    // Individual corrections are still allowed via the upsert below
-                    if (totalRecords > 0 && unmarkedRecords == 0)
-                    {
-                        // Allow corrections: check if the incoming updates change any status
-                        // (identical status updates are harmless due to idempotent upsert)
-                    }
-                }
+                return (null, "Attendance already finalized for this session. No further changes allowed.");
             }
         }
 

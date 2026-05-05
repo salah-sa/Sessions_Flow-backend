@@ -24,7 +24,7 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
   
   // Fetch complete session data including students when the modal opens
   const { data: detailedSession } = useSession(session?.id);
-  const { startMutation } = useSessionMutations();
+  const { startMutation, updateAttendanceMutation } = useSessionMutations();
   
   // Initialize form when session data is loaded
   React.useEffect(() => {
@@ -95,28 +95,40 @@ export const AttendanceWizard: React.FC<AttendanceWizardProps> = ({ isOpen, onCl
   const handleBack = () => setStep(prev => Math.max(prev - 1, 1));
 
   const handleSubmit = async () => {
-    // 1. Ensure the session is started locally if it's currently Scheduled
     const activeSession = detailedSession || session;
-    if (activeSession && activeSession.status === "Scheduled") {
+    if (!activeSession) return;
+
+    // 1. Ensure the session is started if it's currently Scheduled
+    if (activeSession.status === "Scheduled") {
       try {
          await startMutation.mutateAsync(activeSession.id);
-      } catch (e) {
-         console.error("Failed to start session natively.", e);
+      } catch (e: any) {
+         console.error("Failed to start session.", e);
+         // Don't block — the session may already be active
       }
     }
 
-    // 2. Generate and open Google Form URL
+    // 2. Persist attendance records to MongoDB BEFORE opening the Google Form
+    if (formData.students && formData.students.length > 0) {
+      try {
+        const records = formData.students.map(s => ({
+          studentId: s.id,
+          status: (s.isPresent ? "Present" : "Absent") as import("../../types").AttendanceStatus
+        }));
+        await updateAttendanceMutation.mutateAsync({ id: activeSession.id, records });
+      } catch (e: any) {
+        console.error("Failed to persist attendance.", e);
+        // Continue — the form will still open
+      }
+    }
+
+    // 3. Generate and open Google Form URL
     const url = generateAttendanceFormUrl(formData as AttendanceFormData);
     window.open(url, "_blank");
     
-    // The parent AttendancePage manages the "Pending Session" state for the lock,
-    // which expects us to just close this wizard and it detects completion if we return.
-    // Wait, the parent uses `handleMakeAttendance` to set pendingSessionId.
-    // If we use the wizard, we need to pass a callback to inform the parent to show the confirmation dialog.
-    // I'll emit an event or rely on `onComplete`. 
-    // Let's add an onComplete prop, but for now we can just close it.
+    // 4. Notify parent to show the "Complete Attendance" confirmation dialog
     if ((window as any).onWizardComplete) {
-       (window as any).onWizardComplete(activeSession?.id);
+       (window as any).onWizardComplete(activeSession.id);
     }
     
     onClose();

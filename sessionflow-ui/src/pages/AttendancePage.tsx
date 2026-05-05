@@ -203,10 +203,13 @@ const AttendancePage: React.FC = () => {
               }
 
               const studentCount    = session.totalStudents || 0;
-              const isAttendable    = session.status !== "Ended";
               const isScheduled     = session.status === "Scheduled";
               const isActive        = session.status === "Active";
               const isEnded         = session.status === "Ended";
+              // Guard: check if this session already has finalized attendance (has present/absent records + ended)
+              const hasMarkedRecords = ((session.presentCount ?? 0) + (session.absentCount ?? 0)) > 0;
+              const isAlreadyAttended = isEnded && hasMarkedRecords;
+              const isAttendable    = !isEnded && !isAlreadyAttended;
               const isLockedByQuota = quotaReached && isScheduled;
               const isHovered       = hoveredSessionId === session.id;
 
@@ -396,14 +399,29 @@ const AttendancePage: React.FC = () => {
               </Button>
               <Button
                 variant="primary"
-                onClick={() => {
-                  endMutation.mutate({ id: pendingSessionId, force: true, notes: "Attendance managed via external Google Form." });
-                  setPendingSessionId(null);
+                onClick={async () => {
+                  const sid = pendingSessionId;
+                  try {
+                    await endMutation.mutateAsync({ id: sid, force: true, notes: "Attendance managed via external Google Form." });
+                    toast.success("Session completed & locked successfully! Group session counter advanced.", {
+                      icon: <CheckCircle className="w-4 h-4 text-emerald-400" />,
+                    });
+                  } catch (err: any) {
+                    toast.error(err?.message || "Failed to finalize session. Please try again.", {
+                      icon: <AlertCircle className="w-4 h-4 text-rose-500" />,
+                    });
+                  } finally {
+                    setPendingSessionId(null);
+                  }
                 }}
                 className="h-10 px-6 text-sm bg-emerald-600 hover:bg-emerald-500 border-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)]"
                 disabled={endMutation.isPending}
               >
-                Yes, Submitted ✓
+                {endMutation.isPending ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Finalizing...</>
+                ) : (
+                  "Yes, Submitted ✓"
+                )}
               </Button>
             </div>
           </Card>
