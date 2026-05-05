@@ -134,10 +134,10 @@ const AttendanceHeatmap: React.FC<AttendanceHeatmapProps> = ({ className }) => {
           <Loader2 className="w-5 h-5 text-slate-500 animate-spin" />
         </div>
       ) : (
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
           {calendarDays.map((day, idx) => {
             if (!day.inMonth) {
-              return <div key={`pad-${idx}`} className="aspect-square" />;
+              return <div key={`pad-${idx}`} className="aspect-square sm:aspect-[4/3]" />;
             }
 
             const data = dayMap.get(day.date);
@@ -149,9 +149,9 @@ const AttendanceHeatmap: React.FC<AttendanceHeatmapProps> = ({ className }) => {
               <motion.div
                 key={day.date}
                 className={cn(
-                  "aspect-square rounded-lg border flex items-center justify-center relative cursor-default transition-all duration-200",
+                  "aspect-square sm:aspect-[4/3] rounded-lg border flex items-center justify-center relative cursor-default transition-all duration-200",
                   INTENSITY_COLORS[intensity],
-                  isToday && "ring-1 ring-[var(--ui-accent)]/50",
+                  isToday && "ring-2 ring-[var(--ui-accent)] shadow-[0_0_12px_rgba(var(--ui-accent-rgb),0.35)]",
                   isHovered && "scale-110 z-10"
                 )}
                 onMouseEnter={() => setHoveredDay(day.date)}
@@ -161,11 +161,16 @@ const AttendanceHeatmap: React.FC<AttendanceHeatmapProps> = ({ className }) => {
                 transition={{ delay: idx * 0.008, duration: 0.2 }}
               >
                 <span className={cn(
-                  "text-[10px] font-bold tabular-nums",
-                  intensity >= 3 ? "text-emerald-300" : intensity >= 1 ? "text-white/60" : "text-slate-600"
+                  "text-[10px] sm:text-xs font-bold tabular-nums",
+                  isToday ? "text-[var(--ui-accent)]" : intensity >= 3 ? "text-emerald-300" : intensity >= 1 ? "text-white/60" : "text-slate-600"
                 )}>
                   {day.dayNum}
                 </span>
+
+                {/* Today pulsing dot */}
+                {isToday && (
+                  <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[var(--ui-accent)] animate-pulse" />
+                )}
 
                 {/* Hover tooltip */}
                 <AnimatePresence>
@@ -176,7 +181,7 @@ const AttendanceHeatmap: React.FC<AttendanceHeatmapProps> = ({ className }) => {
                       exit={{ opacity: 0, y: 4, scale: 0.95 }}
                       className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-50 pointer-events-none"
                     >
-                      <div className="px-3 py-2 rounded-xl bg-[#0c0c14] border border-white/10 shadow-2xl whitespace-nowrap">
+                      <div className="px-3 py-2.5 rounded-xl bg-[#0c0c14] border border-white/10 shadow-2xl whitespace-nowrap">
                         <p className="text-[9px] font-bold text-white mb-1">{day.date}</p>
                         <div className="flex items-center gap-3 text-[8px]">
                           <span className="text-emerald-400 font-bold">✓ {data.presentCount}</span>
@@ -199,13 +204,31 @@ const AttendanceHeatmap: React.FC<AttendanceHeatmapProps> = ({ className }) => {
         </div>
       )}
 
+      {/* Empty month message */}
+      {!isLoading && heatmapData?.length === 0 && (
+        <div className="flex items-center justify-center py-4 mt-2">
+          <p className="text-[10px] font-medium text-slate-600 italic">
+            No attendance records for {MONTH_NAMES[month - 1]} {year}
+          </p>
+        </div>
+      )}
+
       {/* Legend */}
-      <div className="flex items-center justify-center gap-2 mt-4 pt-3 border-t border-white/5">
-        <span className="text-[8px] font-bold text-slate-600 uppercase tracking-widest mr-1">Less</span>
-        {INTENSITY_COLORS.map((cls, i) => (
-          <div key={i} className={cn("w-3 h-3 rounded-sm border", cls)} />
+      <div className="flex items-center justify-center gap-1.5 mt-4 pt-3 border-t border-white/5 flex-wrap">
+        <span className="text-[7px] font-bold text-slate-600 uppercase tracking-widest mr-0.5">Less</span>
+        {[
+          { cls: INTENSITY_COLORS[0], label: "None" },
+          { cls: INTENSITY_COLORS[1], label: "Poor" },
+          { cls: INTENSITY_COLORS[2], label: "OK" },
+          { cls: INTENSITY_COLORS[3], label: "Good" },
+          { cls: INTENSITY_COLORS[4], label: "Great" },
+        ].map((item, i) => (
+          <div key={i} className="flex items-center gap-1">
+            <div className={cn("w-3 h-3 rounded-sm border", item.cls)} />
+            <span className="text-[6px] font-bold text-slate-600 uppercase tracking-wider hidden sm:inline">{item.label}</span>
+          </div>
         ))}
-        <span className="text-[8px] font-bold text-slate-600 uppercase tracking-widest ml-1">More</span>
+        <span className="text-[7px] font-bold text-slate-600 uppercase tracking-widest ml-0.5">More</span>
       </div>
     </div>
   );

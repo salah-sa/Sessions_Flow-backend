@@ -648,23 +648,33 @@ export const ChatWindow: React.FC<{ messages: ChatMessage[]; isLoading: boolean;
           
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => fileInputRef.current?.click()} 
-                className="text-slate-500 hover:text-ui-accent transition-colors"
-                disabled={isLimitReached || filesRemaining <= 0}
-              >
-                <Paperclip className="w-6 h-6" />
-              </Button>
-              <span className={cn(
-                "absolute -top-2 -right-2 min-w-[20px] h-5 rounded-full text-[9px] font-black flex items-center justify-center px-1.5 pointer-events-none shadow-xl border z-20",
-                filesRemaining <= 0 
-                  ? "bg-rose-500 text-white border-rose-400" 
-                  : "bg-ui-accent text-white border-ui-accent/50 shadow-glow shadow-ui-accent/20"
-              )}>
-                {filesRemaining === Infinity ? "∞" : filesRemaining}
-              </span>
+              {(() => {
+                const totalMediaRemaining = (imagesRemaining === Infinity || videosRemaining === Infinity || filesRemaining === Infinity)
+                  ? Infinity
+                  : imagesRemaining + videosRemaining + filesRemaining;
+                const allMediaExhausted = imagesRemaining <= 0 && videosRemaining <= 0 && filesRemaining <= 0;
+                return (
+                  <>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => fileInputRef.current?.click()} 
+                      className="text-slate-500 hover:text-ui-accent transition-colors"
+                      disabled={isLimitReached || allMediaExhausted}
+                    >
+                      <Paperclip className="w-6 h-6" />
+                    </Button>
+                    <span className={cn(
+                      "absolute -top-2 -right-2 min-w-[20px] h-5 rounded-full text-[9px] font-black flex items-center justify-center px-1.5 pointer-events-none shadow-xl border z-20",
+                      allMediaExhausted 
+                        ? "bg-rose-500 text-white border-rose-400" 
+                        : "bg-ui-accent text-white border-ui-accent/50 shadow-glow shadow-ui-accent/20"
+                    )}>
+                      {totalMediaRemaining === Infinity ? "∞" : totalMediaRemaining}
+                    </span>
+                  </>
+                );
+              })()}
             </div>
             
             <motion.button 
